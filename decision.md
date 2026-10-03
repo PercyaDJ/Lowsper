@@ -124,7 +124,8 @@ mémorisé sur le poste. Il accepte aussi les noms de projets et de personnes.
 C'est la décision qui répond à « je ne veux pas laisser mon PC allumé une heure de plus ».
 
 - **Transcription en direct** : la parole est transcrite au fil de la réunion. À la fin, il ne
-  reste que le dernier bloc à traiter : transcript téléchargé quelques secondes après « Terminer ».
+  reste que le dernier bloc de chaque source à traiter. Mesuré avec Whisper small sur la machine
+  de test : transcript téléchargé **20 s** après « Terminer » (5 s avec Whisper base).
 - **Le silence n'est jamais envoyé au modèle** : un détecteur d'activité vocale ne garde que les
   passages parlés.
 - **Blocs de parole compactés** : Whisper paie toujours le prix d'une fenêtre de 30 s, même pour
@@ -244,6 +245,11 @@ Détails :
   chargé par `<script>` en `file://`.
 - Fonctionne avec Edge et Chrome. Firefox et Safari n'ont pas l'API d'écriture dans un dossier :
   un message invite à utiliser Edge ou Chrome.
+- Test de bout en bout (`tools/test/e2e.mjs`) : installation complète dans une copie du dossier,
+  rechargement, réunion simulée. Les empreintes de la révision figée ont été vérifiées contre le
+  vrai serveur Hugging Face ; le test rejoue ensuite le téléchargement via un faux serveur local
+  (même redirection, mêmes en-têtes CORS), le proxy de l'environnement de développement coupant
+  les gros téléchargements de Chromium. `REAL_HF=1` force le vrai serveur.
 - `node build.mjs --embed whisper-small` produit une version avec le modèle déjà installé
   (même format), pour une distribution entièrement hors ligne.
 

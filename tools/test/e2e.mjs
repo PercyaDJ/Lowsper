@@ -7,6 +7,7 @@
 //
 // Usage : node test/e2e.mjs [durée_en_secondes]
 import { chromium } from 'playwright-core';
+import http from 'node:http';
 import { cp, mkdir, readFile, rm, writeFile, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -34,7 +35,7 @@ const othersPcm = othersWav.subarray(44).toString('base64'); // PCM 16 bits, 16 
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
   // Proxy éventuel de l'environnement de test (le navigateur headless ne le lit pas seul)
-  proxy: process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY } : undefined,
+  proxy: process.env.REAL_HF && process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY } : undefined,
   args: [
     '--use-fake-ui-for-media-stream',
     '--use-fake-device-for-media-stream',
@@ -52,26 +53,49 @@ let installing = true;
 page.on('request', (r) => {
   const u = r.url();
   if (!/^(file|blob|data):/.test(u) && !installing) network.push(u);
+  if (installing && !/^(file|blob|data):/.test(u) && !u.startsWith(hfBase || 'https://huggingface.co') && !/^https:\/\/[^/]*hf\.co\//.test(u)) network.push(u);
 });
 
-// Par défaut, le modèle est réellement téléchargé depuis Hugging Face (test complet :
-// révision figée, empreintes, CORS, politique de sécurité). Avec LOCAL_HF=1, les fichiers
-// sont servis depuis tools/.cache (limité aux petits fichiers par Playwright).
+// Faux serveur Hugging Face local : sert tools/.cache avec la même mécanique que le vrai
+// (redirection vers un CDN, en-têtes CORS). Avec REAL_HF=1, téléchargement réel.
 let served = 0;
-page.on('requestfinished', async (r) => {
-  if (/huggingface\.co|hf\.co/.test(r.url())) {
+let hfBase = null;
+if (!process.env.REAL_HF) {
+  const server = http.createServer(async (req, res) => {
+    const cors = { 'access-control-allow-origin': '*' };
+    if (req.method === 'OPTIONS') {
+      // Pré-vérification « Private Network Access » de Chrome (page publique -> 127.0.0.1)
+      res.writeHead(204, { ...cors, 'access-control-allow-private-network': 'true', 'access-control-allow-headers': '*' });
+      return res.end();
+    }
+    const m = req.url.match(/^\/(.+?)\/resolve\/([0-9a-f]+)\/(.+)$/);
+    if (m) {
+      res.writeHead(302, { ...cors, location: '/cdn/' + Buffer.from(req.url).toString('base64url') });
+      return res.end();
+    }
+    const c = req.url.match(/^\/cdn\/(.+)$/);
+    if (!c) return res.writeHead(404, cors).end();
+    const [, repo, revision, path] = Buffer.from(c[1], 'base64url').toString().match(/^\/(.+?)\/resolve\/([0-9a-f]+)\/(.+)$/);
+    const entry = catalog.find((x) => x.repo === repo && x.revision === revision);
+    if (!entry) return res.writeHead(404, cors).end();
+    const body = await readFile(join(here, '..', '.cache', 'models', entry.id, path));
+    served += body.length;
+    res.writeHead(200, { ...cors, 'content-type': 'application/octet-stream', 'content-length': body.length });
+    res.end(body);
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  hfBase = `http://127.0.0.1:${server.address().port}`;
+  server.unref();
+  // La copie de test autorise ce faux serveur dans la politique de sécurité
+  const html = await readFile(join(site, 'Lowsper.html'), 'utf8');
+  await writeFile(join(site, 'Lowsper.html'), html.replace('connect-src ', `connect-src ${hfBase} `));
+  await page.addInitScript((base) => { window.Lowsper = Object.assign(window.Lowsper || {}, { hfBase: base }); }, hfBase);
+} else {
+  page.on('requestfinished', async (r) => {
     const sizes = await r.sizes().catch(() => null);
-    if (sizes) served += sizes.responseBodySize;
-  }
-});
-if (process.env.LOCAL_HF) await context.route(/^https:\/\/huggingface\.co\/(.+?)\/resolve\/([0-9a-f]+)\/(.+)$/, async (route) => {
-  const [, repo, revision, path] = route.request().url().match(/^https:\/\/huggingface\.co\/(.+?)\/resolve\/([0-9a-f]+)\/(.+)$/);
-  const entry = catalog.find((m) => m.repo === repo && m.revision === revision);
-  if (!entry) return route.fulfill({ status: 404 });
-  const body = await readFile(join(here, '..', '.cache', 'models', entry.id, path));
-  served += body.length;
-  await route.fulfill({ status: 200, body, headers: { 'access-control-allow-origin': '*', 'content-type': 'application/octet-stream' } });
-});
+    if (sizes && /hf\.co|huggingface\.co/.test(r.url())) served += sizes.responseBodySize;
+  });
+}
 
 // Sélecteur de dossier simulé : un faux FileSystemDirectoryHandle qui écrit dans « site »
 await page.exposeFunction('__lowsperFs', async (op, rel, data) => {
