@@ -51,13 +51,20 @@
       toast(problem, 10000);
       return;
     }
+    const installed = self.LOWSPER_INSTALLED || [];
+    if (!installed.length) {
+      setEngine('idle', 'Modèle à installer');
+      showInstall();
+      return;
+    }
     try {
-      const manifest = self.LOWSPER_MANIFEST;
-      const model = manifest && manifest.models[0];
-      app.modelLabel = model ? model.label.replace(/\s*\(.*\)\s*$/, '') : 'Whisper';
-      $('foot-model').textContent = app.modelLabel;
+      const preferred = store.get('lowsper.model');
+      const model = installed.find((m) => m.id === preferred) || installed[0];
+      app.modelLabel = model.label;
+      $('foot-model').textContent = model.label;
+      renderModelSelect(installed, model.id);
 
-      const assets = await L.loadAssets((r) => setEngine('loading', `Préparation du moteur ${Math.round(r * 100)} %`));
+      const assets = await L.loadAssets((r) => setEngine('loading', `Préparation du moteur ${Math.round(r * 100)} %`), model.id);
       setEngine('loading', 'Démarrage du moteur');
 
       // Deux moteurs en parallèle (un par voix qui parle) si la machine le permet.
@@ -101,7 +108,7 @@
       w.idle = false;
       app.inFlight++;
       const lang = job.transcript.meta.language === 'auto' ? ['fr', 'en'] : job.transcript.meta.language;
-      w.transcribe(job.seg.audio, lang)
+      w.transcribe(job.seg.audio, lang, job.transcript.meta.glossary)
         .then((res) => job.transcript.addSegment(job.source, job.seg, res))
         .catch((err) => console.error('Segment non transcrit', err))
         .finally(() => {
@@ -183,6 +190,7 @@
       title: $('title').value.trim(),
       startedAt: Date.now(),
       language: $('language').value,
+      glossary: $('glossary').value.trim(),
       model: app.modelLabel,
       sources: [],
     });
@@ -392,6 +400,7 @@
 
   function setState(state) {
     app.state = state;
+    $('view-install').hidden = state !== 'install';
     $('view-idle').hidden = state !== 'idle';
     $('view-rec').hidden = state !== 'recording';
     $('view-finish').hidden = state !== 'finishing';
@@ -449,7 +458,7 @@
   });
 
   window.addEventListener('beforeunload', (e) => {
-    if (app.state === 'recording' || app.state === 'finishing') {
+    if (app.state === 'recording' || app.state === 'finishing' || app.installing) {
       e.preventDefault();
       e.returnValue = '';
     }
@@ -476,6 +485,141 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Installation du modèle (premier lancement)
+  // ---------------------------------------------------------------------------
+
+  const store = {
+    get(k) {
+      try {
+        return localStorage.getItem(k);
+      } catch {
+        return null;
+      }
+    },
+    set(k, v) {
+      try {
+        localStorage.setItem(k, v);
+      } catch {}
+    },
+  };
+
+  function showInstall() {
+    const catalog = (self.LOWSPER_MANIFEST && self.LOWSPER_MANIFEST.catalog) || [];
+    const installed = self.LOWSPER_INSTALLED || [];
+    const box = $('model-choices');
+    box.replaceChildren();
+    catalog.forEach((m, i) => {
+      const mb = Math.round(m.files.reduce((n, f) => n + f.size, 0) / 1e6);
+      const label = document.createElement('label');
+      label.className = 'model-opt';
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'model-choice';
+      input.value = m.id;
+      input.checked = i === 0;
+      const title = document.createElement('strong');
+      title.textContent = m.label;
+      if (m.recommended) {
+        const b = document.createElement('span');
+        b.className = 'badge';
+        b.textContent = 'recommandé';
+        title.appendChild(b);
+      }
+      if (installed.some((x) => x.id === m.id)) {
+        const b = document.createElement('span');
+        b.className = 'badge';
+        b.textContent = 'installé';
+        title.appendChild(b);
+      }
+      const size = document.createElement('span');
+      size.className = 'size';
+      size.textContent = `${mb} Mo`;
+      const desc = document.createElement('span');
+      desc.className = 'desc';
+      desc.textContent = m.description || '';
+      label.append(input, title, size, desc);
+      box.appendChild(label);
+    });
+    $('install-back').hidden = !installed.length;
+    $('install-error').hidden = true;
+    setState('install');
+  }
+
+  async function install() {
+    if (app.installing) return;
+    const catalog = self.LOWSPER_MANIFEST.catalog;
+    const choice = document.querySelector('input[name="model-choice"]:checked');
+    const entry = catalog.find((m) => m.id === (choice && choice.value)) || catalog[0];
+    const err = $('install-error');
+    err.hidden = true;
+    if (!L.canInstall()) {
+      err.textContent =
+        "Ce navigateur ne permet pas d'enregistrer le modèle dans un dossier. Ouvrez Lowsper.html avec Microsoft Edge ou Google Chrome.";
+      err.hidden = false;
+      return;
+    }
+    let folder;
+    try {
+      folder = await L.pickLowsperFolder(); // doit suivre immédiatement le clic
+    } catch (e) {
+      if (e.code !== 'CANCELLED') {
+        err.textContent = e.message;
+        err.hidden = false;
+      }
+      return;
+    }
+    app.installing = true;
+    $('install').disabled = true;
+    document.querySelectorAll('input[name="model-choice"]').forEach((i) => (i.disabled = true));
+    $('install-progress').hidden = false;
+    setEngine('loading', 'Téléchargement du modèle');
+    const t0 = performance.now();
+    try {
+      await L.installModel(folder, entry, (p) => {
+        $('install-bar').style.width = (p.ratio * 100).toFixed(1) + '%';
+        const secs = (performance.now() - t0) / 1000;
+        const speed = p.done / 1e6 / Math.max(secs, 0.1);
+        const left = speed > 0 ? Math.round((p.total - p.done) / 1e6 / speed) : 0;
+        $('install-text').textContent =
+          `${Math.round(p.done / 1e6)} / ${Math.round(p.total / 1e6)} Mo · ${speed.toFixed(1)} Mo/s` +
+          (left > 2 ? ` · environ ${left > 90 ? Math.round(left / 60) + ' min' : left + ' s'} restantes` : '');
+      });
+      store.set('lowsper.model', entry.id);
+      $('install-text').textContent = 'Modèle installé. Démarrage…';
+      app.installing = false;
+      setTimeout(() => location.reload(), 400);
+    } catch (e) {
+      console.error(e);
+      app.installing = false;
+      $('install').disabled = false;
+      document.querySelectorAll('input[name="model-choice"]').forEach((i) => (i.disabled = false));
+      $('install-progress').hidden = true;
+      setEngine('error', 'Installation interrompue');
+      let msg = e.message || String(e);
+      if (e.code === 'NETWORK' || e.code === 'HTTP') {
+        msg +=
+          " Le réseau de l'entreprise bloque peut-être ce site. Essayez depuis un autre réseau (partage de connexion, domicile), " +
+          "ou copiez le dossier Lowsper d'un collègue qui l'a déjà installé.";
+      }
+      err.textContent = msg;
+      err.hidden = false;
+    }
+  }
+
+  function renderModelSelect(installed, current) {
+    const sel = $('model');
+    sel.replaceChildren();
+    for (const m of installed) {
+      const o = document.createElement('option');
+      o.value = m.id;
+      o.textContent = m.label;
+      o.selected = m.id === current;
+      sel.appendChild(o);
+    }
+    $('model-field').hidden = installed.length < 2;
+  }
+
+  // ---------------------------------------------------------------------------
   // Branchements
   // ---------------------------------------------------------------------------
 
@@ -485,6 +629,15 @@
     $('with-others').parentElement.title = "Ce navigateur ne permet pas de capter le son d'une autre application.";
   }
 
+  $('install').addEventListener('click', install);
+  $('install-back').addEventListener('click', () => setState('idle'));
+  $('add-model').addEventListener('click', showInstall);
+  $('model').addEventListener('change', (e) => {
+    store.set('lowsper.model', e.target.value);
+    location.reload();
+  });
+  $('glossary').value = store.get('lowsper.glossary') || '';
+  $('glossary').addEventListener('input', (e) => store.set('lowsper.glossary', e.target.value));
   $('start').addEventListener('click', start);
   $('pause').addEventListener('click', togglePause);
   $('stop').addEventListener('click', stop);

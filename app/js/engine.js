@@ -34,7 +34,7 @@
   }
 
   function takeAsset(src) {
-    const key = src.replace(/\.js$/, '');
+    const key = src.replace(/\.(js|txt)$/, '');
     const store = self.LOWSPER_ASSETS || {};
     const value = store[key];
     delete store[key]; // libère la mémoire occupée par la chaîne base64
@@ -74,8 +74,9 @@
     assetsPromise = (async () => {
       const manifest = self.LOWSPER_MANIFEST;
       if (!manifest) throw new Error('app/manifest.js introuvable : le dossier est incomplet.');
-      const model = manifest.models.find((m) => m.id === modelId) || manifest.models[0];
-      if (!model) throw new Error('Aucun modèle installé dans app/models.');
+      const installed = self.LOWSPER_INSTALLED || [];
+      const model = installed.find((m) => m.id === modelId) || installed[0];
+      if (!model) throw new Error('Aucun modèle installé.');
 
       const fileParts = Object.values(model.files).flat();
       const total =
@@ -100,7 +101,7 @@
       for (const [name, parts] of Object.entries(model.files)) {
         files[name] = await loadBinary(parts, tick);
       }
-      return { runtime, wasm, model: { id: model.id, label: model.label, texts, files } };
+      return { runtime, wasm, model: { id: model.id, label: model.label, dtype: model.dtype, texts, files } };
     })();
     assetsPromise.catch(() => {
       assetsPromise = null;
@@ -154,73 +155,138 @@
 
       asr = await pipeline('automatic-speech-recognition', model.id, {
         device: 'wasm',
-        dtype: { encoder_model: 'q8', decoder_model_merged: 'q8' },
+        dtype: model.dtype || { encoder_model: 'q8', decoder_model_merged: 'q8' },
       });
-      // Permet de transmettre à generate() la sortie d'encodeur déjà calculée lors de la
-      // détection de langue (sinon transformers.js l'ignore et réencode l'audio).
+      // Permet de transmettre à generate() la sortie d'encodeur déjà calculée
+      // (sinon transformers.js l'ignore et réencode l'audio).
       if (!asr.model.forward_params.includes('encoder_outputs')) {
         asr.model.forward_params = asr.model.forward_params.concat('encoder_outputs');
       }
+      const tok = asr.tokenizer;
+      const gen = asr.model.generation_config;
+      ids = {
+        sot: gen.decoder_start_token_id,
+        prev: tokenId('<|startofprev|>'),
+        transcribe: gen.task_to_id.transcribe,
+        eos: gen.eos_token_id,
+        tsBegin: tokenId('<|0.00|>'),
+        special: new Set(tok.all_special_ids),
+        lang: gen.lang_to_id,
+      };
       // Préchauffe (la première inférence est plus lente). Quelques jetons suffisent :
       // sur du silence, Whisper a tendance à « halluciner » sans fin.
-      await asr(new Float32Array(16000), { language: 'fr', task: 'transcribe', max_new_tokens: 4 });
+      await transcribe({ audio: new Float32Array(16000), language: 'fr', maxTokens: 4 });
     }
 
-    // Détection de la langue parmi une liste restreinte (ex. ['fr', 'en']) : une seule étape
-    // du décodeur, en réutilisant la sortie de l'encodeur pour la transcription qui suit.
-    async function detect(features, candidates) {
-      const { Tensor } = self.LowsperRuntime;
-      const model = asr.model;
-      const inputs = await model._prepare_encoder_decoder_kwargs_for_generation({
+    let ids = null;
+    function tokenId(token) {
+      const t = asr.tokenizer;
+      const id = t.model && t.model.tokens_to_ids ? t.model.tokens_to_ids.get(token) : undefined;
+      if (id !== undefined) return id;
+      const enc = t.encode(token, { add_special_tokens: false });
+      if (enc.length === 1) return enc[0];
+      throw new Error('Jeton inconnu : ' + token);
+    }
+
+    // Glossaire -> jetons du « prompt » Whisper (contexte précédent). Whisper imite
+    // l'orthographe de ce contexte : les sigles listés sont écrits correctement.
+    let promptCache = { text: null, ids: [] };
+    function promptIds(text) {
+      text = (text || '').trim();
+      if (!text) return [];
+      if (promptCache.text !== text) {
+        const encoded = asr.tokenizer.encode(' ' + text, { add_special_tokens: false });
+        // Whisper limite le contexte à la moitié de sa fenêtre (224 jetons)
+        promptCache = { text, ids: encoded.slice(-200) };
+      }
+      return promptCache.ids;
+    }
+
+    async function encode(features) {
+      const inputs = await asr.model._prepare_encoder_decoder_kwargs_for_generation({
         inputs_tensor: features,
         model_inputs: { input_features: features },
         model_input_name: 'input_features',
         generation_config: { guidance_scale: null },
       });
-      const gen = model.generation_config;
-      const sot = gen.decoder_start_token_id;
-      const out = await model.forward({
-        encoder_outputs: inputs.encoder_outputs,
-        decoder_input_ids: new Tensor('int64', BigInt64Array.from([BigInt(sot)]), [1, 1]),
+      return inputs.encoder_outputs;
+    }
+
+    // Détection de la langue parmi une liste restreinte (ex. ['fr', 'en']) :
+    // une seule étape du décodeur, sur la sortie d'encodeur déjà calculée.
+    async function detect(encoderOutputs, candidates) {
+      const { Tensor } = self.LowsperRuntime;
+      const out = await asr.model.forward({
+        encoder_outputs: encoderOutputs,
+        decoder_input_ids: new Tensor('int64', BigInt64Array.from([BigInt(ids.sot)]), [1, 1]),
       });
       const logits = out.logits.data;
       let best = candidates[0];
       let bestScore = -Infinity;
       for (const code of candidates) {
-        const id = gen.lang_to_id['<|' + code + '|>'];
+        const id = ids.lang['<|' + code + '|>'];
         if (id != null && logits[id] > bestScore) {
           bestScore = logits[id];
           best = code;
         }
       }
-      return { language: best, encoder_outputs: inputs.encoder_outputs };
+      return best;
     }
 
     async function transcribe(msg) {
       const t0 = performance.now();
       const seconds = msg.audio.length / 16000;
-      const options = {
-        language: msg.language,
+      const features = (await asr.processor(msg.audio)).input_features;
+      const encoderOutputs = await encode(features);
+      const language = Array.isArray(msg.language) ? await detect(encoderOutputs, msg.language) : msg.language || 'fr';
+
+      const prompt = promptIds(msg.prompt);
+      const prefix = (prompt.length ? [ids.prev, ...prompt] : []).concat([
+        ids.sot,
+        ids.lang['<|' + language + '|>'],
+        ids.transcribe,
+      ]);
+      const output = await asr.model.generate({
+        inputs: features,
+        encoder_outputs: encoderOutputs,
+        decoder_input_ids: prefix,
+        language,
         task: 'transcribe',
-        // Horodatage par phrase, à l'intérieur du segment
-        return_timestamps: true,
+        return_timestamps: true, // horodatage par phrase, à l'intérieur du segment
+        num_frames: Math.floor(msg.audio.length / 160),
         // Garde-fou contre les boucles de répétition : on dépasse rarement 6 jetons de
         // texte par seconde de parole ; au-delà c'est presque toujours une hallucination.
-        max_new_tokens: Math.min(440, Math.ceil(seconds * 8) + 16),
+        max_new_tokens: msg.maxTokens || Math.min(440, Math.ceil(seconds * 8) + 16),
+      });
+      const tokens = output.tolist()[0].map(Number).slice(prefix.length);
+      const chunks = parse(tokens, seconds);
+      return { text: chunks.map((c) => c.text).join(' '), chunks, language, ms: performance.now() - t0 };
+    }
+
+    // Découpe la suite <|t0|> texte <|t1|> <|t1|> texte <|t2|> ... en phrases horodatées.
+    function parse(tokens, seconds) {
+      const chunks = [];
+      let from = null;
+      let text = [];
+      const flush = (to) => {
+        const t = asr.tokenizer.decode(text, { skip_special_tokens: true }).trim();
+        if (t) chunks.push({ from: from == null ? 0 : from, to, text: t });
+        text = [];
       };
-      if (Array.isArray(msg.language)) {
-        const features = (await asr.processor(msg.audio)).input_features;
-        const d = await detect(features, msg.language);
-        options.language = d.language;
-        options.encoder_outputs = d.encoder_outputs;
+      for (const t of tokens) {
+        if (t >= ids.tsBegin) {
+          const time = (t - ids.tsBegin) * 0.02;
+          if (from === null || !text.length) from = time;
+          else {
+            flush(time);
+            from = null;
+          }
+        } else if (!ids.special.has(t)) {
+          text.push(t);
+        }
       }
-      const out = await asr(msg.audio, options);
-      const chunks = ((out && out.chunks) || []).map((c) => ({
-        from: c.timestamp ? c.timestamp[0] : 0,
-        to: c.timestamp ? c.timestamp[1] : null,
-        text: c.text,
-      }));
-      return { text: (out && out.text) || '', chunks, language: options.language, ms: performance.now() - t0 };
+      if (text.length) flush(seconds);
+      return chunks;
     }
 
     self.onmessage = (e) => {
@@ -278,9 +344,9 @@
       });
     }
 
-    async transcribe(audio, language) {
+    async transcribe(audio, language, prompt) {
       await this.ready;
-      return this.call({ type: 'transcribe', audio, language }, [audio.buffer]);
+      return this.call({ type: 'transcribe', audio, language, prompt }, [audio.buffer]);
     }
 
     dispose() {

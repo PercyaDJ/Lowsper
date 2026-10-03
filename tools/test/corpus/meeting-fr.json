@@ -1,0 +1,14 @@
+{
+  "description": "Réunion d'entreprise fictive, riche en sigles, servant à comparer les modèles. Texte de référence et texte envoyé à la synthèse vocale (sigles épelés comme à l'oral).",
+  "glossary": "RSSI, DSI, COMEX, KPI, RGPD, PCA, SLA, ETP, MCO, POC, ROI, NIS 2, PSSI, SOC, EDR, VPN, ERP, CRM, DAF, RH",
+  "lines": [
+    { "voice": "tom", "ref": "Bonjour à tous, on commence par le point du RSSI sur la conformité NIS 2.", "say": "Bonjour à tous, on commence par le point du R S S I sur la conformité nisse deux." },
+    { "voice": "siwis", "ref": "Merci. Le COMEX a validé le budget, mais la DSI attend encore le chiffrage du PCA.", "say": "Merci. Le comex a validé le budget, mais la D S I attend encore le chiffrage du P C A." },
+    { "voice": "upmc", "ref": "Pour le SOC, on a deux ETP en moins, donc le SLA de quatre heures n'est plus tenable.", "say": "Pour le sok, on a deux E T P en moins, donc le S L A de quatre heures n'est plus tenable." },
+    { "voice": "tom", "ref": "D'accord. Est-ce qu'on peut lancer un POC sur l'EDR avant la fin du trimestre ?", "say": "D'accord. Est-ce qu'on peut lancer un pok sur l'E D R avant la fin du trimestre ?" },
+    { "voice": "siwis", "ref": "Oui, mais il faut l'accord du DAF et un calcul de ROI. Les RH doivent aussi valider le planning.", "say": "Oui, mais il faut l'accord du daf et un calcul de R O I. Les R H doivent aussi valider le planning." },
+    { "voice": "upmc", "ref": "Côté RGPD, la PSSI doit être mise à jour avant la migration de l'ERP et du CRM.", "say": "Côté R G P D, la P S S I doit être mise à jour avant la migration de l'E R P et du C R M." },
+    { "voice": "tom", "ref": "Je note les actions : le MCO du VPN passe chez le prestataire, et on suit les KPI chaque mois.", "say": "Je note les actions : le M C O du V P N passe chez le prestataire, et on suit les K P I chaque mois." },
+    { "voice": "siwis", "ref": "Parfait, prochaine réunion mardi à quatorze heures.", "say": "Parfait, prochaine réunion mardi à quatorze heures." }
+  ]
+}

@@ -5,11 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!--
     Garantie technique « rien ne sort de l'ordinateur » : cette politique interdit à la page
-    toute connexion réseau (fetch, XHR, WebSocket, images, polices distantes...).
-    Seuls les fichiers locaux du dossier et le code créé en mémoire par Lowsper lui-même
-    (blob: pour le moteur, data: pour le traitement audio) sont autorisés.
+    toute connexion réseau, sauf vers Hugging Face pour le téléchargement initial du modèle.
+    L'audio et le texte ne sont jamais envoyés : la page n'a aucun code qui le fait, et elle
+    ne pourrait de toute façon joindre aucun autre site.
+    Scripts : uniquement les fichiers du dossier et le code créé en mémoire par Lowsper
+    (blob: pour le moteur, data: pour le traitement audio).
   -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file: blob: data: 'wasm-unsafe-eval'; worker-src blob:; style-src 'self' file:; img-src data:; connect-src 'none'; media-src 'none'; font-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file: blob: data: 'wasm-unsafe-eval'; worker-src blob:; style-src 'self' file:; img-src data:; connect-src https://huggingface.co https://*.huggingface.co https://*.hf.co; media-src 'none'; font-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <title>Lowsper</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23305cde'/%3E%3Crect x='12' y='6' width='8' height='14' rx='4' fill='white'/%3E%3Cpath d='M9 15a7 7 0 0 0 14 0M16 22v4' stroke='white' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
@@ -18,7 +20,7 @@
 <body>
   <div class="consent" role="note">
     <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
-    <p><strong>Prévenez les participants</strong> avant de lancer l'enregistrement : la réunion va être transcrite. Tout est traité sur cet ordinateur, aucune donnée n'est envoyée sur Internet.</p>
+    <p><strong>Prévenez les participants</strong> avant de lancer l'enregistrement : la réunion va être transcrite. Tout est traité sur cet ordinateur, ni le son ni le texte ne sont envoyés sur Internet.</p>
   </div>
 
   <header class="top">
@@ -39,6 +41,30 @@
         <button class="btn" id="recover-download">Télécharger ce transcript</button>
         <button class="btn ghost" id="recover-dismiss">Ignorer</button>
       </div>
+    </section>
+
+    <!-- Premier lancement : installation du modèle -->
+    <section class="card view" id="view-install" hidden>
+      <h1>Première utilisation</h1>
+      <p class="lead">Lowsper a besoin d'un modèle de reconnaissance vocale. Il est téléchargé <strong>une seule fois</strong>, puis enregistré dans le dossier Lowsper, à côté de ce fichier. Ensuite, tout fonctionne hors ligne.</p>
+
+      <div class="models" id="model-choices"></div>
+
+      <button class="btn primary big" id="install">Installer le modèle</button>
+      <button class="btn ghost" id="install-back" hidden>Retour</button>
+
+      <div class="progress" id="install-progress" hidden>
+        <div class="progress-bar"><i id="install-bar"></i></div>
+        <p class="progress-text" id="install-text">Préparation…</p>
+      </div>
+      <div class="notice" id="install-error" hidden></div>
+
+      <ol class="howto">
+        <li>Cliquez sur <strong>Installer le modèle</strong>.</li>
+        <li>Sélectionnez le <strong>dossier Lowsper</strong> (celui qui contient Lowsper.html), puis acceptez que Lowsper y enregistre des fichiers.</li>
+        <li>Patientez pendant le téléchargement (une à quelques minutes selon la connexion). Ne fermez pas la page.</li>
+      </ol>
+      <p class="fine">Le téléchargement se fait depuis Hugging Face (huggingface.co), à une version figée, et chaque fichier est vérifié par empreinte numérique. Pour équiper un poste sans accès à Internet, copiez le dossier Lowsper d'un poste déjà installé.</p>
     </section>
 
     <!-- Avant la réunion -->
@@ -70,6 +96,15 @@
             <input type="checkbox" id="with-others" checked>
             <span>Capter aussi le son des participants (partage d'écran)</span>
           </label>
+          <label class="field inline">
+            <span>Sigles et noms propres de vos réunions <em>(aide la reconnaissance, conservé sur ce poste)</em></span>
+            <textarea id="glossary" rows="3" spellcheck="false" placeholder="Ex. RSSI, COMEX, KPI, RGPD, NIS 2, projet Atlas, Mme Durand"></textarea>
+          </label>
+          <label class="field inline" id="model-field" hidden>
+            <span>Modèle de transcription</span>
+            <select id="model"></select>
+          </label>
+          <button class="linkish" id="add-model" type="button">Installer un autre modèle</button>
         </div>
       </details>
 
@@ -138,13 +173,16 @@
   </main>
 
   <footer class="foot">
-    <span id="foot-model">Modèle local</span> · 100 % hors ligne · aucune donnée n'est envoyée
+    <span id="foot-model">Modèle local</span> · transcription 100 % locale · ni le son ni le texte ne quittent ce poste
   </footer>
 
   <noscript><p class="card">Lowsper a besoin de JavaScript pour fonctionner.</p></noscript>
 
   <script src="app/manifest.js"></script>
+  <!-- Modèles installés (absent tant que le modèle n'a pas été téléchargé) -->
+  <script src="app/models/index.txt"></script>
   <script src="app/js/engine.js"></script>
+  <script src="app/js/installer.js"></script>
   <script src="app/js/capture.js"></script>
   <script src="app/js/transcript.js"></script>
   <script src="app/js/app.js"></script>

@@ -120,7 +120,7 @@ h2 { font-size: 20px; }
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; font-size: 14px; color: var(--muted); }
 .field em { font-style: normal; opacity: .8; }
 .field.inline { margin-bottom: 0; }
-input[type="text"], select {
+input[type="text"], select, textarea {
   font: inherit;
   color: var(--text);
   background: var(--surface-2);
@@ -271,3 +271,32 @@ input[type="text"]:focus, select:focus { border-color: var(--accent); box-shadow
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+textarea { resize: vertical; min-height: 64px; font: inherit; }
+
+/* Installation */
+.models { display: grid; gap: 10px; margin-bottom: 18px; }
+.model-opt {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 4px 12px;
+  align-items: start;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  background: var(--surface);
+}
+.model-opt:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.model-opt input { margin-top: 4px; accent-color: var(--accent); }
+.model-opt strong { font-size: 15px; }
+.model-opt .size { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.model-opt .desc { grid-column: 2 / 4; color: var(--muted); font-size: 13.5px; }
+.badge { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 99px; font-size: 11.5px; font-weight: 600; background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); vertical-align: 1px; }
+.progress { margin-top: 16px; }
+.progress-bar { height: 10px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; }
+.progress-bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s ease; }
+.progress-text { color: var(--muted); font-size: 13.5px; margin: 8px 0 0; font-variant-numeric: tabular-nums; }
+#install-error { margin-top: 16px; margin-bottom: 0; }
+.fine { color: var(--muted); font-size: 12.5px; margin: 14px 0 0; }
+.linkish { font: inherit; font-size: 13.5px; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; justify-self: start; }

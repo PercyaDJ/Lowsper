@@ -1,36 +1,37 @@
-// Catalogue des modèles embarquables dans Lowsper.
-// Chaque modèle est téléchargé une seule fois par le développeur (fetch-model.mjs),
-// puis converti en fichiers .js par build.mjs pour être lisible depuis file://.
+// Catalogue des modèles utilisables par Lowsper.
+// dtype : quantification de chaque partie (q8 = int8, q4 = 4 bits), même convention que transformers.js.
 
-export const MODELS = {
-  'whisper-base': {
-    repo: 'onnx-community/whisper-base',
-    revision: 'main',
-    label: 'Whisper base (multilingue, ~77 Mo)',
-    files: [
-      'config.json',
-      'generation_config.json',
-      'preprocessor_config.json',
-      'tokenizer.json',
-      'tokenizer_config.json',
-      'onnx/encoder_model_quantized.onnx',
-      'onnx/decoder_model_merged_quantized.onnx',
-    ],
-  },
-  'whisper-small': {
-    repo: 'onnx-community/whisper-small',
-    revision: 'main',
-    label: 'Whisper small (multilingue, ~250 Mo, plus précis, ~3x plus lent)',
-    files: [
-      'config.json',
-      'generation_config.json',
-      'preprocessor_config.json',
-      'tokenizer.json',
-      'tokenizer_config.json',
-      'onnx/encoder_model_quantized.onnx',
-      'onnx/decoder_model_merged_quantized.onnx',
-    ],
-  },
-};
+const SUFFIX = { fp32: '', q8: '_quantized', q4: '_q4', int8: '_int8', fp16: '_fp16' };
+const JSON_FILES = [
+  'config.json',
+  'generation_config.json',
+  'preprocessor_config.json',
+  'tokenizer.json',
+  'tokenizer_config.json',
+];
 
-export const DEFAULT_MODEL = 'whisper-base';
+function def(id, repo, label, dtype) {
+  return {
+    id,
+    repo,
+    revision: 'main',
+    label,
+    dtype,
+    files: [
+      ...JSON_FILES,
+      ...Object.entries(dtype).map(([part, q]) => `onnx/${part}${SUFFIX[q]}.onnx`),
+    ],
+  };
+}
+
+export const MODELS = Object.fromEntries(
+  [
+    def('whisper-base', 'onnx-community/whisper-base', 'Whisper base', { encoder_model: 'q8', decoder_model_merged: 'q8' }),
+    def('whisper-small', 'onnx-community/whisper-small', 'Whisper small', { encoder_model: 'q8', decoder_model_merged: 'q8' }),
+    def('whisper-small-q4', 'onnx-community/whisper-small', 'Whisper small (4 bits)', { encoder_model: 'q8', decoder_model_merged: 'q4' }),
+    def('whisper-small-fr', 'onnx-community/whisper-small-cv11-french-ONNX', 'Whisper small français', { encoder_model: 'q8', decoder_model_merged: 'q4' }),
+    def('whisper-turbo', 'onnx-community/whisper-large-v3-turbo', 'Whisper large-v3 turbo', { encoder_model: 'q4', decoder_model_merged: 'q4' }),
+  ].map((m) => [m.id, m])
+);
+
+export const DEFAULT_MODEL = 'whisper-small';

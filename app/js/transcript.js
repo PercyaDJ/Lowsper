@@ -201,6 +201,7 @@
       out.push(`- **Sources** : ${sources || 'aucune'}`);
       out.push(`- **Langue** : ${langs[m.language] || m.language}`);
       out.push(`- **Transcription** : ${m.model || 'Whisper'}, exécuté localement par Lowsper (hors ligne)`);
+      if (m.glossary) out.push(`- **Vocabulaire de référence** (sigles et noms propres attendus) : ${m.glossary.replace(/\s+/g, ' ')}`);
       out.push('');
       out.push(
         '> Transcription automatique : elle peut contenir des erreurs de reconnaissance. ' +
