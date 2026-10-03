@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    Garantie technique « rien ne sort de l'ordinateur » : cette politique interdit à la page
+    toute connexion réseau (fetch, XHR, WebSocket, images, polices distantes...).
+    Seuls les fichiers locaux du dossier et le code créé en mémoire par Lowsper lui-même
+    (blob: pour le moteur, data: pour le traitement audio) sont autorisés.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file: blob: data: 'wasm-unsafe-eval'; worker-src blob:; style-src 'self' file:; img-src data:; connect-src 'none'; media-src 'none'; font-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Lowsper</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23305cde'/%3E%3Crect x='12' y='6' width='8' height='14' rx='4' fill='white'/%3E%3Cpath d='M9 15a7 7 0 0 0 14 0M16 22v4' stroke='white' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="app/css/lowsper.css">
+</head>
+<body>
+  <div class="consent" role="note">
+    <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+    <p><strong>Prévenez les participants</strong> avant de lancer l'enregistrement : la réunion va être transcrite. Tout est traité sur cet ordinateur, aucune donnée n'est envoyée sur Internet.</p>
+  </div>
+
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" class="brand-bg"/><rect x="12" y="6" width="8" height="14" rx="4" fill="#fff"/><path d="M9 15a7 7 0 0 0 14 0M16 22v4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      <span>Lowsper</span>
+    </div>
+    <div class="engine" id="engine" data-state="loading">
+      <span class="dot"></span><span id="engine-text">Préparation du moteur</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Session précédente interrompue -->
+    <section class="recover card" id="recover" hidden>
+      <p><strong>Une réunion précédente n'a pas été terminée</strong> (<span id="recover-info"></span>). Son transcript a été sauvegardé.</p>
+      <div class="row">
+        <button class="btn" id="recover-download">Télécharger ce transcript</button>
+        <button class="btn ghost" id="recover-dismiss">Ignorer</button>
+      </div>
+    </section>
+
+    <!-- Avant la réunion -->
+    <section class="card view" id="view-idle">
+      <h1>Transcrire une réunion</h1>
+      <p class="lead">Lancez l'enregistrement en début de réunion, arrêtez-le à la fin : vous récupérez un transcript Markdown horodaté.</p>
+
+      <label class="field">
+        <span>Nom de la réunion <em>(facultatif)</em></span>
+        <input id="title" type="text" maxlength="80" placeholder="Ex. Point hebdo projet" autocomplete="off">
+      </label>
+
+      <button class="btn primary big" id="start">
+        <span class="rec-dot"></span> Démarrer l'enregistrement
+      </button>
+
+      <details class="options">
+        <summary>Options</summary>
+        <div class="options-grid">
+          <label class="field inline">
+            <span>Langue parlée</span>
+            <select id="language">
+              <option value="fr" selected>Français</option>
+              <option value="en">Anglais</option>
+              <option value="auto">Français et anglais (détection automatique)</option>
+            </select>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="with-others" checked>
+            <span>Capter aussi le son des participants (partage d'écran)</span>
+          </label>
+        </div>
+      </details>
+
+      <ol class="howto">
+        <li>Votre navigateur va proposer un <strong>partage d'écran</strong> : choisissez l'écran entier (ou l'onglet de la réunion) et <strong>cochez « Partager l'audio »</strong>. Rien n'est filmé ni enregistré, seul le son est utilisé.</li>
+        <li>Autorisez ensuite le <strong>micro</strong>.</li>
+        <li>Avec un casque, le résultat est plus propre (le micro ne réentend pas les participants).</li>
+      </ol>
+    </section>
+
+    <!-- Pendant la réunion -->
+    <section class="card view" id="view-rec" hidden>
+      <div class="rec-head">
+        <div class="rec-status" id="rec-status"><span class="rec-dot pulsing"></span><span id="rec-label">Enregistrement</span></div>
+        <div class="timer" id="timer">00:00:00</div>
+      </div>
+
+      <div class="meters">
+        <div class="meter" id="meter-me">
+          <span class="who">Vous</span>
+          <span class="bar"><i></i></span>
+          <span class="state"></span>
+        </div>
+        <div class="meter" id="meter-others">
+          <span class="who">Participants</span>
+          <span class="bar"><i></i></span>
+          <span class="state"></span>
+        </div>
+      </div>
+      <div class="notice" id="rec-notice" hidden></div>
+
+      <div class="feed" id="live" aria-live="polite">
+        <p class="placeholder">Le transcript apparaîtra ici au fil de la réunion.</p>
+      </div>
+      <div class="queue" id="queue"></div>
+
+      <div class="row actions">
+        <button class="btn ghost" id="pause">Pause</button>
+        <button class="btn danger" id="stop"><span class="sq"></span> Terminer la réunion</button>
+      </div>
+    </section>
+
+    <!-- Finalisation -->
+    <section class="card view center" id="view-finish" hidden>
+      <div class="spinner"></div>
+      <h2>Finalisation du transcript</h2>
+      <p class="lead" id="finish-text">Transcription des dernières phrases…</p>
+    </section>
+
+    <!-- Résultat -->
+    <section class="card view" id="view-done" hidden>
+      <h2>Transcript prêt</h2>
+      <p class="lead" id="done-info"></p>
+      <div class="row">
+        <button class="btn primary" id="download">Télécharger le fichier .md</button>
+        <button class="btn" id="copy">Copier</button>
+        <button class="btn" id="copy-ai" title="Copie le transcript précédé d'une consigne pour obtenir un compte rendu">Copier pour une IA</button>
+      </div>
+      <pre class="preview" id="preview"></pre>
+      <div class="row">
+        <button class="btn ghost" id="again">Nouvelle réunion</button>
+      </div>
+    </section>
+
+    <div class="toast" id="toast" role="status" hidden></div>
+  </main>
+
+  <footer class="foot">
+    <span id="foot-model">Modèle local</span> · 100 % hors ligne · aucune donnée n'est envoyée
+  </footer>
+
+  <noscript><p class="card">Lowsper a besoin de JavaScript pour fonctionner.</p></noscript>
+
+  <script src="app/manifest.js"></script>
+  <script src="app/js/engine.js"></script>
+  <script src="app/js/capture.js"></script>
+  <script src="app/js/transcript.js"></script>
+  <script src="app/js/app.js"></script>
+</body>
+</html>

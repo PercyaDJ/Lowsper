@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' blob: 'wasm-unsafe-eval' file:; worker-src blob:; connect-src blob: data:; style-src 'unsafe-inline'">
+<title>Banc d'essai moteur</title>
+<pre id="log"></pre>
+<script>window.Lowsper = { assetBase: '../../app/' };</script>
+<script src="../../app/manifest.js"></script>
+<script src="../../app/js/engine.js"></script>
+<script src="audio-fixture.js"></script>
+<script>
+const log = (m) => { document.getElementById('log').textContent += m + '\n'; console.log(m); };
+window.benchResult = (async () => {
+  const t0 = performance.now();
+  const assets = await Lowsper.loadAssets();
+  log('assets ' + Math.round(performance.now() - t0) + ' ms');
+  const t1 = performance.now();
+  const tr = new Lowsper.Transcriber(assets);
+  await tr.ready;
+  log('init ' + Math.round(performance.now() - t1) + ' ms');
+  const pcm = window.FIXTURE_PCM; // Float32Array 16 kHz
+  const r1 = await tr.transcribe(pcm.slice(), 'fr');
+  log('court ' + (pcm.length / 16000).toFixed(1) + ' s audio -> ' + Math.round(r1.ms) + ' ms : ' + JSON.stringify(r1.chunks));
+  // 25 s d'audio (fixture répétée) pour mesurer le facteur temps réel
+  const long = new Float32Array(16000 * 25);
+  for (let i = 0; i < long.length; i++) long[i] = pcm[i % pcm.length];
+  const r2 = await tr.transcribe(long.slice(), 'fr');
+  log('long 25 s audio -> ' + Math.round(r2.ms) + ' ms (RTF ' + (r2.ms / 25000).toFixed(3) + ') ' + JSON.stringify(r2.chunks));
+  const r3 = await tr.transcribe(long.slice(), ['fr', 'en']);
+  log('long 25 s auto -> ' + Math.round(r3.ms) + ' ms, langue ' + r3.language);
+  const r4 = await tr.transcribe(long.slice(), 'fr');
+  log('long 25 s fr (2e passage) -> ' + Math.round(r4.ms) + ' ms');
+  return { r1, r2, r3, r4 };
+})().catch((e) => { log('ERREUR ' + e.stack); throw e; });
+</script>
