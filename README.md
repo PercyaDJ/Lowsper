@@ -9,7 +9,7 @@ un transcript Markdown horodaté, prêt à être confié à une IA pour rédiger
   rangé dans le dossier Lowsper. Ensuite, tout fonctionne hors ligne.
 - Ni le son ni le texte ne quittent l'ordinateur (bloqué techniquement, voir `decision.md`).
 - Un **glossaire** de vos sigles (RSSI, COMEX, KPI...) améliore nettement leur reconnaissance.
-- Le transcript est prêt quelques secondes après la fin de la réunion.
+- Le transcript est prêt une vingtaine de secondes après la fin de la réunion.
 
 ## Utilisation
 

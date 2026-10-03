@@ -115,7 +115,7 @@
     const files = {};
 
     for (const f of entry.files) {
-      const url = `https://huggingface.co/${entry.repo}/resolve/${entry.revision}/${f.path}`;
+      const url = `${Lowsper.hfBase || 'https://huggingface.co'}/${entry.repo}/resolve/${entry.revision}/${f.path}`;
       const bytes = await download(url, f.size, (n) => {
         done += n;
         if (onProgress) onProgress({ ratio: done / total, done, total, file: f.path });
