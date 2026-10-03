@@ -91,6 +91,8 @@ for (const id of CATALOG) {
   catalog.push({
     id,
     label: model.label,
+    description: model.description,
+    recommended: model.recommended,
     repo: model.repo,
     revision: meta.revision,
     dtype: model.dtype,

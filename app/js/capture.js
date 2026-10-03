@@ -20,12 +20,14 @@
   // Réglages du découpage (en secondes)
   const VAD = {
     preRoll: 0.4, // audio conservé avant le début détecté de la parole
-    minSpeech: 0.35, // en dessous, le segment est ignoré (toux, clic...)
-    softPause: 0.7, // pause qui permet de couper si le segment est déjà long
-    softLength: 14, // longueur à partir de laquelle une pause courte suffit
-    hardPause: 1.6, // pause qui termine toujours le segment
-    maxLength: 28, // Whisper traite des fenêtres de 30 s
+    minSpeech: 0.35, // en dessous, une prise de parole est ignorée (toux, clic...)
+    endPause: 0.6, // pause qui termine une prise de parole
     hangover: 0.25, // la parole est prolongée de ce délai après la dernière trame forte
+    maxUtterance: 28, // une prise de parole plus longue est coupée dans un creux
+    gap: 0.3, // silence laissé entre deux prises de parole dans un bloc
+    blockTarget: 24, // un bloc part vers le modèle dès qu'il atteint cette durée
+    blockMax: 28.5, // Whisper traite des fenêtres de 30 s
+    flushSilence: 10, // ...ou après ce délai sans parole (affichage en direct)
   };
 
   // ---------------------------------------------------------------------------
@@ -57,20 +59,26 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Détecteur d'activité vocale et découpeur de segments
+  // Détecteur d'activité vocale et constitution des blocs
+  //
+  // Whisper paie le même prix pour 3 s ou 30 s d'audio (il traite toujours une fenêtre de
+  // 30 s). Plutôt que d'envoyer chaque phrase, on accumule les prises de parole en retirant
+  // les silences, et on envoie des blocs d'environ 25 s de parole « compacte ». Chaque bloc
+  // garde une table de correspondance pour retrouver l'heure réelle de chaque phrase.
   // ---------------------------------------------------------------------------
   class Segmenter {
     /**
-     * @param {(seg:{start:number,end:number,audio:Float32Array,speech:number}) => void} onSegment
+     * @param {(block:{start:number,end:number,audio:Float32Array,speech:number,map:Array<{at:number,t:number}>}) => void} onBlock
      */
-    constructor(onSegment) {
-      this.onSegment = onSegment;
+    constructor(onBlock) {
+      this.onBlock = onBlock;
       this.t = 0; // temps (s) du prochain échantillon reçu, depuis le début de la session
       this.pending = new Float32Array(0);
       this.noise = -60; // plancher de bruit estimé (dBFS)
       this.level = -100; // niveau de la dernière trame, pour l'affichage
-      this.preRoll = []; // trames récentes hors segment
-      this.seg = null; // segment en cours
+      this.preRoll = []; // trames récentes hors prise de parole
+      this.utt = null; // prise de parole en cours
+      this.block = null; // { pieces: [{frames}], dur, speech, lastEnd }
     }
 
     // Ajoute de l'audio 16 kHz. paused=true : le temps avance mais rien n'est gardé.
@@ -92,6 +100,10 @@
       this.pending = buf.slice(i);
     }
 
+    isLoud(db) {
+      return db > this.noise + 9 && db > -58;
+    }
+
     frame(f) {
       const start = this.t;
       this.t += FRAME / RATE;
@@ -105,86 +117,119 @@
       else this.noise += 0.09;
       this.noise = Math.max(-80, Math.min(this.noise, -30));
 
-      const loud = db > this.noise + 9 && db > -58;
-      const copy = f.slice();
+      const loud = this.isLoud(db);
+      const fr = { start, data: f.slice(), db };
 
-      if (!this.seg) {
-        this.preRoll.push({ start, data: copy, db });
+      if (!this.utt) {
+        this.preRoll.push(fr);
         const keep = Math.ceil(VAD.preRoll / (FRAME / RATE));
         if (this.preRoll.length > keep) this.preRoll.shift();
         if (loud) {
-          this.seg = { frames: this.preRoll, speech: 0, lastLoud: start };
+          this.utt = { frames: this.preRoll, speech: FRAME / RATE, lastLoud: start };
           this.preRoll = [];
-          this.seg.speech += FRAME / RATE;
+        } else if (this.block && this.t - this.block.lastEnd >= VAD.flushSilence) {
+          this.emitBlock();
         }
         return;
       }
 
-      const seg = this.seg;
-      seg.frames.push({ start, data: copy, db });
+      const utt = this.utt;
+      utt.frames.push(fr);
       if (loud) {
-        seg.lastLoud = start;
-        seg.speech += FRAME / RATE;
+        utt.lastLoud = start;
+        utt.speech += FRAME / RATE;
       }
-      const length = this.t - seg.frames[0].start;
-      const pause = this.t - seg.lastLoud - VAD.hangover;
+      const length = this.t - utt.frames[0].start;
+      const pause = this.t - utt.lastLoud - VAD.hangover;
 
-      if (pause >= VAD.hardPause || (pause >= VAD.softPause && length >= VAD.softLength)) {
-        // Coupe au début de la pause, en gardant un peu de marge
-        this.emit(seg.lastLoud + VAD.hangover + 0.2);
-      } else if (length >= VAD.maxLength) {
-        // Trop long : coupe sur la trame la plus calme des 5 dernières secondes
-        const from = this.t - 5;
+      if (pause >= VAD.endPause) {
+        this.endUtterance(utt.lastLoud + VAD.hangover + 0.15);
+      } else if (length >= VAD.maxUtterance) {
+        // Trop long sans pause : coupe sur la trame la plus calme des 5 dernières secondes
         let best = null;
-        for (const fr of seg.frames) {
-          if (fr.start < from) continue;
-          if (!best || fr.db < best.db) best = fr;
-        }
-        this.emit(best ? best.start : this.t);
+        for (const x of utt.frames) if (x.start >= this.t - 5 && (!best || x.db < best.db)) best = x;
+        this.endUtterance(best ? best.start : this.t);
       }
     }
 
-    // Termine le segment courant à l'instant cutAt ; ce qui suit repart dans un nouveau segment.
-    emit(cutAt) {
-      const seg = this.seg;
-      this.seg = null;
-      const keep = seg.frames.filter((fr) => fr.start < cutAt);
-      const rest = seg.frames.filter((fr) => fr.start >= cutAt);
-      this.deliver(keep, seg.speech);
-      if (rest.length) {
-        const loudRest = rest.filter((fr) => fr.db > this.noise + 9 && fr.db > -58);
-        if (loudRest.length) {
-          this.seg = {
-            frames: rest,
-            speech: loudRest.length * (FRAME / RATE),
-            lastLoud: loudRest[loudRest.length - 1].start,
-          };
-        } else {
-          this.preRoll = rest.slice(-Math.ceil(VAD.preRoll / (FRAME / RATE)));
-        }
+    // Termine la prise de parole à l'instant cutAt ; ce qui suit repart dans une nouvelle.
+    endUtterance(cutAt) {
+      const utt = this.utt;
+      this.utt = null;
+      const keep = utt.frames.filter((x) => x.start < cutAt);
+      const rest = utt.frames.filter((x) => x.start >= cutAt);
+      if (keep.length && utt.speech >= VAD.minSpeech) this.addToBlock(keep, utt.speech);
+      const loudRest = rest.filter((x) => this.isLoud(x.db));
+      if (loudRest.length) {
+        this.utt = {
+          frames: rest,
+          speech: loudRest.length * (FRAME / RATE),
+          lastLoud: loudRest[loudRest.length - 1].start,
+        };
+      } else if (rest.length) {
+        this.preRoll = rest.slice(-Math.ceil(VAD.preRoll / (FRAME / RATE)));
       }
     }
 
-    deliver(frames, speech) {
-      if (!frames.length || speech < VAD.minSpeech) return;
-      const audio = new Float32Array(frames.length * FRAME);
-      frames.forEach((fr, i) => audio.set(fr.data, i * FRAME));
+    addToBlock(frames, speech) {
+      const dur = (frames.length * FRAME) / RATE;
+      if (this.block && this.block.dur + VAD.gap + dur > VAD.blockMax) this.emitBlock();
+      if (!this.block) this.block = { pieces: [], dur: 0, speech: 0, lastEnd: 0 };
+      const b = this.block;
+      b.dur += (b.pieces.length ? VAD.gap : 0) + dur;
+      b.speech += speech;
+      b.pieces.push(frames);
+      b.lastEnd = frames[frames.length - 1].start + FRAME / RATE;
+      if (b.dur >= VAD.blockTarget) this.emitBlock();
+    }
+
+    emitBlock() {
+      const b = this.block;
+      this.block = null;
+      if (!b || !b.pieces.length) return;
+      const gap = Math.round(VAD.gap * RATE);
+      const total = b.pieces.reduce((n, p) => n + p.length * FRAME, 0) + gap * (b.pieces.length - 1);
+      const audio = new Float32Array(total);
+      const map = [];
+      let off = 0;
+      b.pieces.forEach((frames, i) => {
+        if (i) off += gap;
+        map.push({ at: off / RATE, t: frames[0].start });
+        frames.forEach((x, k) => audio.set(x.data, off + k * FRAME));
+        off += frames.length * FRAME;
+      });
       normalize(audio);
-      this.onSegment({
-        start: frames[0].start,
-        end: frames[frames.length - 1].start + FRAME / RATE,
+      this.onBlock({
+        start: b.pieces[0][0].start,
+        end: b.lastEnd,
         audio,
-        speech,
+        speech: b.speech,
+        map,
       });
     }
 
+    // Envoie tout ce qui est en attente (pause, fin de réunion, source coupée)
     flush() {
-      if (this.seg) {
-        const seg = this.seg;
-        this.seg = null;
-        this.deliver(seg.frames, seg.speech);
+      if (this.utt) {
+        const utt = this.utt;
+        this.utt = null;
+        if (utt.speech >= VAD.minSpeech) this.addToBlock(utt.frames, utt.speech);
       }
+      this.emitBlock();
     }
+
+    // Prise de parole en cours ou bloc en attente (pour l'affichage « parle »)
+    get active() {
+      return !!this.utt;
+    }
+  }
+
+  /** Convertit un instant d'un bloc (secondes depuis son début) en temps de session. */
+  function blockTime(block, at) {
+    if (!block.map || !block.map.length) return block.start + at;
+    let m = block.map[0];
+    for (const x of block.map) if (x.at <= at + 0.05) m = x;
+    return m.t + Math.max(0, at - m.at);
   }
 
   // Remonte le volume des voix faibles (gain plafonné) : Whisper y est sensible.
@@ -303,7 +348,7 @@
 
     isSpeaking(id) {
       const e = this.sources[id];
-      return !!(e && e.segmenter.seg && !this.paused);
+      return !!(e && e.segmenter.active && !this.paused);
     }
 
     detach(id) {
@@ -384,6 +429,7 @@
 
   Lowsper.Capture = Capture;
   Lowsper.Segmenter = Segmenter;
+  Lowsper.blockTime = blockTime;
   Lowsper.Resampler = Resampler;
   Lowsper.AUDIO_RATE = RATE;
 })();

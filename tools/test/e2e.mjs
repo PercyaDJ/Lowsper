@@ -33,6 +33,8 @@ const othersPcm = othersWav.subarray(44).toString('base64'); // PCM 16 bits, 16 
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
+  // Proxy éventuel de l'environnement de test (le navigateur headless ne le lit pas seul)
+  proxy: process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY } : undefined,
   args: [
     '--use-fake-ui-for-media-stream',
     '--use-fake-device-for-media-stream',
@@ -40,7 +42,9 @@ const browser = await chromium.launch({
     '--autoplay-policy=no-user-gesture-required',
   ],
 });
-const context = await browser.newContext({ acceptDownloads: true, viewport: { width: 900, height: 1000 } });
+// IGNORE_TLS=1 : uniquement pour un environnement de test dont le navigateur headless ne connaît
+// pas l'autorité de certification. L'intégrité reste garantie par la vérification SHA-256.
+const context = await browser.newContext({ acceptDownloads: true, viewport: { width: 900, height: 1000 }, ignoreHTTPSErrors: !!process.env.IGNORE_TLS });
 const page = await context.newPage();
 
 const network = [];
@@ -50,9 +54,17 @@ page.on('request', (r) => {
   if (!/^(file|blob|data):/.test(u) && !installing) network.push(u);
 });
 
-// Téléchargements Hugging Face servis depuis le cache local des outils
+// Par défaut, le modèle est réellement téléchargé depuis Hugging Face (test complet :
+// révision figée, empreintes, CORS, politique de sécurité). Avec LOCAL_HF=1, les fichiers
+// sont servis depuis tools/.cache (limité aux petits fichiers par Playwright).
 let served = 0;
-await context.route(/^https:\/\/huggingface\.co\/(.+?)\/resolve\/([0-9a-f]+)\/(.+)$/, async (route) => {
+page.on('requestfinished', async (r) => {
+  if (/huggingface\.co|hf\.co/.test(r.url())) {
+    const sizes = await r.sizes().catch(() => null);
+    if (sizes) served += sizes.responseBodySize;
+  }
+});
+if (process.env.LOCAL_HF) await context.route(/^https:\/\/huggingface\.co\/(.+?)\/resolve\/([0-9a-f]+)\/(.+)$/, async (route) => {
   const [, repo, revision, path] = route.request().url().match(/^https:\/\/huggingface\.co\/(.+?)\/resolve\/([0-9a-f]+)\/(.+)$/);
   const entry = catalog.find((m) => m.repo === repo && m.revision === revision);
   if (!entry) return route.fulfill({ status: 404 });
@@ -72,10 +84,12 @@ await page.exposeFunction('__lowsperFs', async (op, rel, data) => {
   } else if (op === 'write') {
     await mkdir(dirname(p), { recursive: true });
     await writeFile(p, data);
+  } else if (op === 'append') {
+    await writeFile(p, data, { flag: 'a' });
   }
   return true;
 });
-await page.addInitScript(() => {
+await page.addInitScript((NOWRITE) => {
   const dir = (rel) => ({
     kind: 'directory',
     async getDirectoryHandle(name, opts = {}) {
@@ -89,17 +103,29 @@ await page.addInitScript(() => {
         kind: 'file',
         async createWritable() {
           const parts = [];
-          return { async write(t) { parts.push(t); }, async close() { await window.__lowsperFs('write', path, parts.join('')); } };
+          return {
+            async write(t) { parts.push(t); },
+            // Envoi par morceaux de 2 Mo : les gros messages font tomber la liaison avec Playwright
+            async close() {
+              if (window.__NOWRITE) { console.log('close ' + path + ' ' + parts.join('').length); return; }
+              const all = parts.join('');
+              await window.__lowsperFs('write', path, all.slice(0, 2e6));
+              for (let i = 2e6; i < all.length; i += 2e6) await window.__lowsperFs('append', path, all.slice(i, i + 2e6));
+            },
+          };
         },
       };
     },
   });
   window.showDirectoryPicker = async () => dir('.');
-});
+  window.__NOWRITE = NOWRITE;
+}, !!process.env.NOWRITE);
 page.on('console', (m) => {
-  if (m.type() === 'error' || m.type() === 'warning') console.log(`[page ${m.type()}]`, m.text());
+  if (m.type() === 'error' || m.type() === 'warning' || process.env.NOWRITE) console.log(`[page ${m.type()}]`, m.text());
 });
 page.on('pageerror', (e) => console.log('[pageerror]', e.message));
+page.on('crash', () => console.log('[CRASH] la page a planté'));
+page.on('close', () => console.log('[close]'));
 
 await page.addInitScript((pcmB64) => {
   navigator.mediaDevices.getDisplayMedia = async () => {
@@ -129,7 +155,12 @@ await page.click('#install');
 await page.waitForSelector('#install-progress:not([hidden])');
 await page.waitForTimeout(1500);
 await page.screenshot({ path: join(out, '0b-installation-en-cours.png') });
-await page.waitForEvent('load', { timeout: 600000 }); // rechargement automatique après installation
+await Promise.race([
+  page.waitForEvent('load', { timeout: 900000 }), // rechargement automatique après installation
+  page.waitForSelector('#install-error:not([hidden])', { timeout: 900000 }).then(async () => {
+    throw new Error('Installation en échec : ' + (await page.textContent('#install-error')));
+  }),
+]);
 console.log(`Installation : ${(served / 1e6).toFixed(0)} Mo en ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 installing = false;
 

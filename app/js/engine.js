@@ -169,7 +169,7 @@
         prev: tokenId('<|startofprev|>'),
         transcribe: gen.task_to_id.transcribe,
         eos: gen.eos_token_id,
-        tsBegin: tokenId('<|0.00|>'),
+        tsBegin: gen.no_timestamps_token_id + 1, // <|0.00|>
         special: new Set(tok.all_special_ids),
         lang: gen.lang_to_id,
       };
@@ -241,6 +241,21 @@
       const language = Array.isArray(msg.language) ? await detect(encoderOutputs, msg.language) : msg.language || 'fr';
 
       const prompt = promptIds(msg.prompt);
+      let chunks = await decode(features, encoderOutputs, language, prompt, msg.maxTokens, seconds);
+      // Filet de sécurité : le contexte (glossaire) fait parfois « sauter » un passage à Whisper.
+      // Si le texte est anormalement court pour la durée de parole, on refait le décodage sans
+      // glossaire (l'encodeur n'est pas recalculé) et on garde la version la plus complète.
+      const count = (cs) => cs.reduce((n, c) => n + c.text.split(/\s+/).filter(Boolean).length, 0);
+      let retried = false;
+      if (prompt.length && seconds >= 2 && count(chunks) < seconds * 0.9) {
+        const plain = await decode(features, encoderOutputs, language, [], msg.maxTokens, seconds);
+        retried = true;
+        if (count(plain) > count(chunks) * 1.3) chunks = plain;
+      }
+      return { text: chunks.map((c) => c.text).join(' '), chunks, language, retried, ms: performance.now() - t0 };
+    }
+
+    async function decode(features, encoderOutputs, language, prompt, maxTokens, seconds) {
       const prefix = (prompt.length ? [ids.prev, ...prompt] : []).concat([
         ids.sot,
         ids.lang['<|' + language + '|>'],
@@ -252,15 +267,14 @@
         decoder_input_ids: prefix,
         language,
         task: 'transcribe',
-        return_timestamps: true, // horodatage par phrase, à l'intérieur du segment
-        num_frames: Math.floor(msg.audio.length / 160),
+        return_timestamps: true, // horodatage par phrase, à l'intérieur du bloc
+        num_frames: Math.floor(seconds * 100),
         // Garde-fou contre les boucles de répétition : on dépasse rarement 6 jetons de
         // texte par seconde de parole ; au-delà c'est presque toujours une hallucination.
-        max_new_tokens: msg.maxTokens || Math.min(440, Math.ceil(seconds * 8) + 16),
+        max_new_tokens: maxTokens || Math.min(440, Math.ceil(seconds * 8) + 16),
       });
       const tokens = output.tolist()[0].map(Number).slice(prefix.length);
-      const chunks = parse(tokens, seconds);
-      return { text: chunks.map((c) => c.text).join(' '), chunks, language, ms: performance.now() - t0 };
+      return parse(tokens, seconds);
     }
 
     // Découpe la suite <|t0|> texte <|t1|> <|t1|> texte <|t2|> ... en phrases horodatées.

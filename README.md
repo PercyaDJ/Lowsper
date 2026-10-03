@@ -4,22 +4,31 @@
 son de la réunion (Teams, Zoom, Meet...), transcrit en direct avec Whisper, et vous donne à la fin
 un transcript Markdown horodaté, prêt à être confié à une IA pour rédiger le compte rendu.
 
-- Aucune installation, aucun exécutable, aucun script : un fichier HTML à ouvrir.
-- Aucune connexion Internet : rien ne sort de l'ordinateur (bloqué techniquement, voir `decision.md`).
+- Aucune installation de logiciel, aucun exécutable, aucun script : un fichier HTML à ouvrir.
+- Le modèle de reconnaissance vocale est téléchargé **une seule fois**, au premier lancement, et
+  rangé dans le dossier Lowsper. Ensuite, tout fonctionne hors ligne.
+- Ni le son ni le texte ne quittent l'ordinateur (bloqué techniquement, voir `decision.md`).
+- Un **glossaire** de vos sigles (RSSI, COMEX, KPI...) améliore nettement leur reconnaissance.
 - Le transcript est prêt quelques secondes après la fin de la réunion.
 
 ## Utilisation
 
 1. **Téléchargez** le dossier (bouton vert « Code » puis « Download ZIP » sur GitHub) et
    **dézippez-le** où vous voulez (Documents, Bureau...).
-2. **Double-cliquez sur `Lowsper.html`**. Il s'ouvre dans votre navigateur (Edge ou Chrome conseillés).
+2. **Double-cliquez sur `Lowsper.html`**. Il s'ouvre dans votre navigateur (Edge ou Chrome).
    Si un autre navigateur s'ouvre : clic droit sur le fichier, « Ouvrir avec », Microsoft Edge.
-3. **Prévenez les participants** que la réunion est transcrite.
-4. Cliquez sur **« Démarrer l'enregistrement »** :
+3. **Premier lancement uniquement** : cliquez sur « Installer le modèle », sélectionnez le
+   **dossier Lowsper** (celui qui contient `Lowsper.html`) et acceptez que Lowsper y enregistre
+   des fichiers. Le téléchargement (environ 250 Mo) prend une à quelques minutes, la page
+   redémarre toute seule à la fin.
+4. Dans « Options », remplissez une fois pour toutes le champ **« Sigles et noms propres »**
+   avec le vocabulaire de vos réunions (ex. `RSSI, COMEX, KPI, NIS 2, projet Atlas`). Il est mémorisé.
+5. **Prévenez les participants** que la réunion est transcrite.
+6. Cliquez sur **« Démarrer l'enregistrement »** :
    - le navigateur propose un **partage d'écran** : choisissez l'écran entier (ou l'onglet de la
      réunion) et **cochez « Partager l'audio »**. Seul le son est utilisé, rien n'est filmé ;
    - autorisez le **micro**.
-5. En fin de réunion, cliquez sur **« Terminer la réunion »**. Le fichier `.md` est enregistré
+7. En fin de réunion, cliquez sur **« Terminer la réunion »**. Le fichier `.md` est enregistré
    dans vos Téléchargements. Le bouton **« Copier pour une IA »** copie le transcript précédé
    d'une consigne de compte rendu.
 
@@ -50,18 +59,29 @@ Conseils :
 
 ## Questions fréquentes
 
+**Le téléchargement du modèle échoue au bureau.**
+Le réseau de l'entreprise bloque peut-être Hugging Face. Faites l'installation depuis un autre
+réseau (partage de connexion du téléphone, domicile), ou copiez le dossier Lowsper d'un collègue
+qui l'a déjà installé : le modèle est dedans (`app/models`).
+
+**Quel modèle choisir ?**
+« Whisper small » (recommandé) est le plus précis. Sur un PC ancien qui peine à suivre (la file
+« passages en attente » grossit pendant la réunion), installez « Whisper base » via Options,
+« Installer un autre modèle » : 3 fois plus rapide, moins précis.
+
 **Le partage d'écran ne propose pas « Partager l'audio ».**
 Sur Windows, choisissez « Écran entier » : la case « Partager aussi l'audio du système » apparaît.
 Pour une réunion dans le navigateur, partager l'onglet de la réunion fonctionne partout.
 Sans son partagé, Lowsper continue avec le micro seul.
 
 **Mon PC va-t-il chauffer ?**
-Le silence n'est jamais traité, et chaque voix utilise un seul cœur du processeur. Sur la
-machine de test, une heure de parole représente environ 10 minutes de calcul, étalées
-pendant la réunion.
+Le silence n'est jamais traité, la parole est regroupée en blocs pour limiter les calculs, et
+chaque voix utilise un seul cœur du processeur. Avec Whisper small, attendez-vous à ce qu'un cœur
+travaille une bonne partie de la réunion ; le reste du PC reste disponible. Voir `decision.md` §6.
 
 **Mes données partent-elles quelque part ?**
-Non. La page interdit au navigateur toute connexion réseau. L'audio n'est jamais enregistré
+Non. La seule connexion autorisée est le téléchargement du modèle depuis Hugging Face au premier
+lancement ; tout autre site est bloqué par la page elle-même. L'audio n'est jamais enregistré
 sur le disque. Seul le texte du transcript en cours est sauvegardé dans le navigateur (pour la
 récupération en cas de plantage), et effacé à la réunion suivante.
 
@@ -70,33 +90,36 @@ Microsoft Edge ou Google Chrome récents. Firefox fonctionne en micro seul.
 
 ## Pour les développeurs
 
-Le dossier `app/engine`, `app/models` et `app/manifest.js` sont générés. Pour les reconstruire
-(Node.js 20 ou plus) :
+`app/engine` et `app/manifest.js` sont générés. Pour les reconstruire (Node.js 20 ou plus) :
 
 ```bash
 cd tools
 npm install --ignore-scripts
 node node_modules/esbuild/install.js
-node fetch-model.mjs            # télécharge whisper-base depuis Hugging Face
-node build.mjs                  # génère app/engine, app/models, app/manifest.js
-node test/unit.mjs              # tests unitaires (découpage, anti-écho, Markdown)
-node test/e2e.mjs 45            # réunion simulée de 45 s dans Chromium (playwright-core)
+node fetch-model.mjs whisper-small   # télécharge le modèle et note révision + empreintes
+node fetch-model.mjs whisper-base
+node build.mjs                       # moteur + catalogue des modèles téléchargeables
+node test/unit.mjs                   # tests unitaires (découpage, sigles, anti-écho, Markdown)
+node test/e2e.mjs 45                 # installation réelle + réunion simulée dans Chromium
+node build.mjs --embed whisper-small whisper-base && node test/eval.mjs whisper-small whisper-base
+                                     # comparaison des modèles sur le corpus avec sigles
 ```
 
-Pour embarquer le modèle plus précis mais plus lourd : `node fetch-model.mjs whisper-small`
-puis `node build.mjs whisper-small`.
+`node build.mjs --embed whisper-small` produit aussi une version avec le modèle pré-installé,
+pour une distribution sans aucun accès à Internet.
 
 Structure :
 
 ```
 Lowsper.html          page à ouvrir (interface + politique de sécurité)
 app/css/              styles
-app/js/engine.js      chargement des fichiers embarqués, moteur Whisper dans un Worker
+app/js/engine.js      chargement des fichiers, moteur Whisper dans un Worker (glossaire, langue)
+app/js/installer.js   installation du modèle au premier lancement
 app/js/capture.js     capture micro / partage d'écran, détection de parole, découpage
-app/js/transcript.js  assemblage, anti-écho, filtres, Markdown, sauvegarde
+app/js/transcript.js  assemblage, sigles, anti-écho, filtres, Markdown, sauvegarde
 app/js/app.js         contrôleur de l'interface
 app/engine/           runtime transformers.js + ONNX Runtime (généré)
-app/models/           modèle Whisper encodé en scripts (généré)
+app/models/           modèle(s) installé(s) au premier lancement (non versionné)
 tools/                construction et tests (inutile pour l'utilisateur final)
 decision.md           décisions techniques et arbitrages
 ```
@@ -104,5 +127,5 @@ decision.md           décisions techniques et arbitrages
 ## Licences
 
 - Code Lowsper : MIT.
-- Modèle Whisper (OpenAI) : MIT. Conversion ONNX : `onnx-community/whisper-base`.
+- Modèle Whisper (OpenAI) : MIT. Conversions ONNX : `onnx-community/whisper-small`, `onnx-community/whisper-base`.
 - transformers.js (Hugging Face) : Apache 2.0. ONNX Runtime Web (Microsoft) : MIT.
