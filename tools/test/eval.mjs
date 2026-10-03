@@ -24,6 +24,7 @@ await writeFile(
 <script src="../../../app/models/index.txt"></script>
 <script src="../../../app/js/engine.js"></script>
 <script src="../../../app/js/capture.js"></script>
+<script src="../../../app/js/transcript.js"></script>
 <script src="corpus-pcm.js"></script>
 <script>
 window.runEval = async (modelId, glossary) => {
@@ -45,7 +46,7 @@ window.runEval = async (modelId, glossary) => {
     for (const seg of segs) {
       const r = await tr.transcribe(seg.audio.slice(), 'fr', prompt);
       ms += r.ms;
-      text.push(r.text);
+      text.push(prompt ? Lowsper.fixAcronyms(r.text, prompt) : r.text);
     }
     runs[name] = { ms, text: text.join(' ') };
   }
@@ -103,6 +104,7 @@ for (const id of process.argv.slice(2)) {
       calcul: (run.ms / 1000).toFixed(1) + ' s',
       rtf: (run.ms / 1000 / res.audioSeconds).toFixed(2),
       demarrage: (res.initMs / 1000).toFixed(1) + ' s',
+      blocs: res.segments,
     };
     report.push(row);
     console.log(JSON.stringify(row));

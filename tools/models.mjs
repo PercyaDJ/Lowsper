@@ -10,12 +10,14 @@ const JSON_FILES = [
   'tokenizer_config.json',
 ];
 
-function def(id, repo, label, dtype) {
+function def(id, repo, label, dtype, description = '', recommended = false) {
   return {
     id,
     repo,
     revision: 'main',
     label,
+    description,
+    recommended,
     dtype,
     files: [
       ...JSON_FILES,
@@ -24,10 +26,14 @@ function def(id, repo, label, dtype) {
   };
 }
 
+// Mesures détaillées dans decision.md (§4). Seuls whisper-small et whisper-base sont proposés
+// dans l'application ; les autres restent ici pour pouvoir refaire la comparaison (test/eval.mjs).
 export const MODELS = Object.fromEntries(
   [
-    def('whisper-base', 'onnx-community/whisper-base', 'Whisper base', { encoder_model: 'q8', decoder_model_merged: 'q8' }),
-    def('whisper-small', 'onnx-community/whisper-small', 'Whisper small', { encoder_model: 'q8', decoder_model_merged: 'q8' }),
+    def('whisper-small', 'onnx-community/whisper-small', 'Whisper small', { encoder_model: 'q8', decoder_model_merged: 'q8' },
+      'Précis en français, retrouve bien les sigles grâce au glossaire. Pour un PC portable récent.', true),
+    def('whisper-base', 'onnx-community/whisper-base', 'Whisper base', { encoder_model: 'q8', decoder_model_merged: 'q8' },
+      'Environ 3 fois plus rapide mais nettement moins précis. Pour un PC ancien ou très chargé.'),
     def('whisper-small-q4', 'onnx-community/whisper-small', 'Whisper small (4 bits)', { encoder_model: 'q8', decoder_model_merged: 'q4' }),
     def('whisper-small-fr', 'onnx-community/whisper-small-cv11-french-ONNX', 'Whisper small français', { encoder_model: 'q8', decoder_model_merged: 'q4' }),
     def('whisper-turbo', 'onnx-community/whisper-large-v3-turbo', 'Whisper large-v3 turbo', { encoder_model: 'q4', decoder_model_merged: 'q4' }),

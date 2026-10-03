@@ -15,6 +15,8 @@ self.LOWSPER_MANIFEST={
     {
       "id": "whisper-small",
       "label": "Whisper small",
+      "description": "Précis en français, retrouve bien les sigles grâce au glossaire. Pour un PC portable récent.",
+      "recommended": true,
       "repo": "onnx-community/whisper-small",
       "revision": "36050c46d777d46dc4b5f43f6d90574fc38f8732",
       "dtype": {
@@ -62,6 +64,8 @@ self.LOWSPER_MANIFEST={
     {
       "id": "whisper-base",
       "label": "Whisper base",
+      "description": "Environ 3 fois plus rapide mais nettement moins précis. Pour un PC ancien ou très chargé.",
+      "recommended": false,
       "repo": "onnx-community/whisper-base",
       "revision": "1846881b6b3a3024392c1eea3ad983695bc23925",
       "dtype": {

@@ -70,6 +70,51 @@
     return out.join(' ').trim();
   }
 
+  /**
+   * Recolle les sigles du glossaire que Whisper a écrits lettre par lettre ou en morceaux :
+   * « V P N », « VP n », « R.O.I. » -> « VPN », « ROI ». Correction sûre : elle ne s'applique
+   * que si les lettres recollées forment exactement un sigle du glossaire.
+   */
+  function fixAcronyms(text, glossary) {
+    const acronyms = new Map();
+    for (const raw of String(glossary || '').split(/[,;\n]+/)) {
+      const term = raw.trim();
+      const key = term.replace(/[\s.\-]/g, '').toUpperCase();
+      if (/^[A-Z0-9]{2,8}$/.test(key) && term === term.toUpperCase()) acronyms.set(key, term);
+    }
+    if (!acronyms.size) return text;
+    // Morceaux : mots courts (1 à 3 caractères) séparés par espaces, points ou tirets.
+    const parts = text.split(/(\s+)/);
+    const out = [];
+    for (let i = 0; i < parts.length; ) {
+      let done = false;
+      // Cherche la plus longue suite de 2 à 6 morceaux qui forme un sigle du glossaire
+      for (let n = 6; n >= 1 && !done; n--) {
+        const words = [];
+        for (let k = 0; k < n * 2 - 1 && i + k < parts.length; k += 2) words.push(parts[i + k]);
+        if (words.length !== n) continue;
+        const cores = words.map((w) => w.replace(/[.\-,;:!?]+$/, ''));
+        const pieces = cores.flatMap((w) => w.split(/[.\-]/)).filter(Boolean);
+        if (pieces.length < 2 || pieces.some((p) => p.length > 3 || !/^[A-Za-z0-9]+$/.test(p))) continue;
+        const key = pieces.join('').toUpperCase();
+        if (!acronyms.has(key)) continue;
+        const letters = pieces.join('').replace(/[^A-Za-z]/g, '');
+        const upper = letters.replace(/[^A-Z]/g, '').length;
+        if (letters.length && upper / letters.length < 0.5) continue; // évite « le p a »
+        const last = words[words.length - 1];
+        // Conserve la ponctuation finale (« R.O.I. » en fin de phrase -> « ROI. »)
+        out.push(acronyms.get(key) + (last.match(/[.,;:!?]+$/) || [''])[0]);
+        i += n * 2 - 1;
+        done = true;
+      }
+      if (!done) {
+        out.push(parts[i]);
+        i++;
+      }
+    }
+    return out.join('');
+  }
+
   function isHallucination(text, segSpeech) {
     const n = normalizeText(text);
     if (!n) return true;
@@ -123,10 +168,11 @@
         ? result.chunks
         : [{ from: 0, to: null, text: result.text }];
       for (const c of chunks) {
-        const text = collapseRepeats(String(c.text || '').trim());
+        const text = fixAcronyms(collapseRepeats(String(c.text || '').trim()), this.meta.glossary);
         if (!text || isHallucination(text, seg.speech)) continue;
-        const start = seg.start + (c.from || 0);
-        const end = c.to != null ? seg.start + c.to : seg.end;
+        const at = (t) => (Lowsper.blockTime ? Lowsper.blockTime(seg, t) : seg.start + t);
+        const start = at(c.from || 0);
+        const end = c.to != null ? at(c.to) : seg.end;
         this.lines.push({ source, start, end: Math.max(end, start), text });
       }
       this.lines.sort((a, b) => a.start - b.start);
@@ -277,6 +323,7 @@
   }
 
   Lowsper.Transcript = Transcript;
+  Lowsper.fixAcronyms = fixAcronyms;
   Lowsper.formatTime = fmt;
   Lowsper.SPEAKERS = SPEAKERS;
 })();

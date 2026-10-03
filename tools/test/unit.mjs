@@ -66,19 +66,35 @@ await test('le silence seul ne produit aucun segment', () => {
   assert.equal(segment([[20, 'silence']]).length, 0);
 });
 
-await test('deux prises de parole séparées par 3 s de silence = 2 segments', () => {
+await test('les silences sont retirés : deux prises de parole = un seul bloc compact', () => {
   const segs = segment([[2, 'silence'], [4, 'speech'], [3, 'silence'], [5, 'speech'], [2, 'silence']]);
-  assert.equal(segs.length, 2);
-  assert.ok(Math.abs(segs[0].start - 2) < 0.6, 'début du 1er segment ~2 s, obtenu ' + segs[0].start);
-  assert.ok(Math.abs(segs[1].start - 9) < 0.6, 'début du 2e segment ~9 s, obtenu ' + segs[1].start);
+  assert.equal(segs.length, 1);
+  const b = segs[0];
+  assert.ok(b.audio.length / 16000 < 11, 'bloc compact (< 11 s), obtenu ' + (b.audio.length / 16000).toFixed(1));
+  assert.equal(b.map.length, 2);
+  assert.ok(Math.abs(L.blockTime(b, 0.5) - 2) < 0.6, 'début 1re prise ~2 s, obtenu ' + L.blockTime(b, 0.5));
+  const second = b.map[1].at + 0.5;
+  assert.ok(Math.abs(L.blockTime(b, second) - 9) < 0.6, 'début 2e prise ~9 s, obtenu ' + L.blockTime(b, second));
 });
 
-await test('une parole continue de 70 s est découpée en morceaux de 28 s maximum', () => {
+await test('un long silence (> 10 s) termine le bloc pour l’affichage en direct', () => {
+  const segs = segment([[1, 'silence'], [4, 'speech'], [12, 'silence'], [4, 'speech'], [1, 'silence']]);
+  assert.equal(segs.length, 2);
+});
+
+await test('une parole continue de 70 s donne des blocs de 28,5 s maximum, sans perte', () => {
   const segs = segment([[1, 'silence'], [70, 'speech'], [1, 'silence']]);
-  assert.ok(segs.length >= 3, 'au moins 3 segments, obtenu ' + segs.length);
-  for (const s of segs) assert.ok(s.audio.length / 16000 <= 28.1, 'segment trop long : ' + s.audio.length / 16000);
+  assert.ok(segs.length >= 3, 'au moins 3 blocs, obtenu ' + segs.length);
+  for (const s of segs) assert.ok(s.audio.length / 16000 <= 28.6, 'bloc trop long : ' + s.audio.length / 16000);
   const total = segs.reduce((n, s) => n + s.audio.length, 0) / 16000;
   assert.ok(total >= 69, 'aucune parole perdue (total ' + total.toFixed(1) + ' s)');
+});
+
+await test('beaucoup de phrases courtes sont regroupées en peu de blocs', () => {
+  const pattern = [];
+  for (let i = 0; i < 20; i++) pattern.push([3, 'speech'], [2, 'silence']);
+  const segs = segment(pattern);
+  assert.ok(segs.length <= 4, '20 phrases de 3 s (60 s de parole) -> au plus 4 blocs au lieu de 20, obtenu ' + segs.length);
 });
 
 await test('un bruit très court (clic) est ignoré', () => {
@@ -112,6 +128,14 @@ await test('rééchantillonnage 44,1 kHz -> 16 kHz', () => {
 // --- Transcript ---
 const seg = (start, end, speech = 3) => ({ start, end, speech });
 
+await test('horodatage des phrases retrouvé à travers les silences retirés', () => {
+  const t = new L.Transcript();
+  const block = { start: 10, end: 40, speech: 8, map: [{ at: 0, t: 10 }, { at: 4.3, t: 30 }] };
+  t.addSegment('me', block, { chunks: [{ from: 0, to: 4, text: 'Première phrase.' }, { from: 4.3, to: 8, text: 'Seconde phrase.' }] });
+  assert.equal(t.lines[0].start, 10);
+  assert.equal(t.lines[1].start, 30);
+});
+
 await test("l'écho des participants capté par le micro est supprimé", () => {
   const t = new L.Transcript({ sources: ['me', 'others'] });
   t.addSegment('others', seg(10, 15), { chunks: [{ from: 0, to: 5, text: 'On valide le budget du projet pour le trimestre prochain.' }] });
@@ -133,6 +157,17 @@ await test('les boucles de répétition sont réduites', () => {
   const t = new L.Transcript();
   t.addSegment('me', seg(0, 10), { chunks: [{ from: 0, to: 10, text: 'Oui oui oui oui oui oui. On avance. On avance. On avance.' }] });
   assert.equal(t.lines[0].text, 'Oui. On avance.');
+});
+
+await test('les sigles du glossaire écrits en morceaux sont recollés', () => {
+  const g = 'VPN, ROI, NIS 2, KPI, Projet Atlas';
+  const f = (t) => L.fixAcronyms(t, g);
+  assert.equal(f('Le MCO du VP n passe chez le prestataire.'), 'Le MCO du VPN passe chez le prestataire.');
+  assert.equal(f('un calcul de R O I et de R.O.I.'), 'un calcul de ROI et de ROI.');
+  assert.equal(f('les K P I du mois'), 'les KPI du mois');
+  assert.equal(f('Il a vu le p a.'), 'Il a vu le p a.');
+  assert.equal(f('un VPN et un ROI'), 'un VPN et un ROI');
+  assert.equal(L.fixAcronyms('V P N', ''), 'V P N', 'sans glossaire, rien ne change');
 });
 
 await test('Markdown : en-tête, horodatage, regroupement par locuteur et pauses', () => {
