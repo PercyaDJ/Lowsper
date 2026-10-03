@@ -1,0 +1,5 @@
+node_modules/
+tools/.cache/
+tools/test/output/
+.DS_Store
+Thumbs.db
