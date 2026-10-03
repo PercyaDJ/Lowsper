@@ -3,3 +3,6 @@ tools/.cache/
 tools/test/output/
 .DS_Store
 Thumbs.db
+# Modèles téléchargés par l'application ou embarqués pour les tests (trop lourds pour le dépôt)
+app/models/*
+!app/models/LISEZMOI.txt

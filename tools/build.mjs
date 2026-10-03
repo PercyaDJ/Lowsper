@@ -7,7 +7,9 @@
 //   On emballe donc le moteur, le binaire WebAssembly et le modèle sous forme de
 //   scripts classiques qui déposent leurs données (texte ou base64) dans une variable globale.
 //
-// Usage : node build.mjs [modèle ...]   (par défaut : whisper-base)
+// Usage :
+//   node build.mjs                      moteur + catalogue (le modèle sera téléchargé au 1er lancement)
+//   node build.mjs --embed whisper-small  idem, avec un modèle déjà installé (version hors ligne / tests)
 import { build } from 'esbuild';
 import { mkdir, readFile, rm, writeFile, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -23,16 +25,23 @@ const modelsDir = join(appDir, 'models');
 // sous la limite d'avertissement de GitHub (50 Mo) et raisonnable pour le parseur JS.
 const CHUNK = 24 * 1024 * 1024;
 
-const modelIds = process.argv.slice(2).length ? process.argv.slice(2) : [DEFAULT_MODEL];
+const args = process.argv.slice(2);
+const embedIds = args[0] === '--embed' ? args.slice(1) : [];
+// Modèles proposés au téléchargement dans l'application
+const CATALOG = ['whisper-small', 'whisper-base'];
 
 const header = '/* Fichier généré par tools/build.mjs : ne pas modifier à la main. */\n';
+const readMeta = async (id) =>
+  JSON.parse(await readFile(join(here, '.cache', 'models', id, 'meta.json'), 'utf8').catch(() => {
+    throw new Error(`Métadonnées absentes pour ${id}. Lancez d'abord : node fetch-model.mjs ${id}`);
+  }));
 const register = (key, payload) =>
   `${header}(self.LOWSPER_ASSETS=self.LOWSPER_ASSETS||{})[${JSON.stringify(key)}]=${payload};\n`;
 
-async function writeBinary(dir, relDir, baseName, buf) {
+async function writeBinary(dir, relDir, baseName, buf, ext = 'js') {
   const parts = [];
   for (let i = 0, n = 0; i < buf.length; i += CHUNK, n++) {
-    const name = `${baseName}.part${n}.js`;
+    const name = `${baseName}.part${n}.${ext}`;
     const key = `${relDir}/${baseName}.part${n}`;
     await writeFile(join(dir, name), register(key, JSON.stringify(buf.subarray(i, i + CHUNK).toString('base64'))));
     parts.push({ src: `${relDir}/${name}`, bytes: Math.min(CHUNK, buf.length - i) });
@@ -74,38 +83,58 @@ for (const pkg of ['@huggingface/transformers', '@huggingface/tokenizers', '@hug
 }
 await writeFile(join(engineDir, 'THIRD_PARTY_LICENSES.txt'), licenseParts.join('\n\n'));
 
-// 2. Modèles
+// 2. Catalogue des modèles téléchargeables (révision figée + empreintes SHA-256)
+const catalog = [];
+for (const id of CATALOG) {
+  const model = MODELS[id];
+  const meta = await readMeta(id);
+  catalog.push({
+    id,
+    label: model.label,
+    repo: model.repo,
+    revision: meta.revision,
+    dtype: model.dtype,
+    files: model.files.map((path) => ({ path, ...meta.files[path] })),
+  });
+}
+
+// 3. Modèles embarqués (facultatif) : même format que ce qu'écrit l'installateur
 await rm(modelsDir, { recursive: true, force: true });
-const models = [];
-for (const id of modelIds) {
+await mkdir(modelsDir, { recursive: true });
+const installed = [];
+for (const id of embedIds) {
   const model = MODELS[id];
   if (!model) throw new Error(`Modèle inconnu : ${id}`);
+  const meta = await readMeta(id);
   const src = join(here, '.cache', 'models', id);
   const out = join(modelsDir, id);
   await mkdir(out, { recursive: true });
   const files = {};
   const texts = {};
   for (const file of model.files) {
-    const buf = await readFile(join(src, file)).catch(() => {
-      throw new Error(`Fichier manquant ${src}/${file}. Lancez d'abord : node fetch-model.mjs ${id}`);
-    });
-    if (file.endsWith('.json')) {
-      texts[file] = buf.toString('utf8');
-    } else {
-      const base = file.replace(/^onnx\//, '').replace(/\.onnx$/, '');
-      files[file] = await writeBinary(out, `models/${id}`, base, buf);
-    }
+    const buf = await readFile(join(src, file));
+    if (file.endsWith('.json')) texts[file] = buf.toString('utf8');
+    else files[file] = await writeBinary(out, `models/${id}`, file.replace(/^onnx\//, '').replace(/\.onnx$/, ''), buf, 'txt');
   }
-  await writeFile(join(out, 'config.js'), register(`models/${id}/config`, JSON.stringify(texts)));
-  models.push({ id, label: model.label, repo: model.repo, config: `models/${id}/config.js`, files });
+  await writeFile(join(out, 'config.txt'), register(`models/${id}/config`, JSON.stringify(texts)));
+  installed.push({ id, label: model.label, dtype: model.dtype, revision: meta.revision, config: `models/${id}/config.txt`, files });
+  console.log(`Modèle embarqué : ${id}`);
 }
+if (installed.length) {
+  await writeFile(join(modelsDir, 'index.txt'), `${header}self.LOWSPER_INSTALLED=${JSON.stringify(installed, null, 1)};\n`);
+}
+await writeFile(
+  join(modelsDir, 'LISEZMOI.txt'),
+  "Ce dossier reçoit le modèle de transcription, téléchargé par Lowsper au premier lancement.\n" +
+    "Pour équiper un autre poste sans Internet, copiez tout le dossier Lowsper (avec ce dossier rempli).\n"
+);
 
-// 3. Manifeste lu par l'application au démarrage
+// 4. Manifeste lu par l'application au démarrage
 const manifest = {
-  builtAt: new Date().toISOString(),
+  builtAt: new Date().toISOString().slice(0, 10),
   runtime: { src: 'engine/runtime.js', bytes: runtimeCode.length },
   wasm: wasmParts,
-  models,
+  catalog,
 };
 await writeFile(join(appDir, 'manifest.js'), `${header}self.LOWSPER_MANIFEST=${JSON.stringify(manifest, null, 2)};\n`);
 
@@ -113,5 +142,5 @@ const total = async (d) => (await readdir(d, { recursive: true, withFileTypes: t
   .filter((e) => e.isFile()).length;
 console.log(`Runtime : ${(runtimeCode.length / 1e6).toFixed(2)} Mo`);
 console.log(`WASM    : ${(wasmBuf.length / 1e6).toFixed(1)} Mo en ${wasmParts.length} morceau(x)`);
-for (const m of models) console.log(`Modèle  : ${m.id} -> ${Object.keys(m.files).length} fichiers ONNX`);
+console.log(`Catalogue : ${catalog.map((m) => `${m.id} (${(m.files.reduce((n, f) => n + f.size, 0) / 1e6).toFixed(0)} Mo)`).join(', ')}`);
 console.log(`Fichiers générés : ${await total(engineDir) + await total(modelsDir) + 1}`);

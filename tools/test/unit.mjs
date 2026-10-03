@@ -136,12 +136,13 @@ await test('les boucles de répétition sont réduites', () => {
 });
 
 await test('Markdown : en-tête, horodatage, regroupement par locuteur et pauses', () => {
-  const t = new L.Transcript({ title: 'Point hebdo', startedAt: Date.UTC(2026, 9, 3, 15, 0), endedAt: Date.UTC(2026, 9, 3, 16, 0), sources: ['me', 'others'], model: 'Whisper base' });
+  const t = new L.Transcript({ title: 'Point hebdo', glossary: 'RSSI, COMEX', startedAt: Date.UTC(2026, 9, 3, 15, 0), endedAt: Date.UTC(2026, 9, 3, 16, 0), sources: ['me', 'others'], model: 'Whisper base' });
   t.addSegment('me', seg(5, 9), { chunks: [{ from: 0, to: 2, text: 'Bonjour à tous.' }, { from: 2, to: 4, text: 'On commence ?' }] });
   t.addSegment('others', seg(3700, 3705), { chunks: [{ from: 0, to: 5, text: 'Oui, allons-y.' }] });
   t.addPause(1800, 1900);
   const md = t.toMarkdown();
   assert.match(md, /^# Transcript de réunion : Point hebdo/);
+  assert.match(md, /Vocabulaire de référence.*: RSSI, COMEX/);
   assert.match(md, /\*\*\[00:00:05\] Vous :\*\* Bonjour à tous\. On commence \?/);
   assert.match(md, /\*\*\[01:01:40\] Participants :\*\* Oui, allons-y\./);
   assert.match(md, /_\[00:30:00 à 00:31:40\] Enregistrement en pause\._/);

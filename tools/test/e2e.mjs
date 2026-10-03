@@ -1,10 +1,13 @@
-// Test de bout en bout : ouvre Lowsper.html en file:// dans Chromium, simule une réunion
-// (micro = extrait français, son des participants = extrait anglais), puis vérifie le
-// transcript Markdown téléchargé et l'absence de toute requête réseau.
+// Test de bout en bout, sur une copie du dossier Lowsper sans modèle :
+//   1. premier lancement : installation du modèle (sélection du dossier simulée, téléchargements
+//      Hugging Face servis depuis tools/.cache pour ne pas dépendre du réseau) ;
+//   2. rechargement : le modèle est relu depuis le dossier, sans réseau ;
+//   3. réunion simulée (micro = extrait français, participants = extrait anglais) ;
+//   4. vérification du transcript Markdown et de l'absence de requête réseau hors installation.
 //
 // Usage : node test/e2e.mjs [durée_en_secondes]
 import { chromium } from 'playwright-core';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, rm, writeFile, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -13,6 +16,16 @@ const root = join(here, '..', '..');
 const out = join(here, 'output');
 await mkdir(out, { recursive: true });
 const meetingSeconds = Number(process.argv[2] || 45);
+
+// Copie du dossier Lowsper sans aucun modèle installé
+const site = join(out, 'site');
+await rm(site, { recursive: true, force: true });
+await mkdir(join(site, 'app', 'models'), { recursive: true });
+await cp(join(root, 'Lowsper.html'), join(site, 'Lowsper.html'));
+for (const d of ['css', 'js', 'engine']) await cp(join(root, 'app', d), join(site, 'app', d), { recursive: true });
+await cp(join(root, 'app', 'manifest.js'), join(site, 'app', 'manifest.js'));
+const manifestSrc = await readFile(join(root, 'app', 'manifest.js'), 'utf8');
+const catalog = JSON.parse(manifestSrc.slice(manifestSrc.indexOf('{'), manifestSrc.lastIndexOf('}') + 1)).catalog;
 
 // Le son « participants » est injecté en remplaçant getDisplayMedia (impossible en headless)
 const othersWav = await readFile(join(here, 'fixtures', 'others-en.wav'));
@@ -31,9 +44,57 @@ const context = await browser.newContext({ acceptDownloads: true, viewport: { wi
 const page = await context.newPage();
 
 const network = [];
+let installing = true;
 page.on('request', (r) => {
   const u = r.url();
-  if (!/^(file|blob|data):/.test(u)) network.push(u);
+  if (!/^(file|blob|data):/.test(u) && !installing) network.push(u);
+});
+
+// Téléchargements Hugging Face servis depuis le cache local des outils
+let served = 0;
+await context.route(/^https:\/\/huggingface\.co\/(.+?)\/resolve\/([0-9a-f]+)\/(.+)$/, async (route) => {
+  const [, repo, revision, path] = route.request().url().match(/^https:\/\/huggingface\.co\/(.+?)\/resolve\/([0-9a-f]+)\/(.+)$/);
+  const entry = catalog.find((m) => m.repo === repo && m.revision === revision);
+  if (!entry) return route.fulfill({ status: 404 });
+  const body = await readFile(join(here, '..', '.cache', 'models', entry.id, path));
+  served += body.length;
+  await route.fulfill({ status: 200, body, headers: { 'access-control-allow-origin': '*', 'content-type': 'application/octet-stream' } });
+});
+
+// Sélecteur de dossier simulé : un faux FileSystemDirectoryHandle qui écrit dans « site »
+await page.exposeFunction('__lowsperFs', async (op, rel, data) => {
+  const p = join(site, rel);
+  if (op === 'dir') {
+    if (data) await mkdir(p, { recursive: true });
+    else await stat(p);
+  } else if (op === 'file') {
+    if (!data) await stat(p);
+  } else if (op === 'write') {
+    await mkdir(dirname(p), { recursive: true });
+    await writeFile(p, data);
+  }
+  return true;
+});
+await page.addInitScript(() => {
+  const dir = (rel) => ({
+    kind: 'directory',
+    async getDirectoryHandle(name, opts = {}) {
+      await window.__lowsperFs('dir', rel + '/' + name, !!opts.create);
+      return dir(rel + '/' + name);
+    },
+    async getFileHandle(name, opts = {}) {
+      const path = rel + '/' + name;
+      await window.__lowsperFs('file', path, !!opts.create);
+      return {
+        kind: 'file',
+        async createWritable() {
+          const parts = [];
+          return { async write(t) { parts.push(t); }, async close() { await window.__lowsperFs('write', path, parts.join('')); } };
+        },
+      };
+    },
+  });
+  window.showDirectoryPicker = async () => dir('.');
 });
 page.on('console', (m) => {
   if (m.type() === 'error' || m.type() === 'warning') console.log(`[page ${m.type()}]`, m.text());
@@ -60,16 +121,28 @@ await page.addInitScript((pcmB64) => {
   };
 }, othersPcm);
 
-const t0 = Date.now();
-await page.goto(pathToFileURL(join(root, 'Lowsper.html')).href);
-await page.screenshot({ path: join(out, '1-chargement.png') });
+let t0 = Date.now();
+await page.goto(pathToFileURL(join(site, 'Lowsper.html')).href);
+await page.waitForSelector('#view-install:not([hidden])');
+await page.screenshot({ path: join(out, '0-installation.png') });
+await page.click('#install');
+await page.waitForSelector('#install-progress:not([hidden])');
+await page.waitForTimeout(1500);
+await page.screenshot({ path: join(out, '0b-installation-en-cours.png') });
+await page.waitForEvent('load', { timeout: 600000 }); // rechargement automatique après installation
+console.log(`Installation : ${(served / 1e6).toFixed(0)} Mo en ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+installing = false;
+
+t0 = Date.now();
 await page.waitForSelector('#engine[data-state="ready"]', { timeout: 180000 });
-console.log(`Moteur prêt en ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+console.log(`Moteur prêt en ${((Date.now() - t0) / 1000).toFixed(1)} s (modèle relu depuis le dossier)`);
 await page.screenshot({ path: join(out, '2-accueil.png') });
 
 await page.fill('#title', 'Test automatique');
 await page.click('details.options summary');
 await page.selectOption('#language', 'auto');
+await page.fill('#glossary', 'RSSI, COMEX, KPI');
+await page.screenshot({ path: join(out, '2b-options.png') });
 await page.click('#start');
 await page.waitForSelector('#view-rec:not([hidden])');
 console.log(`Réunion simulée pendant ${meetingSeconds} s...`);
@@ -100,13 +173,15 @@ await page.screenshot({ path: join(out, '5-termine-sombre.png'), fullPage: true 
 await browser.close();
 
 const checks = [
+  ['installation du modèle', served > 50e6],
   ['titre', md.startsWith('# Transcript de réunion : Test automatique')],
+  ['glossaire dans l\'en-tête', md.includes('RSSI, COMEX, KPI')],
   ['horodatage', /\*\*\[00:00:\d\d\] /.test(md)],
   ['voix micro (Vous)', /\] Vous :\*\*/.test(md)],
   ['voix participants', /\] Participants :\*\*/.test(md)],
   ['contenu français', /aime/i.test(md)],
   ['contenu anglais', /country/i.test(md)],
-  ['aucune requête réseau', network.length === 0],
+  ['aucune requête réseau après installation', network.length === 0],
   ['le moteur suit le rythme (file <= 3)', maxBacklog <= 3],
 ];
 let ok = true;

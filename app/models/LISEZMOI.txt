@@ -1,0 +1,2 @@
+Ce dossier reçoit le modèle de transcription, téléchargé par Lowsper au premier lancement.
+Pour équiper un autre poste sans Internet, copiez tout le dossier Lowsper (avec ce dossier rempli).
