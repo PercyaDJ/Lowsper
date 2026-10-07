@@ -9,6 +9,9 @@ un transcript Markdown horodaté, prêt à être confié à une IA pour rédiger
   rangé dans le dossier Lowsper. Ensuite, tout fonctionne hors ligne.
 - Ni le son ni le texte ne quittent l'ordinateur (bloqué techniquement, voir `decision.md`).
 - Un **glossaire** de vos sigles (RSSI, COMEX, KPI...) améliore nettement leur reconnaissance.
+- Les **intervenants** sont distingués automatiquement (Intervenant 1, 2, 3...) et peuvent être
+  renommés à la fin de la réunion.
+- Une **mini-fenêtre** toujours visible permet de piloter l'enregistrement pendant la visio.
 - Le transcript est prêt une vingtaine de secondes après la fin de la réunion.
 
 ## Utilisation
@@ -65,9 +68,22 @@ réseau (partage de connexion du téléphone, domicile), ou copiez le dossier Lo
 qui l'a déjà installé : le modèle est dedans (`app/models`).
 
 **Quel modèle choisir ?**
-« Whisper small » (recommandé) est le plus précis. Sur un PC ancien qui peine à suivre (la file
-« passages en attente » grossit pendant la réunion), installez « Whisper base » via Options,
-« Installer un autre modèle » : 3 fois plus rapide, moins précis.
+- « Whisper small » (recommandé, 250 Mo) : bon compromis, fonctionne sur tous les PC.
+- « Whisper small (carte graphique) » et « Whisper large-v3 turbo » (le plus précis, 760 Mo) :
+  utilisent la carte graphique, proposés seulement si le PC en a une compatible.
+- « Whisper base » (80 Mo) : pour un PC ancien.
+Un modèle plus précis n'est pas plus rapide. Pendant la réunion, l'indicateur « Charge du moteur »
+doit rester sous 100 % ; sinon, installez un modèle plus rapide (Options, « Installer un autre
+modèle »). Plusieurs modèles peuvent être installés, un sélecteur apparaît alors dans Options.
+
+**Le modèle est retéléchargé à chaque fois.**
+Vérifiez que Lowsper n'est pas ouvert directement depuis le zip (clic droit sur le zip, « Extraire
+tout »). Après avoir téléchargé une nouvelle version de Lowsper, copiez le dossier `app\models`
+de l'ancienne version dans la nouvelle au lieu de retélécharger.
+
+**Comment garder Lowsper visible pendant la visio ?**
+Bouton « Mini-fenêtre » pendant l'enregistrement : une petite fenêtre toujours au premier plan,
+à placer où vous voulez. Vous pouvez aussi simplement réduire la fenêtre : l'affichage devient compact.
 
 **Le partage d'écran ne propose pas « Partager l'audio ».**
 Sur Windows, choisissez « Écran entier » : la case « Partager aussi l'audio du système » apparaît.
@@ -100,7 +116,8 @@ node fetch-model.mjs whisper-small   # télécharge le modèle et note révision
 node fetch-model.mjs whisper-base
 node build.mjs                       # moteur + catalogue des modèles téléchargeables
 node test/unit.mjs                   # tests unitaires (découpage, sigles, anti-écho, Markdown)
-node test/e2e.mjs 45                 # installation réelle + réunion simulée dans Chromium
+node test/e2e.mjs 60                 # installation + réunion simulée (corpus hebdo) dans Chromium
+node test/eval-hebdo.mjs whisper-small # réunion réaliste : phrases perdues, sigles, intervenants
 node build.mjs --embed whisper-small whisper-base && node test/eval.mjs whisper-small whisper-base
                                      # comparaison des modèles sur le corpus avec sigles
 ```
@@ -115,6 +132,8 @@ Lowsper.html          page à ouvrir (interface + politique de sécurité)
 app/css/              styles
 app/js/engine.js      chargement des fichiers, moteur Whisper dans un Worker (glossaire, langue)
 app/js/installer.js   installation du modèle au premier lancement
+app/js/analyzer.js    détection de parole (Silero) et empreintes vocales (WeSpeaker), dans un Worker
+app/js/speakers.js    distinction et regroupement des intervenants
 app/js/capture.js     capture micro / partage d'écran, détection de parole, découpage
 app/js/transcript.js  assemblage, sigles, anti-écho, filtres, Markdown, sauvegarde
 app/js/app.js         contrôleur de l'interface

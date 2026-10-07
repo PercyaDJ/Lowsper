@@ -218,7 +218,7 @@ apparaîtrait deux fois. Trois niveaux de défense :
 
 ## 13. Distribution : le modèle est téléchargé au premier lancement
 
-**Décision** : le dépôt ne contient que l'application et le moteur (~16 Mo). Au premier lancement,
+**Décision** : le dépôt ne contient que l'application, les moteurs (processeur et carte graphique) et les deux petits modèles d'analyse audio (~65 Mo en tout). Au premier lancement,
 Lowsper propose d'installer le modèle :
 1. l'utilisateur clique sur « Installer le modèle » puis désigne le dossier Lowsper (celui qui
    contient `Lowsper.html`, vérifié) et accepte que la page y écrive ;
@@ -264,15 +264,146 @@ Détails :
 
 Si une stratégie d'entreprise interdit le partage d'écran, Lowsper fonctionne en micro seul.
 
-## 15. Limites connues et pistes d'évolution
+## 15. Version 3 : retour d'une vraie réunion (hebdo de 1 h 15)
 
-1. **Mesures sur machine réelle** : les vitesses ont été mesurées sur un conteneur lent, et les
-   tests de qualité sur des voix de synthèse. À valider sur un vrai PC et une vraie réunion.
-2. **WebGPU** : accélération forte sur les PC équipés d'un GPU correct ; à ajouter en option avec
-   détection automatique et repli sur le processeur. Permettrait d'envisager large-v3-turbo.
-3. **Diarisation** légère côté « Participants » (distinguer plusieurs voix).
-4. **Compte rendu local** par un petit modèle de langage dans le navigateur : écarté pour
-   l'instant (plusieurs centaines de Mo à plusieurs Go, qualité nettement inférieure aux IA
-   auxquelles l'utilisateur confiera le transcript).
-5. **Miroir de téléchargement** (par exemple une version publiée sur GitHub) si Hugging Face est
-   bloqué dans certaines entreprises.
+Retour utilisateur : transcription pas vraiment en direct, phrases manquantes ou mal captées,
+aucune distinction entre les 10 à 12 personnes qui parlent, sigles et noms propres à améliorer,
+fenêtre trop encombrante, modèle parfois retéléchargé.
+
+### 15.1 Corpus de mesure réaliste
+
+`tools/test/corpus/hebdo-fr.json` : hebdo fictif d'un centre de service, 2 min 40, 20 répliques,
+9 voix de synthèse (1 au micro, 8 côté participants), noms propres, sigles, longues interventions
+et 3 interruptions qui se chevauchent. Le banc `tools/test/eval-hebdo.mjs` rejoue toute la chaîne
+et mesure, réplique par réplique, la part des mots retrouvés au bon moment (« couverture »).
+
+### 15.2 Phrases manquantes : deux causes trouvées et corrigées
+
+Mesure de départ avec Whisper small : **la dernière minute entière était perdue** (5 répliques à 0 %).
+
+1. **Whisper s'arrête avant la fin du bloc.** Il transcrit les 5 premières secondes puis déclare la
+   fin du texte, et les 14 secondes suivantes sont ignorées. Correction : **reprise automatique**
+   (« seek », comme l'implémentation de référence de Whisper). S'il reste de la parole après le
+   dernier horodatage, la suite est transcrite à part.
+2. **Boucles d'hallucination** (« je ne sais pas si c'est que l'épargne » répété dix fois) qui épuisent
+   le budget de mots du bloc. Correction : détection des boucles (paires de mots peu variées, phrase
+   répétée), nouveau décodage sans glossaire avec répétitions interdites, puis en dernier recours
+   découpage du bloc aux frontières des prises de parole.
+3. Budget de mots élargi (11 jetons par seconde au lieu de 8) et blocs plus courts (18 à 24 s au lieu
+   de 24 à 28 s) : un passage raté contamine moins de texte.
+
+| Étape (Whisper small, glossaire) | Couverture | Blocs tronqués | Minute finale |
+|---|---|---|---|
+| Version 2 | 64 % | 2 | perdue |
+| + détection des boucles | 69 % | 0 | perdue |
+| + reprise automatique | 73 % | 0 | retrouvée |
+
+Les répliques encore mal captées viennent surtout de deux voix de synthèse peu intelligibles
+(vérifié en les transcrivant isolément). Sur la voix micro, aucune erreur.
+
+### 15.3 Détection de parole : Silero VAD
+
+Le détecteur à seuil de volume est remplacé par **Silero VAD** (1,3 Mo, licence MIT), qui donne une
+probabilité de parole toutes les 32 ms. Il distingue une voix d'un clavier, d'une musique ou d'un
+souffle, et ne rate pas une voix faible quand le volume du partage d'écran est bas. Sur le corpus
+synthétique (très propre), le gain mesuré est faible (35,6 % d'erreurs contre 36,0 %) : son
+intérêt est sur du vrai son, non mesurable ici. Repli automatique sur l'ancien détecteur en cas de
+problème. Il tourne dans un worker d'analyse dédié, avec le modèle d'empreintes vocales.
+
+### 15.4 Plus « en direct »
+
+- Un bloc part **dès la fin d'une phrase** (3 s de parole minimum) quand un moteur est libre, au
+  lieu d'attendre 18 à 24 s de parole. Les longs blocs ne servent plus qu'à absorber un retard.
+- Après 6 s de silence (au lieu de 10), le bloc en attente part aussi.
+- **Jusqu'à 3 moteurs en parallèle** (un par paire de cœurs logiques, 2 si moins de 8 Go de mémoire).
+- Indicateur « Charge du moteur » pendant la réunion, et alerte si le PC ne suit pas pendant plus
+  de 2 minutes (avec le conseil de passer à un modèle plus rapide).
+
+### 15.5 Distinction des intervenants
+
+Côté « Participants », les voix sont distinguées automatiquement (« Intervenant 1, 2, 3... »).
+
+- Modèle d'empreintes vocales **WeSpeaker ResNet34** (6,7 Mo, licence CC BY 4.0), livré avec
+  l'application.
+- Méthode : fenêtres glissantes de 2 s (pas de 1 s) sur la parole ; pendant la réunion, chaque
+  fenêtre rejoint la voix la plus proche (affichage en direct) ; à la fin, regroupement global :
+  fenêtres consécutives semblables réunies en tours de parole, puis regroupement hiérarchique à lien
+  moyen (UPGMA), puis les voix de moins de 8 s rattachées à la plus proche. Chaque phrase prend la
+  voix majoritaire de ses fenêtres : une interruption sans pause est donc quand même séparée.
+- Seuils réglés hors ligne sur les empreintes du corpus (`hebdo-embeddings.json`).
+
+| Méthode | Voix trouvées (réelles : 8) | Phrases attribuées à la bonne voix |
+|---|---|---|
+| Une empreinte par phrase de Whisper | 6 | 77 % |
+| Fenêtres + regroupement en ligne seul | 6 | 75 % |
+| **Fenêtres + tours de parole + UPGMA** | **9 à 10** | **98 à 99 %** |
+
+Limites honnêtes : des voix de synthèse sont plus faciles à distinguer que de vraies voix passées
+par la compression de Teams ; deux collègues à la voix proche peuvent partager un numéro ; une
+même personne peut en recevoir deux (micro différent, voix qui change). Pendant deux paroles
+simultanées, une seule voix est retenue.
+
+**Renommage** : à la fin, l'écran liste les voix détectées (temps de parole, première phrase
+reconnaissable) et permet de leur donner un nom ; le transcript est mis à jour.
+
+### 15.6 Sigles et noms propres
+
+- Correction de casse sûre : un terme du glossaire reconnu avec une autre casse ou sans accent est
+  réécrit dans sa forme exacte (« copil » -> « COPIL », « elodie » -> « Élodie »), mot entier uniquement.
+- Le plus gros gain vient du modèle (voir 15.7).
+
+### 15.7 Modèles plus performants et carte graphique
+
+| Modèle (corpus 55 s, 20 sigles) | Mots erronés | Sigles | Calcul / s de parole (processeur) |
+|---|---|---|---|
+| Whisper small + glossaire | 11 % | 14/20 | 0,9 s |
+| **Whisper large-v3-turbo 4 bits + glossaire** | **9,8 %** | **16/20** | 8,7 s |
+| Whisper large-v3-turbo 4 bits, sans glossaire | 12 % | 13/20 | 8,7 s |
+
+- Le turbo est le plus précis, mais **10 fois plus lent que small sur le processeur** : il n'est
+  proposé qu'avec la **carte graphique (WebGPU)**, et grisé si aucune carte compatible n'est détectée.
+- Un modèle plus précis n'est **pas plus rapide** et n'améliore **ni la détection de parole ni la
+  distinction des voix** (briques séparées). La vitesse vient de la carte graphique.
+- **Whisper small existe aussi en version carte graphique** (4 bits, 300 Mo).
+- Le moteur WebGPU (ONNX Runtime, 27 Mo de plus) est livré avec l'application ; le moteur
+  processeur seul reste utilisé pour les modèles « processeur » et pour l'analyse audio.
+- **Non mesuré : la vitesse réelle sur carte graphique**, faute de carte graphique dans
+  l'environnement de développement. Le chemin WebGPU est vérifié fonctionnellement avec une carte
+  émulée (SwiftShader), qui ne dit rien de la vitesse. L'indicateur de charge permet à chacun de
+  juger sur son propre PC.
+
+### 15.8 Interface
+
+- **Fenêtre réduite** : en dessous de 560 px de large ou 640 px de haut, l'affichage devient compact ;
+  en dessous de 520 px de haut, seuls le chronomètre, les niveaux, la dernière phrase et les boutons
+  restent. Le test vérifie que « Terminer » reste visible dans une fenêtre de 360 x 460 px.
+- **Mini-fenêtre** (Document Picture-in-Picture, Edge et Chrome récents) : une petite fenêtre
+  toujours au premier plan, déplaçable, avec chronomètre, niveaux, dernière phrase, Pause et Terminer.
+  Ouverture par le bouton « Mini-fenêtre » ; ouverture automatique au changement d'onglet quand le
+  navigateur le permet (fonction récente de Chrome pour les pages qui utilisent le micro, non
+  garantie). Le passage à une autre application ne peut pas l'ouvrir automatiquement : le bouton
+  reste le moyen fiable.
+- **Enchaîner les réunions** : bouton « Démarrer la réunion suivante » sur l'écran de fin. Les
+  moteurs restent chargés, le démarrage est immédiat.
+
+### 15.9 Modèle retéléchargé : causes probables et parades
+
+1. **Nouvelle version téléchargée en zip** dans un nouveau dossier, sans le modèle. Parade : l'écran
+   d'installation explique de copier `app\models` de l'ancien dossier.
+2. **Page ouverte directement depuis le zip** : Windows l'extrait dans un dossier temporaire à chaque
+   ouverture. Parade : détection du chemin temporaire et message « Extraire tout ».
+3. **Mauvais dossier choisi** à l'installation (une autre copie de Lowsper). Parade : Lowsper écrit un
+   petit fichier de vérification dans le dossier choisi et vérifie que la page peut le relire ; sinon
+   il affiche le bon chemin (« Dossier de cette page : ... »).
+
+## 16. Limites connues et pistes d'évolution
+
+1. **Mesures sur machine réelle** : vitesses mesurées sur un conteneur lent sans carte graphique,
+   qualité mesurée sur des voix de synthèse. À valider sur un vrai PC et une vraie réunion.
+2. **Mémoire des voix d'une réunion à l'autre** (reconnaître automatiquement les collègues d'un hebdo
+   récurrent) : techniquement simple, mais une empreinte vocale est une donnée biométrique (RGPD,
+   article 9). Non fait sans décision explicite, consentement des personnes et effacement facile.
+3. **Paroles simultanées** : une seule voix est transcrite pendant un chevauchement ; séparer deux
+   voix mélangées demanderait des modèles beaucoup plus lourds.
+4. **Compte rendu local** par un petit modèle de langage dans le navigateur : écarté pour l'instant.
+5. **Miroir de téléchargement** si Hugging Face est bloqué dans certaines entreprises.

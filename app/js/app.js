@@ -480,8 +480,45 @@
     const minutes = Math.max(1, Math.round((app.transcript.meta.endedAt - app.transcript.meta.startedAt) / 60000));
     $('done-info').textContent = `${minutes} min de réunion, ${paras} intervention${paras > 1 ? 's' : ''}. Le fichier a été enregistré dans votre dossier Téléchargements.`;
     $('preview').textContent = app.finalMarkdown;
+    renderVoices();
     setState('done');
     download(app.finalMarkdown, app.transcript.fileName());
+  }
+
+  // Écran de fin : renommer les intervenants détectés
+  function renderVoices() {
+    const t = app.transcript;
+    const list = t ? t.voiceSummary() : [];
+    $('voices').hidden = !list.length;
+    const box = $('voice-list');
+    box.replaceChildren();
+    for (const v of list) {
+      const row = document.createElement('div');
+      row.className = 'voice-row';
+      const label = document.createElement('div');
+      label.className = 'vlabel';
+      label.textContent = v.label;
+      const small = document.createElement('small');
+      const talk = v.seconds < 90 ? `${Math.round(v.seconds)} s` : `${Math.round(v.seconds / 60)} min`;
+      small.textContent = `${talk} de parole · dès ${L.formatTime(v.at)}`;
+      label.appendChild(small);
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.maxLength = 60;
+      input.placeholder = 'Nom (facultatif)';
+      input.value = (t.meta.names && t.meta.names[v.voice]) || '';
+      input.addEventListener('input', () => {
+        t.nameVoice(v.voice, input.value);
+        app.finalMarkdown = t.toMarkdown();
+        $('preview').textContent = app.finalMarkdown;
+      });
+      const sample = document.createElement('div');
+      sample.className = 'vsample';
+      sample.textContent = '« ' + v.sample + ' »';
+      sample.title = v.sample;
+      row.append(label, input, sample);
+      box.appendChild(row);
+    }
   }
 
   function reset() {

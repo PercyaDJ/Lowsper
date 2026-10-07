@@ -33,6 +33,9 @@ export const MODELS = Object.fromEntries(
   [
     def('whisper-small', 'onnx-community/whisper-small', 'Whisper small', { encoder_model: 'q8', decoder_model_merged: 'q8' },
       'Précis en français, retrouve bien les sigles grâce au glossaire. Pour un PC portable récent.', true),
+    def('whisper-small-gpu', 'onnx-community/whisper-small', 'Whisper small (carte graphique)', { encoder_model: 'q4', decoder_model_merged: 'q4' },
+      'Même modèle que Whisper small, calculé par la carte graphique : bien plus rapide si le PC en a une correcte.', false, 'webgpu'),
+    def('whisper-small-gpu-cpu', 'onnx-community/whisper-small', 'Whisper small 4 bits (mesure)', { encoder_model: 'q4', decoder_model_merged: 'q4' }),
     def('whisper-base', 'onnx-community/whisper-base', 'Whisper base', { encoder_model: 'q8', decoder_model_merged: 'q8' },
       'Environ 3 fois plus rapide mais nettement moins précis. Pour un PC ancien ou très chargé.'),
     def('whisper-small-q4', 'onnx-community/whisper-small', 'Whisper small (4 bits)', { encoder_model: 'q8', decoder_model_merged: 'q4' }),
