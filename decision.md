@@ -436,6 +436,41 @@ modèle (puis à la demande, dans Options), il chronomètre l'encodeur et la gé
 estimation a été vérifiée sur la machine de test : 154 % estimés, cohérent avec les blocs mesurés
 sur le corpus (environ 1,5 s de calcul par seconde de parole).
 
+### 15.12 Portable de bureau sans carte graphique, en multitâche
+
+Cible précisée par l'utilisateur : portable professionnel milieu de gamme (Ryzen 5 de 5e génération,
+6 cœurs / 12 fils, 32 Go, pas de carte graphique dédiée), avec Teams, Outlook, Excel, Word
+et Obsidian ouverts. Lowsper doit tourner partout, sans faire ramer le PC, en restant le plus en
+direct possible.
+
+Mesures préalables (machine de test) : changer la précision des calculs n'accélère rien sur le
+processeur. Whisper small en int8 reste le plus rapide (148 ms par jeton, contre 169 à 180 ms en
+fp32), Whisper base est environ 3 fois plus rapide (59 ms par jeton, encodeur 3,5 s au lieu de 12 s).
+
+Décisions :
+1. **Niveaux de puissance** (Options) : un moteur qui transcrit occupe un cœur à 100 %.
+   - Économe : 1 moteur.
+   - **Équilibrée (par défaut)** : un quart des fils en temps normal (3 sur un Ryzen 5 à 12 fils,
+     soit environ 25 % du processeur), un tiers en renfort (4) seulement quand du retard s'accumule.
+     Les moteurs de renfort sont démarrés à la demande. Teams et Office gardent toujours de la marge.
+   - Maximale : la moitié des fils (6).
+   Une fois la réunion terminée, la fin du transcript utilise le renfort (le PC est libéré).
+2. **Voie rapide de secours** : quand un passage attend depuis plus de 15 s (le PC n'arrive plus à
+   suivre), il est transcrit par Whisper base, 3 fois plus rapide. Il s'affiche donc en direct
+   (en italique, « provisoire »), puis il est **retranscrit avec le modèle principal** dès qu'un moteur
+   est libre (pendant un silence, ou après la réunion). L'écran de fin indique l'avancement et invite
+   à retélécharger la version finale. Le direct passe en premier, la qualité suit.
+   Whisper base est installé automatiquement avec Whisper small (80 Mo de plus).
+3. Le test de vitesse tient compte du nombre de moteurs et de la voie rapide dans son conseil.
+
+Vérifié sur la machine de test (4 cœurs lents, 1 seul moteur autorisé) : la voie rapide a pris en
+charge 2 passages pendant une réunion simulée de 90 s, tous retranscrits ensuite avec Whisper small ;
+la file d'attente n'a jamais dépassé 3 passages.
+
+Remarque : les Ryzen 5 de 5e génération ont une puce graphique intégrée (Radeon). Chrome et Edge
+peuvent l'utiliser via WebGPU ; si Lowsper la détecte, les versions « carte graphique » apparaissent
+dans le catalogue. Leur vitesse sur une puce intégrée n'est pas connue : le test de vitesse le dira.
+
 ## 16. Limites connues et pistes d'évolution
 
 1. **Mesures sur machine réelle** : vitesses mesurées sur un conteneur lent sans carte graphique,

@@ -233,6 +233,19 @@ await test('mémoire des voix : reconnaissance, prudence, effacement', () => {
   assert.equal(new L.VoiceMemory(storage).count, 0);
 });
 
+await test('un passage « rapide » est remplacé par sa version précise, en gardant la voix', () => {
+  const t = new L.Transcript({ sources: ['others'] });
+  const b = { id: 7, start: 100, end: 110, speech: 8, map: [{ at: 0, t: 100 }] };
+  t.addSegment('others', b, { chunks: [{ from: 0, to: 5, text: 'Texte approximatif.' }] }, [{ voice: 1003, key: 4 }], { block: 7, draft: true });
+  t.addSegment('others', { id: 8, start: 120, end: 125, speech: 4, map: [{ at: 0, t: 120 }] }, { chunks: [{ from: 0, to: 4, text: 'Autre passage.' }] }, null, { block: 8 });
+  assert.equal(t.draftCount(), 1);
+  t.replaceBlock('others', b, { chunks: [{ from: 0, to: 2, text: 'Texte précis,' }, { from: 2, to: 5, text: 'en deux phrases.' }] });
+  assert.equal(t.draftCount(), 0);
+  assert.equal(t.lines.map((l) => l.text).join(' | '), 'Texte précis, | en deux phrases. | Autre passage.');
+  assert.equal(t.lines[0].voice, 1003);
+  assert.equal(t.lines[1].vkey, 4);
+});
+
 await test('sauvegarde et récupération d’une session interrompue', () => {
   store.clear();
   const t = new L.Transcript({ title: 'Crash', sources: ['me'] });

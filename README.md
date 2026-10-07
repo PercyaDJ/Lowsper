@@ -81,6 +81,12 @@ Vérifiez que Lowsper n'est pas ouvert directement depuis le zip (clic droit sur
 tout »). Après avoir téléchargé une nouvelle version de Lowsper, copiez le dossier `app\models`
 de l'ancienne version dans la nouvelle au lieu de retélécharger.
 
+**Lowsper va-t-il ralentir mon PC pendant les réunions ?**
+Non, par défaut (puissance « Équilibrée ») il n'utilise qu'environ un quart du processeur, un peu
+plus seulement quand il prend du retard. Si la réunion est très dense, une « voie rapide » affiche
+quand même le texte en direct (en italique), puis le retranscrit précisément dès que possible.
+Réglable dans Options : Économe, Équilibrée, Maximale.
+
 **Mon PC est-il assez rapide ?**
 Options, « Mesurer la vitesse de ce PC » (fait automatiquement la première fois) : Lowsper indique
 la charge estimée pour une réunion où l'on parle sans arrêt, et conseille un modèle plus rapide si

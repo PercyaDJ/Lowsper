@@ -384,3 +384,7 @@ body.pip #pip { display: none; }
 .btn.small { padding: 7px 12px; font-size: 13px; }
 .speed .fine { margin: 6px 0 0; }
 .badge.auto { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+
+/* Passages provisoires (voie rapide), en attente de la version précise */
+.feed p.draft { opacity: .7; font-style: italic; }
+.notice.soft { background: var(--surface-2); border-color: var(--border); color: var(--text); margin: 16px 0 0; }
