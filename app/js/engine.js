@@ -68,10 +68,11 @@
    * Charge tout ce qu'il faut pour transcrire. onProgress(ratio entre 0 et 1).
    * Le résultat est mis en cache : un seul chargement par ouverture de la page.
    */
-  let assetsPromise = null;
+  const assetsCache = new Map();
   Lowsper.loadAssets = function (onProgress, modelId) {
-    if (assetsPromise) return assetsPromise;
-    assetsPromise = (async () => {
+    const cacheKey = modelId || '';
+    if (assetsCache.has(cacheKey)) return assetsCache.get(cacheKey);
+    const assetsPromise = (async () => {
       const manifest = self.LOWSPER_MANIFEST;
       if (!manifest) throw new Error('app/manifest.js introuvable : le dossier est incomplet.');
       const installed = self.LOWSPER_INSTALLED || [];
@@ -130,9 +131,8 @@
         analysis,
       };
     })();
-    assetsPromise.catch(() => {
-      assetsPromise = null;
-    });
+    assetsCache.set(cacheKey, assetsPromise);
+    assetsPromise.catch(() => assetsCache.delete(cacheKey));
     return assetsPromise;
   };
 

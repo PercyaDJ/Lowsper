@@ -128,6 +128,14 @@
               <p class="fine" id="memory-list"></p>
             </div>
           </div>
+          <label class="field inline">
+            <span>Puissance de calcul <em>(part du processeur utilisée pour transcrire)</em></span>
+            <select id="power">
+              <option value="eco">Économe : 1 cœur, la transcription peut prendre du retard</option>
+              <option value="balanced" selected>Équilibrée : laisse de la marge à Teams, Office... (conseillé)</option>
+              <option value="max">Maximale : le plus de direct possible, PC plus sollicité</option>
+            </select>
+          </label>
           <div class="speed">
             <button class="linkish" id="speed-test" type="button">Mesurer la vitesse de ce PC avec le modèle actuel</button>
             <p class="fine" id="speed-result"></p>
@@ -208,6 +216,7 @@
         <button class="btn" id="copy">Copier</button>
         <button class="btn" id="copy-ai" title="Copie le transcript précédé d'une consigne pour obtenir un compte rendu">Copier pour une IA</button>
       </div>
+      <div class="notice soft" id="drafts" hidden></div>
       <div class="voices" id="voices" hidden>
         <h3>Intervenants détectés</h3>
         <p class="fine">Donnez un nom aux voix que vous reconnaissez : le transcript est mis à jour (pensez à le retélécharger).</p>

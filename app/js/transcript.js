@@ -197,7 +197,7 @@
      * Ajoute le résultat du moteur pour un bloc audio.
      * voices : identifiant de voix par phrase (source « Participants »), voir speakers.js
      */
-    addSegment(source, seg, result, voices) {
+    addSegment(source, seg, result, voices, opts) {
       const chunks = result.chunks && result.chunks.length
         ? result.chunks
         : [{ from: 0, to: null, text: result.text }];
@@ -212,6 +212,8 @@
           line.voice = voices[i].voice;
           line.vkey = voices[i].key;
         }
+        if (opts && opts.block != null) line.block = opts.block;
+        if (opts && opts.draft) line.draft = true;
         this.lines.push(line);
       });
       this.lines.sort((a, b) => a.start - b.start);
@@ -234,6 +236,37 @@
         }
         return true;
       });
+    }
+
+    /**
+     * Remplace le texte d'un bloc (retranscription d'un passage « rapide » avec le bon modèle).
+     * Chaque nouvelle phrase reprend la voix de l'ancienne phrase qu'elle recouvre le plus.
+     */
+    replaceBlock(source, seg, result) {
+      const old = this.lines.filter((l) => l.block === seg.id && l.source === source);
+      this.lines = this.lines.filter((l) => !(l.block === seg.id && l.source === source));
+      this.addSegment(source, seg, result, null, { block: seg.id });
+      for (const l of this.lines.filter((x) => x.block === seg.id && x.source === source)) {
+        let best = null;
+        let bestO = 0;
+        for (const o of old) {
+          const ov = Math.min(l.end, o.end) - Math.max(l.start, o.start);
+          if (ov > bestO) {
+            bestO = ov;
+            best = o;
+          }
+        }
+        if (!best && old.length) best = old[0];
+        if (best && best.voice != null) {
+          l.voice = best.voice;
+          l.vkey = best.vkey;
+        }
+      }
+      this.emit();
+    }
+
+    draftCount() {
+      return new Set(this.lines.filter((l) => l.draft).map((l) => l.block)).size;
     }
 
     hasVoices() {
@@ -300,8 +333,9 @@
         ) {
           last.text += ' ' + l.text;
           last.end = Math.max(last.end, l.end);
+          if (l.draft) last.draft = true;
         } else {
-          items.push({ source: l.source, voice: l.voice, start: l.start, end: l.end, text: l.text });
+          items.push({ source: l.source, voice: l.voice, start: l.start, end: l.end, text: l.text, draft: !!l.draft });
         }
       }
       return items;
