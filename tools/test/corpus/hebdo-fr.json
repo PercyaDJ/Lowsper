@@ -1,0 +1,37 @@
+{
+  "description": "Hebdo fictif d'un centre de service : 1 voix micro (Vous) et 8 participants sur l'audio partagé, noms propres, sigles, longues interventions et interruptions qui se chevauchent. Sert à mesurer les pertes de phrases, la qualité et l'identification des intervenants.",
+  "glossary": "RSSI, SLA, ITSM, ServiceNow, P1, P2, CAB, MCO, VPN, GLPI, SOC, KPI, COPIL, Claire Moreau, Julien Bertrand, Sophie Lambert, Karim Haddad, Nathalie Roux, Thomas Girard, Élodie Petit, Marc Lefèvre",
+  "speakers": {
+    "Vous": { "voice": "tom", "channel": "me" },
+    "Claire": { "voice": "mls", "speaker": 7, "channel": "others" },
+    "Julien": { "voice": "mls", "speaker": 23, "channel": "others" },
+    "Sophie": { "voice": "mls", "speaker": 41, "channel": "others" },
+    "Karim": { "voice": "mls", "speaker": 58, "channel": "others" },
+    "Nathalie": { "voice": "siwis", "channel": "others" },
+    "Thomas": { "voice": "mls", "speaker": 86, "channel": "others" },
+    "Elodie": { "voice": "upmc", "channel": "others" },
+    "Marc": { "voice": "mls", "speaker": 112, "channel": "others" }
+  },
+  "lines": [
+    { "who": "Claire", "ref": "Bonjour à tous, on démarre l'hebdo du centre de service. On a beaucoup de sujets aujourd'hui, donc je vous propose d'aller vite sur les indicateurs et de garder du temps pour les incidents de la semaine.", "say": "Bonjour à tous, on démarre l'hebdo du centre de service. On a beaucoup de sujets aujourd'hui, donc je vous propose d'aller vite sur les indicateurs et de garder du temps pour les incidents de la semaine." },
+    { "who": "Claire", "ref": "Julien, tu peux commencer par les KPI ?", "say": "Julien, tu peux commencer par les K P I ?" },
+    { "who": "Julien", "ref": "Oui. Cette semaine on a reçu mille deux cent quarante tickets dans ServiceNow, c'est dix pour cent de plus que la semaine dernière. Le taux de résolution au premier contact est à soixante-huit pour cent, et on a tenu le SLA sur les P1, mais pas sur les P2 : on est à quatre-vingt-sept pour cent pour un objectif de quatre-vingt-quinze.", "say": "Oui. Cette semaine on a reçu mille deux cent quarante tickets dans service nao, c'est dix pour cent de plus que la semaine dernière. Le taux de résolution au premier contact est à soixante-huit pour cent, et on a tenu le S L A sur les P un, mais pas sur les P deux : on est à quatre-vingt-sept pour cent pour un objectif de quatre-vingt-quinze." },
+    { "who": "Sophie", "overlap": 0.7, "ref": "Attends, les P2 c'est surtout le week-end.", "say": "Attends, les P deux c'est surtout le week-end." },
+    { "who": "Julien", "ref": "Oui, c'est surtout le samedi, on n'avait qu'une personne d'astreinte.", "say": "Oui, c'est surtout le samedi, on n'avait qu'une personne d'astreinte." },
+    { "who": "Vous", "ref": "Je confirme, j'ai vu passer les alertes du SOC samedi matin, il y avait trois incidents en parallèle sur le VPN.", "say": "Je confirme, j'ai vu passer les alertes du sok samedi matin, il y avait trois incidents en parallèle sur le V P N." },
+    { "who": "Karim", "ref": "C'est le problème de certificat sur la passerelle VPN. On a fait le correctif lundi, et depuis on n'a plus eu de coupure.", "say": "C'est le problème de certificat sur la passerelle V P N. On a fait le correctif lundi, et depuis on n'a plus eu de coupure." },
+    { "who": "Nathalie", "ref": "Est-ce que ça a été validé en CAB ? Parce que je n'ai pas vu passer la demande de changement.", "say": "Est-ce que ça a été validé en cab ? Parce que je n'ai pas vu passer la demande de changement." },
+    { "who": "Karim", "overlap": 0.6, "ref": "Non, c'était un changement urgent, on régularise cette semaine.", "say": "Non, c'était un changement urgent, on régularise cette semaine." },
+    { "who": "Nathalie", "ref": "D'accord, mais il faut vraiment qu'on évite ça. Le RSSI m'a déjà posé la question deux fois.", "say": "D'accord, mais il faut vraiment qu'on évite ça. Le R S S I m'a déjà posé la question deux fois." },
+    { "who": "Thomas", "ref": "De mon côté, la migration de GLPI vers ServiceNow avance. On a migré les catégories et les groupes d'affectation. Il reste les modèles de réponse et les bases de connaissance, et pour ça j'ai besoin de deux jours avec Élodie la semaine prochaine.", "say": "De mon côté, la migration de glpi vers service nao avance. On a migré les catégories et les groupes d'affectation. Il reste les modèles de réponse et les bases de connaissance, et pour ça j'ai besoin de deux jours avec Élodie la semaine prochaine." },
+    { "who": "Elodie", "ref": "Mardi et mercredi, ça me va.", "say": "Mardi et mercredi, ça me va." },
+    { "who": "Marc", "ref": "Petite remarque sur le MCO : on a toujours les serveurs de l'ancien outil allumés. Si on les coupe à la fin du mois, ça fait des économies, mais il faut l'accord du COPIL.", "say": "Petite remarque sur le M C O : on a toujours les serveurs de l'ancien outil allumés. Si on les coupe à la fin du mois, ça fait des économies, mais il faut l'accord du copil." },
+    { "who": "Claire", "ref": "Je le mets à l'ordre du jour du COPIL de jeudi. Marc, tu m'envoies le chiffrage ?", "say": "Je le mets à l'ordre du jour du copil de jeudi. Marc, tu m'envoies le chiffrage ?" },
+    { "who": "Marc", "ref": "Oui, avant mercredi.", "say": "Oui, avant mercredi." },
+    { "who": "Sophie", "ref": "J'ai un point sur les ressources. Avec le départ de Kevin, on est en sous-effectif sur le niveau un jusqu'à fin novembre. J'ai demandé un renfort au prestataire, mais rien n'est signé.", "say": "J'ai un point sur les ressources. Avec le départ de Kevin, on est en sous-effectif sur le niveau un jusqu'à fin novembre. J'ai demandé un renfort au prestataire, mais rien n'est signé." },
+    { "who": "Vous", "overlap": 0.5, "ref": "On peut décaler les formations ITSM pour libérer du temps ?", "say": "On peut décaler les formations I T S M pour libérer du temps ?" },
+    { "who": "Sophie", "ref": "Oui, c'est une piste. Je regarde avec Claire.", "say": "Oui, c'est une piste. Je regarde avec Claire." },
+    { "who": "Claire", "ref": "Très bien. Pour résumer les actions : Karim régularise le changement VPN en CAB, Thomas et Élodie finalisent la migration mardi et mercredi, Marc envoie le chiffrage avant mercredi, et Sophie relance le prestataire pour le renfort.", "say": "Très bien. Pour résumer les actions : Karim régularise le changement V P N en cab, Thomas et Élodie finalisent la migration mardi et mercredi, Marc envoie le chiffrage avant mercredi, et Sophie relance le prestataire pour le renfort." },
+    { "who": "Claire", "ref": "Merci à tous, bonne semaine.", "say": "Merci à tous, bonne semaine." }
+  ]
+}

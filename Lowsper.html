@@ -96,6 +96,10 @@
             <input type="checkbox" id="with-others" checked>
             <span>Capter aussi le son des participants (partage d'écran)</span>
           </label>
+          <label class="check">
+            <input type="checkbox" id="distinguish" checked>
+            <span>Distinguer les intervenants (Intervenant 1, 2, 3...)</span>
+          </label>
           <label class="field inline">
             <span>Sigles et noms propres de vos réunions <em>(aide la reconnaissance, conservé sur ce poste)</em></span>
             <textarea id="glossary" rows="3" spellcheck="false" placeholder="Ex. RSSI, COMEX, KPI, RGPD, NIS 2, projet Atlas, Mme Durand"></textarea>
@@ -182,6 +186,8 @@
   <!-- Modèles installés (absent tant que le modèle n'a pas été téléchargé) -->
   <script src="app/models/index.txt"></script>
   <script src="app/js/engine.js"></script>
+  <script src="app/js/analyzer.js"></script>
+  <script src="app/js/speakers.js"></script>
   <script src="app/js/installer.js"></script>
   <script src="app/js/capture.js"></script>
   <script src="app/js/transcript.js"></script>

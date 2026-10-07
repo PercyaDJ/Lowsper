@@ -77,36 +77,76 @@
       const installed = self.LOWSPER_INSTALLED || [];
       const model = installed.find((m) => m.id === modelId) || installed[0];
       if (!model) throw new Error('Aucun modèle installé.');
+      const device = model.device === 'webgpu' ? 'webgpu' : 'wasm';
+      const runtimes = manifest.runtimes || { cpu: { src: manifest.runtime.src, bytes: manifest.runtime.bytes, wasm: manifest.wasm } };
+      const needed = device === 'webgpu' ? [runtimes.cpu, runtimes.webgpu] : [runtimes.cpu];
 
-      const fileParts = Object.values(model.files).flat();
+      const sum = (parts) => parts.reduce((n, p) => n + p.bytes, 0);
       const total =
-        manifest.runtime.bytes +
-        manifest.wasm.reduce((n, p) => n + p.bytes, 0) +
-        fileParts.reduce((n, p) => n + p.bytes, 0);
+        needed.reduce((n, r) => n + r.bytes + sum(r.wasm), 0) +
+        sum(Object.values(model.files).flat()) +
+        (manifest.vad ? sum(manifest.vad) : 0) +
+        (manifest.speaker ? sum(Object.values(manifest.speaker.files).flat()) : 0);
       let done = 0;
       const tick = (n) => {
         done += n;
         if (onProgress) onProgress(Math.min(1, done / total));
       };
 
-      await loadScript(manifest.runtime.src);
-      const runtime = takeAsset(manifest.runtime.src);
-      tick(manifest.runtime.bytes);
-
-      const wasm = await loadBinary(manifest.wasm, tick);
+      const loaded = [];
+      for (const r of needed) {
+        await loadScript(r.src);
+        const code = takeAsset(r.src);
+        tick(r.bytes);
+        loaded.push({ code, wasm: await loadBinary(r.wasm, tick) });
+      }
+      const cpu = loaded[0];
+      const main = loaded[loaded.length - 1];
 
       await loadScript(model.config);
       const texts = takeAsset(model.config);
       const files = {};
-      for (const [name, parts] of Object.entries(model.files)) {
-        files[name] = await loadBinary(parts, tick);
+      for (const [name, parts] of Object.entries(model.files)) files[name] = await loadBinary(parts, tick);
+
+      // Analyse audio (détection de parole, empreintes vocales) : toujours sur le processeur
+      let analysis = null;
+      if (manifest.vad) {
+        const vad = await loadBinary(manifest.vad, tick);
+        let speaker = null;
+        if (manifest.speaker) {
+          await loadScript(manifest.speaker.config);
+          const sTexts = takeAsset(manifest.speaker.config);
+          const sFiles = {};
+          for (const [name, parts] of Object.entries(manifest.speaker.files)) sFiles[name] = await loadBinary(parts, tick);
+          speaker = { texts: sTexts, files: sFiles };
+        }
+        analysis = { runtime: cpu.code, wasm: cpu.wasm, vad, speaker };
       }
-      return { runtime, wasm, model: { id: model.id, label: model.label, dtype: model.dtype, texts, files } };
+      return {
+        runtime: main.code,
+        wasm: main.wasm,
+        device,
+        model: { id: model.id, label: model.label, dtype: model.dtype, device, texts, files },
+        analysis,
+      };
     })();
     assetsPromise.catch(() => {
       assetsPromise = null;
     });
     return assetsPromise;
+  };
+
+  /** Vrai si le navigateur dispose d'une carte graphique utilisable en WebGPU. */
+  Lowsper.detectWebGPU = async function () {
+    try {
+      if (!navigator.gpu) return null;
+      const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
+      if (!adapter) return null;
+      const info = adapter.info || {};
+      return { vendor: info.vendor || '', description: info.description || info.architecture || '', f16: adapter.features.has('shader-f16') };
+    } catch {
+      return null;
+    }
   };
 
   // ---------------------------------------------------------------------------
@@ -153,8 +193,9 @@
       onnx.wasm.numThreads = 1; // file:// n'autorise pas le multithread WebAssembly
       onnx.wasm.proxy = false;
 
+      if (model.device === 'webgpu') onnx.webgpu.powerPreference = 'high-performance';
       asr = await pipeline('automatic-speech-recognition', model.id, {
-        device: 'wasm',
+        device: model.device === 'webgpu' ? 'webgpu' : 'wasm',
         dtype: model.dtype || { encoder_model: 'q8', decoder_model_merged: 'q8' },
       });
       // Permet de transmettre à generate() la sortie d'encodeur déjà calculée
@@ -233,35 +274,160 @@
       return best;
     }
 
-    async function transcribe(msg) {
-      const t0 = performance.now();
-      const seconds = msg.audio.length / 16000;
-      const features = (await asr.processor(msg.audio)).input_features;
-      const encoderOutputs = await encode(features);
-      const language = Array.isArray(msg.language) ? await detect(encoderOutputs, msg.language) : msg.language || 'fr';
+    const countWords = (cs) => cs.reduce((n, c) => n + c.text.split(/\s+/).filter(Boolean).length, 0);
 
-      const prompt = promptIds(msg.prompt);
-      let chunks = await decode(features, encoderOutputs, language, prompt, msg.maxTokens, seconds);
-      // Filet de sécurité : le contexte (glossaire) fait parfois « sauter » un passage à Whisper.
-      // Si le texte est anormalement court pour la durée de parole, on refait le décodage sans
-      // glossaire (l'encodeur n'est pas recalculé) et on garde la version la plus complète.
-      const count = (cs) => cs.reduce((n, c) => n + c.text.split(/\s+/).filter(Boolean).length, 0);
-      let retried = false;
-      if (prompt.length && seconds >= 2 && count(chunks) < seconds * 0.9) {
-        const plain = await decode(features, encoderOutputs, language, [], msg.maxTokens, seconds);
-        retried = true;
-        if (count(plain) > count(chunks) * 1.3) chunks = plain;
+    // Détecte une boucle de répétition (« je ne sais pas si... » x 10) : peu de groupes de
+    // 4 mots distincts, ou une même phrase répétée au moins 3 fois.
+    function isLoop(chunks) {
+      const words = chunks.map((c) => c.text).join(' ').toLowerCase().split(/\s+/).filter(Boolean);
+      if (words.length >= 12) {
+        // Paraphrases en boucle (« je ne sais pas... je ne sais plus... ») : peu de paires de mots distinctes
+        const pairs = new Set();
+        for (let i = 0; i + 2 <= words.length; i++) pairs.add(words[i] + ' ' + words[i + 1]);
+        if (pairs.size / (words.length - 1) < 0.75) return true;
       }
-      return { text: chunks.map((c) => c.text).join(' '), chunks, language, retried, ms: performance.now() - t0 };
+      if (words.length >= 16) {
+        const grams = new Set();
+        for (let i = 0; i + 4 <= words.length; i++) grams.add(words.slice(i, i + 4).join(' '));
+        if (grams.size / (words.length - 3) < 0.6) return true;
+      }
+      const seen = new Map();
+      for (const c of chunks) {
+        const k = c.text.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, '').trim();
+        if (k.length < 8) continue;
+        seen.set(k, (seen.get(k) || 0) + 1);
+        if (seen.get(k) >= 3) return true;
+      }
+      return false;
     }
 
-    async function decode(features, encoderOutputs, language, prompt, maxTokens, seconds) {
+    // Un résultat est « suspect » s'il a atteint le plafond de jetons, s'il boucle, ou s'il
+    // est anormalement court pour la durée de parole (passage sauté).
+    function quality(chunks, seconds) {
+      if (chunks.capped || isLoop(chunks)) return 'loop';
+      if (seconds >= 2 && countWords(chunks) < seconds * 0.9) return 'short';
+      return 'ok';
+    }
+
+    async function transcribe(msg) {
+      const t0 = performance.now();
+      const r = await transcribeAudio(msg.audio, msg, 0);
+      return Object.assign(r, { ms: performance.now() - t0 });
+    }
+
+    // Stratégie de décodage robuste, inspirée du « repli » de l'implémentation de référence
+    // de Whisper : 1) décodage normal avec le glossaire ; 2) si le résultat est suspect,
+    // nouveau décodage sans glossaire et en interdisant les répétitions (l'encodeur n'est pas
+    // recalculé) ; 3) si c'est encore suspect, le bloc est coupé en deux dans un creux de
+    // parole et chaque moitié est transcrite séparément.
+    async function transcribeAudio(audio, msg, depth) {
+      const seconds = audio.length / 16000;
+      const features = (await asr.processor(audio)).input_features;
+      const encoderOutputs = await encode(features);
+      const language = Array.isArray(msg.language) ? await detect(encoderOutputs, msg.language) : msg.language || 'fr';
+      const prompt = promptIds(msg.prompt);
+
+      let chunks = await decode(features, encoderOutputs, language, prompt, seconds, msg.maxTokens, 0);
+      let q = quality(chunks, seconds);
+      let retried = false;
+      // Boucle, ou rien du tout : nouveau décodage sans glossaire, répétitions interdites.
+      // (Un texte simplement trop court est traité plus bas par la reprise, moins coûteuse.)
+      if ((q === 'loop' || !chunks.length) && !msg.maxTokens) {
+        retried = true;
+        const alt = await decode(features, encoderOutputs, language, [], seconds, 0, 4);
+        const qa = quality(alt, seconds);
+        if (qa === 'ok' || (q === 'loop' && qa !== 'loop') || (qa === q && countWords(alt) > countWords(chunks))) {
+          chunks = alt;
+          q = qa;
+        }
+      }
+      if (q === 'loop' && depth === 0 && seconds >= 6 && !msg.noSplit) {
+        // Découpe aux frontières des prises de parole qui composent le bloc (un passage
+        // incompréhensible ne contamine plus les autres), sinon dans le creux le plus calme.
+        let cuts = (msg.pieces || []).map((t) => Math.round(t * 16000)).filter((c) => c > 16000 && c < audio.length - 16000);
+        if (!cuts.length) cuts = [quietestPoint(audio, 0.35, 0.65)];
+        const bounds = [0, ...cuts, audio.length];
+        chunks = [];
+        let anyLoop = false;
+        for (let i = 0; i + 1 < bounds.length; i++) {
+          const part = await transcribeAudio(audio.subarray(bounds[i], bounds[i + 1]), msg, 1);
+          const offset = bounds[i] / 16000;
+          if (part.quality === 'loop') anyLoop = true;
+          for (const c of part.chunks) chunks.push({ from: c.from + offset, to: c.to == null ? null : c.to + offset, text: c.text });
+        }
+        q = anyLoop ? 'loop' : 'ok';
+        retried = true;
+      }
+      if (q === 'loop') chunks = dropRepeats(chunks);
+
+      // Reprise (« seek ») : Whisper déclare parfois la fin du texte alors qu'il reste de la
+      // parole dans le bloc. On transcrit alors la suite à partir du dernier horodatage.
+      const last = chunks.length ? chunks[chunks.length - 1] : null;
+      const covered = last ? (last.to != null ? last.to : seconds) : 0;
+      if (depth < 4 && seconds - covered > 1.5 && covered > 0.5 && !msg.maxTokens) {
+        const start = Math.floor(covered * 16000);
+        const rest = audio.subarray(start);
+        if (hasSpeech(rest, audio)) {
+          const more = await transcribeAudio(rest, Object.assign({}, msg, { pieces: [] }), depth + 1);
+          const offset = start / 16000;
+          for (const c of more.chunks) chunks.push({ from: c.from + offset, to: c.to == null ? null : c.to + offset, text: c.text });
+          if (more.quality === 'loop') q = 'loop';
+          retried = true;
+        }
+      }
+      return { text: chunks.map((c) => c.text).join(' '), chunks, language, retried, capped: !!chunks.capped, quality: q };
+    }
+
+    // Y a-t-il au moins ~0,8 s de signal comparable à la parole du bloc dans ce reste ?
+    function hasSpeech(rest, whole) {
+      const rms = (a, i, n) => {
+        let e = 0;
+        for (let k = i; k < i + n; k++) e += a[k] * a[k];
+        return Math.sqrt(e / n);
+      };
+      const ref = rms(whole, 0, whole.length);
+      let loud = 0;
+      for (let i = 0; i + 1600 <= rest.length; i += 1600) if (rms(rest, i, 1600) > ref * 0.5) loud++;
+      return loud >= 8;
+    }
+
+    // Instant (en échantillons) le plus calme entre deux proportions du bloc, par fenêtres de 100 ms.
+    function quietestPoint(audio, from, to) {
+      const win = 1600;
+      let best = Math.floor(audio.length / 2);
+      let bestE = Infinity;
+      for (let i = Math.floor(audio.length * from); i + win < audio.length * to; i += win / 2) {
+        let e = 0;
+        for (let k = i; k < i + win; k++) e += audio[k] * audio[k];
+        if (e < bestE) {
+          bestE = e;
+          best = i + win / 2;
+        }
+      }
+      return best;
+    }
+
+    // Dernier recours : garde chaque phrase une seule fois.
+    function dropRepeats(chunks) {
+      const seen = new Set();
+      return chunks.filter((c) => {
+        const k = c.text.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, '').trim();
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+    }
+
+    async function decode(features, encoderOutputs, language, prompt, seconds, maxTokens, noRepeat) {
       const prefix = (prompt.length ? [ids.prev, ...prompt] : []).concat([
         ids.sot,
         ids.lang['<|' + language + '|>'],
         ids.transcribe,
       ]);
-      const output = await asr.model.generate({
+      // Budget de jetons : large (un débit très rapide avec des chiffres dépasse 8 jetons/s),
+      // les boucles sont détectées et traitées à part.
+      const budget = maxTokens || Math.min(440, Math.ceil(seconds * 11) + 24);
+      const options = {
         inputs: features,
         encoder_outputs: encoderOutputs,
         decoder_input_ids: prefix,
@@ -269,12 +435,14 @@
         task: 'transcribe',
         return_timestamps: true, // horodatage par phrase, à l'intérieur du bloc
         num_frames: Math.floor(seconds * 100),
-        // Garde-fou contre les boucles de répétition : on dépasse rarement 6 jetons de
-        // texte par seconde de parole ; au-delà c'est presque toujours une hallucination.
-        max_new_tokens: maxTokens || Math.min(440, Math.ceil(seconds * 8) + 16),
-      });
+        max_new_tokens: budget,
+      };
+      if (noRepeat) options.no_repeat_ngram_size = noRepeat;
+      const output = await asr.model.generate(options);
       const tokens = output.tolist()[0].map(Number).slice(prefix.length);
-      return parse(tokens, seconds);
+      const chunks = parse(tokens, seconds);
+      chunks.capped = tokens.length >= budget;
+      return chunks;
     }
 
     // Découpe la suite <|t0|> texte <|t1|> <|t1|> texte <|t2|> ... en phrases horodatées.
@@ -312,7 +480,7 @@
             self.postMessage({ id: msg.id, ok: true });
           } else if (msg.type === 'transcribe') {
             const r = await transcribe(msg);
-            self.postMessage({ id: msg.id, ok: true, text: r.text, chunks: r.chunks, language: r.language, ms: r.ms });
+            self.postMessage({ id: msg.id, ok: true, text: r.text, chunks: r.chunks, language: r.language, capped: r.capped, retried: r.retried, ms: r.ms });
           }
         } catch (err) {
           self.postMessage({ id: msg.id, ok: false, error: String((err && err.stack) || err) });
@@ -358,9 +526,9 @@
       });
     }
 
-    async transcribe(audio, language, prompt) {
+    async transcribe(audio, language, prompt, pieces) {
       await this.ready;
-      return this.call({ type: 'transcribe', audio, language, prompt }, [audio.buffer]);
+      return this.call({ type: 'transcribe', audio, language, prompt, pieces }, [audio.buffer]);
     }
 
     dispose() {

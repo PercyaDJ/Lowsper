@@ -1,9 +1,9 @@
 /* Fichier généré par tools/build.mjs : ne pas modifier à la main. */
 self.LOWSPER_MANIFEST={
-  "builtAt": "2026-10-03",
+  "builtAt": "2026-10-07",
   "runtime": {
     "src": "engine/runtime.js",
-    "bytes": 500182
+    "bytes": 500261
   },
   "wasm": [
     {
@@ -11,6 +11,50 @@ self.LOWSPER_MANIFEST={
       "bytes": 14264838
     }
   ],
+  "runtimes": {
+    "cpu": {
+      "src": "engine/runtime.js",
+      "bytes": 500261,
+      "wasm": [
+        {
+          "src": "engine/ort-wasm.part0.js",
+          "bytes": 14264838
+        }
+      ]
+    },
+    "webgpu": {
+      "src": "engine/runtime-webgpu.js",
+      "bytes": 545171,
+      "wasm": [
+        {
+          "src": "engine/ort-wasm-webgpu.part0.js",
+          "bytes": 25165824
+        },
+        {
+          "src": "engine/ort-wasm-webgpu.part1.js",
+          "bytes": 1695953
+        }
+      ]
+    }
+  },
+  "vad": [
+    {
+      "src": "engine/silero-vad.part0.js",
+      "bytes": 1289603
+    }
+  ],
+  "speaker": {
+    "id": "wespeaker",
+    "config": "engine/wespeaker-config.js",
+    "files": {
+      "onnx/model_quantized.onnx": [
+        {
+          "src": "engine/wespeaker.part0.js",
+          "bytes": 6685134
+        }
+      ]
+    }
+  },
   "catalog": [
     {
       "id": "whisper-small",
