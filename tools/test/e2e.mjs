@@ -214,6 +214,8 @@ for (let waited = 0; waited < meetingSeconds; waited += 2) {
   const backlog = await page.evaluate(() => LowsperApp.queue.length + LowsperApp.inFlight);
   maxBacklog = Math.max(maxBacklog, backlog);
 }
+const draftsDuring = await page.evaluate(() => (LowsperApp.transcript ? LowsperApp.transcript.draftCount() : 0) + LowsperApp.drafts.length);
+console.log(`Passages pris en charge par la voie rapide : ${draftsDuring}`);
 console.log(`File d'attente maximale pendant la réunion : ${maxBacklog} passage(s)`);
 await page.screenshot({ path: join(out, '3-enregistrement.png') });
 // Fenêtre réduite : les boutons doivent rester visibles sans défiler
@@ -235,6 +237,14 @@ const mdPath = join(out, download.suggestedFilename());
 await download.saveAs(mdPath);
 await page.screenshot({ path: join(out, '4-termine.png'), fullPage: true });
 const md = await readFile(mdPath, 'utf8');
+// Laisse le temps à la retranscription précise des passages « rapides »
+for (let i = 0; i < 60; i++) {
+  const left = await page.evaluate(() => LowsperApp.transcript.draftCount());
+  if (!left) break;
+  await page.waitForTimeout(5000);
+}
+const draftsLeft = await page.evaluate(() => LowsperApp.transcript.draftCount());
+console.log(`Passages « rapides » restant à améliorer : ${draftsLeft}`);
 console.log('----- ' + download.suggestedFilename() + ' -----\n' + md + '-----');
 
 // Thème sombre
@@ -256,6 +266,7 @@ const checks = [
   ['aucune requête réseau après installation', network.length === 0],
   ['bouton Terminer visible en fenêtre réduite', compactOk],
   ['le moteur suit le rythme (file <= 3)', maxBacklog <= 3],
+  ['passages rapides tous retranscrits ensuite', draftsLeft === 0],
 ];
 let ok = true;
 for (const [name, pass] of checks) {

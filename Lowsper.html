@@ -107,6 +107,39 @@
             <input type="checkbox" id="distinguish" checked>
             <span>Distinguer les intervenants (Intervenant 1, 2, 3...)</span>
           </label>
+          <div class="memory">
+            <label class="check">
+              <input type="checkbox" id="memory-on">
+              <span>Mémoriser les voix des intervenants que je nomme, pour les reconnaître aux réunions suivantes</span>
+            </label>
+            <div class="memory-details" id="memory-details" hidden>
+              <p class="fine">Une empreinte vocale est une donnée biométrique : à n'activer qu'avec l'accord des personnes concernées. Seule une empreinte (une suite de nombres, pas d'enregistrement) est conservée, uniquement sur ce poste.</p>
+              <div class="row">
+                <label class="field inline compact">
+                  <span>Effacement automatique</span>
+                  <select id="memory-days">
+                    <option value="30">après 1 mois</option>
+                    <option value="90">après 3 mois</option>
+                    <option value="180">après 6 mois</option>
+                  </select>
+                </label>
+                <button class="btn ghost small" id="memory-clear" type="button">Effacer les voix mémorisées</button>
+              </div>
+              <p class="fine" id="memory-list"></p>
+            </div>
+          </div>
+          <label class="field inline">
+            <span>Puissance de calcul <em>(part du processeur utilisée pour transcrire)</em></span>
+            <select id="power">
+              <option value="eco">Économe : 1 cœur, la transcription peut prendre du retard</option>
+              <option value="balanced" selected>Équilibrée : laisse de la marge à Teams, Office... (conseillé)</option>
+              <option value="max">Maximale : le plus de direct possible, PC plus sollicité</option>
+            </select>
+          </label>
+          <div class="speed">
+            <button class="linkish" id="speed-test" type="button">Mesurer la vitesse de ce PC avec le modèle actuel</button>
+            <p class="fine" id="speed-result"></p>
+          </div>
           <label class="field inline">
             <span>Sigles et noms propres de vos réunions <em>(aide la reconnaissance, conservé sur ce poste)</em></span>
             <textarea id="glossary" rows="3" spellcheck="false" placeholder="Ex. RSSI, COMEX, KPI, RGPD, NIS 2, projet Atlas, Mme Durand"></textarea>
@@ -182,6 +215,12 @@
         <button class="btn primary" id="download">Télécharger le fichier .md</button>
         <button class="btn" id="copy">Copier</button>
         <button class="btn" id="copy-ai" title="Copie le transcript précédé d'une consigne pour obtenir un compte rendu">Copier pour une IA</button>
+      </div>
+      <div class="notice soft" id="drafts" hidden></div>
+      <div class="voices" id="voices" hidden>
+        <h3>Intervenants détectés</h3>
+        <p class="fine">Donnez un nom aux voix que vous reconnaissez : le transcript est mis à jour (pensez à le retélécharger).</p>
+        <div id="voice-list"></div>
       </div>
       <div class="row next">
         <button class="btn primary-soft" id="next-meeting"><span class="rec-dot"></span> Démarrer la réunion suivante</button>
