@@ -10,7 +10,7 @@ const JSON_FILES = [
   'tokenizer_config.json',
 ];
 
-function def(id, repo, label, dtype, description = '', recommended = false) {
+function def(id, repo, label, dtype, description = '', recommended = false, device = 'wasm') {
   return {
     id,
     repo,
@@ -18,6 +18,7 @@ function def(id, repo, label, dtype, description = '', recommended = false) {
     label,
     description,
     recommended,
+    device,
     dtype,
     files: [
       ...JSON_FILES,
@@ -36,7 +37,10 @@ export const MODELS = Object.fromEntries(
       'Environ 3 fois plus rapide mais nettement moins précis. Pour un PC ancien ou très chargé.'),
     def('whisper-small-q4', 'onnx-community/whisper-small', 'Whisper small (4 bits)', { encoder_model: 'q8', decoder_model_merged: 'q4' }),
     def('whisper-small-fr', 'onnx-community/whisper-small-cv11-french-ONNX', 'Whisper small français', { encoder_model: 'q8', decoder_model_merged: 'q4' }),
-    def('whisper-turbo', 'onnx-community/whisper-large-v3-turbo', 'Whisper large-v3 turbo', { encoder_model: 'q4', decoder_model_merged: 'q4' }),
+    def('whisper-turbo', 'onnx-community/whisper-large-v3-turbo', 'Whisper large-v3 turbo', { encoder_model: 'q4', decoder_model_merged: 'q4' },
+      'Le plus précis (noms propres, sigles, voix difficiles). Utilise la carte graphique : réservé aux PC compatibles.', false, 'webgpu'),
+    // Variante processeur, uniquement pour les mesures de qualité (trop lente en usage réel)
+    def('whisper-turbo-cpu', 'onnx-community/whisper-large-v3-turbo', 'Whisper large-v3 turbo (processeur)', { encoder_model: 'q4', decoder_model_merged: 'q4' }),
   ].map((m) => [m.id, m])
 );
 

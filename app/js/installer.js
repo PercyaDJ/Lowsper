@@ -18,6 +18,19 @@
   const Lowsper = (window.Lowsper = window.Lowsper || {});
   const CHUNK = 24 * 1024 * 1024; // même découpage que tools/build.mjs
 
+  /** Dossier de la page ouverte, lisible par l'utilisateur (ex. C:\Users\...\Lowsper). */
+  Lowsper.pageFolder = function () {
+    let p = decodeURIComponent(location.pathname).replace(/\/[^/]*$/, '');
+    if (/^\/[A-Za-z]:\//.test(p)) p = p.slice(1).replace(/\//g, '\\');
+    return p;
+  };
+
+  /** Page ouverte depuis un zip non extrait (Windows l'ouvre alors depuis un dossier temporaire). */
+  Lowsper.openedFromTemp = function () {
+    const p = decodeURIComponent(location.pathname).toLowerCase();
+    return /\/(appdata\/local\/temp|temp|tmp)\//.test(p) || /\.zip[\/]/.test(p) || /\/temporary internet files\//.test(p);
+  };
+
   Lowsper.canInstall = function () {
     return typeof window.showDirectoryPicker === 'function';
   };
@@ -97,6 +110,38 @@
         "Ce dossier ne contient pas Lowsper.html. Choisissez le dossier Lowsper lui-même (celui où se trouve Lowsper.html)."
       );
     }
+    // Vérifie que c'est bien le dossier de CETTE page (et pas une autre copie de Lowsper) :
+    // on y écrit un petit fichier, puis on essaie de le relire depuis la page.
+    const token = Math.random().toString(36).slice(2);
+    const name = `.verification-${token}.txt`;
+    let same = false;
+    let models = null;
+    try {
+      const app = await dir.getDirectoryHandle('app', { create: true });
+      models = await app.getDirectoryHandle('models', { create: true });
+      await writeText(models, name, `self.__lowsperProbe=${JSON.stringify(token)};`);
+      same = await new Promise((resolve) => {
+        const sc = document.createElement('script');
+        sc.src = (Lowsper.assetBase || 'app/') + 'models/' + name;
+        sc.onload = () => resolve(self.__lowsperProbe === token);
+        sc.onerror = () => resolve(false);
+        document.head.appendChild(sc);
+        setTimeout(() => resolve(false), 5000);
+      });
+    } catch (e) {
+      throw installError('PICKER', "Impossible d'écrire dans ce dossier : " + e.message);
+    } finally {
+      try {
+        if (models) await models.removeEntry(name);
+      } catch {}
+    }
+    if (!same) {
+      throw installError(
+        'OTHER_COPY',
+        "Ce dossier est une autre copie de Lowsper que celle ouverte dans cette page. " +
+          `Choisissez le dossier qui contient la page actuellement ouverte : ${Lowsper.pageFolder()}`
+      );
+    }
     return dir;
   };
 
@@ -145,6 +190,7 @@
       id: entry.id,
       label: entry.label,
       dtype: entry.dtype,
+      device: entry.device || 'wasm',
       revision: entry.revision,
       config: `models/${entry.id}/config.txt`,
       files,

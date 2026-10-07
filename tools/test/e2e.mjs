@@ -110,6 +110,8 @@ await page.exposeFunction('__lowsperFs', async (op, rel, data) => {
   } else if (op === 'write') {
     await mkdir(dirname(p), { recursive: true });
     await writeFile(p, data);
+  } else if (op === 'rm') {
+    await rm(p, { force: true });
   } else if (op === 'append') {
     await writeFile(p, data, { flag: 'a' });
   }
@@ -121,6 +123,9 @@ await page.addInitScript((NOWRITE) => {
     async getDirectoryHandle(name, opts = {}) {
       await window.__lowsperFs('dir', rel + '/' + name, !!opts.create);
       return dir(rel + '/' + name);
+    },
+    async removeEntry(name) {
+      await window.__lowsperFs('rm', rel + '/' + name);
     },
     async getFileHandle(name, opts = {}) {
       const path = rel + '/' + name;
@@ -211,6 +216,15 @@ for (let waited = 0; waited < meetingSeconds; waited += 2) {
 }
 console.log(`File d'attente maximale pendant la réunion : ${maxBacklog} passage(s)`);
 await page.screenshot({ path: join(out, '3-enregistrement.png') });
+// Fenêtre réduite : les boutons doivent rester visibles sans défiler
+await page.setViewportSize({ width: 360, height: 460 });
+await page.waitForTimeout(300);
+await page.screenshot({ path: join(out, '3b-fenetre-reduite.png') });
+const compactOk = await page.evaluate(() => {
+  const r = document.getElementById('stop').getBoundingClientRect();
+  return r.bottom <= window.innerHeight && r.right <= window.innerWidth && r.width > 0;
+});
+await page.setViewportSize({ width: 900, height: 1000 });
 
 const downloadPromise = page.waitForEvent('download', { timeout: 180000 });
 const tStop = Date.now();
@@ -240,6 +254,7 @@ const checks = [
   ['contenu « vous »', /VPN/.test(md)],
   ['plusieurs intervenants distingués', /Intervenant 2/.test(md)],
   ['aucune requête réseau après installation', network.length === 0],
+  ['bouton Terminer visible en fenêtre réduite', compactOk],
   ['le moteur suit le rythme (file <= 3)', maxBacklog <= 3],
 ];
 let ok = true;
