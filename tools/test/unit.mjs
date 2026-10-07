@@ -170,6 +170,15 @@ await test('les sigles du glossaire écrits en morceaux sont recollés', () => {
   assert.equal(L.fixAcronyms('V P N', ''), 'V P N', 'sans glossaire, rien ne change');
 });
 
+await test('les termes du glossaire retrouvent leur orthographe exacte', () => {
+  const g = 'COPIL, ServiceNow, Élodie, Claire Moreau, CAB';
+  const f = (t) => L.fixCase(t, g);
+  assert.equal(f("l'accord du copil et de servicenow"), "l'accord du COPIL et de ServiceNow");
+  assert.equal(f('avec elodie et claire moreau.'), 'avec Élodie et Claire Moreau.');
+  assert.equal(f('un cabinet, une copilote'), 'un cabinet, une copilote', 'mots entiers seulement');
+  assert.equal(f('validé en cab ?'), 'validé en CAB ?');
+});
+
 await test('Markdown : en-tête, horodatage, regroupement par locuteur et pauses', () => {
   const t = new L.Transcript({ title: 'Point hebdo', glossary: 'RSSI, COMEX', startedAt: Date.UTC(2026, 9, 3, 15, 0), endedAt: Date.UTC(2026, 9, 3, 16, 0), sources: ['me', 'others'], model: 'Whisper base' });
   t.addSegment('me', seg(5, 9), { chunks: [{ from: 0, to: 2, text: 'Bonjour à tous.' }, { from: 2, to: 4, text: 'On commence ?' }] });

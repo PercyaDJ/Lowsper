@@ -1,0 +1,142 @@
+[
+ {
+  "who": "Claire",
+  "channel": "others",
+  "start": 1.5,
+  "end": 12.53,
+  "ref": "Bonjour à tous, on démarre l'hebdo du centre de service. On a beaucoup de sujets aujourd'hui, donc je vous propose d'aller vite sur les indicateurs et de garder du temps pour les incidents de la semaine."
+ },
+ {
+  "who": "Claire",
+  "channel": "others",
+  "start": 13.13,
+  "end": 15.9,
+  "ref": "Julien, tu peux commencer par les KPI ?"
+ },
+ {
+  "who": "Julien",
+  "channel": "others",
+  "start": 16.5,
+  "end": 34.85,
+  "ref": "Oui. Cette semaine on a reçu mille deux cent quarante tickets dans ServiceNow, c'est dix pour cent de plus que la semaine dernière. Le taux de résolution au premier contact est à soixante-huit pour cent, et on a tenu le SLA sur les P1, mais pas sur les P2 : on est à quatre-vingt-sept pour cent pour un objectif de quatre-vingt-quinze."
+ },
+ {
+  "who": "Sophie",
+  "channel": "others",
+  "start": 34.75,
+  "end": 38.79,
+  "ref": "Attends, les P2 c'est surtout le week-end."
+ },
+ {
+  "who": "Julien",
+  "channel": "others",
+  "start": 39.39,
+  "end": 43.21,
+  "ref": "Oui, c'est surtout le samedi, on n'avait qu'une personne d'astreinte."
+ },
+ {
+  "who": "Vous",
+  "channel": "me",
+  "start": 43.81,
+  "end": 50.94,
+  "ref": "Je confirme, j'ai vu passer les alertes du SOC samedi matin, il y avait trois incidents en parallèle sur le VPN."
+ },
+ {
+  "who": "Karim",
+  "channel": "others",
+  "start": 51.54,
+  "end": 61.75,
+  "ref": "C'est le problème de certificat sur la passerelle VPN. On a fait le correctif lundi, et depuis on n'a plus eu de coupure."
+ },
+ {
+  "who": "Nathalie",
+  "channel": "others",
+  "start": 62.35,
+  "end": 66.88,
+  "ref": "Est-ce que ça a été validé en CAB ? Parce que je n'ai pas vu passer la demande de changement."
+ },
+ {
+  "who": "Karim",
+  "channel": "others",
+  "start": 66.88,
+  "end": 71.78,
+  "ref": "Non, c'était un changement urgent, on régularise cette semaine."
+ },
+ {
+  "who": "Nathalie",
+  "channel": "others",
+  "start": 72.38,
+  "end": 77.78,
+  "ref": "D'accord, mais il faut vraiment qu'on évite ça. Le RSSI m'a déjà posé la question deux fois."
+ },
+ {
+  "who": "Thomas",
+  "channel": "others",
+  "start": 78.38,
+  "end": 93.34,
+  "ref": "De mon côté, la migration de GLPI vers ServiceNow avance. On a migré les catégories et les groupes d'affectation. Il reste les modèles de réponse et les bases de connaissance, et pour ça j'ai besoin de deux jours avec Élodie la semaine prochaine."
+ },
+ {
+  "who": "Elodie",
+  "channel": "others",
+  "start": 93.94,
+  "end": 96.14,
+  "ref": "Mardi et mercredi, ça me va."
+ },
+ {
+  "who": "Marc",
+  "channel": "others",
+  "start": 96.74,
+  "end": 107.04,
+  "ref": "Petite remarque sur le MCO : on a toujours les serveurs de l'ancien outil allumés. Si on les coupe à la fin du mois, ça fait des économies, mais il faut l'accord du COPIL."
+ },
+ {
+  "who": "Claire",
+  "channel": "others",
+  "start": 107.64,
+  "end": 115.76,
+  "ref": "Je le mets à l'ordre du jour du COPIL de jeudi. Marc, tu m'envoies le chiffrage ?"
+ },
+ {
+  "who": "Marc",
+  "channel": "others",
+  "start": 116.36,
+  "end": 119.01,
+  "ref": "Oui, avant mercredi."
+ },
+ {
+  "who": "Sophie",
+  "channel": "others",
+  "start": 119.61,
+  "end": 131.03,
+  "ref": "J'ai un point sur les ressources. Avec le départ de Kevin, on est en sous-effectif sur le niveau un jusqu'à fin novembre. J'ai demandé un renfort au prestataire, mais rien n'est signé."
+ },
+ {
+  "who": "Vous",
+  "channel": "me",
+  "start": 131.13,
+  "end": 134.82,
+  "ref": "On peut décaler les formations ITSM pour libérer du temps ?"
+ },
+ {
+  "who": "Sophie",
+  "channel": "others",
+  "start": 135.42,
+  "end": 140.17,
+  "ref": "Oui, c'est une piste. Je regarde avec Claire."
+ },
+ {
+  "who": "Claire",
+  "channel": "others",
+  "start": 140.77,
+  "end": 154.94,
+  "ref": "Très bien. Pour résumer les actions : Karim régularise le changement VPN en CAB, Thomas et Élodie finalisent la migration mardi et mercredi, Marc envoie le chiffrage avant mercredi, et Sophie relance le prestataire pour le renfort."
+ },
+ {
+  "who": "Claire",
+  "channel": "others",
+  "start": 155.54,
+  "end": 160.49,
+  "ref": "Merci à tous, bonne semaine."
+ }
+]

@@ -15,7 +15,7 @@
 
   const Lowsper = (window.Lowsper = window.Lowsper || {});
   const RATE = 16000;
-  const FRAME = 480; // 30 ms à 16 kHz
+  const FRAME = 512; // 32 ms à 16 kHz (taille imposée par le détecteur Silero)
 
   // Réglages du découpage (en secondes)
   const VAD = {
@@ -23,11 +23,12 @@
     minSpeech: 0.35, // en dessous, une prise de parole est ignorée (toux, clic...)
     endPause: 0.6, // pause qui termine une prise de parole
     hangover: 0.25, // la parole est prolongée de ce délai après la dernière trame forte
-    maxUtterance: 28, // une prise de parole plus longue est coupée dans un creux
+    maxUtterance: 24, // une prise de parole plus longue est coupée dans un creux
     gap: 0.3, // silence laissé entre deux prises de parole dans un bloc
-    blockTarget: 24, // un bloc part vers le modèle dès qu'il atteint cette durée
-    blockMax: 28.5, // Whisper traite des fenêtres de 30 s
-    flushSilence: 10, // ...ou après ce délai sans parole (affichage en direct)
+    blockTarget: 18, // un bloc part vers le modèle dès qu'il atteint cette durée
+    blockMax: 24, // Whisper traite des fenêtres de 30 s ; plus court = un passage raté contamine moins
+    flushSilence: 6, // ...ou après ce délai sans parole (affichage en direct)
+    earlyMin: 3, // ...ou dès 3 s de parole si un moteur est libre
   };
 
   // ---------------------------------------------------------------------------
@@ -70,8 +71,16 @@
     /**
      * @param {(block:{start:number,end:number,audio:Float32Array,speech:number,map:Array<{at:number,t:number}>}) => void} onBlock
      */
-    constructor(onBlock) {
+    /**
+     * options.vad : { run(samples) -> Promise<Float32Array> } probabilité de parole par trame
+     *               (Silero). Sans lui, repli sur un détecteur à seuil de volume.
+     * options.emitEarly : () => booléen. Vrai quand un moteur est libre : le bloc part dès la
+     *               fin d'une prise de parole, pour un transcript plus « en direct ».
+     */
+    constructor(onBlock, options) {
       this.onBlock = onBlock;
+      this.vad = (options && options.vad) || null;
+      this.emitEarly = (options && options.emitEarly) || null;
       this.t = 0; // temps (s) du prochain échantillon reçu, depuis le début de la session
       this.pending = new Float32Array(0);
       this.noise = -60; // plancher de bruit estimé (dBFS)
@@ -79,12 +88,40 @@
       this.preRoll = []; // trames récentes hors prise de parole
       this.utt = null; // prise de parole en cours
       this.block = null; // { pieces: [{frames}], dur, speech, lastEnd }
+      this.chain = Promise.resolve();
     }
 
     // Ajoute de l'audio 16 kHz. paused=true : le temps avance mais rien n'est gardé.
+    // Avec le détecteur Silero, le traitement est asynchrone (les appels restent dans l'ordre).
     push(samples, paused) {
+      if (!this.vad) return this.pushNow(samples, paused, null);
+      const copy = samples.slice();
+      this.chain = this.chain.then(async () => {
+        if (paused) return this.pushNow(copy, true, null);
+        let buf = copy;
+        if (this.pending.length) {
+          buf = new Float32Array(this.pending.length + copy.length);
+          buf.set(this.pending);
+          buf.set(copy, this.pending.length);
+        }
+        const n = Math.floor(buf.length / FRAME) * FRAME;
+        this.pending = buf.slice(n);
+        if (!n) return;
+        let probs = null;
+        try {
+          probs = await this.vad.run(buf.subarray(0, n));
+        } catch (e) {
+          console.warn('Détecteur de parole indisponible, repli sur le seuil de volume', e);
+          this.vad = null;
+        }
+        for (let i = 0, k = 0; i < n; i += FRAME, k++) this.frame(buf.subarray(i, i + FRAME), probs ? probs[k] : null);
+      });
+      return this.chain;
+    }
+
+    pushNow(samples, paused, probs) {
       if (paused) {
-        this.flush();
+        this.flushNow();
         this.t += samples.length / RATE;
         this.preRoll = [];
         return;
@@ -96,7 +133,7 @@
         buf.set(samples, this.pending.length);
       }
       let i = 0;
-      for (; i + FRAME <= buf.length; i += FRAME) this.frame(buf.subarray(i, i + FRAME));
+      for (; i + FRAME <= buf.length; i += FRAME) this.frame(buf.subarray(i, i + FRAME), null);
       this.pending = buf.slice(i);
     }
 
@@ -104,7 +141,7 @@
       return db > this.noise + 9 && db > -58;
     }
 
-    frame(f) {
+    frame(f, prob) {
       const start = this.t;
       this.t += FRAME / RATE;
       let sum = 0;
@@ -117,8 +154,9 @@
       else this.noise += 0.09;
       this.noise = Math.max(-80, Math.min(this.noise, -30));
 
-      const loud = this.isLoud(db);
-      const fr = { start, data: f.slice(), db };
+      // Silero : seuil avec hystérésis (0,5 pour entrer dans la parole, 0,35 pour y rester)
+      const loud = prob != null ? prob > (this.utt ? 0.35 : 0.5) : this.isLoud(db);
+      const fr = { start, data: f.slice(), db, loud };
 
       if (!this.utt) {
         this.preRoll.push(fr);
@@ -159,7 +197,7 @@
       const keep = utt.frames.filter((x) => x.start < cutAt);
       const rest = utt.frames.filter((x) => x.start >= cutAt);
       if (keep.length && utt.speech >= VAD.minSpeech) this.addToBlock(keep, utt.speech);
-      const loudRest = rest.filter((x) => this.isLoud(x.db));
+      const loudRest = rest.filter((x) => x.loud);
       if (loudRest.length) {
         this.utt = {
           frames: rest,
@@ -180,7 +218,8 @@
       b.speech += speech;
       b.pieces.push(frames);
       b.lastEnd = frames[frames.length - 1].start + FRAME / RATE;
-      if (b.dur >= VAD.blockTarget) this.emitBlock();
+      // Bloc plein, ou moteur libre : inutile d'attendre, on transcrit tout de suite
+      if (b.dur >= VAD.blockTarget || (b.dur >= VAD.earlyMin && this.emitEarly && this.emitEarly())) this.emitBlock();
     }
 
     emitBlock() {
@@ -210,6 +249,12 @@
 
     // Envoie tout ce qui est en attente (pause, fin de réunion, source coupée)
     flush() {
+      if (!this.vad) return this.flushNow();
+      this.chain = this.chain.then(() => this.flushNow());
+      return this.chain;
+    }
+
+    flushNow() {
       if (this.utt) {
         const utt = this.utt;
         this.utt = null;
@@ -270,8 +315,14 @@
     /**
      * @param {(source:string, seg:object) => void} onSegment
      */
-    constructor(onSegment) {
+    /**
+     * options.analyzer : Lowsper.Analyzer (détection de parole Silero), facultatif
+     * options.emitEarly : () => booléen, voir Segmenter
+     */
+    constructor(onSegment, options) {
       this.onSegment = onSegment;
+      this.analyzer = (options && options.analyzer) || null;
+      this.emitEarly = (options && options.emitEarly) || null;
       this.ctx = null;
       this.sources = {}; // id -> { stream, node, segmenter, resampler }
       this.paused = false;
@@ -313,7 +364,12 @@
       const ctx = this.ctx;
       const src = ctx.createMediaStreamSource(stream);
       const resampler = new Resampler(ctx.sampleRate);
-      const segmenter = new Segmenter((seg) => this.onSegment(id, seg));
+      const analyzer = this.analyzer;
+      if (analyzer) analyzer.reset(id).catch(() => {});
+      const segmenter = new Segmenter((seg) => this.onSegment(id, seg), {
+        vad: analyzer ? { run: (samples) => analyzer.vad(id, samples) } : null,
+        emitEarly: this.emitEarly,
+      });
       // La source peut être branchée en cours de session : on aligne son horloge.
       segmenter.t = this.now();
       const entry = { stream, src, resampler, segmenter };
@@ -353,8 +409,8 @@
 
     detach(id) {
       const e = this.sources[id];
-      if (!e) return;
-      e.segmenter.flush();
+      if (!e) return Promise.resolve();
+      const done = e.segmenter.flush();
       try {
         e.src.disconnect();
         e.node.disconnect();
@@ -363,6 +419,7 @@
       e.stream.getTracks().forEach((t) => t.stop());
       (e.stream._lowsperVideo || []).forEach((t) => t.stop());
       delete this.sources[id];
+      return Promise.resolve(done);
     }
 
     setPaused(paused) {
@@ -371,7 +428,7 @@
     }
 
     async stop() {
-      for (const id of Object.keys(this.sources)) this.detach(id);
+      await Promise.all(Object.keys(this.sources).map((id) => this.detach(id)));
       if (this.ctx) await this.ctx.close().catch(() => {});
       this.ctx = null;
     }

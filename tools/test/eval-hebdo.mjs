@@ -1,0 +1,165 @@
+// Banc « réunion réaliste » : rejoue le corpus hebdo (2 canaux, 9 voix, interruptions)
+// dans toute la chaîne Lowsper (découpage, moteur, assemblage) et mesure :
+//   - la couverture de chaque réplique (part des mots de référence retrouvés au bon moment),
+//   - les répliques perdues ou mal captées,
+//   - le taux d'erreur global, les sigles et noms propres retrouvés,
+//   - les blocs tronqués (plafond de jetons) et le temps de calcul,
+//   - si disponible, la justesse de l'identification des intervenants.
+// Prérequis : node build.mjs --embed <modèle>
+// Usage : node test/eval-hebdo.mjs <modèle> [--no-glossary] [--device=webgpu]
+import { chromium } from 'playwright-core';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const out = join(here, 'output');
+await mkdir(out, { recursive: true });
+const modelId = process.argv[2] || 'whisper-small';
+const useGlossary = !process.argv.includes('--no-glossary');
+const device = (process.argv.find((a) => a.startsWith('--device=')) || '').split('=')[1] || '';
+const opts = { energy: process.argv.includes('--energy'), noSpeakers: process.argv.includes('--no-speakers') };
+const corpus = JSON.parse(await readFile(join(here, 'corpus', 'hebdo-fr.json'), 'utf8'));
+const truth = JSON.parse(await readFile(join(here, 'corpus', 'hebdo.truth.json'), 'utf8'));
+const pcm = {};
+for (const ch of ['me', 'others']) pcm[ch] = (await readFile(join(here, 'corpus', `hebdo-${ch}.wav`))).subarray(44).toString('base64');
+await writeFile(join(out, 'hebdo-pcm.js'), `window.HEBDO=${JSON.stringify(pcm)};`);
+
+const scripts = ['manifest.js', 'models/index.txt', 'js/engine.js', 'js/analyzer.js', 'js/capture.js', 'js/transcript.js', 'js/speakers.js']
+  .map((s) => `<script src="../../../app/${s}"></script>`).join('\n');
+await writeFile(
+  join(out, 'eval-hebdo.html'),
+  `<!doctype html><meta charset="utf-8"><title>eval hebdo</title>
+<script>window.Lowsper = { assetBase: '../../../app/' };</script>
+${scripts}
+<script src="hebdo-pcm.js"></script>
+<script>
+window.runHebdo = async (modelId, glossary, opts) => {
+  const toF32 = (b64) => { const b = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)); return Float32Array.from(new Int16Array(b.buffer), (v) => v / 32768); };
+  const assets = await Lowsper.loadAssets(null, modelId);
+  const tr = new Lowsper.Transcriber(assets);
+  await tr.ready;
+  const an = assets.analysis && !opts.energy ? new Lowsper.Analyzer(assets.analysis) : null;
+  if (an) await an.ready;
+  if (an) { const p = await an.vad('test', new Float32Array(1024)); if (!p || p.length !== 2) throw new Error('VAD Silero en échec'); }
+  const tracker = an && an.hasSpeaker && !opts.noSpeakers ? new Lowsper.SpeakerTracker(an) : null;
+  const transcript = new Lowsper.Transcript({ glossary, sources: ['me', 'others'] });
+  const blocks = [];
+  let ms = 0;
+  for (const ch of ['me', 'others']) {
+    const audio = toF32(HEBDO[ch]);
+    const segs = [];
+    const s = new Lowsper.Segmenter((b) => segs.push(b), { vad: an ? { run: (x) => an.vad(ch, x) } : null });
+    for (let i = 0; i < audio.length; i += 4096) await s.push(audio.subarray(i, i + 4096), false);
+    await s.flush();
+    for (const b of segs) {
+      const keep = b.audio.slice();
+      const r = await tr.transcribe(b.audio, 'fr', glossary, (b.map || []).map((m) => m.at));
+      ms += r.ms;
+      blocks.push({ ch, dur: +(keep.length / 16000).toFixed(1), ms: Math.round(r.ms), capped: r.capped, retried: r.retried });
+      const voices = tracker && ch === 'others' ? await tracker.label(keep, r.chunks, b) : null;
+      transcript.addSegment(ch, b, r, voices);
+    }
+  }
+  if (tracker) transcript.applyVoiceMap(tracker.finalize());
+  window.SPK_ITEMS = tracker ? tracker.items.map((it) => ({ emb: Array.from(it.emb), dur: it.dur, at: it.at })) : [];
+  return { items: window.SPK_ITEMS, lines: transcript.lines.map((l) => ({ ...l, speaker: l.voice != null ? transcript.speakerName(l) : null })), blocks, ms, markdown: transcript.toMarkdown() };
+};
+</script>`
+);
+
+const norm = (t) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’]/g, "'")
+  .replace(/[^a-z0-9' ]+/g, ' ').replace(/'/g, "' ").split(/\s+/).filter(Boolean);
+
+function coverage(refWords, hypWords) {
+  const bag = new Map();
+  for (const w of hypWords) bag.set(w, (bag.get(w) || 0) + 1);
+  let hit = 0;
+  for (const w of refWords) if (bag.get(w)) { hit++; bag.set(w, bag.get(w) - 1); }
+  return hit / refWords.length;
+}
+
+function wer(ref, hyp) {
+  const r = norm(ref), h = norm(hyp);
+  let prev = Array.from({ length: h.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= r.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= h.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (r[i - 1] === h[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[h.length] / r.length;
+}
+
+const browser = await chromium.launch({
+  executablePath: process.env.CHROMIUM_PATH || undefined,
+  args: device === 'webgpu' ? ['--enable-unsafe-webgpu', '--enable-features=Vulkan', '--use-angle=swiftshader', '--use-webgpu-adapter=swiftshader'] : [],
+});
+const page = await browser.newPage();
+page.on('pageerror', (e) => console.log('[pageerror]', e.message));
+page.on('console', (m) => { if (m.type() === 'error') console.log('[console]', m.text()); });
+await page.goto(pathToFileURL(join(out, 'eval-hebdo.html')).href);
+const t0 = Date.now();
+const res = await page.evaluate(([m, g, o]) => window.runHebdo(m, g, o), [modelId, useGlossary ? corpus.glossary : '', opts]);
+await browser.close();
+
+// Couverture par réplique
+let sumCov = 0;
+const missed = [];
+for (const t of truth) {
+  const hyp = res.lines.filter((l) => l.source === t.channel && l.end >= t.start - 2.5 && l.start <= t.end + 2.5);
+  const cov = coverage(norm(t.ref), norm(hyp.map((l) => l.text).join(' ')));
+  sumCov += cov;
+  if (cov < 0.7) missed.push(`${t.who} [${t.start}s] ${(cov * 100).toFixed(0)} % : ${t.ref.slice(0, 70)}`);
+}
+const report = { modele: modelId, glossaire: useGlossary, vad: opts.energy ? 'volume' : 'silero' };
+for (const ch of ['me', 'others']) {
+  const ref = truth.filter((t) => t.channel === ch).map((t) => t.ref).join(' ');
+  const hyp = res.lines.filter((l) => l.source === ch).map((l) => l.text).join(' ');
+  report[`wer_${ch}`] = (wer(ref, hyp) * 100).toFixed(1) + ' %';
+}
+report.couverture = ((sumCov / truth.length) * 100).toFixed(1) + ' %';
+report.repliques_mal_captees = missed.length + ' / ' + truth.length;
+const terms = corpus.glossary.split(',').map((s) => s.trim());
+const allRef = truth.map((t) => t.ref).join(' ');
+const allHyp = res.lines.map((l) => l.text).join(' ');
+let tTotal = 0, tFound = 0;
+const tMissed = [];
+for (const term of terms) {
+  const re = new RegExp('(^|[^\\p{L}])' + term.replace(/ /g, '\\s?') + '(?![\\p{L}])', 'gu');
+  const n = (allRef.match(re) || []).length;
+  const m = Math.min(n, (allHyp.match(re) || []).length);
+  tTotal += n; tFound += m;
+  if (m < n) tMissed.push(term);
+}
+report.sigles_noms = `${tFound}/${tTotal}`;
+report.blocs = res.blocks.length;
+report.blocs_tronques = res.blocks.filter((b) => b.capped).length;
+report.calcul = (res.ms / 1000).toFixed(1) + ' s';
+report.audio = (truth[truth.length - 1].end).toFixed(0) + ' s';
+if (res.lines.some((l) => l.speaker)) {
+  // Justesse des intervenants : pour chaque étiquette, l'intervenant réel majoritaire
+  const byLabel = new Map();
+  for (const l of res.lines.filter((x) => x.source === 'others' && x.speaker)) {
+    const mid = (l.start + l.end) / 2;
+    const t = truth.find((x) => x.channel === 'others' && mid >= x.start - 0.3 && mid <= x.end + 0.3);
+    if (!t) continue;
+    const m = byLabel.get(l.speaker) || new Map();
+    m.set(t.who, (m.get(t.who) || 0) + l.text.length);
+    byLabel.set(l.speaker, m);
+  }
+  let ok = 0, all = 0;
+  for (const m of byLabel.values()) {
+    const vals = [...m.values()];
+    ok += Math.max(...vals);
+    all += vals.reduce((a, b) => a + b, 0);
+  }
+  report.intervenants_detectes = byLabel.size + ' (réels : ' + new Set(truth.filter((t) => t.channel === 'others').map((t) => t.who)).size + ')';
+  report.purete_intervenants = ((ok / all) * 100).toFixed(0) + ' %';
+}
+console.log(JSON.stringify(report, null, 1));
+console.log('Termes manqués : ' + tMissed.join(', '));
+console.log('Répliques mal captées :\n  ' + missed.join('\n  '));
+console.log('Blocs : ' + res.blocks.map((b) => `${b.ch}:${b.dur}s/${(b.ms / 1000).toFixed(1)}s${b.capped ? ' TRONQUÉ' : ''}${b.retried ? ' relu' : ''}`).join('  '));
+await writeFile(join(out, 'hebdo-embeddings.json'), JSON.stringify(res.items));
+await writeFile(join(out, `hebdo-${modelId}${device ? '-' + device : ''}.md`), res.markdown);
+console.log(`(durée totale du banc ${((Date.now() - t0) / 1000).toFixed(0)} s)`);
