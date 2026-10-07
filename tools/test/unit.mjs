@@ -195,6 +195,22 @@ await test('Markdown : en-tête, horodatage, regroupement par locuteur et pauses
   assert.match(t.fileName(), /^reunion_2026-10-03_\d\dh00_point-hebdo\.md$/);
 });
 
+await test('les intervenants sont numérotés par ordre d’apparition et peuvent être renommés', () => {
+  const t = new L.Transcript({ sources: ['me', 'others'] });
+  t.addSegment('others', seg(0, 10), { chunks: [{ from: 0, to: 4, text: 'Bonjour à tous, on commence.' }, { from: 5, to: 9, text: 'Les chiffres de la semaine sont bons.' }] }, [{ voice: 7, key: 0 }, { voice: 3, key: 1 }]);
+  t.addSegment('me', seg(11, 13), { chunks: [{ from: 0, to: 2, text: "D'accord, merci." }] });
+  let md = t.toMarkdown();
+  assert.match(md, /\] Intervenant 1 :\*\* Bonjour/);
+  assert.match(md, /\] Intervenant 2 :\*\* Les chiffres/);
+  t.nameVoice(3, 'Julien');
+  md = t.toMarkdown();
+  assert.match(md, /\] Julien :\*\* Les chiffres/);
+  assert.match(md, /nommées à la main/);
+  assert.equal(t.voiceSummary().length, 2);
+  t.applyVoiceMap(new Map([[1, 7]]));
+  assert.equal(t.voiceSummary().length, 1, 'le regroupement final fusionne les deux voix');
+});
+
 await test('sauvegarde et récupération d’une session interrompue', () => {
   store.clear();
   const t = new L.Transcript({ title: 'Crash', sources: ['me'] });

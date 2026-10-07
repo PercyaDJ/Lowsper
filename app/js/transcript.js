@@ -244,9 +244,35 @@
     speakerName(item) {
       if (item.source !== 'others') return SPEAKERS[item.source] || item.source;
       if (item.voice == null) return this.hasVoices() ? 'Participant' : SPEAKERS.others;
+      const named = this.meta.names && this.meta.names[item.voice];
+      if (named) return named;
+      return 'Intervenant ' + (this.voiceOrder().indexOf(item.voice) + 1);
+    }
+
+    /** Voix dans leur ordre d'apparition. */
+    voiceOrder() {
       const order = [];
       for (const l of this.lines) if (l.voice != null && !order.includes(l.voice)) order.push(l.voice);
-      return 'Intervenant ' + (order.indexOf(item.voice) + 1);
+      return order;
+    }
+
+    /** Résumé des voix pour l'écran de fin : numéro, temps de parole, première phrase. */
+    voiceSummary() {
+      return this.voiceOrder().map((voice, i) => {
+        const lines = this.lines.filter((l) => l.voice === voice);
+        const seconds = lines.reduce((n, l) => n + Math.max(0, l.end - l.start), 0);
+        const sample = lines.find((l) => l.text.split(' ').length >= 5) || lines[0];
+        return { voice, label: 'Intervenant ' + (i + 1), seconds, sample: sample ? sample.text : '', at: lines[0].start };
+      });
+    }
+
+    /** Nomme une voix (« Intervenant 3 » -> « Julien »). Nom vide = retour au numéro. */
+    nameVoice(voice, name) {
+      this.meta.names = this.meta.names || {};
+      const clean = String(name || '').replace(/[*_\[\]`]/g, '').trim().slice(0, 60);
+      if (clean) this.meta.names[voice] = clean;
+      else delete this.meta.names[voice];
+      this.save();
     }
 
     /** Applique le regroupement final des voix (clé de phrase -> voix finale). */
@@ -312,9 +338,11 @@
         '> Transcription automatique : elle peut contenir des erreurs de reconnaissance. ' +
           '« Vous » désigne la personne qui enregistre (micro). ' +
           (this.hasVoices()
-            ? "« Intervenant 1, 2... » désignent les voix distinctes détectées automatiquement dans l'audio " +
-              'de la réunion : les noms réels ne sont pas connus (ils peuvent souvent se déduire des échanges), ' +
-              'et deux personnes à la voix proche peuvent partager un numéro. ' +
+            ? "Les autres intervenants sont les voix distinctes détectées automatiquement dans l'audio de la réunion " +
+              (this.meta.names && Object.keys(this.meta.names).length
+                ? '(certaines nommées à la main après la réunion, les autres numérotées « Intervenant n ») : '
+                : '(« Intervenant 1, 2... », noms réels inconnus, ils peuvent souvent se déduire des échanges) : ') +
+              'deux personnes à la voix proche peuvent partager un numéro, et une même personne peut en recevoir deux. ' +
               "Les phrases trop courtes pour identifier la voix sont notées « Participant ». "
             : "« Participants » regroupe toutes les autres voix entendues via l'audio de la réunion, sans distinction de personne. ") +
           'Les horodatages [hh:mm:ss] sont relatifs au début de l’enregistrement.'
