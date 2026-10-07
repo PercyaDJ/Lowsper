@@ -28,7 +28,7 @@ const CHUNK = 24 * 1024 * 1024;
 const args = process.argv.slice(2);
 const embedIds = args[0] === '--embed' ? args.slice(1) : [];
 // Modèles proposés au téléchargement dans l'application
-const CATALOG = ['whisper-small', 'whisper-base'];
+const CATALOG = ['whisper-small', 'whisper-turbo', 'whisper-base'];
 
 const header = '/* Fichier généré par tools/build.mjs : ne pas modifier à la main. */\n';
 const readMeta = async (id) =>
@@ -128,6 +128,7 @@ for (const id of CATALOG) {
     label: model.label,
     description: model.description,
     recommended: model.recommended,
+    device: model.device,
     repo: model.repo,
     revision: meta.revision,
     dtype: model.dtype,
@@ -154,7 +155,7 @@ for (const id of embedIds) {
     else files[file] = await writeBinary(out, `models/${id}`, file.replace(/^onnx\//, '').replace(/\.onnx$/, ''), buf, 'txt');
   }
   await writeFile(join(out, 'config.txt'), register(`models/${id}/config`, JSON.stringify(texts)));
-  installed.push({ id, label: model.label, dtype: model.dtype, revision: meta.revision, config: `models/${id}/config.txt`, files });
+  installed.push({ id, label: model.label, dtype: model.dtype, device: model.device, revision: meta.revision, config: `models/${id}/config.txt`, files });
   console.log(`Modèle embarqué : ${id}`);
 }
 if (installed.length) {

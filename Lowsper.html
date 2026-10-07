@@ -48,6 +48,12 @@
       <h1>Première utilisation</h1>
       <p class="lead">Lowsper a besoin d'un modèle de reconnaissance vocale. Il est téléchargé <strong>une seule fois</strong>, puis enregistré dans le dossier Lowsper, à côté de ce fichier. Ensuite, tout fonctionne hors ligne.</p>
 
+      <div class="notice" id="temp-warning" hidden>
+        <strong>Lowsper semble ouvert directement depuis le fichier zip.</strong> Windows le place alors dans un dossier temporaire, et le modèle serait à retélécharger à chaque fois.
+        Fermez cette page, faites un clic droit sur le zip, « Extraire tout », puis ouvrez Lowsper.html depuis le dossier extrait.
+      </div>
+      <p class="fine folder">Dossier de cette page : <code id="page-folder"></code></p>
+
       <div class="models" id="model-choices"></div>
 
       <button class="btn primary big" id="install">Installer le modèle</button>
@@ -64,6 +70,7 @@
         <li>Sélectionnez le <strong>dossier Lowsper</strong> (celui qui contient Lowsper.html), puis acceptez que Lowsper y enregistre des fichiers.</li>
         <li>Patientez pendant le téléchargement (une à quelques minutes selon la connexion). Ne fermez pas la page.</li>
       </ol>
+      <p class="fine"><strong>Vous aviez déjà installé le modèle</strong> dans une version précédente de Lowsper ? Inutile de le retélécharger : copiez le dossier <code>app\models</code> de l'ancien dossier Lowsper dans celui-ci (remplacez le dossier existant), puis rechargez la page (F5).</p>
       <p class="fine">Le téléchargement se fait depuis Hugging Face (huggingface.co), à une version figée, et chaque fichier est vérifié par empreinte numérique. Pour équiper un poste sans accès à Internet, copiez le dossier Lowsper d'un poste déjà installé.</p>
     </section>
 
@@ -121,33 +128,42 @@
 
     <!-- Pendant la réunion -->
     <section class="card view" id="view-rec" hidden>
-      <div class="rec-head">
-        <div class="rec-status" id="rec-status"><span class="rec-dot pulsing"></span><span id="rec-label">Enregistrement</span></div>
-        <div class="timer" id="timer">00:00:00</div>
-      </div>
+      <!-- Cœur de l'enregistrement : c'est lui qui passe dans la mini-fenêtre -->
+      <div class="rec-core" id="rec-core">
+        <div class="rec-head">
+          <div class="rec-status" id="rec-status"><span class="rec-dot pulsing"></span><span id="rec-label">Enregistrement</span></div>
+          <div class="timer" id="timer">00:00:00</div>
+        </div>
 
-      <div class="meters">
-        <div class="meter" id="meter-me">
-          <span class="who">Vous</span>
-          <span class="bar"><i></i></span>
-          <span class="state"></span>
+        <div class="meters">
+          <div class="meter" id="meter-me">
+            <span class="who">Vous</span>
+            <span class="bar"><i></i></span>
+            <span class="state"></span>
+          </div>
+          <div class="meter" id="meter-others">
+            <span class="who">Participants</span>
+            <span class="bar"><i></i></span>
+            <span class="state"></span>
+          </div>
         </div>
-        <div class="meter" id="meter-others">
-          <span class="who">Participants</span>
-          <span class="bar"><i></i></span>
-          <span class="state"></span>
+        <div class="notice" id="rec-notice" hidden></div>
+        <p class="last-line" id="last-line"></p>
+        <div class="queue" id="queue"></div>
+
+        <div class="row actions">
+          <button class="btn ghost" id="pause">Pause</button>
+          <button class="btn ghost" id="pip" title="Ouvre une petite fenêtre toujours visible, à déplacer où vous voulez">Mini-fenêtre</button>
+          <button class="btn danger" id="stop"><span class="sq"></span> Terminer</button>
         </div>
       </div>
-      <div class="notice" id="rec-notice" hidden></div>
+      <div class="pip-placeholder" id="pip-placeholder" hidden>
+        <p>L'enregistrement est piloté depuis la <strong>mini-fenêtre</strong>.</p>
+        <button class="btn" id="pip-back">Revenir ici</button>
+      </div>
 
       <div class="feed" id="live" aria-live="polite">
         <p class="placeholder">Le transcript apparaîtra ici au fil de la réunion.</p>
-      </div>
-      <div class="queue" id="queue"></div>
-
-      <div class="row actions">
-        <button class="btn ghost" id="pause">Pause</button>
-        <button class="btn danger" id="stop"><span class="sq"></span> Terminer la réunion</button>
       </div>
     </section>
 
@@ -167,10 +183,11 @@
         <button class="btn" id="copy">Copier</button>
         <button class="btn" id="copy-ai" title="Copie le transcript précédé d'une consigne pour obtenir un compte rendu">Copier pour une IA</button>
       </div>
-      <pre class="preview" id="preview"></pre>
-      <div class="row">
-        <button class="btn ghost" id="again">Nouvelle réunion</button>
+      <div class="row next">
+        <button class="btn primary-soft" id="next-meeting"><span class="rec-dot"></span> Démarrer la réunion suivante</button>
+        <button class="btn ghost" id="again">Retour à l'accueil</button>
       </div>
+      <pre class="preview" id="preview"></pre>
     </section>
 
     <div class="toast" id="toast" role="status" hidden></div>
