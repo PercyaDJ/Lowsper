@@ -28,6 +28,7 @@
     segment: 0.6, // similarité pour prolonger un tour de parole avec la fenêtre suivante
     finalMerge: 0.55, // similarité moyenne pour fusionner deux voix à la fin (réglé sur corpus)
     minVoice: 8, // une « voix » de moins de 8 s de parole est rattachée à la plus proche
+    remember: 0.65, // similarité pour reconnaître une voix mémorisée (prudent : un mauvais nom est pire qu'aucun)
   };
 
   function cosine(a, b) {
@@ -47,7 +48,7 @@
     let n = 0;
     for (const x of v) n += x * x;
     n = Math.sqrt(n) || 1;
-    return v.map((x) => x / n);
+    return Array.from(v, (x) => x / n);
   }
 
   class SpeakerTracker {
@@ -216,6 +217,9 @@
       }
       const itemGroup = new Int32Array(items.length);
       groups.forEach((g, gi) => g.members.forEach((m) => (itemGroup[m] = gi + 1)));
+      // Empreinte moyenne de chaque voix finale (pour la mémoire des voix)
+      this.centroids = new Map();
+      groups.forEach((g, gi) => this.centroids.set(1000 + gi + 1, { emb: Float32Array.from(normalize(g.sum)), seconds: g.w }));
       // Chaque phrase prend la voix finale majoritaire parmi ses fenêtres
       const map = new Map();
       this.covers.forEach((cover, key) => {
@@ -230,6 +234,118 @@
     }
   }
 
+  /**
+   * Mémoire des voix (facultative, désactivée par défaut).
+   *
+   * Quand l'utilisateur nomme un intervenant, son empreinte vocale moyenne (256 nombres, pas
+   * d'audio) est conservée sur ce poste, dans le stockage du navigateur. Aux réunions suivantes,
+   * une voix suffisamment proche reçoit automatiquement ce nom.
+   *
+   * Une empreinte vocale est une donnée biométrique (RGPD, article 9) : consentement des
+   * personnes, stockage local uniquement, durée de conservation limitée (effacement automatique)
+   * et effacement manuel à tout moment.
+   */
+  class VoiceMemory {
+    constructor(storage) {
+      this.storage = storage || (typeof localStorage !== 'undefined' ? localStorage : null);
+      this.key = 'lowsper.voices.v1';
+      this.data = this.load();
+    }
+
+    load() {
+      try {
+        const raw = this.storage && this.storage.getItem(this.key);
+        const d = raw ? JSON.parse(raw) : null;
+        if (d && Array.isArray(d.voices)) return d;
+      } catch {}
+      return { enabled: false, keepDays: 90, voices: [] };
+    }
+
+    save() {
+      try {
+        if (this.storage) this.storage.setItem(this.key, JSON.stringify(this.data));
+      } catch {}
+    }
+
+    get enabled() {
+      return !!this.data.enabled;
+    }
+    setEnabled(on) {
+      this.data.enabled = !!on;
+      this.save();
+    }
+    get keepDays() {
+      return this.data.keepDays || 90;
+    }
+    setKeepDays(days) {
+      this.data.keepDays = days;
+      this.purge();
+    }
+    get count() {
+      return this.data.voices.length;
+    }
+    names() {
+      return this.data.voices.map((v) => v.name);
+    }
+
+    /** Efface les empreintes plus anciennes que la durée de conservation (depuis leur création). */
+    purge(now) {
+      const limit = (now || Date.now()) - this.keepDays * 86400000;
+      this.data.voices = this.data.voices.filter((v) => v.createdAt >= limit);
+      this.save();
+    }
+
+    clear() {
+      this.data.voices = [];
+      this.save();
+    }
+
+    forget(name) {
+      this.data.voices = this.data.voices.filter((v) => v.name !== name);
+      this.save();
+    }
+
+    /**
+     * Associe des voix d'une réunion à des voix mémorisées (une à une, la plus proche d'abord).
+     * @param {Map<number,{emb:Float32Array}>} centroids
+     * @returns {Map<number,string>} voix de la réunion -> nom
+     */
+    match(centroids) {
+      const pairs = [];
+      for (const [voice, c] of centroids) {
+        for (const m of this.data.voices) pairs.push({ voice, name: m.name, sim: cosine(c.emb, m.emb) });
+      }
+      pairs.sort((a, b) => b.sim - a.sim);
+      const out = new Map();
+      const used = new Set();
+      for (const p of pairs) {
+        if (p.sim < CFG.remember) break;
+        if (out.has(p.voice) || used.has(p.name)) continue;
+        out.set(p.voice, p.name);
+        used.add(p.name);
+      }
+      return out;
+    }
+
+    /** Ajoute ou affine l'empreinte d'une personne nommée. */
+    remember(name, emb, seconds) {
+      if (!name || !emb) return;
+      const now = Date.now();
+      const v = this.data.voices.find((x) => x.name.toLowerCase() === name.toLowerCase());
+      if (v) {
+        const w1 = Math.min(v.seconds, 600);
+        const w2 = Math.min(seconds, 600);
+        v.emb = normalize(v.emb.map((x, i) => x * w1 + emb[i] * w2));
+        v.seconds = w1 + w2;
+        v.updatedAt = now;
+      } else {
+        this.data.voices.push({ name, emb: Array.from(emb), seconds, createdAt: now, updatedAt: now });
+      }
+      this.save();
+    }
+  }
+
   Lowsper.SpeakerTracker = SpeakerTracker;
+  Lowsper.VoiceMemory = VoiceMemory;
   Lowsper.SPEAKER_CONFIG = CFG;
 })();

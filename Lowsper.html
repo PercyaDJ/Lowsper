@@ -107,6 +107,31 @@
             <input type="checkbox" id="distinguish" checked>
             <span>Distinguer les intervenants (Intervenant 1, 2, 3...)</span>
           </label>
+          <div class="memory">
+            <label class="check">
+              <input type="checkbox" id="memory-on">
+              <span>Mémoriser les voix des intervenants que je nomme, pour les reconnaître aux réunions suivantes</span>
+            </label>
+            <div class="memory-details" id="memory-details" hidden>
+              <p class="fine">Une empreinte vocale est une donnée biométrique : à n'activer qu'avec l'accord des personnes concernées. Seule une empreinte (une suite de nombres, pas d'enregistrement) est conservée, uniquement sur ce poste.</p>
+              <div class="row">
+                <label class="field inline compact">
+                  <span>Effacement automatique</span>
+                  <select id="memory-days">
+                    <option value="30">après 1 mois</option>
+                    <option value="90">après 3 mois</option>
+                    <option value="180">après 6 mois</option>
+                  </select>
+                </label>
+                <button class="btn ghost small" id="memory-clear" type="button">Effacer les voix mémorisées</button>
+              </div>
+              <p class="fine" id="memory-list"></p>
+            </div>
+          </div>
+          <div class="speed">
+            <button class="linkish" id="speed-test" type="button">Mesurer la vitesse de ce PC avec le modèle actuel</button>
+            <p class="fine" id="speed-result"></p>
+          </div>
           <label class="field inline">
             <span>Sigles et noms propres de vos réunions <em>(aide la reconnaissance, conservé sur ce poste)</em></span>
             <textarea id="glossary" rows="3" spellcheck="false" placeholder="Ex. RSSI, COMEX, KPI, RGPD, NIS 2, projet Atlas, Mme Durand"></textarea>

@@ -21,7 +21,7 @@ const sandbox = {
 sandbox.window = sandbox;
 sandbox.self = sandbox;
 vm.createContext(sandbox);
-for (const f of ['capture.js', 'transcript.js']) {
+for (const f of ['capture.js', 'transcript.js', 'speakers.js']) {
   vm.runInContext(await readFile(join(appJs, f), 'utf8'), sandbox, { filename: f });
 }
 const L = sandbox.Lowsper;
@@ -209,6 +209,28 @@ await test('les intervenants sont numérotés par ordre d’apparition et peuven
   assert.equal(t.voiceSummary().length, 2);
   t.applyVoiceMap(new Map([[1, 7]]));
   assert.equal(t.voiceSummary().length, 1, 'le regroupement final fusionne les deux voix');
+});
+
+await test('mémoire des voix : reconnaissance, prudence, effacement', () => {
+  const mem = new Map();
+  const storage = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, v) };
+  const unit = (i, noise = 0) => { const v = new Float32Array(256); v[i] = 1; v[(i + 1) % 256] = noise; const n = Math.hypot(1, noise); return v.map((x) => x / n); };
+  const m = new L.VoiceMemory(storage);
+  assert.equal(m.enabled, false, 'désactivée par défaut');
+  m.setEnabled(true);
+  m.remember('Julien', unit(1), 120);
+  m.remember('Claire', unit(5), 60);
+  const found = m.match(new Map([[1001, { emb: unit(5, 0.3) }], [1002, { emb: unit(1, 0.2) }], [1003, { emb: unit(9) }]]));
+  assert.equal(found.get(1001), 'Claire');
+  assert.equal(found.get(1002), 'Julien');
+  assert.equal(found.has(1003), false, 'voix inconnue : pas de nom inventé');
+  const reload = new L.VoiceMemory(storage);
+  assert.equal(reload.count, 2, 'conservé sur le poste');
+  reload.setKeepDays(30);
+  reload.purge(Date.now() + 31 * 86400000);
+  assert.equal(reload.count, 0, 'effacement automatique après la durée choisie');
+  m.clear();
+  assert.equal(new L.VoiceMemory(storage).count, 0);
 });
 
 await test('sauvegarde et récupération d’une session interrompue', () => {

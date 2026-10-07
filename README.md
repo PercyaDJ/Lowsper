@@ -81,6 +81,18 @@ Vérifiez que Lowsper n'est pas ouvert directement depuis le zip (clic droit sur
 tout »). Après avoir téléchargé une nouvelle version de Lowsper, copiez le dossier `app\models`
 de l'ancienne version dans la nouvelle au lieu de retélécharger.
 
+**Mon PC est-il assez rapide ?**
+Options, « Mesurer la vitesse de ce PC » (fait automatiquement la première fois) : Lowsper indique
+la charge estimée pour une réunion où l'on parle sans arrêt, et conseille un modèle plus rapide si
+besoin.
+
+**Lowsper peut-il reconnaître mes collègues d'une réunion à l'autre ?**
+Oui, si vous l'activez (Options, « Mémoriser les voix », désactivé par défaut). Nommez les
+intervenants à la fin d'une réunion : aux réunions suivantes, leurs voix sont reconnues. Une
+empreinte vocale est une donnée biométrique : demandez l'accord des personnes. Les empreintes
+restent sur votre poste, sont effacées automatiquement après 1, 3 ou 6 mois, et peuvent être
+effacées à tout moment.
+
 **Comment garder Lowsper visible pendant la visio ?**
 Bouton « Mini-fenêtre » pendant l'enregistrement : une petite fenêtre toujours au premier plan,
 à placer où vous voulez. Vous pouvez aussi simplement réduire la fenêtre : l'affichage devient compact.

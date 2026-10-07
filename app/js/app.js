@@ -70,6 +70,7 @@
       const preferred = store.get('lowsper.model');
       const model = installed.find((m) => m.id === preferred) || installed[0];
       app.modelLabel = model.label;
+      app.modelId = model.id;
       $('foot-model').textContent = model.label;
       renderModelSelect(installed, model.id);
 
@@ -93,6 +94,16 @@
       app.engineReady = true;
       setEngine('ready', 'Moteur prêt');
       pump();
+      // Première utilisation de ce modèle sur ce PC : mesure automatique de la vitesse
+      const known = store.get('lowsper.speed.' + model.id);
+      if (known) {
+        try {
+          const k = JSON.parse(known);
+          $('speed-result').textContent = `Dernière mesure : charge estimée ${Math.round(k.load * 100)} % pour une réunion où l'on parle sans arrêt.`;
+        } catch {}
+      } else if (app.state !== 'recording') {
+        speedTest(true);
+      }
     } catch (err) {
       console.error(err);
       app.engineError = String(err.message || err);
@@ -469,7 +480,17 @@
       $('finish-text').textContent = 'Identification des intervenants…';
       await new Promise((r) => setTimeout(r, 30)); // laisse l'affichage se mettre à jour
       try {
-        app.transcript.applyVoiceMap(app.transcript.tracker.finalize());
+        const tracker = app.transcript.tracker;
+        app.transcript.applyVoiceMap(tracker.finalize());
+        // Voix mémorisées : reconnaissance automatique des intervenants déjà nommés
+        if (app.memory.enabled && app.memory.count && tracker.centroids) {
+          const present = new Map([...tracker.centroids].filter(([v]) => app.transcript.lines.some((l) => l.voice === v)));
+          app.transcript.meta.recognized = [];
+          for (const [voice, name] of app.memory.match(present)) {
+            app.transcript.nameVoice(voice, name);
+            app.transcript.meta.recognized.push(voice);
+          }
+        }
       } catch (e) {
         console.warn('Regroupement final des voix impossible', e);
       }
@@ -512,6 +533,20 @@
         app.finalMarkdown = t.toMarkdown();
         $('preview').textContent = app.finalMarkdown;
       });
+      // Mémoire des voix : on retient l'empreinte quand la saisie est validée
+      input.addEventListener('change', () => {
+        const c = t.tracker && t.tracker.centroids && t.tracker.centroids.get(v.voice);
+        if (app.memory.enabled && c && input.value.trim()) {
+          app.memory.remember(input.value.trim(), c.emb, c.seconds);
+          renderMemory();
+        }
+      });
+      if ((t.meta.recognized || []).includes(v.voice)) {
+        const b = document.createElement('span');
+        b.className = 'badge auto';
+        b.textContent = 'reconnu';
+        label.appendChild(b);
+      }
       const sample = document.createElement('div');
       sample.className = 'vsample';
       sample.textContent = '« ' + v.sample + ' »';
@@ -623,6 +658,57 @@
       L.Transcript.clearSaved();
       $('recover').hidden = true;
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Test de vitesse sur ce PC
+  // ---------------------------------------------------------------------------
+
+  async function speedTest(auto) {
+    if (!app.engineReady || !app.workers.length) {
+      if (!auto) toast('Le moteur n’est pas encore prêt.');
+      return;
+    }
+    const out = $('speed-result');
+    out.textContent = 'Mesure en cours (quelques secondes à une minute)…';
+    $('speed-test').disabled = true;
+    try {
+      const b = await app.workers[0].bench();
+      const load = L.estimateLoad(b, app.workers.length);
+      const perMin = Math.round(load * 60);
+      const model = app.modelLabel;
+      let advice;
+      if (load <= 0.5) advice = 'Très confortable : la transcription suivra la réunion en direct.';
+      else if (load <= 0.9) advice = 'Correct : la transcription suit la réunion, avec un léger décalage quand ça parle beaucoup.';
+      else if (load <= 1.3) advice = "Juste : lors d'échanges très denses, la transcription prendra du retard puis le rattrapera dans les silences.";
+      else advice = 'Trop lent pour suivre en direct : choisissez un modèle plus rapide (ou la version carte graphique si votre PC en a une).';
+      out.textContent =
+        `${model} : environ ${perMin} s de calcul par minute de parole continue ` +
+        `(charge estimée ${Math.round(load * 100)} % avec ${app.workers.length} moteur${app.workers.length > 1 ? 's' : ''}). ${advice}`;
+      store.set('lowsper.speed.' + app.modelId, JSON.stringify({ load, at: Date.now() }));
+    } catch (e) {
+      out.textContent = 'Mesure impossible : ' + e.message;
+    } finally {
+      $('speed-test').disabled = false;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mémoire des voix (facultative)
+  // ---------------------------------------------------------------------------
+
+  app.memory = new L.VoiceMemory();
+  app.memory.purge(); // effacement automatique des empreintes trop anciennes
+
+  function renderMemory() {
+    const m = app.memory;
+    $('memory-on').checked = m.enabled;
+    $('memory-details').hidden = !m.enabled;
+    $('memory-days').value = String(m.keepDays);
+    $('memory-clear').disabled = !m.count;
+    $('memory-list').textContent = m.count
+      ? `${m.count} voix mémorisée${m.count > 1 ? 's' : ''} : ${m.names().join(', ')}.`
+      : 'Aucune voix mémorisée pour l’instant. Nommez les intervenants à la fin d’une réunion.';
   }
 
   // ---------------------------------------------------------------------------
@@ -835,6 +921,30 @@
   }
 
   $('install').addEventListener('click', install);
+  $('speed-test').addEventListener('click', () => speedTest(false));
+  $('memory-on').addEventListener('change', (e) => {
+    if (e.target.checked && !confirm(
+      "Mémoriser les voix ?\n\nUne empreinte vocale est une donnée biométrique (RGPD). " +
+      "Ne l'activez qu'avec l'accord des personnes concernées. Les empreintes restent uniquement sur ce poste " +
+      'et sont effacées automatiquement après la durée choisie.'
+    )) {
+      e.target.checked = false;
+      return;
+    }
+    app.memory.setEnabled(e.target.checked);
+    renderMemory();
+  });
+  $('memory-days').addEventListener('change', (e) => {
+    app.memory.setKeepDays(Number(e.target.value));
+    renderMemory();
+  });
+  $('memory-clear').addEventListener('click', () => {
+    if (!confirm('Effacer définitivement toutes les voix mémorisées ?')) return;
+    app.memory.clear();
+    renderMemory();
+    toast('Voix mémorisées effacées.');
+  });
+  renderMemory();
   $('install-back').addEventListener('click', () => setState('idle'));
   $('add-model').addEventListener('click', showInstall);
   $('model').addEventListener('change', (e) => {
