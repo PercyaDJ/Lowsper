@@ -21,7 +21,7 @@ const sandbox = {
 sandbox.window = sandbox;
 sandbox.self = sandbox;
 vm.createContext(sandbox);
-for (const f of ['capture.js', 'transcript.js']) {
+for (const f of ['capture.js', 'transcript.js', 'speakers.js']) {
   vm.runInContext(await readFile(join(appJs, f), 'utf8'), sandbox, { filename: f });
 }
 const L = sandbox.Lowsper;
@@ -193,6 +193,57 @@ await test('Markdown : en-tête, horodatage, regroupement par locuteur et pauses
   assert.ok(md.indexOf('00:30:00') < md.indexOf('01:01:40'), 'ordre chronologique');
   assert.ok(!md.includes('—'), 'pas de tiret cadratin');
   assert.match(t.fileName(), /^reunion_2026-10-03_\d\dh00_point-hebdo\.md$/);
+});
+
+await test('les intervenants sont numérotés par ordre d’apparition et peuvent être renommés', () => {
+  const t = new L.Transcript({ sources: ['me', 'others'] });
+  t.addSegment('others', seg(0, 10), { chunks: [{ from: 0, to: 4, text: 'Bonjour à tous, on commence.' }, { from: 5, to: 9, text: 'Les chiffres de la semaine sont bons.' }] }, [{ voice: 7, key: 0 }, { voice: 3, key: 1 }]);
+  t.addSegment('me', seg(11, 13), { chunks: [{ from: 0, to: 2, text: "D'accord, merci." }] });
+  let md = t.toMarkdown();
+  assert.match(md, /\] Intervenant 1 :\*\* Bonjour/);
+  assert.match(md, /\] Intervenant 2 :\*\* Les chiffres/);
+  t.nameVoice(3, 'Julien');
+  md = t.toMarkdown();
+  assert.match(md, /\] Julien :\*\* Les chiffres/);
+  assert.match(md, /nommées à la main/);
+  assert.equal(t.voiceSummary().length, 2);
+  t.applyVoiceMap(new Map([[1, 7]]));
+  assert.equal(t.voiceSummary().length, 1, 'le regroupement final fusionne les deux voix');
+});
+
+await test('mémoire des voix : reconnaissance, prudence, effacement', () => {
+  const mem = new Map();
+  const storage = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, v) };
+  const unit = (i, noise = 0) => { const v = new Float32Array(256); v[i] = 1; v[(i + 1) % 256] = noise; const n = Math.hypot(1, noise); return v.map((x) => x / n); };
+  const m = new L.VoiceMemory(storage);
+  assert.equal(m.enabled, false, 'désactivée par défaut');
+  m.setEnabled(true);
+  m.remember('Julien', unit(1), 120);
+  m.remember('Claire', unit(5), 60);
+  const found = m.match(new Map([[1001, { emb: unit(5, 0.3) }], [1002, { emb: unit(1, 0.2) }], [1003, { emb: unit(9) }]]));
+  assert.equal(found.get(1001), 'Claire');
+  assert.equal(found.get(1002), 'Julien');
+  assert.equal(found.has(1003), false, 'voix inconnue : pas de nom inventé');
+  const reload = new L.VoiceMemory(storage);
+  assert.equal(reload.count, 2, 'conservé sur le poste');
+  reload.setKeepDays(30);
+  reload.purge(Date.now() + 31 * 86400000);
+  assert.equal(reload.count, 0, 'effacement automatique après la durée choisie');
+  m.clear();
+  assert.equal(new L.VoiceMemory(storage).count, 0);
+});
+
+await test('un passage « rapide » est remplacé par sa version précise, en gardant la voix', () => {
+  const t = new L.Transcript({ sources: ['others'] });
+  const b = { id: 7, start: 100, end: 110, speech: 8, map: [{ at: 0, t: 100 }] };
+  t.addSegment('others', b, { chunks: [{ from: 0, to: 5, text: 'Texte approximatif.' }] }, [{ voice: 1003, key: 4 }], { block: 7, draft: true });
+  t.addSegment('others', { id: 8, start: 120, end: 125, speech: 4, map: [{ at: 0, t: 120 }] }, { chunks: [{ from: 0, to: 4, text: 'Autre passage.' }] }, null, { block: 8 });
+  assert.equal(t.draftCount(), 1);
+  t.replaceBlock('others', b, { chunks: [{ from: 0, to: 2, text: 'Texte précis,' }, { from: 2, to: 5, text: 'en deux phrases.' }] });
+  assert.equal(t.draftCount(), 0);
+  assert.equal(t.lines.map((l) => l.text).join(' | '), 'Texte précis, | en deux phrases. | Autre passage.');
+  assert.equal(t.lines[0].voice, 1003);
+  assert.equal(t.lines[1].vkey, 4);
 });
 
 await test('sauvegarde et récupération d’une session interrompue', () => {

@@ -68,10 +68,11 @@
    * Charge tout ce qu'il faut pour transcrire. onProgress(ratio entre 0 et 1).
    * Le résultat est mis en cache : un seul chargement par ouverture de la page.
    */
-  let assetsPromise = null;
+  const assetsCache = new Map();
   Lowsper.loadAssets = function (onProgress, modelId) {
-    if (assetsPromise) return assetsPromise;
-    assetsPromise = (async () => {
+    const cacheKey = modelId || '';
+    if (assetsCache.has(cacheKey)) return assetsCache.get(cacheKey);
+    const assetsPromise = (async () => {
       const manifest = self.LOWSPER_MANIFEST;
       if (!manifest) throw new Error('app/manifest.js introuvable : le dossier est incomplet.');
       const installed = self.LOWSPER_INSTALLED || [];
@@ -130,9 +131,8 @@
         analysis,
       };
     })();
-    assetsPromise.catch(() => {
-      assetsPromise = null;
-    });
+    assetsCache.set(cacheKey, assetsPromise);
+    assetsPromise.catch(() => assetsCache.delete(cacheKey));
     return assetsPromise;
   };
 
@@ -471,11 +471,39 @@
       return chunks;
     }
 
+    // Mesure de vitesse : coût fixe de l'encodeur par bloc, puis coût par mot généré.
+    // Le contenu de l'audio n'importe pas : on force la génération d'un nombre fixe de jetons.
+    async function bench() {
+      const seconds = 18;
+      const audio = new Float32Array(seconds * 16000);
+      for (let i = 0; i < audio.length; i++) audio[i] = (Math.random() - 0.5) * 0.02;
+      const t0 = performance.now();
+      const features = (await asr.processor(audio)).input_features;
+      const encoderOutputs = await encode(features);
+      const encMs = performance.now() - t0;
+      const n = 40;
+      const t1 = performance.now();
+      await asr.model.generate({
+        inputs: features,
+        encoder_outputs: encoderOutputs,
+        decoder_input_ids: [ids.sot, ids.lang['<|fr|>'], ids.transcribe, ids.tsBegin - 1],
+        language: 'fr',
+        task: 'transcribe',
+        return_timestamps: false,
+        max_new_tokens: n,
+        min_new_tokens: n,
+      });
+      return { encMs, tokMs: (performance.now() - t1) / n };
+    }
+
     self.onmessage = (e) => {
       const msg = e.data;
       queue = queue.then(async () => {
         try {
-          if (msg.type === 'init') {
+          if (msg.type === 'bench') {
+            const r = await bench();
+            self.postMessage({ id: msg.id, ok: true, encMs: r.encMs, tokMs: r.tokMs });
+          } else if (msg.type === 'init') {
             await init(msg);
             self.postMessage({ id: msg.id, ok: true });
           } else if (msg.type === 'transcribe') {
@@ -531,11 +559,27 @@
       return this.call({ type: 'transcribe', audio, language, prompt, pieces }, [audio.buffer]);
     }
 
+    async bench() {
+      await this.ready;
+      return this.call({ type: 'bench' });
+    }
+
     dispose() {
       this.worker.terminate();
       URL.revokeObjectURL(this.url);
     }
   }
+
+  /**
+   * Estime la charge d'un moteur pour une réunion où l'on parle en continu, à partir d'une mesure :
+   * un bloc de 18 s coûte l'encodeur + environ 6 jetons par seconde de parole (texte et horodatages).
+   * Retourne la part du temps réel utilisée (1 = juste suffisant), pour `workers` moteurs.
+   */
+  Lowsper.estimateLoad = function (bench, workers) {
+    const block = 18;
+    const ms = bench.encMs + block * 6 * bench.tokMs;
+    return ms / 1000 / block / Math.max(1, workers);
+  };
 
   Lowsper.Transcriber = Transcriber;
 })();

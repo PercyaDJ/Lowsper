@@ -70,6 +70,7 @@
       const preferred = store.get('lowsper.model');
       const model = installed.find((m) => m.id === preferred) || installed[0];
       app.modelLabel = model.label;
+      app.modelId = model.id;
       $('foot-model').textContent = model.label;
       renderModelSelect(installed, model.id);
 
@@ -86,13 +87,37 @@
           app.analyzer = null;
         }
       }
-      // Plusieurs moteurs en parallèle si la machine le permet : chaque moteur utilise un cœur
-      // du processeur ; avec la carte graphique (WebGPU), un seul moteur suffit.
-      app.workers.push(...createWorkers(assets));
+      // Moteurs : chaque moteur occupe un cœur du processeur pendant qu'il transcrit.
+      // On en démarre quelques-uns ; d'autres sont ajoutés en renfort si du retard s'accumule.
+      app.mainAssets = assets;
+      app.limits = computeLimits(assets.device);
+      for (let i = 0; i < app.limits.start; i++) app.workers.push(newWorker(assets));
       await Promise.all(app.workers.map((w) => w.ready));
       app.engineReady = true;
       setEngine('ready', 'Moteur prêt');
       pump();
+      // Voie rapide de secours (Whisper base), si installé et si le modèle principal est plus lent
+      const fastModel = installed.find((m) => m.id === 'whisper-base');
+      if (fastModel && model.id !== 'whisper-base' && assets.device !== 'webgpu') {
+        L.loadAssets(null, fastModel.id)
+          .then((fa) => {
+            const w = newWorker(fa);
+            app.fastWorkers.push(w);
+            return w.ready;
+          })
+          .then(() => pump())
+          .catch((e) => console.warn('Voie rapide indisponible', e));
+      }
+      // Première utilisation de ce modèle sur ce PC : mesure automatique de la vitesse
+      const known = store.get('lowsper.speed.' + model.id);
+      if (known) {
+        try {
+          const k = JSON.parse(known);
+          $('speed-result').textContent = `Dernière mesure : charge estimée ${Math.round(k.load * 100)} % pour une réunion où l'on parle sans arrêt.`;
+        } catch {}
+      } else if (app.state !== 'recording') {
+        speedTest(true);
+      }
     } catch (err) {
       console.error(err);
       app.engineError = String(err.message || err);
@@ -101,29 +126,61 @@
     }
   }
 
-  function workerCount(device) {
-    if (device === 'webgpu') return 1;
-    const cores = navigator.hardwareConcurrency || 2;
+  // ---------------------------------------------------------------------------
+  // Puissance de calcul
+  //
+  // Un moteur qui transcrit occupe un cœur à 100 %. Sur un portable à 6 cœurs / 12 fils qui fait
+  // tourner en même temps Teams, Office, Outlook..., on limite le nombre de moteurs actifs :
+  //   - économe    : 1 moteur ;
+  //   - équilibrée : 1/4 des fils en temps normal, 1/3 en renfort si du retard s'accumule ;
+  //   - maximale   : la moitié des fils.
+  // Avec la carte graphique (WebGPU), un seul moteur suffit (le GPU traite les calculs en série).
+  // ---------------------------------------------------------------------------
+
+  app.fastWorkers = [];
+  app.drafts = []; // passages transcrits par la voie rapide, à améliorer
+  app.blockSeq = 0;
+
+  function computeLimits(device) {
+    if (device === 'webgpu') return { start: 1, normal: 1, boost: 1, max: 1 };
+    const threads = navigator.hardwareConcurrency || 4;
     const memory = navigator.deviceMemory || 8; // plafonné à 8 par Chrome
-    let n = Math.max(1, Math.min(3, Math.floor(cores / 2)));
-    if (memory < 8) n = Math.min(n, 2);
-    if (memory < 4) n = 1;
-    return n;
+    const memCap = memory < 4 ? 1 : memory < 8 ? 2 : 6;
+    const clamp = (n) => Math.max(1, Math.min(memCap, n));
+    const power = store.get('lowsper.power') || 'balanced';
+    if (power === 'eco') return { start: 1, normal: 1, boost: 1, max: 1 };
+    if (power === 'max') {
+      const n = clamp(Math.floor(threads / 2));
+      return { start: Math.min(n, 3), normal: n, boost: n, max: n };
+    }
+    const normal = clamp(Math.ceil(threads / 4));
+    const boost = clamp(Math.max(normal, Math.floor(threads / 3)));
+    return { start: normal, normal, boost, max: boost };
   }
 
-  function createWorkers(assets) {
-    const list = [];
-    for (let i = 0; i < workerCount(assets.device); i++) {
-      const w = new L.Transcriber(assets);
-      w.idle = true;
-      list.push(w);
+  function newWorker(assets) {
+    const w = new L.Transcriber(assets);
+    w.idle = true;
+    w.ready.catch(() => (w.broken = true));
+    return w;
+  }
+
+  // Renfort : démarre des moteurs supplémentaires (une vingtaine de secondes de préparation)
+  function ensureWorkers(n) {
+    while (app.workers.length < Math.min(n, app.limits.max)) {
+      const w = newWorker(app.mainAssets);
+      w.starting = true;
+      app.workers.push(w);
+      w.ready.then(() => {
+        w.starting = false;
+        pump();
+      });
     }
-    return list;
   }
 
   // Un moteur est libre et rien n'attend : les blocs partent dès la fin d'une phrase
   function engineIdle() {
-    return app.engineReady && app.queue.length === 0 && app.workers.some((w) => w.idle);
+    return app.engineReady && app.queue.length === 0 && app.workers.some((w) => w.idle && !w.starting);
   }
 
   function checkBrowser() {
@@ -137,41 +194,85 @@
   }
 
   // File de transcription : le segment le plus ancien part vers le premier moteur libre.
+  const FAST_AFTER = 15000; // un passage qui attend plus de 15 s part par la voie rapide
+
   function pump() {
     if (!app.engineReady) return updateQueue();
+    app.queue.sort((a, b) => a.seg.start - b.seg.start);
+    const backlog = app.queue.length;
+    // Combien de moteurs principaux ont le droit de travailler en ce moment
+    // Réunion terminée : le PC est libéré, la fin du transcript peut utiliser le renfort
+    const allowed = backlog >= 2 || app.state === 'finishing' ? app.limits.boost : app.limits.normal;
+    if (backlog >= 2) ensureWorkers(app.limits.boost);
+    let busy = app.workers.filter((w) => !w.idle).length;
+
     for (const w of app.workers) {
-      if (!w.idle || !app.queue.length) continue;
-      app.queue.sort((a, b) => a.seg.start - b.seg.start);
-      const job = app.queue.shift();
-      w.idle = false;
-      app.inFlight++;
-      const lang = job.transcript.meta.language === 'auto' ? ['fr', 'en'] : job.transcript.meta.language;
-      // Copie de l'audio pour l'analyse des voix (l'original est transféré au moteur)
-      const tracker = job.source === 'others' ? job.transcript.tracker : null;
-      job.dur = job.seg.audio.length / 16000;
-      const keep = tracker ? job.seg.audio.slice() : null;
-      w.transcribe(job.seg.audio, lang, job.transcript.meta.glossary, (job.seg.map || []).map((m) => m.at))
-        .then(async (res) => {
-          recordLoad(res.ms || 0, job.dur);
-          let voices = null;
-          if (tracker) {
-            try {
-              voices = await tracker.label(keep, res.chunks, job.seg);
-            } catch (e) {
-              console.warn('Distinction des voix impossible pour ce passage', e);
-            }
-          }
-          job.transcript.addSegment(job.source, job.seg, res, voices);
-        })
-        .catch((err) => console.error('Segment non transcrit', err))
-        .finally(() => {
-          w.idle = true;
-          app.inFlight--;
-          pump();
-        });
+      if (!app.queue.length || busy >= allowed) break;
+      if (!w.idle || w.starting || w.broken) continue;
+      busy++;
+      run(w, app.queue.shift(), false);
+    }
+    // Voie rapide : le passage le plus ancien attend depuis trop longtemps
+    for (const w of app.fastWorkers) {
+      if (!w.idle || w.broken || !app.queue.length) continue;
+      const oldest = app.queue[0];
+      if (Date.now() - oldest.queuedAt < FAST_AFTER) break;
+      run(w, app.queue.shift(), true);
+    }
+    // Rattrapage : en période calme, les passages « rapides » sont retranscrits avec le bon modèle
+    if (!app.queue.length && app.drafts.length) {
+      const limit = app.state === 'done' ? app.limits.boost : app.limits.normal;
+      for (const w of app.workers) {
+        if (!app.drafts.length || busy >= limit) break;
+        if (!w.idle || w.starting || w.broken) continue;
+        busy++;
+        const d = app.drafts.shift();
+        run(w, { ...d, seg: { ...d.seg, audio: d.keepDraft.slice() }, redo: true }, false);
+      }
     }
     updateQueue();
   }
+
+  function run(w, job, fast) {
+    w.idle = false;
+    app.inFlight++;
+    const t = job.transcript;
+    const lang = t.meta.language === 'auto' ? ['fr', 'en'] : t.meta.language;
+    const tracker = job.source === 'others' ? t.tracker : null;
+    job.dur = job.seg.audio.length / 16000;
+    // Copies de l'audio : pour l'analyse des voix, et pour retranscrire un passage « rapide »
+    const keep = tracker && !job.redo ? job.seg.audio.slice() : null;
+    const keepDraft = fast ? job.seg.audio.slice() : null;
+    w.transcribe(job.seg.audio, lang, t.meta.glossary, (job.seg.map || []).map((m) => m.at))
+      .then(async (res) => {
+        if (!fast) recordLoad(res.ms || 0, job.dur);
+        if (job.redo) {
+          t.replaceBlock(job.source, job.seg, res);
+          return;
+        }
+        let voices = null;
+        if (tracker) {
+          try {
+            voices = await tracker.label(keep, res.chunks, job.seg);
+          } catch (e) {
+            console.warn('Distinction des voix impossible pour ce passage', e);
+          }
+        }
+        t.addSegment(job.source, job.seg, res, voices, { block: job.seg.id, draft: fast });
+        if (fast) app.drafts.push({ source: job.source, seg: { ...job.seg, audio: null }, transcript: t, keepDraft });
+      })
+      .catch((err) => console.error('Segment non transcrit', err))
+      .finally(() => {
+        w.idle = true;
+        app.inFlight--;
+        pump();
+      });
+  }
+
+  // Vérifie régulièrement l'âge des passages en attente (voie rapide)
+  setInterval(() => {
+    if (app.queue.length) pump();
+  }, 3000);
 
   // Charge du moteur : temps de calcul / durée d'audio, sur les derniers passages
   app.loadSamples = [];
@@ -185,7 +286,7 @@
     if (!s.length) return null;
     const ms = s.reduce((n, x) => n + x.ms, 0);
     const dur = s.reduce((n, x) => n + x.dur, 0);
-    return ms / 1000 / dur / Math.max(1, app.workers.length);
+    return ms / 1000 / dur / Math.max(1, app.limits ? app.limits.normal : app.workers.length);
   }
 
   function pendingCount() {
@@ -281,13 +382,15 @@
       sources: [],
     });
     app.transcript.onChange(renderLive);
+    app.transcript.onChange(renderDrafts);
     if (app.analyzer && app.analyzer.hasSpeaker && $('distinguish').checked) {
       app.transcript.tracker = new L.SpeakerTracker(app.analyzer);
     }
 
     app.capture = new L.Capture(
       (source, seg) => {
-        app.queue.push({ source, seg, transcript: app.transcript });
+        seg.id = ++app.blockSeq;
+        app.queue.push({ source, seg, transcript: app.transcript, queuedAt: Date.now() });
         pump();
       },
       { analyzer: app.analyzer, emitEarly: engineIdle }
@@ -426,6 +529,10 @@
     const frag = document.createDocumentFragment();
     for (const para of paras) {
       const p = document.createElement('p');
+      if (para.draft) {
+        p.className = 'draft';
+        p.title = 'Transcription rapide provisoire : la version précise arrive dès que le moteur est disponible.';
+      }
       const t = document.createElement('span');
       t.className = 't';
       t.textContent = L.formatTime(para.start);
@@ -469,7 +576,17 @@
       $('finish-text').textContent = 'Identification des intervenants…';
       await new Promise((r) => setTimeout(r, 30)); // laisse l'affichage se mettre à jour
       try {
-        app.transcript.applyVoiceMap(app.transcript.tracker.finalize());
+        const tracker = app.transcript.tracker;
+        app.transcript.applyVoiceMap(tracker.finalize());
+        // Voix mémorisées : reconnaissance automatique des intervenants déjà nommés
+        if (app.memory.enabled && app.memory.count && tracker.centroids) {
+          const present = new Map([...tracker.centroids].filter(([v]) => app.transcript.lines.some((l) => l.voice === v)));
+          app.transcript.meta.recognized = [];
+          for (const [voice, name] of app.memory.match(present)) {
+            app.transcript.nameVoice(voice, name);
+            app.transcript.meta.recognized.push(voice);
+          }
+        }
       } catch (e) {
         console.warn('Regroupement final des voix impossible', e);
       }
@@ -480,8 +597,82 @@
     const minutes = Math.max(1, Math.round((app.transcript.meta.endedAt - app.transcript.meta.startedAt) / 60000));
     $('done-info').textContent = `${minutes} min de réunion, ${paras} intervention${paras > 1 ? 's' : ''}. Le fichier a été enregistré dans votre dossier Téléchargements.`;
     $('preview').textContent = app.finalMarkdown;
+    renderVoices();
     setState('done');
+    renderDrafts();
     download(app.finalMarkdown, app.transcript.fileName());
+  }
+
+  // Écran de fin : suivi de la retranscription des passages « rapides »
+  function renderDrafts() {
+    const t = app.transcript;
+    const box = $('drafts');
+    if (!t || app.state !== 'done') return;
+    const n = t.draftCount();
+    if (n) {
+      box.textContent = `${n} passage${n > 1 ? 's ont été transcrits' : ' a été transcrit'} en mode rapide pendant la réunion pour garder le direct. ` +
+        'Leur version précise est en cours de calcul…';
+      box.hidden = false;
+      app.improvedPending = true;
+    } else if (app.improvedPending) {
+      app.improvedPending = false;
+      app.finalMarkdown = t.toMarkdown();
+      $('preview').textContent = app.finalMarkdown;
+      box.textContent = 'Tous les passages ont maintenant leur version précise. Retéléchargez le fichier pour avoir la version finale.';
+      box.hidden = false;
+    } else {
+      box.hidden = true;
+    }
+  }
+
+  // Écran de fin : renommer les intervenants détectés
+  function renderVoices() {
+    const t = app.transcript;
+    const list = t ? t.voiceSummary() : [];
+    $('voices').hidden = !list.length;
+    const box = $('voice-list');
+    box.replaceChildren();
+    for (const v of list) {
+      const row = document.createElement('div');
+      row.className = 'voice-row';
+      const label = document.createElement('div');
+      label.className = 'vlabel';
+      label.textContent = v.label;
+      const small = document.createElement('small');
+      const talk = v.seconds < 90 ? `${Math.round(v.seconds)} s` : `${Math.round(v.seconds / 60)} min`;
+      small.textContent = `${talk} de parole · dès ${L.formatTime(v.at)}`;
+      label.appendChild(small);
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.maxLength = 60;
+      input.placeholder = 'Nom (facultatif)';
+      input.value = (t.meta.names && t.meta.names[v.voice]) || '';
+      input.addEventListener('input', () => {
+        t.nameVoice(v.voice, input.value);
+        app.finalMarkdown = t.toMarkdown();
+        $('preview').textContent = app.finalMarkdown;
+      });
+      // Mémoire des voix : on retient l'empreinte quand la saisie est validée
+      input.addEventListener('change', () => {
+        const c = t.tracker && t.tracker.centroids && t.tracker.centroids.get(v.voice);
+        if (app.memory.enabled && c && input.value.trim()) {
+          app.memory.remember(input.value.trim(), c.emb, c.seconds);
+          renderMemory();
+        }
+      });
+      if ((t.meta.recognized || []).includes(v.voice)) {
+        const b = document.createElement('span');
+        b.className = 'badge auto';
+        b.textContent = 'reconnu';
+        label.appendChild(b);
+      }
+      const sample = document.createElement('div');
+      sample.className = 'vsample';
+      sample.textContent = '« ' + v.sample + ' »';
+      sample.title = v.sample;
+      row.append(label, input, sample);
+      box.appendChild(row);
+    }
   }
 
   function reset() {
@@ -495,6 +686,8 @@
     $('rec-status').classList.remove('paused');
     $('rec-notice').hidden = true;
     $('timer').textContent = '00:00:00';
+    $('last-line').textContent = '';
+    app.improvedPending = false;
     setState('idle');
   }
 
@@ -586,6 +779,63 @@
       L.Transcript.clearSaved();
       $('recover').hidden = true;
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Test de vitesse sur ce PC
+  // ---------------------------------------------------------------------------
+
+  async function speedTest(auto) {
+    if (!app.engineReady || !app.workers.length) {
+      if (!auto) toast('Le moteur n’est pas encore prêt.');
+      return;
+    }
+    const out = $('speed-result');
+    out.textContent = 'Mesure en cours (quelques secondes à une minute)…';
+    $('speed-test').disabled = true;
+    try {
+      const b = await app.workers[0].bench();
+      const n = app.limits.normal;
+      const load = L.estimateLoad(b, n);
+      const perMin = Math.round(load * 60);
+      const model = app.modelLabel;
+      let advice;
+      if (load <= 0.5) advice = 'Très confortable : la transcription suivra la réunion en direct.';
+      else if (load <= 0.9) advice = 'Correct : la transcription suit la réunion, avec un léger décalage quand ça parle beaucoup.';
+      else if (load <= 1.3) advice = "Juste : lors d'échanges très denses, la transcription prendra du retard puis le rattrapera dans les silences.";
+      else advice = app.fastWorkers.length
+        ? 'Lors des échanges denses, la voie rapide prendra le relais pour garder le direct, et les passages concernés seront retranscrits précisément ensuite.'
+        : 'Trop lent pour suivre en direct : installez Whisper base (Options, « Installer un autre modèle ») pour activer la voie rapide, ou choisissez un modèle plus rapide.';
+      out.textContent =
+        `${model} : environ ${perMin} s de calcul par minute de parole continue ` +
+        `(charge estimée ${Math.round(load * 100)} % avec ${n} moteur${n > 1 ? 's' : ''}` +
+        (app.limits.boost > n ? `, ${app.limits.boost} en renfort` : '') +
+        (app.fastWorkers.length ? ', plus la voie rapide en secours' : '') +
+        `). ${advice}`;
+      store.set('lowsper.speed.' + app.modelId, JSON.stringify({ load, at: Date.now() }));
+    } catch (e) {
+      out.textContent = 'Mesure impossible : ' + e.message;
+    } finally {
+      $('speed-test').disabled = false;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mémoire des voix (facultative)
+  // ---------------------------------------------------------------------------
+
+  app.memory = new L.VoiceMemory();
+  app.memory.purge(); // effacement automatique des empreintes trop anciennes
+
+  function renderMemory() {
+    const m = app.memory;
+    $('memory-on').checked = m.enabled;
+    $('memory-details').hidden = !m.enabled;
+    $('memory-days').value = String(m.keepDays);
+    $('memory-clear').disabled = !m.count;
+    $('memory-list').textContent = m.count
+      ? `${m.count} voix mémorisée${m.count > 1 ? 's' : ''} : ${m.names().join(', ')}.`
+      : 'Aucune voix mémorisée pour l’instant. Nommez les intervenants à la fin d’une réunion.';
   }
 
   // ---------------------------------------------------------------------------
@@ -743,15 +993,28 @@
     setEngine('loading', 'Téléchargement du modèle');
     const t0 = performance.now();
     try {
-      await L.installModel(folder, entry, (p) => {
-        $('install-bar').style.width = (p.ratio * 100).toFixed(1) + '%';
-        const secs = (performance.now() - t0) / 1000;
-        const speed = p.done / 1e6 / Math.max(secs, 0.1);
-        const left = speed > 0 ? Math.round((p.total - p.done) / 1e6 / speed) : 0;
-        $('install-text').textContent =
-          `${Math.round(p.done / 1e6)} / ${Math.round(p.total / 1e6)} Mo · ${speed.toFixed(1)} Mo/s` +
-          (left > 2 ? ` · environ ${left > 90 ? Math.round(left / 60) + ' min' : left + ' s'} restantes` : '');
-      });
+      // Modèle processeur : on installe aussi Whisper base (80 Mo), qui sert de voie rapide de
+      // secours quand le PC prend du retard pendant une réunion chargée.
+      const installedIds = (self.LOWSPER_INSTALLED || []).map((m) => m.id);
+      const fast = catalog.find((m) => m.id === 'whisper-base');
+      const list = [entry];
+      if (entry.device !== 'webgpu' && entry.id !== 'whisper-base' && fast && !installedIds.includes(fast.id)) list.push(fast);
+      const grand = list.reduce((n, m) => n + m.files.reduce((k, f) => k + f.size, 0), 0);
+      let before = 0;
+      for (const m of list) {
+        await L.installModel(folder, m, (p) => {
+          const done = before + p.done;
+          $('install-bar').style.width = ((done / grand) * 100).toFixed(1) + '%';
+          const secs = (performance.now() - t0) / 1000;
+          const speed = done / 1e6 / Math.max(secs, 0.1);
+          const left = speed > 0 ? Math.round((grand - done) / 1e6 / speed) : 0;
+          $('install-text').textContent =
+            `${Math.round(done / 1e6)} / ${Math.round(grand / 1e6)} Mo · ${speed.toFixed(1)} Mo/s` +
+            (left > 2 ? ` · environ ${left > 90 ? Math.round(left / 60) + ' min' : left + ' s'} restantes` : '') +
+            (list.length > 1 ? ` · ${m.label}` : '');
+        });
+        before += m.files.reduce((k, f) => k + f.size, 0);
+      }
       store.set('lowsper.model', entry.id);
       $('install-text').textContent = 'Modèle installé. Démarrage…';
       app.installing = false;
@@ -798,6 +1061,36 @@
   }
 
   $('install').addEventListener('click', install);
+  $('speed-test').addEventListener('click', () => speedTest(false));
+  $('power').value = store.get('lowsper.power') || 'balanced';
+  $('power').addEventListener('change', (e) => {
+    store.set('lowsper.power', e.target.value);
+    if (app.mainAssets) app.limits = computeLimits(app.mainAssets.device);
+    pump();
+  });
+  $('memory-on').addEventListener('change', (e) => {
+    if (e.target.checked && !confirm(
+      "Mémoriser les voix ?\n\nUne empreinte vocale est une donnée biométrique (RGPD). " +
+      "Ne l'activez qu'avec l'accord des personnes concernées. Les empreintes restent uniquement sur ce poste " +
+      'et sont effacées automatiquement après la durée choisie.'
+    )) {
+      e.target.checked = false;
+      return;
+    }
+    app.memory.setEnabled(e.target.checked);
+    renderMemory();
+  });
+  $('memory-days').addEventListener('change', (e) => {
+    app.memory.setKeepDays(Number(e.target.value));
+    renderMemory();
+  });
+  $('memory-clear').addEventListener('click', () => {
+    if (!confirm('Effacer définitivement toutes les voix mémorisées ?')) return;
+    app.memory.clear();
+    renderMemory();
+    toast('Voix mémorisées effacées.');
+  });
+  renderMemory();
   $('install-back').addEventListener('click', () => setState('idle'));
   $('add-model').addEventListener('click', showInstall);
   $('model').addEventListener('change', (e) => {
