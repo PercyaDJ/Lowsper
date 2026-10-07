@@ -333,8 +333,11 @@ textarea { resize: vertical; min-height: 64px; font: inherit; }
   .feed { display: none; }
   .last-line { display: -webkit-box; }
 }
-@media (max-width: 380px) {
-  .row.actions #pause, .row.actions #pip { flex: 0 0 auto; }
+@media (max-width: 480px) {
+  /* Boutons sur deux lignes : Pause et Mini-fenêtre côte à côte, Terminer en pleine largeur */
+  .rec-core .row.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .rec-core .row.actions #stop { grid-column: 1 / 3; order: -1; }
+  .rec-core .row.actions .btn { min-width: 0; }
 }
 
 /* Mini-fenêtre (Document Picture-in-Picture) */
@@ -348,7 +351,8 @@ body.pip .meter .state { display: none; }
 body.pip .last-line { display: -webkit-box; font-size: 12.5px; }
 body.pip .queue { display: none; }
 body.pip .notice { font-size: 12px; padding: 6px 8px; margin-bottom: 8px; }
-body.pip .row.actions { margin-top: 6px; flex-wrap: nowrap; gap: 6px; }
+body.pip .row.actions { margin-top: 6px; display: flex; flex-wrap: nowrap; gap: 6px; }
+body.pip .row.actions #stop { order: 0; }
 body.pip .row.actions .btn { flex: 1; padding: 7px 8px; font-size: 13px; }
 body.pip #pip { display: none; }
 
@@ -370,3 +374,13 @@ body.pip #pip { display: none; }
   .voice-row { grid-template-columns: 1fr 1fr; }
   .voice-row .vsample { grid-column: 1 / 3; white-space: normal; }
 }
+
+/* Mémoire des voix et test de vitesse */
+.memory { border-top: 1px solid var(--border); padding-top: 12px; }
+.memory-details { margin: 8px 0 0 26px; }
+.memory-details .row { align-items: end; }
+.field.compact { margin: 0; }
+.field.compact select { padding: 7px 10px; }
+.btn.small { padding: 7px 12px; font-size: 13px; }
+.speed .fine { margin: 6px 0 0; }
+.badge.auto { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }

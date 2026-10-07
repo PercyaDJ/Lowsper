@@ -396,13 +396,51 @@ reconnaissable) et permet de leur donner un nom ; le transcript est mis à jour.
    petit fichier de vérification dans le dossier choisi et vérifie que la page peut le relire ; sinon
    il affiche le bon chemin (« Dossier de cette page : ... »).
 
+### 15.10 Mémoire des voix (facultative)
+
+Pour les réunions récurrentes (hebdo), Lowsper peut reconnaître automatiquement les collègues déjà
+nommés. Décision prise avec l'utilisateur, consentement recueilli auprès des participants.
+
+- **Désactivée par défaut**, activation dans Options avec une confirmation qui rappelle qu'une
+  empreinte vocale est une donnée biométrique (RGPD, article 9).
+- Ce qui est conservé : l'empreinte moyenne de la voix (256 nombres) et le nom. **Aucun enregistrement
+  audio.** Stockage uniquement sur le poste (stockage du navigateur).
+- **Effacement automatique** 1, 3 ou 6 mois après la création de l'empreinte, et bouton « Effacer les
+  voix mémorisées » à tout moment.
+- Reconnaissance en fin de réunion seulement, sur les empreintes moyennes des voix (quelques dizaines
+  de calculs) : **aucun coût pendant la réunion**.
+- Seuil prudent (similarité 0,65) et association une à une : un mauvais nom est pire qu'aucun nom,
+  une voix inconnue reste « Intervenant n ». Les noms reconnus sont signalés « reconnu » sur l'écran
+  de fin, et restent modifiables.
+- L'empreinte d'une personne s'affine à chaque fois qu'on confirme son nom.
+
+### 15.11 Vitesse : le vrai goulot d'étranglement, et le test intégré
+
+Mesure sur la machine de test avec Whisper small : 11,9 s d'encodeur par bloc de 18 s, puis 148 ms
+par jeton généré. Pour une parole continue, cela donne une charge de 154 % avec un seul moteur :
+**sur un processeur modeste, small ne suit pas une parole continue**, ce qui explique le décalage
+ressenti en réunion. Ce n'était pas la cause des phrases manquantes (bugs corrigés en 15.2), mais
+cela retardait leur affichage.
+
+Leviers, dans l'ordre d'efficacité :
+1. **La carte graphique** (versions « carte graphique » de small et turbo) : le calcul matriciel de
+   Whisper est exactement ce que fait bien un GPU. Gain attendu important, non mesurable ici.
+2. **Plusieurs moteurs en parallèle** (jusqu'à 3) : la charge est divisée d'autant sur un PC à 8 cœurs
+   logiques ou plus.
+3. **Whisper base** sur un PC sans carte graphique et peu puissant : environ 3 fois plus rapide, et
+   avec le glossaire il retrouve autant de sigles que small (mais plus d'erreurs sur le reste).
+
+Comme la vitesse dépend entièrement du PC, Lowsper **mesure lui-même** : au premier démarrage d'un
+modèle (puis à la demande, dans Options), il chronomètre l'encodeur et la génération, et affiche
+« environ X s de calcul par minute de parole continue, charge estimée Y % », avec un conseil. Cette
+estimation a été vérifiée sur la machine de test : 154 % estimés, cohérent avec les blocs mesurés
+sur le corpus (environ 1,5 s de calcul par seconde de parole).
+
 ## 16. Limites connues et pistes d'évolution
 
 1. **Mesures sur machine réelle** : vitesses mesurées sur un conteneur lent sans carte graphique,
    qualité mesurée sur des voix de synthèse. À valider sur un vrai PC et une vraie réunion.
-2. **Mémoire des voix d'une réunion à l'autre** (reconnaître automatiquement les collègues d'un hebdo
-   récurrent) : techniquement simple, mais une empreinte vocale est une donnée biométrique (RGPD,
-   article 9). Non fait sans décision explicite, consentement des personnes et effacement facile.
+2. **Vitesse réelle sur carte graphique** : à mesurer sur le PC de l'utilisateur (test intégré).
 3. **Paroles simultanées** : une seule voix est transcrite pendant un chevauchement ; séparer deux
    voix mélangées demanderait des modèles beaucoup plus lourds.
 4. **Compte rendu local** par un petit modèle de langage dans le navigateur : écarté pour l'instant.
