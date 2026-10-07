@@ -29,7 +29,9 @@ const manifestSrc = await readFile(join(root, 'app', 'manifest.js'), 'utf8');
 const catalog = JSON.parse(manifestSrc.slice(manifestSrc.indexOf('{'), manifestSrc.lastIndexOf('}') + 1)).catalog;
 
 // Le son « participants » est injecté en remplaçant getDisplayMedia (impossible en headless)
-const othersWav = await readFile(join(here, 'fixtures', 'others-en.wav'));
+// Corpus « hebdo » : micro et participants sur deux canaux, sans répétition
+const othersWav = await readFile(join(here, 'corpus', 'hebdo-others.wav'));
+const corpusInfo = JSON.parse(await readFile(join(here, 'corpus', 'hebdo-fr.json'), 'utf8'));
 const othersPcm = othersWav.subarray(44).toString('base64'); // PCM 16 bits, 16 kHz, mono
 
 const browser = await chromium.launch({
@@ -39,7 +41,7 @@ const browser = await chromium.launch({
   args: [
     '--use-fake-ui-for-media-stream',
     '--use-fake-device-for-media-stream',
-    `--use-file-for-fake-audio-capture=${join(here, 'fixtures', 'mic-fr.wav')}`,
+    `--use-file-for-fake-audio-capture=${join(here, 'corpus', 'hebdo-me.wav')}`,
     '--autoplay-policy=no-user-gesture-required',
   ],
 });
@@ -108,6 +110,8 @@ await page.exposeFunction('__lowsperFs', async (op, rel, data) => {
   } else if (op === 'write') {
     await mkdir(dirname(p), { recursive: true });
     await writeFile(p, data);
+  } else if (op === 'rm') {
+    await rm(p, { force: true });
   } else if (op === 'append') {
     await writeFile(p, data, { flag: 'a' });
   }
@@ -119,6 +123,9 @@ await page.addInitScript((NOWRITE) => {
     async getDirectoryHandle(name, opts = {}) {
       await window.__lowsperFs('dir', rel + '/' + name, !!opts.create);
       return dir(rel + '/' + name);
+    },
+    async removeEntry(name) {
+      await window.__lowsperFs('rm', rel + '/' + name);
     },
     async getFileHandle(name, opts = {}) {
       const path = rel + '/' + name;
@@ -161,10 +168,10 @@ await page.addInitScript((pcmB64) => {
     for (let i = 0; i < pcm.length; i++) ch[i] = pcm[i] / 32768;
     const src = ctx.createBufferSource();
     src.buffer = buf;
-    src.loop = true;
+    src.loop = false;
     const dest = ctx.createMediaStreamDestination();
     src.connect(dest);
-    src.start(ctx.currentTime + 2);
+    src.start(ctx.currentTime);
     const canvas = document.createElement('canvas');
     const video = canvas.captureStream(1).getVideoTracks();
     return new MediaStream([...dest.stream.getAudioTracks(), ...video]);
@@ -195,8 +202,8 @@ await page.screenshot({ path: join(out, '2-accueil.png') });
 
 await page.fill('#title', 'Test automatique');
 await page.click('details.options summary');
-await page.selectOption('#language', 'auto');
-await page.fill('#glossary', 'RSSI, COMEX, KPI');
+await page.selectOption('#language', 'fr');
+await page.fill('#glossary', corpusInfo.glossary);
 await page.screenshot({ path: join(out, '2b-options.png') });
 await page.click('#start');
 await page.waitForSelector('#view-rec:not([hidden])');
@@ -209,6 +216,15 @@ for (let waited = 0; waited < meetingSeconds; waited += 2) {
 }
 console.log(`File d'attente maximale pendant la réunion : ${maxBacklog} passage(s)`);
 await page.screenshot({ path: join(out, '3-enregistrement.png') });
+// Fenêtre réduite : les boutons doivent rester visibles sans défiler
+await page.setViewportSize({ width: 360, height: 460 });
+await page.waitForTimeout(300);
+await page.screenshot({ path: join(out, '3b-fenetre-reduite.png') });
+const compactOk = await page.evaluate(() => {
+  const r = document.getElementById('stop').getBoundingClientRect();
+  return r.bottom <= window.innerHeight && r.right <= window.innerWidth && r.width > 0;
+});
+await page.setViewportSize({ width: 900, height: 1000 });
 
 const downloadPromise = page.waitForEvent('download', { timeout: 180000 });
 const tStop = Date.now();
@@ -230,13 +246,15 @@ await browser.close();
 const checks = [
   ['installation du modèle', served > 50e6],
   ['titre', md.startsWith('# Transcript de réunion : Test automatique')],
-  ['glossaire dans l\'en-tête', md.includes('RSSI, COMEX, KPI')],
+  ['glossaire dans l\'en-tête', md.includes('ServiceNow, P1')],
   ['horodatage', /\*\*\[00:00:\d\d\] /.test(md)],
   ['voix micro (Vous)', /\] Vous :\*\*/.test(md)],
-  ['voix participants', /\] Participants :\*\*/.test(md)],
-  ['contenu français', /aime/i.test(md)],
-  ['contenu anglais', /country/i.test(md)],
+  ['voix participants', /\] (Participants|Intervenant \d+) :\*\*/.test(md)],
+  ['contenu « participants »', /tickets/i.test(md) && /indicateurs/i.test(md)],
+  ['contenu « vous »', /VPN/.test(md)],
+  ['plusieurs intervenants distingués', /Intervenant 2/.test(md)],
   ['aucune requête réseau après installation', network.length === 0],
+  ['bouton Terminer visible en fenêtre réduite', compactOk],
   ['le moteur suit le rythme (file <= 3)', maxBacklog <= 3],
 ];
 let ok = true;

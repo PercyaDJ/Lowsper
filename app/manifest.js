@@ -1,9 +1,9 @@
 /* Fichier généré par tools/build.mjs : ne pas modifier à la main. */
 self.LOWSPER_MANIFEST={
-  "builtAt": "2026-10-03",
+  "builtAt": "2026-10-07",
   "runtime": {
     "src": "engine/runtime.js",
-    "bytes": 500182
+    "bytes": 500261
   },
   "wasm": [
     {
@@ -11,12 +11,57 @@ self.LOWSPER_MANIFEST={
       "bytes": 14264838
     }
   ],
+  "runtimes": {
+    "cpu": {
+      "src": "engine/runtime.js",
+      "bytes": 500261,
+      "wasm": [
+        {
+          "src": "engine/ort-wasm.part0.js",
+          "bytes": 14264838
+        }
+      ]
+    },
+    "webgpu": {
+      "src": "engine/runtime-webgpu.js",
+      "bytes": 545171,
+      "wasm": [
+        {
+          "src": "engine/ort-wasm-webgpu.part0.js",
+          "bytes": 25165824
+        },
+        {
+          "src": "engine/ort-wasm-webgpu.part1.js",
+          "bytes": 1695953
+        }
+      ]
+    }
+  },
+  "vad": [
+    {
+      "src": "engine/silero-vad.part0.js",
+      "bytes": 1289603
+    }
+  ],
+  "speaker": {
+    "id": "wespeaker",
+    "config": "engine/wespeaker-config.js",
+    "files": {
+      "onnx/model_quantized.onnx": [
+        {
+          "src": "engine/wespeaker.part0.js",
+          "bytes": 6685134
+        }
+      ]
+    }
+  },
   "catalog": [
     {
       "id": "whisper-small",
       "label": "Whisper small",
       "description": "Précis en français, retrouve bien les sigles grâce au glossaire. Pour un PC portable récent.",
       "recommended": true,
+      "device": "wasm",
       "repo": "onnx-community/whisper-small",
       "revision": "36050c46d777d46dc4b5f43f6d90574fc38f8732",
       "dtype": {
@@ -62,10 +107,61 @@ self.LOWSPER_MANIFEST={
       ]
     },
     {
+      "id": "whisper-turbo",
+      "label": "Whisper large-v3 turbo",
+      "description": "Le plus précis (noms propres, sigles, voix difficiles). Utilise la carte graphique : réservé aux PC compatibles.",
+      "recommended": false,
+      "device": "webgpu",
+      "repo": "onnx-community/whisper-large-v3-turbo",
+      "revision": "360ebcde2559d60bb474678be3c1de9ef347d01a",
+      "dtype": {
+        "encoder_model": "q4",
+        "decoder_model_merged": "q4"
+      },
+      "files": [
+        {
+          "path": "config.json",
+          "size": 1332,
+          "sha256": "35cd83669f75bc2867f3b3a4461850392d5e308cd6ea951c3700539883c28df1"
+        },
+        {
+          "path": "generation_config.json",
+          "size": 3897,
+          "sha256": "16f95291d2f47c944d3c2b19390bba7965666555c1ea2a0bdc850d1fab45612f"
+        },
+        {
+          "path": "preprocessor_config.json",
+          "size": 340,
+          "sha256": "7ccc62c6f2765af1f3b46c00c9b5894426835a05021c8b9c01eecb6dfb542711"
+        },
+        {
+          "path": "tokenizer.json",
+          "size": 2480617,
+          "sha256": "6d8cbd7cd0d8d5815e478dac67b85a26bbe77c1f5e0c6d76d1ce2abc0e5f21ca"
+        },
+        {
+          "path": "tokenizer_config.json",
+          "size": 282843,
+          "sha256": "844b642c73a91359722f47b35705f7174686df33d252695d8572cf9ac03a6389"
+        },
+        {
+          "path": "onnx/encoder_model_q4.onnx",
+          "size": 424942775,
+          "sha256": "7e64b20dd7b556cb7a2c1c65d9fbf31af985323c006f993d2a9dd10083547d78"
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx",
+          "size": 334147222,
+          "sha256": "8b933ac24074a24a1635084d06a4ed37e387ef22d980f184a5fc27418e9ceeb8"
+        }
+      ]
+    },
+    {
       "id": "whisper-base",
       "label": "Whisper base",
       "description": "Environ 3 fois plus rapide mais nettement moins précis. Pour un PC ancien ou très chargé.",
       "recommended": false,
+      "device": "wasm",
       "repo": "onnx-community/whisper-base",
       "revision": "1846881b6b3a3024392c1eea3ad983695bc23925",
       "dtype": {

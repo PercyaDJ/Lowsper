@@ -28,7 +28,7 @@ const CHUNK = 24 * 1024 * 1024;
 const args = process.argv.slice(2);
 const embedIds = args[0] === '--embed' ? args.slice(1) : [];
 // Modèles proposés au téléchargement dans l'application
-const CATALOG = ['whisper-small', 'whisper-base'];
+const CATALOG = ['whisper-small', 'whisper-turbo', 'whisper-base'];
 
 const header = '/* Fichier généré par tools/build.mjs : ne pas modifier à la main. */\n';
 const readMeta = async (id) =>
@@ -49,32 +49,67 @@ async function writeBinary(dir, relDir, baseName, buf, ext = 'js') {
   return parts;
 }
 
-// 1. Runtime JS (transformers.js + onnxruntime-web, CPU WebAssembly uniquement)
+// 1. Runtimes JS (transformers.js + onnxruntime-web)
+//    - « cpu »    : WebAssembly seul (14 Mo), le plus léger, fonctionne partout ;
+//    - « webgpu » : WebAssembly + accélération par la carte graphique (27 Mo).
 await rm(engineDir, { recursive: true, force: true });
 await mkdir(engineDir, { recursive: true });
 const ortDist = join(here, 'node_modules', 'onnxruntime-web', 'dist');
-const result = await build({
-  entryPoints: [join(here, 'runtime-entry.js')],
-  bundle: true,
-  format: 'iife',
-  globalName: 'LowsperRuntime',
-  platform: 'browser',
-  target: 'es2022',
-  minify: true,
-  write: false,
-  logLevel: 'error',
-  alias: { 'onnxruntime-web/webgpu': join(ortDist, 'ort.wasm.bundle.min.mjs') },
-  define: { 'import.meta.url': 'undefined' },
-});
-const runtimeCode = result.outputFiles[0].text;
-await writeFile(join(engineDir, 'runtime.js'), register('engine/runtime', JSON.stringify(runtimeCode)));
+const runtimes = {};
+for (const [name, bundle, wasmFile] of [
+  ['cpu', 'ort.wasm.bundle.min.mjs', 'ort-wasm-simd-threaded.wasm'],
+  ['webgpu', 'ort.webgpu.bundle.min.mjs', 'ort-wasm-simd-threaded.asyncify.wasm'],
+]) {
+  const result = await build({
+    entryPoints: [join(here, 'runtime-entry.js')],
+    bundle: true,
+    format: 'iife',
+    globalName: 'LowsperRuntime',
+    platform: 'browser',
+    target: 'es2022',
+    minify: true,
+    write: false,
+    logLevel: 'error',
+    alias: { 'onnxruntime-web/webgpu': join(ortDist, bundle) },
+    define: { 'import.meta.url': 'undefined' },
+  });
+  const code = result.outputFiles[0].text;
+  const file = name === 'cpu' ? 'runtime' : `runtime-${name}`;
+  await writeFile(join(engineDir, `${file}.js`), register(`engine/${file}`, JSON.stringify(code)));
+  const wasmBuf = await readFile(join(ortDist, wasmFile));
+  runtimes[name] = {
+    src: `engine/${file}.js`,
+    bytes: code.length,
+    wasm: await writeBinary(engineDir, 'engine', name === 'cpu' ? 'ort-wasm' : `ort-wasm-${name}`, wasmBuf),
+  };
+}
 
-const wasmBuf = await readFile(join(ortDist, 'ort-wasm-simd-threaded.wasm'));
-const wasmParts = await writeBinary(engineDir, 'engine', 'ort-wasm', wasmBuf);
+// Petits modèles d'analyse audio, livrés avec l'application (pas de téléchargement)
+//   - Silero VAD : détection de parole (MIT)
+//   - WeSpeaker ResNet34 : empreinte vocale pour distinguer les intervenants (CC BY 4.0)
+const cache = join(here, '.cache', 'models');
+const vadBuf = await readFile(join(cache, 'silero-vad', 'silero_vad_16k_op15.onnx')).catch(() => {
+  throw new Error("Silero VAD absent. Lancez : node fetch-model.mjs silero-vad");
+});
+const vad = await writeBinary(engineDir, 'engine', 'silero-vad', vadBuf);
+const spkTexts = {};
+for (const f of ['config.json', 'preprocessor_config.json']) spkTexts[f] = await readFile(join(cache, 'wespeaker', f), 'utf8');
+await writeFile(join(engineDir, 'wespeaker-config.js'), register('engine/wespeaker-config', JSON.stringify(spkTexts)));
+const speaker = {
+  id: 'wespeaker',
+  config: 'engine/wespeaker-config.js',
+  files: { 'onnx/model_quantized.onnx': await writeBinary(engineDir, 'engine', 'wespeaker', await readFile(join(cache, 'wespeaker', 'model_quantized.onnx'))) },
+};
+const runtimeCode = { length: runtimes.cpu.bytes };
+const wasmBuf = { length: runtimes.cpu.wasm.reduce((n, p) => n + p.bytes, 0) };
+const wasmParts = runtimes.cpu.wasm;
 
 // Licences des composants embarqués (obligation des licences Apache 2.0 et MIT)
 const MIT_ORT = `MIT License\n\nCopyright (c) Microsoft Corporation.\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the "Software"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n`;
-const licenseParts = [];
+const licenseParts = [
+  `==== Silero VAD (MIT) : https://github.com/snakers4/silero-vad ====\n\n${(await readFile(join(cache, 'silero-vad', 'LICENSE.txt'), 'utf8')).trim()}\n`,
+  `==== WeSpeaker ResNet34-LM, conversion onnx-community/wespeaker-voxceleb-resnet34-LM ====\n\nModèle publié sous licence Creative Commons Attribution 4.0 (CC BY 4.0), https://creativecommons.org/licenses/by/4.0/\nAuteurs : projet WeSpeaker (https://github.com/wenet-e2e/wespeaker), entraîné sur VoxCeleb.\n`,
+];
 for (const pkg of ['@huggingface/transformers', '@huggingface/tokenizers', '@huggingface/jinja', 'onnxruntime-web']) {
   const dir = join(here, 'node_modules', pkg);
   const info = JSON.parse(await readFile(join(dir, 'package.json'), 'utf8'));
@@ -93,6 +128,7 @@ for (const id of CATALOG) {
     label: model.label,
     description: model.description,
     recommended: model.recommended,
+    device: model.device,
     repo: model.repo,
     revision: meta.revision,
     dtype: model.dtype,
@@ -119,7 +155,7 @@ for (const id of embedIds) {
     else files[file] = await writeBinary(out, `models/${id}`, file.replace(/^onnx\//, '').replace(/\.onnx$/, ''), buf, 'txt');
   }
   await writeFile(join(out, 'config.txt'), register(`models/${id}/config`, JSON.stringify(texts)));
-  installed.push({ id, label: model.label, dtype: model.dtype, revision: meta.revision, config: `models/${id}/config.txt`, files });
+  installed.push({ id, label: model.label, dtype: model.dtype, device: model.device, revision: meta.revision, config: `models/${id}/config.txt`, files });
   console.log(`Modèle embarqué : ${id}`);
 }
 if (installed.length) {
@@ -134,8 +170,11 @@ await writeFile(
 // 4. Manifeste lu par l'application au démarrage
 const manifest = {
   builtAt: new Date().toISOString().slice(0, 10),
-  runtime: { src: 'engine/runtime.js', bytes: runtimeCode.length },
-  wasm: wasmParts,
+  runtime: { src: runtimes.cpu.src, bytes: runtimes.cpu.bytes },
+  wasm: runtimes.cpu.wasm,
+  runtimes,
+  vad,
+  speaker,
   catalog,
 };
 await writeFile(join(appDir, 'manifest.js'), `${header}self.LOWSPER_MANIFEST=${JSON.stringify(manifest, null, 2)};\n`);

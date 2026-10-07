@@ -115,6 +115,37 @@
     return out.join('');
   }
 
+  /**
+   * Réécrit les termes du glossaire reconnus avec une autre casse ou sans accent :
+   * « copil » -> « COPIL », « servicenow » -> « ServiceNow », « elodie » -> « Élodie ».
+   * Mot entier uniquement, termes de 3 lettres ou plus.
+   */
+  function fixCase(text, glossary) {
+    const terms = String(glossary || '')
+      .split(/[,;\n]+/)
+      .map((t) => t.trim())
+      .filter((t) => t.length >= 3);
+    if (!terms.length) return text;
+    const fold = (x) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    let out = text.normalize('NFC');
+    if (fold(out).length !== out.length) return text; // caractères exotiques : on ne touche à rien
+    for (const term of terms) {
+      const pattern = fold(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+      const re = new RegExp('(^|[^\\p{L}\\p{N}])(' + pattern + ')(?=$|[^\\p{L}\\p{N}])', 'giu');
+      const folded = fold(out);
+      // fold() conserve les longueurs (une lettre accentuée = une lettre), on remplace par positions
+      let result = '';
+      let last = 0;
+      for (const m of folded.matchAll(re)) {
+        const start = m.index + m[1].length;
+        result += out.slice(last, start) + term;
+        last = start + m[2].length;
+      }
+      out = result + out.slice(last);
+    }
+    return out;
+  }
+
   function isHallucination(text, segSpeech) {
     const n = normalizeText(text);
     if (!n) return true;
@@ -162,19 +193,27 @@
       for (const fn of this.listeners) fn(this);
     }
 
-    /** Ajoute le résultat du moteur pour un segment audio. */
-    addSegment(source, seg, result) {
+    /**
+     * Ajoute le résultat du moteur pour un bloc audio.
+     * voices : identifiant de voix par phrase (source « Participants »), voir speakers.js
+     */
+    addSegment(source, seg, result, voices) {
       const chunks = result.chunks && result.chunks.length
         ? result.chunks
         : [{ from: 0, to: null, text: result.text }];
-      for (const c of chunks) {
-        const text = fixAcronyms(collapseRepeats(String(c.text || '').trim()), this.meta.glossary);
-        if (!text || isHallucination(text, seg.speech)) continue;
+      chunks.forEach((c, i) => {
+        const text = fixCase(fixAcronyms(collapseRepeats(String(c.text || '').trim()), this.meta.glossary), this.meta.glossary);
+        if (!text || isHallucination(text, seg.speech)) return;
         const at = (t) => (Lowsper.blockTime ? Lowsper.blockTime(seg, t) : seg.start + t);
         const start = at(c.from || 0);
         const end = c.to != null ? at(c.to) : seg.end;
-        this.lines.push({ source, start, end: Math.max(end, start), text });
-      }
+        const line = { source, start, end: Math.max(end, start), text };
+        if (voices && voices[i] != null) {
+          line.voice = voices[i].voice;
+          line.vkey = voices[i].key;
+        }
+        this.lines.push(line);
+      });
       this.lines.sort((a, b) => a.start - b.start);
       this.removeEcho();
       this.emit();
@@ -197,6 +236,25 @@
       });
     }
 
+    hasVoices() {
+      return this.lines.some((l) => l.voice != null);
+    }
+
+    /** Nom affiché : « Vous », « Intervenant n » (ordre d'apparition) ou « Participant(s) ». */
+    speakerName(item) {
+      if (item.source !== 'others') return SPEAKERS[item.source] || item.source;
+      if (item.voice == null) return this.hasVoices() ? 'Participant' : SPEAKERS.others;
+      const order = [];
+      for (const l of this.lines) if (l.voice != null && !order.includes(l.voice)) order.push(l.voice);
+      return 'Intervenant ' + (order.indexOf(item.voice) + 1);
+    }
+
+    /** Applique le regroupement final des voix (clé de phrase -> voix finale). */
+    applyVoiceMap(map) {
+      for (const l of this.lines) if (l.vkey != null && map.has(l.vkey)) l.voice = map.get(l.vkey);
+      this.emit();
+    }
+
     addPause(from, to) {
       this.meta.pauses.push({ from, to });
       this.emit();
@@ -210,13 +268,14 @@
         if (
           last &&
           last.source === l.source &&
+          last.voice === l.voice &&
           l.start - last.end < 4 &&
           l.end - last.start < 90
         ) {
           last.text += ' ' + l.text;
           last.end = Math.max(last.end, l.end);
         } else {
-          items.push({ source: l.source, start: l.start, end: l.end, text: l.text });
+          items.push({ source: l.source, voice: l.voice, start: l.start, end: l.end, text: l.text });
         }
       }
       return items;
@@ -251,8 +310,13 @@
       out.push('');
       out.push(
         '> Transcription automatique : elle peut contenir des erreurs de reconnaissance. ' +
-          '« Vous » désigne la personne qui enregistre (micro). « Participants » regroupe ' +
-          "toutes les autres voix entendues via l'audio de la réunion, sans distinction de personne. " +
+          '« Vous » désigne la personne qui enregistre (micro). ' +
+          (this.hasVoices()
+            ? "« Intervenant 1, 2... » désignent les voix distinctes détectées automatiquement dans l'audio " +
+              'de la réunion : les noms réels ne sont pas connus (ils peuvent souvent se déduire des échanges), ' +
+              'et deux personnes à la voix proche peuvent partager un numéro. ' +
+              "Les phrases trop courtes pour identifier la voix sont notées « Participant ». "
+            : "« Participants » regroupe toutes les autres voix entendues via l'audio de la réunion, sans distinction de personne. ") +
           'Les horodatages [hh:mm:ss] sont relatifs au début de l’enregistrement.'
       );
       out.push('');
@@ -268,7 +332,7 @@
         if (e.pause) {
           out.push(`_[${fmt(e.pause.from)} à ${fmt(e.pause.to)}] Enregistrement en pause._`);
         } else {
-          out.push(`**[${fmt(e.p.start)}] ${SPEAKERS[e.p.source] || e.p.source} :** ${e.p.text}`);
+          out.push(`**[${fmt(e.p.start)}] ${this.speakerName(e.p)} :** ${e.p.text}`);
         }
         out.push('');
       }
@@ -324,6 +388,7 @@
 
   Lowsper.Transcript = Transcript;
   Lowsper.fixAcronyms = fixAcronyms;
+  Lowsper.fixCase = fixCase;
   Lowsper.formatTime = fmt;
   Lowsper.SPEAKERS = SPEAKERS;
 })();

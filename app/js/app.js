@@ -9,7 +9,16 @@
   'use strict';
 
   const L = window.Lowsper;
-  const $ = (id) => document.getElementById(id);
+  // Les éléments de la mini-fenêtre changent de document : on garde des références directes.
+  const cache = new Map();
+  const $ = (id) => {
+    let el = cache.get(id);
+    if (!el || (!el.isConnected && document.getElementById(id))) {
+      el = document.getElementById(id);
+      if (el) cache.set(id, el);
+    }
+    return el;
+  };
 
   const AI_PROMPT =
     "Voici le transcript automatique d'une réunion (il peut contenir des erreurs de reconnaissance). " +
@@ -67,15 +76,19 @@
       const assets = await L.loadAssets((r) => setEngine('loading', `Préparation du moteur ${Math.round(r * 100)} %`), model.id);
       setEngine('loading', 'Démarrage du moteur');
 
-      // Deux moteurs en parallèle (un par voix qui parle) si la machine le permet.
-      const cores = navigator.hardwareConcurrency || 2;
-      const memory = navigator.deviceMemory || 8;
-      const count = cores >= 4 && memory >= 4 ? 2 : 1;
-      for (let i = 0; i < count; i++) {
-        const w = new L.Transcriber(assets);
-        w.idle = true;
-        app.workers.push(w);
+      // Analyse audio : détection de parole (Silero) et empreintes vocales (WeSpeaker)
+      if (assets.analysis) {
+        try {
+          app.analyzer = new L.Analyzer(assets.analysis);
+          await app.analyzer.ready;
+        } catch (e) {
+          console.warn("Analyse audio indisponible, repli sur la détection par volume", e);
+          app.analyzer = null;
+        }
       }
+      // Plusieurs moteurs en parallèle si la machine le permet : chaque moteur utilise un cœur
+      // du processeur ; avec la carte graphique (WebGPU), un seul moteur suffit.
+      app.workers.push(...createWorkers(assets));
       await Promise.all(app.workers.map((w) => w.ready));
       app.engineReady = true;
       setEngine('ready', 'Moteur prêt');
@@ -86,6 +99,31 @@
       setEngine('error', 'Moteur indisponible');
       toast('Le moteur de transcription n\'a pas pu démarrer : ' + app.engineError, 12000);
     }
+  }
+
+  function workerCount(device) {
+    if (device === 'webgpu') return 1;
+    const cores = navigator.hardwareConcurrency || 2;
+    const memory = navigator.deviceMemory || 8; // plafonné à 8 par Chrome
+    let n = Math.max(1, Math.min(3, Math.floor(cores / 2)));
+    if (memory < 8) n = Math.min(n, 2);
+    if (memory < 4) n = 1;
+    return n;
+  }
+
+  function createWorkers(assets) {
+    const list = [];
+    for (let i = 0; i < workerCount(assets.device); i++) {
+      const w = new L.Transcriber(assets);
+      w.idle = true;
+      list.push(w);
+    }
+    return list;
+  }
+
+  // Un moteur est libre et rien n'attend : les blocs partent dès la fin d'une phrase
+  function engineIdle() {
+    return app.engineReady && app.queue.length === 0 && app.workers.some((w) => w.idle);
   }
 
   function checkBrowser() {
@@ -108,8 +146,23 @@
       w.idle = false;
       app.inFlight++;
       const lang = job.transcript.meta.language === 'auto' ? ['fr', 'en'] : job.transcript.meta.language;
-      w.transcribe(job.seg.audio, lang, job.transcript.meta.glossary)
-        .then((res) => job.transcript.addSegment(job.source, job.seg, res))
+      // Copie de l'audio pour l'analyse des voix (l'original est transféré au moteur)
+      const tracker = job.source === 'others' ? job.transcript.tracker : null;
+      job.dur = job.seg.audio.length / 16000;
+      const keep = tracker ? job.seg.audio.slice() : null;
+      w.transcribe(job.seg.audio, lang, job.transcript.meta.glossary, (job.seg.map || []).map((m) => m.at))
+        .then(async (res) => {
+          recordLoad(res.ms || 0, job.dur);
+          let voices = null;
+          if (tracker) {
+            try {
+              voices = await tracker.label(keep, res.chunks, job.seg);
+            } catch (e) {
+              console.warn('Distinction des voix impossible pour ce passage', e);
+            }
+          }
+          job.transcript.addSegment(job.source, job.seg, res, voices);
+        })
         .catch((err) => console.error('Segment non transcrit', err))
         .finally(() => {
           w.idle = true;
@@ -118,6 +171,21 @@
         });
     }
     updateQueue();
+  }
+
+  // Charge du moteur : temps de calcul / durée d'audio, sur les derniers passages
+  app.loadSamples = [];
+  app.behindSince = null;
+  function recordLoad(ms, dur) {
+    app.loadSamples.push({ ms, dur: dur || 1, at: Date.now() });
+    if (app.loadSamples.length > 12) app.loadSamples.shift();
+  }
+  function engineLoad() {
+    const s = app.loadSamples;
+    if (!s.length) return null;
+    const ms = s.reduce((n, x) => n + x.ms, 0);
+    const dur = s.reduce((n, x) => n + x.dur, 0);
+    return ms / 1000 / dur / Math.max(1, app.workers.length);
   }
 
   function pendingCount() {
@@ -132,6 +200,21 @@
       else if (n === 0) text = 'Transcription à jour.';
       else if (n === 1) text = 'Transcription en cours…';
       else text = `${n} passages en attente de transcription.`;
+      const load = engineLoad();
+      if (load != null) text += ` Charge du moteur : ${Math.round(load * 100)} %.`;
+      // Retard durable : le PC ne suit pas le rythme de la réunion
+      if (n >= 4) {
+        app.behindSince = app.behindSince || Date.now();
+        if (Date.now() - app.behindSince > 120000 && !app.warnedSlow) {
+          app.warnedSlow = true;
+          notice(
+            "Ce PC ne suit pas le rythme de la réunion : rien n'est perdu, mais la fin du transcript arrivera après la réunion. " +
+              'Pour les prochaines fois, installez un modèle plus rapide (Options, « Installer un autre modèle »).'
+          );
+        }
+      } else {
+        app.behindSince = null;
+      }
     }
     $('queue').textContent = text;
     if (app.state === 'finishing') {
@@ -186,6 +269,9 @@
 
     L.Transcript.clearSaved();
     $('recover').hidden = true;
+    app.warnedSlow = false;
+    app.behindSince = null;
+    app.loadSamples = [];
     app.transcript = new L.Transcript({
       title: $('title').value.trim(),
       startedAt: Date.now(),
@@ -195,11 +281,17 @@
       sources: [],
     });
     app.transcript.onChange(renderLive);
+    if (app.analyzer && app.analyzer.hasSpeaker && $('distinguish').checked) {
+      app.transcript.tracker = new L.SpeakerTracker(app.analyzer);
+    }
 
-    app.capture = new L.Capture((source, seg) => {
-      app.queue.push({ source, seg, transcript: app.transcript });
-      pump();
-    });
+    app.capture = new L.Capture(
+      (source, seg) => {
+        app.queue.push({ source, seg, transcript: app.transcript });
+        pump();
+      },
+      { analyzer: app.analyzer, emitEarly: engineIdle }
+    );
     await app.capture.init();
     if (mic) attachSource('me', mic);
     if (others) attachSource('others', others);
@@ -339,12 +431,14 @@
       t.textContent = L.formatTime(para.start);
       const s = document.createElement('span');
       s.className = 's ' + para.source;
-      s.textContent = L.SPEAKERS[para.source] + ' :';
+      s.textContent = app.transcript.speakerName(para) + ' :';
       p.append(t, s, document.createTextNode(para.text));
       frag.appendChild(p);
     }
     box.replaceChildren(frag);
     if (nearBottom) box.scrollTop = box.scrollHeight;
+    const lastPara = paras[paras.length - 1];
+    $('last-line').textContent = lastPara ? `${app.transcript.speakerName(lastPara)} : ${lastPara.text}` : '';
   }
 
   // ---------------------------------------------------------------------------
@@ -359,6 +453,7 @@
     }
     app.transcript.meta.endedAt = Date.now();
     clearInterval(app.timer);
+    if (app.pip) closePip();
     setState('finishing');
     await app.capture.stop(); // termine les segments en cours -> file d'attente
     app.capture = null;
@@ -370,6 +465,15 @@
       check();
     });
 
+    if (app.transcript.tracker) {
+      $('finish-text').textContent = 'Identification des intervenants…';
+      await new Promise((r) => setTimeout(r, 30)); // laisse l'affichage se mettre à jour
+      try {
+        app.transcript.applyVoiceMap(app.transcript.tracker.finalize());
+      } catch (e) {
+        console.warn('Regroupement final des voix impossible', e);
+      }
+    }
     app.transcript.emit(); // dernière sauvegarde, marquée comme terminée
     app.finalMarkdown = app.transcript.toMarkdown();
     const paras = app.transcript.paragraphs().length;
@@ -485,6 +589,60 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Mini-fenêtre (Document Picture-in-Picture : Edge et Chrome récents)
+  // ---------------------------------------------------------------------------
+
+  app.pip = null;
+
+  async function openPip() {
+    if (app.pip || app.state !== 'recording') return;
+    if (!('documentPictureInPicture' in window)) {
+      toast("Ce navigateur ne propose pas de mini-fenêtre. Astuce : réduisez la fenêtre de Lowsper, l'affichage devient compact.", 7000);
+      return;
+    }
+    let win;
+    try {
+      win = await window.documentPictureInPicture.requestWindow({ width: 360, height: 250 });
+    } catch (e) {
+      toast("La mini-fenêtre n'a pas pu s'ouvrir : " + e.message, 6000);
+      return;
+    }
+    // Même feuille de style (fichier local : autorisé par la politique de sécurité)
+    const link = win.document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = new URL('app/css/lowsper.css', location.href).href;
+    win.document.head.appendChild(link);
+    win.document.title = 'Lowsper';
+    win.document.body.className = 'pip';
+    win.document.body.appendChild($('rec-core'));
+    $('pip-placeholder').hidden = false;
+    app.pip = win;
+    win.addEventListener('pagehide', closePip, { once: true });
+  }
+
+  function closePip() {
+    const core = app.pip && app.pip.document.getElementById('rec-core');
+    const view = $('view-rec');
+    view.insertBefore(core || $('rec-core'), view.firstChild);
+    $('pip-placeholder').hidden = true;
+    const w = app.pip;
+    app.pip = null;
+    try {
+      if (w && !w.closed) w.close();
+    } catch {}
+  }
+
+  // Ouverture automatique quand on change d'onglet, si le navigateur le permet
+  // (Chrome récent, pour les pages qui utilisent le micro).
+  try {
+    if (navigator.mediaSession && navigator.mediaSession.setActionHandler) {
+      navigator.mediaSession.setActionHandler('enterpictureinpicture', () => {
+        if (app.state === 'recording') openPip();
+      });
+    }
+  } catch {}
+
+  // ---------------------------------------------------------------------------
   // Installation du modèle (premier lancement)
   // ---------------------------------------------------------------------------
 
@@ -508,15 +666,21 @@
     const installed = self.LOWSPER_INSTALLED || [];
     const box = $('model-choices');
     box.replaceChildren();
-    catalog.forEach((m, i) => {
+    let firstChecked = false;
+    catalog.forEach((m) => {
       const mb = Math.round(m.files.reduce((n, f) => n + f.size, 0) / 1e6);
+      const needsGpu = m.device === 'webgpu';
+      const gpuMissing = needsGpu && !app.gpu;
       const label = document.createElement('label');
       label.className = 'model-opt';
       const input = document.createElement('input');
       input.type = 'radio';
       input.name = 'model-choice';
       input.value = m.id;
-      input.checked = i === 0;
+      input.disabled = gpuMissing;
+      input.checked = !firstChecked && !gpuMissing && (m.recommended || !catalog.some((x) => x.recommended));
+      if (input.checked) firstChecked = true;
+      if (gpuMissing) label.classList.add('disabled');
       const title = document.createElement('strong');
       title.textContent = m.label;
       if (m.recommended) {
@@ -536,11 +700,15 @@
       size.textContent = `${mb} Mo`;
       const desc = document.createElement('span');
       desc.className = 'desc';
-      desc.textContent = m.description || '';
+      desc.textContent =
+        (m.description || '') +
+        (gpuMissing ? ' Aucune carte graphique compatible (WebGPU) détectée sur ce PC.' : needsGpu && app.gpu ? ` Carte détectée : ${app.gpu.description || app.gpu.vendor || 'compatible'}.` : '');
       label.append(input, title, size, desc);
       box.appendChild(label);
     });
     $('install-back').hidden = !installed.length;
+    $('page-folder').textContent = L.pageFolder();
+    $('temp-warning').hidden = !L.openedFromTemp();
     $('install-error').hidden = true;
     setState('install');
   }
@@ -645,10 +813,20 @@
   $('copy').addEventListener('click', () => copy(app.finalMarkdown));
   $('copy-ai').addEventListener('click', () => copy(AI_PROMPT + app.finalMarkdown));
   $('again').addEventListener('click', reset);
+  $('next-meeting').addEventListener('click', () => {
+    reset();
+    start(); // le clic sert de geste utilisateur pour le partage d'écran
+  });
+  $('pip').addEventListener('click', openPip);
+  $('pip-back').addEventListener('click', closePip);
   $('title').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') start();
   });
 
   checkRecovery();
+  L.detectWebGPU().then((gpu) => {
+    app.gpu = gpu;
+    if (app.state === 'install') showInstall();
+  });
   bootEngine();
 })();
