@@ -67,15 +67,19 @@
       const assets = await L.loadAssets((r) => setEngine('loading', `Préparation du moteur ${Math.round(r * 100)} %`), model.id);
       setEngine('loading', 'Démarrage du moteur');
 
-      // Deux moteurs en parallèle (un par voix qui parle) si la machine le permet.
-      const cores = navigator.hardwareConcurrency || 2;
-      const memory = navigator.deviceMemory || 8;
-      const count = cores >= 4 && memory >= 4 ? 2 : 1;
-      for (let i = 0; i < count; i++) {
-        const w = new L.Transcriber(assets);
-        w.idle = true;
-        app.workers.push(w);
+      // Analyse audio : détection de parole (Silero) et empreintes vocales (WeSpeaker)
+      if (assets.analysis) {
+        try {
+          app.analyzer = new L.Analyzer(assets.analysis);
+          await app.analyzer.ready;
+        } catch (e) {
+          console.warn("Analyse audio indisponible, repli sur la détection par volume", e);
+          app.analyzer = null;
+        }
       }
+      // Plusieurs moteurs en parallèle si la machine le permet : chaque moteur utilise un cœur
+      // du processeur ; avec la carte graphique (WebGPU), un seul moteur suffit.
+      app.workers.push(...createWorkers(assets));
       await Promise.all(app.workers.map((w) => w.ready));
       app.engineReady = true;
       setEngine('ready', 'Moteur prêt');
@@ -86,6 +90,31 @@
       setEngine('error', 'Moteur indisponible');
       toast('Le moteur de transcription n\'a pas pu démarrer : ' + app.engineError, 12000);
     }
+  }
+
+  function workerCount(device) {
+    if (device === 'webgpu') return 1;
+    const cores = navigator.hardwareConcurrency || 2;
+    const memory = navigator.deviceMemory || 8; // plafonné à 8 par Chrome
+    let n = Math.max(1, Math.min(3, Math.floor(cores / 2)));
+    if (memory < 8) n = Math.min(n, 2);
+    if (memory < 4) n = 1;
+    return n;
+  }
+
+  function createWorkers(assets) {
+    const list = [];
+    for (let i = 0; i < workerCount(assets.device); i++) {
+      const w = new L.Transcriber(assets);
+      w.idle = true;
+      list.push(w);
+    }
+    return list;
+  }
+
+  // Un moteur est libre et rien n'attend : les blocs partent dès la fin d'une phrase
+  function engineIdle() {
+    return app.engineReady && app.queue.length === 0 && app.workers.some((w) => w.idle);
   }
 
   function checkBrowser() {
@@ -108,8 +137,21 @@
       w.idle = false;
       app.inFlight++;
       const lang = job.transcript.meta.language === 'auto' ? ['fr', 'en'] : job.transcript.meta.language;
-      w.transcribe(job.seg.audio, lang, job.transcript.meta.glossary)
-        .then((res) => job.transcript.addSegment(job.source, job.seg, res))
+      // Copie de l'audio pour l'analyse des voix (l'original est transféré au moteur)
+      const tracker = job.source === 'others' ? job.transcript.tracker : null;
+      const keep = tracker ? job.seg.audio.slice() : null;
+      w.transcribe(job.seg.audio, lang, job.transcript.meta.glossary, (job.seg.map || []).map((m) => m.at))
+        .then(async (res) => {
+          let voices = null;
+          if (tracker) {
+            try {
+              voices = await tracker.label(keep, res.chunks, job.seg);
+            } catch (e) {
+              console.warn('Distinction des voix impossible pour ce passage', e);
+            }
+          }
+          job.transcript.addSegment(job.source, job.seg, res, voices);
+        })
         .catch((err) => console.error('Segment non transcrit', err))
         .finally(() => {
           w.idle = true;
@@ -195,11 +237,17 @@
       sources: [],
     });
     app.transcript.onChange(renderLive);
+    if (app.analyzer && app.analyzer.hasSpeaker && $('distinguish').checked) {
+      app.transcript.tracker = new L.SpeakerTracker(app.analyzer);
+    }
 
-    app.capture = new L.Capture((source, seg) => {
-      app.queue.push({ source, seg, transcript: app.transcript });
-      pump();
-    });
+    app.capture = new L.Capture(
+      (source, seg) => {
+        app.queue.push({ source, seg, transcript: app.transcript });
+        pump();
+      },
+      { analyzer: app.analyzer, emitEarly: engineIdle }
+    );
     await app.capture.init();
     if (mic) attachSource('me', mic);
     if (others) attachSource('others', others);
@@ -339,7 +387,7 @@
       t.textContent = L.formatTime(para.start);
       const s = document.createElement('span');
       s.className = 's ' + para.source;
-      s.textContent = L.SPEAKERS[para.source] + ' :';
+      s.textContent = app.transcript.speakerName(para) + ' :';
       p.append(t, s, document.createTextNode(para.text));
       frag.appendChild(p);
     }
@@ -370,6 +418,15 @@
       check();
     });
 
+    if (app.transcript.tracker) {
+      $('finish-text').textContent = 'Identification des intervenants…';
+      await new Promise((r) => setTimeout(r, 30)); // laisse l'affichage se mettre à jour
+      try {
+        app.transcript.applyVoiceMap(app.transcript.tracker.finalize());
+      } catch (e) {
+        console.warn('Regroupement final des voix impossible', e);
+      }
+    }
     app.transcript.emit(); // dernière sauvegarde, marquée comme terminée
     app.finalMarkdown = app.transcript.toMarkdown();
     const paras = app.transcript.paragraphs().length;
