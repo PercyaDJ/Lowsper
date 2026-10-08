@@ -471,6 +471,19 @@ Remarque : les Ryzen 5 de 5e génération ont une puce graphique intégrée (Rad
 peuvent l'utiliser via WebGPU ; si Lowsper la détecte, les versions « carte graphique » apparaissent
 dans le catalogue. Leur vitesse sur une puce intégrée n'est pas connue : le test de vitesse le dira.
 
+### 15.13 Paramètres et installation de plusieurs modèles
+
+- Toutes les options sont regroupées dans un panneau **Paramètres**, ouvert par une roue crantée en
+  haut à droite, accessible à tout moment (y compris pendant une réunion pour la puissance de calcul).
+  Sections : Transcription, Modèle, Performance, Voix des intervenants.
+- L'écran d'installation utilise des **cases à cocher** : plusieurs modèles peuvent être installés en
+  une fois (téléchargement enchaîné, une seule sélection de dossier). Whisper base est coché d'office
+  quand un modèle processeur est choisi (voie rapide de secours). Les modèles « carte graphique »
+  restent installables sans carte compatible, avec un avertissement : utile pour préparer un dossier
+  à copier vers un PC équipé.
+- Le bandeau d'avertissement peut être fermé (croix) ; il revient à chaque ouverture de Lowsper, car
+  c'est le rappel de prévenir les participants.
+
 ## 16. Limites connues et pistes d'évolution
 
 1. **Mesures sur machine réelle** : vitesses mesurées sur un conteneur lent sans carte graphique,

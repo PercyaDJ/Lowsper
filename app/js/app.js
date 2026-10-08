@@ -63,6 +63,7 @@
     const installed = self.LOWSPER_INSTALLED || [];
     if (!installed.length) {
       setEngine('idle', 'Modèle à installer');
+      $('model-current').textContent = 'Aucun modèle installé pour l’instant.';
       showInstall();
       return;
     }
@@ -911,40 +912,41 @@
     },
   };
 
+  const modelSize = (m) => m.files.reduce((n, f) => n + f.size, 0);
+
   function showInstall() {
     const catalog = (self.LOWSPER_MANIFEST && self.LOWSPER_MANIFEST.catalog) || [];
     const installed = self.LOWSPER_INSTALLED || [];
     const box = $('model-choices');
     box.replaceChildren();
-    let firstChecked = false;
     catalog.forEach((m) => {
-      const mb = Math.round(m.files.reduce((n, f) => n + f.size, 0) / 1e6);
+      const mb = Math.round(modelSize(m) / 1e6);
       const needsGpu = m.device === 'webgpu';
       const gpuMissing = needsGpu && !app.gpu;
+      const isInstalled = installed.some((x) => x.id === m.id);
       const label = document.createElement('label');
       label.className = 'model-opt';
       const input = document.createElement('input');
-      input.type = 'radio';
+      input.type = 'checkbox';
       input.name = 'model-choice';
       input.value = m.id;
-      input.disabled = gpuMissing;
-      input.checked = !firstChecked && !gpuMissing && (m.recommended || !catalog.some((x) => x.recommended));
-      if (input.checked) firstChecked = true;
-      if (gpuMissing) label.classList.add('disabled');
+      // Déjà installé : coché et grisé. Sinon, seul le modèle recommandé est pré-coché.
+      input.checked = isInstalled || (!installed.length && !!m.recommended);
+      input.disabled = isInstalled;
+      if (isInstalled) label.classList.add('done');
+      if (gpuMissing) label.classList.add('nogpu');
+      input.addEventListener('change', updateInstallButton);
       const title = document.createElement('strong');
       title.textContent = m.label;
-      if (m.recommended) {
+      const badge = (text, cls) => {
         const b = document.createElement('span');
-        b.className = 'badge';
-        b.textContent = 'recommandé';
+        b.className = 'badge' + (cls ? ' ' + cls : '');
+        b.textContent = text;
         title.appendChild(b);
-      }
-      if (installed.some((x) => x.id === m.id)) {
-        const b = document.createElement('span');
-        b.className = 'badge';
-        b.textContent = 'installé';
-        title.appendChild(b);
-      }
+      };
+      if (m.recommended) badge('recommandé');
+      if (isInstalled) badge('installé', 'auto');
+      if (needsGpu) badge('carte graphique');
       const size = document.createElement('span');
       size.className = 'size';
       size.textContent = `${mb} Mo`;
@@ -952,7 +954,11 @@
       desc.className = 'desc';
       desc.textContent =
         (m.description || '') +
-        (gpuMissing ? ' Aucune carte graphique compatible (WebGPU) détectée sur ce PC.' : needsGpu && app.gpu ? ` Carte détectée : ${app.gpu.description || app.gpu.vendor || 'compatible'}.` : '');
+        (gpuMissing
+          ? ' Aucune carte graphique compatible détectée sur ce PC : inutilisable ici, utile seulement pour copier le dossier Lowsper vers un PC équipé.'
+          : needsGpu
+            ? ` Carte détectée : ${app.gpu.description || app.gpu.vendor || 'compatible'}.`
+            : '');
       label.append(input, title, size, desc);
       box.appendChild(label);
     });
@@ -960,14 +966,53 @@
     $('page-folder').textContent = L.pageFolder();
     $('temp-warning').hidden = !L.openedFromTemp();
     $('install-error').hidden = true;
+    updateInstallButton();
     setState('install');
+  }
+
+  // Modèles à télécharger : la sélection (hors déjà installés), plus Whisper base quand un
+  // modèle processeur est choisi (voie rapide de secours).
+  function installList() {
+    const catalog = self.LOWSPER_MANIFEST.catalog;
+    const installedIds = (self.LOWSPER_INSTALLED || []).map((m) => m.id);
+    const picked = [...document.querySelectorAll('input[name="model-choice"]:checked')]
+      .map((i) => catalog.find((m) => m.id === i.value))
+      .filter((m) => m && !installedIds.includes(m.id));
+    const fast = catalog.find((m) => m.id === 'whisper-base');
+    const needsFast = picked.some((m) => m.device !== 'webgpu' && m.id !== 'whisper-base');
+    if (needsFast && fast && !installedIds.includes(fast.id) && !picked.includes(fast)) picked.push(fast);
+    return picked;
+  }
+
+  function updateInstallButton() {
+    // Whisper base est ajouté d'office avec un modèle processeur : la case le montre
+    const baseBox = document.querySelector('input[name="model-choice"][value="whisper-base"]');
+    const installedIds = (self.LOWSPER_INSTALLED || []).map((m) => m.id);
+    if (baseBox && !installedIds.includes('whisper-base')) {
+      const catalog = self.LOWSPER_MANIFEST.catalog;
+      const cpuPicked = [...document.querySelectorAll('input[name="model-choice"]:checked')]
+        .map((i) => catalog.find((m) => m.id === i.value))
+        .some((m) => m && m.device !== 'webgpu' && m.id !== 'whisper-base' && !installedIds.includes(m.id));
+      if (cpuPicked) baseBox.checked = true;
+      baseBox.disabled = cpuPicked;
+      baseBox.closest('.model-opt').classList.toggle('auto', cpuPicked);
+    }
+    const list = installList();
+    const mb = Math.round(list.reduce((n, m) => n + modelSize(m), 0) / 1e6);
+    const btn = $('install');
+    btn.disabled = !list.length || app.installing;
+    btn.textContent = !list.length
+      ? 'Cochez au moins un modèle'
+      : list.length === 1
+        ? `Installer ${list[0].label} (${mb} Mo)`
+        : `Installer ${list.length} modèles (${mb} Mo)`;
   }
 
   async function install() {
     if (app.installing) return;
     const catalog = self.LOWSPER_MANIFEST.catalog;
-    const choice = document.querySelector('input[name="model-choice"]:checked');
-    const entry = catalog.find((m) => m.id === (choice && choice.value)) || catalog[0];
+    const list = installList();
+    if (!list.length) return;
     const err = $('install-error');
     err.hidden = true;
     if (!L.canInstall()) {
@@ -989,16 +1034,11 @@
     app.installing = true;
     $('install').disabled = true;
     document.querySelectorAll('input[name="model-choice"]').forEach((i) => (i.disabled = true));
+    $('install').textContent = 'Installation en cours…';
     $('install-progress').hidden = false;
     setEngine('loading', 'Téléchargement du modèle');
     const t0 = performance.now();
     try {
-      // Modèle processeur : on installe aussi Whisper base (80 Mo), qui sert de voie rapide de
-      // secours quand le PC prend du retard pendant une réunion chargée.
-      const installedIds = (self.LOWSPER_INSTALLED || []).map((m) => m.id);
-      const fast = catalog.find((m) => m.id === 'whisper-base');
-      const list = [entry];
-      if (entry.device !== 'webgpu' && entry.id !== 'whisper-base' && fast && !installedIds.includes(fast.id)) list.push(fast);
       const grand = list.reduce((n, m) => n + m.files.reduce((k, f) => k + f.size, 0), 0);
       let before = 0;
       for (const m of list) {
@@ -1015,15 +1055,24 @@
         });
         before += m.files.reduce((k, f) => k + f.size, 0);
       }
-      store.set('lowsper.model', entry.id);
-      $('install-text').textContent = 'Modèle installé. Démarrage…';
+      // Modèle utilisé ensuite : celui déjà choisi s'il existe, sinon le premier utilisable sur ce PC
+      // (dans l'ordre du catalogue : recommandé d'abord).
+      const usable = (m) => m.device !== 'webgpu' || app.gpu;
+      const nowInstalled = (self.LOWSPER_INSTALLED || []).map((m) => m.id);
+      const current = store.get('lowsper.model');
+      if (!current || !nowInstalled.includes(current)) {
+        const first = catalog.find((m) => nowInstalled.includes(m.id) && usable(m) && m.id !== 'whisper-base') ||
+          catalog.find((m) => nowInstalled.includes(m.id) && usable(m));
+        if (first) store.set('lowsper.model', first.id);
+      }
+      $('install-text').textContent = list.length > 1 ? 'Modèles installés. Démarrage…' : 'Modèle installé. Démarrage…';
       app.installing = false;
       setTimeout(() => location.reload(), 400);
     } catch (e) {
       console.error(e);
       app.installing = false;
       $('install').disabled = false;
-      document.querySelectorAll('input[name="model-choice"]').forEach((i) => (i.disabled = false));
+      showInstall(); // réaffiche les cases (et ce qui a déjà été installé)
       $('install-progress').hidden = true;
       setEngine('error', 'Installation interrompue');
       let msg = e.message || String(e);
@@ -1048,6 +1097,9 @@
       sel.appendChild(o);
     }
     $('model-field').hidden = installed.length < 2;
+    $('model-current').textContent =
+      `Modèle utilisé : ${(installed.find((m) => m.id === current) || installed[0]).label}. ` +
+      `Installés sur ce poste : ${installed.map((m) => m.label).join(', ')}.`;
   }
 
   // ---------------------------------------------------------------------------
@@ -1092,7 +1144,40 @@
   });
   renderMemory();
   $('install-back').addEventListener('click', () => setState('idle'));
-  $('add-model').addEventListener('click', showInstall);
+  $('add-model').addEventListener('click', () => {
+    closeSettings();
+    if (app.state === 'recording' || app.state === 'finishing') {
+      toast('Terminez la réunion en cours avant d’installer un modèle.');
+      return;
+    }
+    showInstall();
+  });
+  // Roue crantée : panneau Paramètres, accessible à tout moment
+  const openSettings = () => {
+    renderMemory();
+    const d = $('settings');
+    if (!d.open) d.showModal();
+  };
+  function closeSettings() {
+    const d = $('settings');
+    if (d.open) d.close();
+  }
+  $('settings-open').addEventListener('click', openSettings);
+  // Bandeau d'avertissement : fermé pour cette session, il revient à chaque ouverture de Lowsper
+  try {
+    if (sessionStorage.getItem('lowsper.consent.closed')) $('consent').hidden = true;
+  } catch {}
+  $('consent-close').addEventListener('click', () => {
+    $('consent').hidden = true;
+    try {
+      sessionStorage.setItem('lowsper.consent.closed', '1');
+    } catch {}
+  });
+  $('settings-open-2').addEventListener('click', openSettings);
+  $('settings-close').addEventListener('click', closeSettings);
+  $('settings').addEventListener('click', (e) => {
+    if (e.target === $('settings')) closeSettings(); // clic à côté du panneau
+  });
   $('model').addEventListener('change', (e) => {
     store.set('lowsper.model', e.target.value);
     location.reload();
