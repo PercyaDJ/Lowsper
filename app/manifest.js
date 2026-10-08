@@ -1,6 +1,6 @@
 /* Fichier généré par tools/build.mjs : ne pas modifier à la main. */
 self.LOWSPER_MANIFEST={
-  "builtAt": "2026-10-07",
+  "builtAt": "2026-10-08",
   "runtime": {
     "src": "engine/runtime.js",
     "bytes": 500261
@@ -103,6 +103,56 @@ self.LOWSPER_MANIFEST={
           "path": "onnx/decoder_model_merged_quantized.onnx",
           "size": 156750845,
           "sha256": "ec07c3cbb64172c39791e26ee870a65ac22b458c36722bfe2776b3dbf741e0c9"
+        }
+      ]
+    },
+    {
+      "id": "whisper-small-gpu",
+      "label": "Whisper small (carte graphique)",
+      "description": "Même modèle que Whisper small, calculé par la carte graphique : bien plus rapide si le PC en a une correcte.",
+      "recommended": false,
+      "device": "webgpu",
+      "repo": "onnx-community/whisper-small",
+      "revision": "36050c46d777d46dc4b5f43f6d90574fc38f8732",
+      "dtype": {
+        "encoder_model": "q4",
+        "decoder_model_merged": "q4"
+      },
+      "files": [
+        {
+          "path": "config.json",
+          "size": 2227,
+          "sha256": "457854d452f17661e197d74aee12b8e74fb75ba30ebfaa7426d0d61ea1e08a18"
+        },
+        {
+          "path": "generation_config.json",
+          "size": 3893,
+          "sha256": "f538b28220c6a6d6f1af1458d4141cacb4ef4963df3de98a19490440c412ddf0"
+        },
+        {
+          "path": "preprocessor_config.json",
+          "size": 339,
+          "sha256": "a6a76d28c93edb273669eb9e0b0636a2bddbb1272c3261e47b7ca6dfdbac1b8d"
+        },
+        {
+          "path": "tokenizer.json",
+          "size": 2480466,
+          "sha256": "27fc476bfe7f17299480be2273fc0608e4d5a99aba2ab5dec5374b4482d1a566"
+        },
+        {
+          "path": "tokenizer_config.json",
+          "size": 282683,
+          "sha256": "2a4c4281cf9f51ac6ccc406fdc711a087afe6530f671fa7b80953edc498275ce"
+        },
+        {
+          "path": "onnx/encoder_model_q4.onnx",
+          "size": 66182104,
+          "sha256": "9f088ad0fe15ba2cf094c9fb22ac7fe1111fc9ef317c1e4d1f6a3bca38a931ba"
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx",
+          "size": 233149327,
+          "sha256": "795c61b344576719c2b249cc9911c78b4cc552c8c6a5407be21a3380a0791b13"
         }
       ]
     },
