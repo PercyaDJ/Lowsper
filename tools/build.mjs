@@ -28,7 +28,7 @@ const CHUNK = 24 * 1024 * 1024;
 const args = process.argv.slice(2);
 const embedIds = args[0] === '--embed' ? args.slice(1) : [];
 // Modèles proposés au téléchargement dans l'application
-const CATALOG = ['whisper-small', 'whisper-turbo', 'whisper-base'];
+const CATALOG = ['whisper-small', 'whisper-small-gpu', 'whisper-turbo', 'whisper-base'];
 
 const header = '/* Fichier généré par tools/build.mjs : ne pas modifier à la main. */\n';
 const readMeta = async (id) =>

@@ -181,6 +181,8 @@ await page.addInitScript((pcmB64) => {
 let t0 = Date.now();
 await page.goto(pathToFileURL(join(site, 'Lowsper.html')).href);
 await page.waitForSelector('#view-install:not([hidden])');
+const installLabel = await page.textContent('#install');
+console.log(`Bouton d'installation : ${installLabel}`);
 await page.screenshot({ path: join(out, '0-installation.png') });
 await page.click('#install');
 await page.waitForSelector('#install-progress:not([hidden])');
@@ -201,10 +203,12 @@ console.log(`Moteur prêt en ${((Date.now() - t0) / 1000).toFixed(1)} s (modèle
 await page.screenshot({ path: join(out, '2-accueil.png') });
 
 await page.fill('#title', 'Test automatique');
-await page.click('details.options summary');
+await page.click('#settings-open'); // roue crantée
+await page.waitForSelector('#settings[open]');
 await page.selectOption('#language', 'fr');
 await page.fill('#glossary', corpusInfo.glossary);
-await page.screenshot({ path: join(out, '2b-options.png') });
+await page.screenshot({ path: join(out, '2b-parametres.png') });
+await page.click('#settings-close');
 await page.click('#start');
 await page.waitForSelector('#view-rec:not([hidden])');
 console.log(`Réunion simulée pendant ${meetingSeconds} s...`);
