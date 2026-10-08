@@ -18,9 +18,12 @@
   <link rel="stylesheet" href="app/css/lowsper.css">
 </head>
 <body>
-  <div class="consent" role="note">
+  <div class="consent" id="consent" role="note">
     <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
     <p><strong>Prévenez les participants</strong> avant de lancer l'enregistrement : la réunion va être transcrite. Tout est traité sur cet ordinateur, ni le son ni le texte ne sont envoyés sur Internet.</p>
+    <button class="consent-close" id="consent-close" type="button" aria-label="Fermer l'avertissement" title="Fermer (il réapparaîtra à la prochaine ouverture)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
   </div>
 
   <header class="top">
@@ -28,10 +31,99 @@
       <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" class="brand-bg"/><rect x="12" y="6" width="8" height="14" rx="4" fill="#fff"/><path d="M9 15a7 7 0 0 0 14 0M16 22v4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
       <span>Lowsper</span>
     </div>
-    <div class="engine" id="engine" data-state="loading">
-      <span class="dot"></span><span id="engine-text">Préparation du moteur</span>
+    <div class="top-right">
+      <div class="engine" id="engine" data-state="loading">
+        <span class="dot"></span><span id="engine-text">Préparation du moteur</span>
+      </div>
+      <button class="icon-btn gear" id="settings-open" type="button" aria-label="Paramètres" title="Paramètres">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
     </div>
   </header>
+
+
+  <!-- Paramètres (roue crantée) -->
+  <dialog class="settings" id="settings" aria-labelledby="settings-title">
+    <div class="settings-head">
+      <h2 id="settings-title">Paramètres</h2>
+      <button class="icon-btn" id="settings-close" type="button" aria-label="Fermer les paramètres">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="settings-body">
+      <section>
+        <h3>Transcription</h3>
+        <label class="field inline">
+            <span>Langue parlée</span>
+            <select id="language">
+              <option value="fr" selected>Français</option>
+              <option value="en">Anglais</option>
+              <option value="auto">Français et anglais (détection automatique)</option>
+            </select>
+          </label>
+        <label class="field inline">
+            <span>Sigles et noms propres de vos réunions <em>(aide la reconnaissance, conservé sur ce poste)</em></span>
+            <textarea id="glossary" rows="3" spellcheck="false" placeholder="Ex. RSSI, COMEX, KPI, RGPD, NIS 2, projet Atlas, Mme Durand"></textarea>
+          </label>
+        <label class="check">
+            <input type="checkbox" id="with-others" checked>
+            <span>Capter aussi le son des participants (partage d'écran)</span>
+          </label>
+        <label class="check">
+            <input type="checkbox" id="distinguish" checked>
+            <span>Distinguer les intervenants (Intervenant 1, 2, 3...)</span>
+          </label>
+      </section>
+      <section>
+        <h3>Modèle</h3>
+        <p class="fine" id="model-current"></p>
+        <label class="field inline" id="model-field" hidden>
+            <span>Modèle de transcription</span>
+            <select id="model"></select>
+          </label>
+        <button class="btn small" id="add-model" type="button">Installer ou ajouter des modèles</button>
+      </section>
+      <section>
+        <h3>Performance</h3>
+        <label class="field inline">
+            <span>Puissance de calcul <em>(part du processeur utilisée pour transcrire)</em></span>
+            <select id="power">
+              <option value="eco">Économe : 1 cœur, la transcription peut prendre du retard</option>
+              <option value="balanced" selected>Équilibrée : laisse de la marge à Teams, Office... (conseillé)</option>
+              <option value="max">Maximale : le plus de direct possible, PC plus sollicité</option>
+            </select>
+          </label>
+        <div class="speed">
+            <button class="linkish" id="speed-test" type="button">Mesurer la vitesse de ce PC avec le modèle actuel</button>
+            <p class="fine" id="speed-result"></p>
+          </div>
+      </section>
+      <section>
+        <h3>Voix des intervenants</h3>
+        <div class="memory">
+            <label class="check">
+              <input type="checkbox" id="memory-on">
+              <span>Mémoriser les voix des intervenants que je nomme, pour les reconnaître aux réunions suivantes</span>
+            </label>
+            <div class="memory-details" id="memory-details" hidden>
+              <p class="fine">Une empreinte vocale est une donnée biométrique : à n'activer qu'avec l'accord des personnes concernées. Seule une empreinte (une suite de nombres, pas d'enregistrement) est conservée, uniquement sur ce poste.</p>
+              <div class="row">
+                <label class="field inline compact">
+                  <span>Effacement automatique</span>
+                  <select id="memory-days">
+                    <option value="30">après 1 mois</option>
+                    <option value="90">après 3 mois</option>
+                    <option value="180">après 6 mois</option>
+                  </select>
+                </label>
+                <button class="btn ghost small" id="memory-clear" type="button">Effacer les voix mémorisées</button>
+              </div>
+              <p class="fine" id="memory-list"></p>
+            </div>
+          </div>
+      </section>
+    </div>
+  </dialog>
 
   <main>
     <!-- Session précédente interrompue -->
@@ -46,7 +138,7 @@
     <!-- Premier lancement : installation du modèle -->
     <section class="card view" id="view-install" hidden>
       <h1>Première utilisation</h1>
-      <p class="lead">Lowsper a besoin d'un modèle de reconnaissance vocale. Il est téléchargé <strong>une seule fois</strong>, puis enregistré dans le dossier Lowsper, à côté de ce fichier. Ensuite, tout fonctionne hors ligne.</p>
+      <p class="lead">Lowsper a besoin d'un modèle de reconnaissance vocale. Il est téléchargé <strong>une seule fois</strong>, puis enregistré dans le dossier Lowsper, à côté de ce fichier. Ensuite, tout fonctionne hors ligne. Vous pouvez en installer plusieurs et passer de l'un à l'autre dans les paramètres.</p>
 
       <div class="notice" id="temp-warning" hidden>
         <strong>Lowsper semble ouvert directement depuis le fichier zip.</strong> Windows le place alors dans un dossier temporaire, et le modèle serait à retélécharger à chaque fois.
@@ -66,7 +158,7 @@
       <div class="notice" id="install-error" hidden></div>
 
       <ol class="howto">
-        <li>Cliquez sur <strong>Installer le modèle</strong>.</li>
+        <li>Cochez le ou les modèles voulus, puis cliquez sur <strong>Installer</strong>.</li>
         <li>Sélectionnez le <strong>dossier Lowsper</strong> (celui qui contient Lowsper.html), puis acceptez que Lowsper y enregistre des fichiers.</li>
         <li>Patientez pendant le téléchargement (une à quelques minutes selon la connexion). Ne fermez pas la page.</li>
       </ol>
@@ -88,69 +180,8 @@
         <span class="rec-dot"></span> Démarrer l'enregistrement
       </button>
 
-      <details class="options">
-        <summary>Options</summary>
-        <div class="options-grid">
-          <label class="field inline">
-            <span>Langue parlée</span>
-            <select id="language">
-              <option value="fr" selected>Français</option>
-              <option value="en">Anglais</option>
-              <option value="auto">Français et anglais (détection automatique)</option>
-            </select>
-          </label>
-          <label class="check">
-            <input type="checkbox" id="with-others" checked>
-            <span>Capter aussi le son des participants (partage d'écran)</span>
-          </label>
-          <label class="check">
-            <input type="checkbox" id="distinguish" checked>
-            <span>Distinguer les intervenants (Intervenant 1, 2, 3...)</span>
-          </label>
-          <div class="memory">
-            <label class="check">
-              <input type="checkbox" id="memory-on">
-              <span>Mémoriser les voix des intervenants que je nomme, pour les reconnaître aux réunions suivantes</span>
-            </label>
-            <div class="memory-details" id="memory-details" hidden>
-              <p class="fine">Une empreinte vocale est une donnée biométrique : à n'activer qu'avec l'accord des personnes concernées. Seule une empreinte (une suite de nombres, pas d'enregistrement) est conservée, uniquement sur ce poste.</p>
-              <div class="row">
-                <label class="field inline compact">
-                  <span>Effacement automatique</span>
-                  <select id="memory-days">
-                    <option value="30">après 1 mois</option>
-                    <option value="90">après 3 mois</option>
-                    <option value="180">après 6 mois</option>
-                  </select>
-                </label>
-                <button class="btn ghost small" id="memory-clear" type="button">Effacer les voix mémorisées</button>
-              </div>
-              <p class="fine" id="memory-list"></p>
-            </div>
-          </div>
-          <label class="field inline">
-            <span>Puissance de calcul <em>(part du processeur utilisée pour transcrire)</em></span>
-            <select id="power">
-              <option value="eco">Économe : 1 cœur, la transcription peut prendre du retard</option>
-              <option value="balanced" selected>Équilibrée : laisse de la marge à Teams, Office... (conseillé)</option>
-              <option value="max">Maximale : le plus de direct possible, PC plus sollicité</option>
-            </select>
-          </label>
-          <div class="speed">
-            <button class="linkish" id="speed-test" type="button">Mesurer la vitesse de ce PC avec le modèle actuel</button>
-            <p class="fine" id="speed-result"></p>
-          </div>
-          <label class="field inline">
-            <span>Sigles et noms propres de vos réunions <em>(aide la reconnaissance, conservé sur ce poste)</em></span>
-            <textarea id="glossary" rows="3" spellcheck="false" placeholder="Ex. RSSI, COMEX, KPI, RGPD, NIS 2, projet Atlas, Mme Durand"></textarea>
-          </label>
-          <label class="field inline" id="model-field" hidden>
-            <span>Modèle de transcription</span>
-            <select id="model"></select>
-          </label>
-          <button class="linkish" id="add-model" type="button">Installer un autre modèle</button>
-        </div>
-      </details>
+
+      <p class="fine settings-hint">Langue, sigles, modèle, puissance : <button class="linkish" id="settings-open-2" type="button">paramètres</button> (roue crantée en haut à droite).</p>
 
       <ol class="howto">
         <li>Votre navigateur va proposer un <strong>partage d'écran</strong> : choisissez l'écran entier (ou l'onglet de la réunion) et <strong>cochez « Partager l'audio »</strong>. Rien n'est filmé ni enregistré, seul le son est utilisé.</li>

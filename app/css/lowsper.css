@@ -359,7 +359,8 @@ body.pip #pip { display: none; }
 .fine code, .folder code { font-size: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; word-break: break-all; }
 .folder { margin: -6px 0 14px; }
 #temp-warning { margin-bottom: 14px; }
-.model-opt.disabled { opacity: .55; cursor: not-allowed; }
+.model-opt.done { opacity: .75; }
+.model-opt.nogpu .desc { color: var(--warn-ink); }
 
 /* Renommage des intervenants */
 .voices { margin: 18px 0 4px; border-top: 1px solid var(--border); padding-top: 14px; }
@@ -388,3 +389,45 @@ body.pip #pip { display: none; }
 /* Passages provisoires (voie rapide), en attente de la version précise */
 .feed p.draft { opacity: .7; font-style: italic; }
 .notice.soft { background: var(--surface-2); border-color: var(--border); color: var(--text); margin: 16px 0 0; }
+
+/* Roue crantée et panneau Paramètres */
+.top-right { display: flex; align-items: center; gap: 8px; }
+.icon-btn {
+  width: 36px; height: 36px; display: inline-grid; place-items: center; flex: none;
+  border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer;
+}
+.icon-btn:hover { color: var(--text); background: var(--surface-2); }
+.icon-btn:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 2px; }
+.icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.gear:hover svg { transform: rotate(30deg); transition: transform .25s ease; }
+
+.settings {
+  width: min(600px, calc(100vw - 24px)); max-height: calc(100vh - 32px); padding: 0;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, .25);
+}
+.settings::backdrop { background: rgba(10, 12, 18, .45); }
+.settings-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.settings-head h2 { margin: 0; font-size: 18px; }
+.settings-body { padding: 4px 18px 18px; }
+.settings-body section { padding: 14px 0; border-bottom: 1px solid var(--border); display: grid; gap: 12px; }
+.settings-body section:last-child { border-bottom: 0; }
+.settings-body h3 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.settings-body .field { margin-bottom: 0; }
+.settings-body .memory { border-top: 0; padding-top: 0; }
+.settings-body .fine { margin: 0; }
+.settings-body #add-model { justify-self: start; }
+.settings-hint { margin: 12px 0 0; }
+@media (max-width: 560px) { .settings-body { padding: 0 14px 14px; } .settings-head { padding: 12px 14px; } }
+
+/* Croix du bandeau d'avertissement */
+.consent { position: relative; padding-right: 48px; }
+.consent-close {
+  position: absolute; top: 50%; right: 10px; transform: translateY(-50%);
+  width: 30px; height: 30px; display: grid; place-items: center;
+  border: 0; border-radius: 8px; background: transparent; color: inherit; cursor: pointer; opacity: .75;
+}
+.consent-close:hover { opacity: 1; background: color-mix(in srgb, var(--warn-ink) 12%, transparent); }
+.consent-close:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
+.consent-close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.model-opt.auto .desc::after { content: " Ajouté automatiquement : il sert de voie rapide de secours quand le PC prend du retard."; color: var(--accent); }

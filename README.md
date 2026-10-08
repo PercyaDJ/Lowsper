@@ -20,11 +20,12 @@ un transcript Markdown horodaté, prêt à être confié à une IA pour rédiger
    **dézippez-le** où vous voulez (Documents, Bureau...).
 2. **Double-cliquez sur `Lowsper.html`**. Il s'ouvre dans votre navigateur (Edge ou Chrome).
    Si un autre navigateur s'ouvre : clic droit sur le fichier, « Ouvrir avec », Microsoft Edge.
-3. **Premier lancement uniquement** : cliquez sur « Installer le modèle », sélectionnez le
+3. **Premier lancement uniquement** : cochez le ou les modèles voulus (Whisper small est coché par
+   défaut), cliquez sur « Installer », sélectionnez le
    **dossier Lowsper** (celui qui contient `Lowsper.html`) et acceptez que Lowsper y enregistre
    des fichiers. Le téléchargement (environ 250 Mo) prend une à quelques minutes, la page
    redémarre toute seule à la fin.
-4. Dans « Options », remplissez une fois pour toutes le champ **« Sigles et noms propres »**
+4. Dans les **paramètres** (roue crantée en haut à droite), remplissez une fois pour toutes le champ **« Sigles et noms propres »**
    avec le vocabulaire de vos réunions (ex. `RSSI, COMEX, KPI, NIS 2, projet Atlas`). Il est mémorisé.
 5. **Prévenez les participants** que la réunion est transcrite.
 6. Cliquez sur **« Démarrer l'enregistrement »** :
@@ -73,8 +74,10 @@ qui l'a déjà installé : le modèle est dedans (`app/models`).
   utilisent la carte graphique, proposés seulement si le PC en a une compatible.
 - « Whisper base » (80 Mo) : pour un PC ancien.
 Un modèle plus précis n'est pas plus rapide. Pendant la réunion, l'indicateur « Charge du moteur »
-doit rester sous 100 % ; sinon, installez un modèle plus rapide (Options, « Installer un autre
-modèle »). Plusieurs modèles peuvent être installés, un sélecteur apparaît alors dans Options.
+doit rester sous 100 % ; sinon, installez un modèle plus rapide (paramètres, « Installer ou ajouter des modèles »). Plusieurs
+modèles peuvent être installés en une fois ; un sélecteur apparaît alors dans les paramètres. Un
+modèle « carte graphique » peut être installé même sur un PC sans carte compatible, pour copier
+ensuite le dossier Lowsper vers un PC équipé.
 
 **Le modèle est retéléchargé à chaque fois.**
 Vérifiez que Lowsper n'est pas ouvert directement depuis le zip (clic droit sur le zip, « Extraire
@@ -85,15 +88,15 @@ de l'ancienne version dans la nouvelle au lieu de retélécharger.
 Non, par défaut (puissance « Équilibrée ») il n'utilise qu'environ un quart du processeur, un peu
 plus seulement quand il prend du retard. Si la réunion est très dense, une « voie rapide » affiche
 quand même le texte en direct (en italique), puis le retranscrit précisément dès que possible.
-Réglable dans Options : Économe, Équilibrée, Maximale.
+Réglable dans paramètres : Économe, Équilibrée, Maximale.
 
 **Mon PC est-il assez rapide ?**
-Options, « Mesurer la vitesse de ce PC » (fait automatiquement la première fois) : Lowsper indique
+paramètres, « Mesurer la vitesse de ce PC » (fait automatiquement la première fois) : Lowsper indique
 la charge estimée pour une réunion où l'on parle sans arrêt, et conseille un modèle plus rapide si
 besoin.
 
 **Lowsper peut-il reconnaître mes collègues d'une réunion à l'autre ?**
-Oui, si vous l'activez (Options, « Mémoriser les voix », désactivé par défaut). Nommez les
+Oui, si vous l'activez (paramètres, « Mémoriser les voix », désactivé par défaut). Nommez les
 intervenants à la fin d'une réunion : aux réunions suivantes, leurs voix sont reconnues. Une
 empreinte vocale est une donnée biométrique : demandez l'accord des personnes. Les empreintes
 restent sur votre poste, sont effacées automatiquement après 1, 3 ou 6 mois, et peuvent être
