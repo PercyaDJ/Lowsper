@@ -55,9 +55,67 @@
       .filter((w) => w.length > 1);
   }
 
-  // Supprime les boucles du type « oui oui oui oui oui » ou une phrase répétée 5 fois.
+  // Hésitations seules (« Euh... », « Hum. ») : aucune information pour le compte rendu.
+  const FILLER_ONLY = /^(?:(?:euh|heu|hum|hmm|mmh?|bah|ben|ah|oh)[\s.,!?…]*)+$/;
+
+  // Retire les groupes de mots répétés à la suite : 3 fois ou plus (« qu'on a aussi l'autonomie,
+  // qu'on a aussi l'autonomie, qu'on a aussi l'autonomie »), ou 2 fois pour un groupe d'au moins
+  // 6 mots. Une répétition naturelle courte (« il y a combien, il y a combien de temps ») reste.
+  function collapsePhrases(text) {
+    const tokens = text.split(/\s+/).filter(Boolean);
+    const key = tokens.map((w) => normalizeText(w).replace(/[^\p{L}\p{N}']/gu, ''));
+    const out = [];
+    for (let i = 0; i < tokens.length; ) {
+      let skipped = false;
+      for (let n = Math.min(12, Math.floor((tokens.length - i) / 2)); n >= 3; n--) {
+        let reps = 1;
+        while (i + (reps + 1) * n <= tokens.length) {
+          let same = true;
+          for (let j = 0; j < n && same; j++) same = key[i + j] && key[i + j] === key[i + reps * n + j];
+          if (!same) break;
+          reps++;
+        }
+        if (reps >= 3 || (reps >= 2 && n >= 6)) {
+          for (let j = 0; j < n; j++) out.push(tokens[i + j]);
+          // garde la ponctuation finale de la dernière copie (« ... l'autonomie. »)
+          const lastWord = tokens[i + reps * n - 1];
+          const end = (lastWord.match(/[.!?…]+$/) || [''])[0];
+          if (end) out[out.length - 1] = out[out.length - 1].replace(/[.,;:!?…]+$/, '') + end;
+          i += reps * n;
+          skipped = true;
+          break;
+        }
+      }
+      if (!skipped) out.push(tokens[i++]);
+    }
+    return out.join(' ');
+  }
+
+  // Fin de passage qui part en boucle avec des variantes (« pas de répit, pas de vie, pas de
+  // vies, pas de balafre, pas de vrais... ») : un même couple de mots revient au moins 5 fois à
+  // intervalles très courts. On garde le texte jusqu'à la première occurrence comprise.
+  function cutLoopTail(text) {
+    const tokens = text.split(/\s+/).filter(Boolean);
+    const key = tokens.map((w) => normalizeText(w).replace(/[^\p{L}\p{N}']/gu, ''));
+    for (let i = 0; i + 1 < tokens.length; i++) {
+      if (!key[i] || !key[i + 1]) continue;
+      const pos = [i];
+      for (let j = i + 2; j + 1 < tokens.length && j - pos[pos.length - 1] <= 5; j++) {
+        if (key[j] === key[i] && key[j + 1] === key[i + 1]) pos.push(j);
+      }
+      if (pos.length >= 5) {
+        const kept = tokens.slice(0, pos[1]).join(' ').replace(/[,;:]+$/, '');
+        return /[.!?…]$/.test(kept) ? kept : kept + '…';
+      }
+    }
+    return text;
+  }
+
+  // Supprime les boucles du type « oui oui oui oui oui » ou une phrase répétée 5 fois,
+  // et les lettres étirées (« Heuuuuuuuuuu »).
   function collapseRepeats(text) {
-    let t = text.replace(/\b(\w+)(?:[\s,]+\1\b){3,}/gi, '$1');
+    let t = text.replace(/(\p{L})\1{3,}/gu, '$1').replace(/\b(\w+)(?:[\s,]+\1\b){3,}/gi, '$1');
+    t = cutLoopTail(collapsePhrases(t));
     const sentences = t.split(/(?<=[.!?])\s+/);
     const out = [];
     for (const s of sentences) {
@@ -146,10 +204,17 @@
     return out;
   }
 
-  function isHallucination(text, segSpeech) {
+  function isHallucination(text, segSpeech, glossary) {
     const n = normalizeText(text);
     if (!n) return true;
     if (HALLUCINATIONS.some((re) => re.test(n))) return true;
+    if (FILLER_ONLY.test(n)) return true;
+    // Whisper récite parfois son contexte (la liste du glossaire) sur un passage peu audible
+    if (glossary) {
+      const w = words(text);
+      const g = new Set(words(glossary));
+      if (w.length >= 4 && w.filter((x) => g.has(x)).length / w.length >= 0.8) return true;
+    }
     // « Merci. » isolé sur un segment avec très peu de parole : très probablement inventé
     if (segSpeech < 1.2 && HALLUCINATION_ONLY.some((re) => re.test(n))) return true;
     return false;
@@ -202,8 +267,13 @@
         ? result.chunks
         : [{ from: 0, to: null, text: result.text }];
       chunks.forEach((c, i) => {
-        const text = fixCase(fixAcronyms(collapseRepeats(String(c.text || '').trim()), this.meta.glossary), this.meta.glossary);
-        if (!text || isHallucination(text, seg.speech)) return;
+        const glossary = this.fullGlossary();
+        const raw = collapseRepeats(String(c.text || '').trim());
+        const fixed = Lowsper.Vocabulary ? Lowsper.Vocabulary.fix(raw, this.meta.vocab) : raw;
+        const text = fixCase(fixAcronyms(fixed, glossary), glossary);
+        if (!text || isHallucination(text, seg.speech, glossary)) return;
+        // Whisper qui récite le nom de la réunion (donné en contexte)
+        if (this.meta.title && normalizeText(text).replace(/[.!?…]+$/, '') === normalizeText(this.meta.title)) return;
         const at = (t) => (Lowsper.blockTime ? Lowsper.blockTime(seg, t) : seg.start + t);
         const start = at(c.from || 0);
         const end = c.to != null ? at(c.to) : seg.end;
@@ -219,6 +289,34 @@
       this.lines.sort((a, b) => a.start - b.start);
       this.removeEcho();
       this.emit();
+    }
+
+    /** Glossaire personnel complété par les vocabulaires métier cochés. */
+    fullGlossary() {
+      const m = this.meta;
+      if (!Lowsper.Vocabulary || !m.vocab || !m.vocab.length) return m.glossary || '';
+      if (!this._glossary || this._glossary.key !== m.glossary + '|' + m.vocab) {
+        this._glossary = { key: m.glossary + '|' + m.vocab, text: Lowsper.Vocabulary.merge(m.glossary, m.vocab) };
+      }
+      return this._glossary.text;
+    }
+
+    /**
+     * Fin du texte déjà transcrit pour une source, juste avant un instant : donnée à Whisper
+     * comme contexte du passage suivant (continuité des noms propres et des phrases coupées).
+     */
+    contextFor(source, before, maxWords = 30) {
+      const parts = [];
+      let n = 0;
+      for (let i = this.lines.length - 1; i >= 0 && n < maxWords; i--) {
+        const l = this.lines[i];
+        if (l.source !== source || l.draft || l.start > before) continue;
+        if (before - l.end > 60) break;
+        parts.unshift(l.text);
+        n += l.text.split(/\s+/).length;
+      }
+      const w = parts.join(' ').split(/\s+/).filter(Boolean);
+      return w.slice(-maxWords).join(' ');
     }
 
     /**
@@ -311,7 +409,22 @@
     /** Applique le regroupement final des voix (clé de phrase -> voix finale). */
     applyVoiceMap(map) {
       for (const l of this.lines) if (l.vkey != null && map.has(l.vkey)) l.voice = map.get(l.vkey);
+      this.smoothVoices();
       this.emit();
+    }
+
+    /**
+     * Lissage : un fragment très court (moins de 2 s) collé entre deux phrases d'une même voix,
+     * sans vraie pause, appartient presque toujours à cette voix (fin de phrase, « voilà »).
+     * Évite qu'une phrase coupée en deux change d'intervenant en plein milieu.
+     */
+    smoothVoices() {
+      const o = this.lines.filter((l) => l.source === 'others' && l.voice != null);
+      for (let i = 1; i + 1 < o.length; i++) {
+        const [a, l, b] = [o[i - 1], o[i], o[i + 1]];
+        if (l.voice === a.voice || a.voice !== b.voice) continue;
+        if (l.end - l.start < 2 && l.start - a.end < 0.8 && b.start - l.end < 0.8) l.voice = a.voice;
+      }
     }
 
     addPause(from, to) {
@@ -368,6 +481,8 @@
       out.push(`- **Langue** : ${langs[m.language] || m.language}`);
       out.push(`- **Transcription** : ${m.model || 'Whisper'}, exécuté localement par Lowsper (hors ligne)`);
       if (m.glossary) out.push(`- **Vocabulaire de référence** (sigles et noms propres attendus) : ${m.glossary.replace(/\s+/g, ' ')}`);
+      const vocab = (m.vocab || []).map((id) => Lowsper.Vocabulary && Lowsper.Vocabulary.PRESETS[id] && Lowsper.Vocabulary.PRESETS[id].label).filter(Boolean);
+      if (vocab.length) out.push(`- **Domaine** : ${vocab.join(', ').toLowerCase()}`);
       out.push('');
       out.push(
         '> Transcription automatique : elle peut contenir des erreurs de reconnaissance. ' +
@@ -452,6 +567,8 @@
   Lowsper.Transcript = Transcript;
   Lowsper.fixAcronyms = fixAcronyms;
   Lowsper.fixCase = fixCase;
+  Lowsper.collapseRepeats = collapseRepeats;
+  Lowsper.isHallucination = isHallucination;
   Lowsper.formatTime = fmt;
   Lowsper.SPEAKERS = SPEAKERS;
 })();

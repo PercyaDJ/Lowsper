@@ -25,8 +25,11 @@ un transcript Markdown horodaté, prêt à être confié à une IA pour rédiger
    **dossier Lowsper** (celui qui contient `Lowsper.html`) et acceptez que Lowsper y enregistre
    des fichiers. Le téléchargement (environ 250 Mo) prend une à quelques minutes, la page
    redémarre toute seule à la fin.
-4. Dans les **paramètres** (roue crantée en haut à droite), remplissez une fois pour toutes le champ **« Sigles et noms propres »**
-   avec le vocabulaire de vos réunions (ex. `RSSI, COMEX, KPI, NIS 2, projet Atlas`). Il est mémorisé.
+4. Dans les **paramètres** (roue crantée en haut à droite), cochez votre **vocabulaire métier**
+   (cybersécurité, informatique, gestion de projet) et remplissez une fois pour toutes le champ
+   **« Sigles et noms propres »** avec le vocabulaire de vos réunions (ex. `Ombrelune, projet Atlas,
+   Mme Durand`). Tout est mémorisé. Donnez aussi un **nom à chaque réunion** (« Entretien Ombrelune ») :
+   Lowsper le fournit au moteur, les noms propres qu'il contient sont alors bien écrits.
 5. **Prévenez les participants** que la réunion est transcrite.
 6. Cliquez sur **« Démarrer l'enregistrement »** :
    - le navigateur propose un **partage d'écran** : choisissez l'écran entier (ou l'onglet de la
@@ -68,6 +71,12 @@ Le réseau de l'entreprise bloque peut-être Hugging Face. Faites l'installation
 réseau (partage de connexion du téléphone, domicile), ou copiez le dossier Lowsper d'un collègue
 qui l'a déjà installé : le modèle est dedans (`app/models`).
 
+**Beaucoup de mots incohérents sur les sigles de mon métier (« l'NSI », « BIOCRM »...).**
+Cochez le vocabulaire métier correspondant dans les paramètres et ajoutez vos propres termes au
+glossaire : sur notre entretien de test en cybersécurité, les sigles bien écrits passent de 6 à 13
+sur 35. Le son d'une visio est compressé : Whisper small y fait nettement plus d'erreurs que sur le
+micro. Sur un PC équipé d'une carte graphique, le modèle « large-v3 turbo » est bien plus précis.
+
 **Quel modèle choisir ?**
 - « Whisper small » (recommandé, 250 Mo) : bon compromis, fonctionne sur tous les PC.
 - « Whisper small (carte graphique) » et « Whisper large-v3 turbo » (le plus précis, 760 Mo) :
@@ -92,7 +101,7 @@ Réglable dans paramètres : Économe, Équilibrée, Maximale.
 
 **Lowsper trouve trop ou pas assez d'intervenants.**
 Indiquez le nombre de personnes (vous compris) sur l'écran d'accueil, à côté du nom de la réunion :
-c'est le réglage le plus fiable. Sans indication, Lowsper estime lui-même le nombre de voix (12 au
+c'est le réglage le plus fiable (2 pour un entretien en tête-à-tête). Sans indication, Lowsper estime lui-même le nombre de voix (12 au
 maximum). Deux voix très proches peuvent être regroupées : renommez-les à la fin de la réunion.
 
 **Mon PC est-il assez rapide ?**
@@ -144,6 +153,8 @@ node build.mjs                       # moteur + catalogue des modèles télécha
 node test/unit.mjs                   # tests unitaires (découpage, sigles, anti-écho, Markdown)
 node test/e2e.mjs 60                 # installation + réunion simulée (corpus hebdo) dans Chromium
 node test/eval-hebdo.mjs whisper-small # réunion réaliste : phrases perdues, sigles, intervenants
+node test/eval-hebdo.mjs whisper-small --corpus=entretien --vocab=cyber --title
+                                     # entretien en tête-à-tête, son de visio, vocabulaire cyber
 node build.mjs --embed whisper-small whisper-base && node test/eval.mjs whisper-small whisper-base
                                      # comparaison des modèles sur le corpus avec sigles
 ```
@@ -161,6 +172,7 @@ app/js/installer.js   installation du modèle au premier lancement
 app/js/analyzer.js    détection de parole (Silero) et empreintes vocales (WeSpeaker), dans un Worker
 app/js/speakers.js    distinction et regroupement des intervenants
 app/js/capture.js     capture micro / partage d'écran, détection de parole, découpage
+app/js/vocabulary.js  vocabulaires métier intégrés et contexte donné au moteur
 app/js/transcript.js  assemblage, sigles, anti-écho, filtres, Markdown, sauvegarde
 app/js/app.js         contrôleur de l'interface
 app/engine/           runtime transformers.js + ONNX Runtime (généré)

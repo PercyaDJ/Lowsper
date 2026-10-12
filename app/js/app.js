@@ -244,7 +244,7 @@
     // Copies de l'audio : pour l'analyse des voix, et pour retranscrire un passage « rapide »
     const keep = tracker && !job.redo ? job.seg.audio.slice() : null;
     const keepDraft = fast ? job.seg.audio.slice() : null;
-    w.transcribe(job.seg.audio, lang, t.meta.glossary, (job.seg.map || []).map((m) => m.at))
+    w.transcribe(job.seg.audio, lang, promptFor(t, job), (job.seg.map || []).map((m) => m.at))
       .then(async (res) => {
         if (!fast) recordLoad(res.ms || 0, job.dur);
         if (job.redo) {
@@ -260,6 +260,7 @@
           }
         }
         t.addSegment(job.source, job.seg, res, voices, { block: job.seg.id, draft: fast });
+        if (tracker) regroupLive(t, tracker);
         if (fast) app.drafts.push({ source: job.source, seg: { ...job.seg, audio: null }, transcript: t, keepDraft });
       })
       .catch((err) => console.error('Segment non transcrit', err))
@@ -268,6 +269,28 @@
         app.inFlight--;
         pump();
       });
+  }
+
+  function selectedVocab() {
+    return [...document.querySelectorAll('#vocab-list input:checked')].map((b) => b.value);
+  }
+
+  // Contexte donné à Whisper : nom de la réunion, vocabulaires métier et glossaire (vocabulary.js)
+  function promptFor(t, job) {
+    return L.Vocabulary.prompt({ title: t.meta.title, glossary: t.fullGlossary() });
+  }
+
+  // Regroupement des voix en cours de réunion (toutes les 45 s environ) : l'affichage en
+  // direct converge vers le bon nombre d'intervenants au lieu d'accumuler des voix provisoires.
+  function regroupLive(t, tracker) {
+    if (app.state !== 'recording' || tracker.items.length < 20) return;
+    if (Date.now() - (tracker.regroupedAt || 0) < 45000) return;
+    tracker.regroupedAt = Date.now();
+    try {
+      t.applyVoiceMap(tracker.finalize());
+    } catch (e) {
+      console.warn('Regroupement des voix en direct impossible', e);
+    }
   }
 
   // Vérifie régulièrement l'âge des passages en attente (voie rapide)
@@ -379,6 +402,7 @@
       startedAt: Date.now(),
       language: $('language').value,
       glossary: $('glossary').value.trim(),
+      vocab: selectedVocab(),
       model: app.modelLabel,
       sources: [],
     });
@@ -1189,6 +1213,20 @@
     store.set('lowsper.model', e.target.value);
     location.reload();
   });
+  // Vocabulaires métier intégrés (vocabulary.js) : cases à cocher, mémorisées sur ce poste
+  const vocabSaved = (store.get('lowsper.vocab') || '').split(',').filter(Boolean);
+  for (const [id, p] of Object.entries(L.Vocabulary.PRESETS)) {
+    const label = document.createElement('label');
+    label.className = 'check';
+    label.title = p.terms;
+    label.innerHTML = '<input type="checkbox"><span></span>';
+    label.querySelector('span').textContent = p.label;
+    const box = label.querySelector('input');
+    box.value = id;
+    box.checked = vocabSaved.includes(id);
+    box.addEventListener('change', () => store.set('lowsper.vocab', selectedVocab().join(',')));
+    $('vocab-list').appendChild(label);
+  }
   $('glossary').value = store.get('lowsper.glossary') || '';
   $('glossary').addEventListener('input', (e) => store.set('lowsper.glossary', e.target.value));
   $('start').addEventListener('click', start);

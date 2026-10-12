@@ -65,6 +65,10 @@
             <span>Sigles et noms propres de vos réunions <em>(aide la reconnaissance, conservé sur ce poste)</em></span>
             <textarea id="glossary" rows="3" spellcheck="false" placeholder="Ex. RSSI, COMEX, KPI, RGPD, NIS 2, projet Atlas, Mme Durand"></textarea>
           </label>
+        <div class="field inline">
+            <span>Vocabulaire métier intégré <em>(sigles et termes du domaine, en plus des vôtres)</em></span>
+            <div class="vocab-list" id="vocab-list"></div>
+          </div>
         <label class="check">
             <input type="checkbox" id="with-others" checked>
             <span>Capter aussi le son des participants (partage d'écran)</span>
@@ -283,6 +287,7 @@
   <script src="app/js/speakers.js"></script>
   <script src="app/js/installer.js"></script>
   <script src="app/js/capture.js"></script>
+  <script src="app/js/vocabulary.js"></script>
   <script src="app/js/transcript.js"></script>
   <script src="app/js/app.js"></script>
 </body>

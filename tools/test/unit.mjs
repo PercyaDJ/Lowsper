@@ -21,7 +21,7 @@ const sandbox = {
 sandbox.window = sandbox;
 sandbox.self = sandbox;
 vm.createContext(sandbox);
-for (const f of ['capture.js', 'transcript.js', 'speakers.js']) {
+for (const f of ['capture.js', 'vocabulary.js', 'transcript.js', 'speakers.js']) {
   vm.runInContext(await readFile(join(appJs, f), 'utf8'), sandbox, { filename: f });
 }
 const L = sandbox.Lowsper;
@@ -302,6 +302,82 @@ await test('sauvegarde et récupération d’une session interrompue', () => {
   t.meta.endedAt = Date.now();
   t.save();
   assert.equal(L.Transcript.loadUnfinished(), null, 'une session terminée ne déclenche pas la récupération');
+});
+
+// --- Cas réels relevés dans le transcript d'un entretien (one-to-one, cybersécurité) ---
+await test('entretien : lettres étirées, hésitations seules et phrases répétées en boucle', () => {
+  assert.equal(L.collapseRepeats('Heuuuuuuuuuuuuuuuuuuu'), 'Heu');
+  assert.ok(L.isHallucination('Heu', 2), 'une hésitation seule ne mérite pas une ligne');
+  assert.ok(L.isHallucination('Euh... Hum.', 2));
+  assert.ok(!L.isHallucination('Euh, non plus.', 2));
+  assert.equal(
+    L.collapseRepeats("c'est qu'il y ait aussi l'autonomie, qu'on a aussi l'autonomie, qu'on a aussi l'autonomie, qu'on a aussi l'autonomie,"),
+    "c'est qu'il y ait aussi l'autonomie, qu'on a aussi l'autonomie,"
+  );
+  assert.equal(
+    L.collapseRepeats('Vous aurez un second entretien, pas de repis. pas de repis, pas de vie, pas de vies, pas de balefette, pas de vrais, pas des balefettes'),
+    'Vous aurez un second entretien, pas de repis.'
+  );
+  // répétition naturelle courte : conservée
+  const natural = 'alors vous êtes sorti il y a combien il y a combien de temps ?';
+  assert.equal(L.collapseRepeats(natural), natural);
+});
+
+await test('entretien : vocabulaire cybersécurité, déformations connues corrigées', () => {
+  const t = new L.Transcript({ glossary: 'Ombrelune', vocab: ['cyber'] });
+  const seg = { start: 0, end: 30, speech: 30 };
+  const said = [
+    "C'est poussé par l'NSI pour certains produits.",
+    'Pourquoi supprimer le protocole NTRM ?',
+    'Si vous connaissez les BIOCRM, c\'est bien.',
+    "Derrière ça c'est surtout Wannakrai et Eternal Blue.",
+    'Et le SMBV1 ? Et Apoker ? Le passe du hash ?',
+    'Je suis chez ombrelune, on parle de gmsa et de pki.',
+  ];
+  t.addSegment('others', seg, { chunks: said.map((text, i) => ({ from: i * 4, to: i * 4 + 3, text })) });
+  const all = t.lines.map((l) => l.text).join(' ');
+  for (const w of ["l'ANSSI", 'NTLM', 'EBIOS RM', 'WannaCry', 'EternalBlue', 'SMBv1', 'AppLocker', 'pass-the-hash', 'Ombrelune', 'gMSA', 'PKI']) {
+    assert.ok(all.includes(w), w + ' manquant dans : ' + all);
+  }
+  // sans le vocabulaire coché, rien n'est réécrit
+  const t2 = new L.Transcript({});
+  t2.addSegment('others', seg, { chunks: [{ from: 0, to: 3, text: 'Pourquoi supprimer le protocole NTRM ?' }] });
+  assert.match(t2.lines[0].text, /NTRM/);
+  assert.match(t.toMarkdown(), /\*\*Domaine\*\* : cybersécurité/);
+});
+
+await test("entretien : Whisper qui récite la liste du glossaire est filtré", () => {
+  const g = L.Vocabulary.merge('', ['cyber']);
+  assert.ok(L.isHallucination('ANSSI, EBIOS RM, SSI, RSSI, CISO, SOC.', 3, g));
+  assert.ok(!L.isHallucination("On travaille avec le SOC et le SIEM tous les jours.", 3, g));
+});
+
+await test('entretien : le contexte et le titre sont donnés à Whisper, le plus important en dernier', () => {
+  const p = L.Vocabulary.prompt({ title: 'Entretien Ombrelune', glossary: 'ANSSI, PKI', context: 'la suite' });
+  assert.equal(p, 'Entretien Ombrelune. ANSSI, PKI. la suite');
+  const t = new L.Transcript({});
+  t.addSegment('others', { start: 0, end: 10, speech: 10 }, { chunks: [{ from: 0, to: 4, text: 'Bonjour, je suis responsable de la sécurité.' }] });
+  assert.equal(t.contextFor('others', 12), 'Bonjour, je suis responsable de la sécurité.');
+  assert.equal(t.contextFor('me', 12), '');
+});
+
+await test("entretien : un fragment court coincé dans le discours d'une voix reste à cette voix", () => {
+  const t = new L.Transcript({});
+  const mk = (from, to, text, key) => ({ chunks: [{ from, to, text }] });
+  t.addSegment('others', { start: 0, end: 30, speech: 30 }, mk(0, 5, 'Donc voilà il faut passer par le jeu des'), [{ voice: 1, key: 0 }]);
+  t.addSegment('others', { start: 0, end: 30, speech: 30 }, mk(5.3, 6.5, 'questions techniques'), [{ voice: 2, key: 1 }]);
+  t.addSegment('others', { start: 0, end: 30, speech: 30 }, mk(6.8, 12, 'pour qu\'on puisse faire une évaluation.'), [{ voice: 1, key: 2 }]);
+  t.applyVoiceMap(new Map());
+  assert.equal(new Set(t.lines.map((l) => l.voice)).size, 1);
+  assert.equal(t.paragraphs().length, 1, 'une seule prise de parole');
+});
+
+await test('entretien en tête-à-tête de 40 min, son dégradé : une seule voix, y compris en direct', async () => {
+  const { tr, voices } = await simulateMeeting(1, 40, 2.0);
+  assert.equal(voices, 1);
+  // après un regroupement en cours de réunion, les phrases suivantes prennent la voix regroupée
+  const target = tr.liveMap.get(tr.voices[tr.voices.length - 1].id);
+  assert.ok(target >= 1000, 'voix provisoire traduite en voix regroupée');
 });
 
 if (failed) {
