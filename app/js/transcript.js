@@ -284,6 +284,8 @@
         }
         if (opts && opts.block != null) line.block = opts.block;
         if (opts && opts.draft) line.draft = true;
+        // Empreinte vocale de la phrase du micro : en mémoire seulement (non enregistrée)
+        if (opts && opts.embs && opts.embs[i]) Object.defineProperty(line, 'emb', { value: opts.embs[i], enumerable: false });
         this.lines.push(line);
       });
       this.lines.sort((a, b) => a.start - b.start);
@@ -334,6 +336,41 @@
         }
         return true;
       });
+    }
+
+    /**
+     * Écho reconnu à la voix (fin de réunion, quand tout est transcrit) : le micro n'entend
+     * qu'une personne, vous. Votre empreinte est apprise sur les phrases du micro dites pendant
+     * que les participants se taisent (speakers.js, MicVoice) ; une phrase du micro dite pendant
+     * que les participants parlent, et qui n'a pas votre voix, est l'écho des haut-parleurs.
+     * Fait une seule fois à la fin : en cours de réunion, les phrases des participants ne sont
+     * pas toutes transcrites et l'empreinte pourrait être faussée.
+     * @returns {number} nombre de phrases retirées
+     */
+    removeVoiceEcho(micVoice, busy) {
+      const others = this.lines.filter((l) => l.source === 'others');
+      if (!micVoice || !others.length) return 0;
+      // Parole des participants : détection de parole si connue, sinon horodatage des phrases
+      busy = busy && busy.length ? busy : others.map((o) => [o.start, o.end]);
+      const me = micVoice.centroid(busy);
+      if (!me) return 0;
+      const limit = (Lowsper.SPEAKER_CFG && Lowsper.SPEAKER_CFG.micForeign) || 0.4;
+      const before = this.lines.length;
+      this.lines = this.lines.filter((l) => {
+        if (l.source !== 'me' || !l.emb) return true;
+        const dur = l.end - l.start;
+        const shared = busy.reduce((n, [a, b]) => n + Math.max(0, Math.min(b, l.end) - Math.max(a, l.start)), 0);
+        if (shared < Math.min(0.5, dur / 3)) return true; // participants silencieux : c'est vous
+        // Phrase mêlant écho et réponse (Whisper ne les sépare pas toujours) : si plus d'1,2 s
+        // tombe hors de la parole des participants, elle contient sans doute votre voix. On garde.
+        if (dur - shared >= 1.2) return true;
+        let sim = 0;
+        for (let k = 0; k < me.length; k++) sim += me[k] * l.emb[k];
+        return sim >= limit;
+      });
+      const removed = before - this.lines.length;
+      if (removed) this.emit();
+      return removed;
     }
 
     /**

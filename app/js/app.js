@@ -15,6 +15,8 @@
     let el = cache.get(id);
     if (!el || (!el.isConnected && document.getElementById(id))) {
       el = document.getElementById(id);
+      // Élément déjà passé dans la mini-fenêtre avant sa première utilisation
+      if (!el && window.LowsperApp && window.LowsperApp.pip) el = window.LowsperApp.pip.document.getElementById(id);
       if (el) cache.set(id, el);
     }
     return el;
@@ -242,7 +244,8 @@
     const tracker = job.source === 'others' ? t.tracker : null;
     job.dur = job.seg.audio.length / 16000;
     // Copies de l'audio : pour l'analyse des voix, et pour retranscrire un passage « rapide »
-    const keep = tracker && !job.redo ? job.seg.audio.slice() : null;
+    const mic = job.source === 'me' && !job.redo ? t.micVoice : null;
+    const keep = (tracker || mic) && !job.redo ? job.seg.audio.slice() : null;
     const keepDraft = fast ? job.seg.audio.slice() : null;
     w.transcribe(job.seg.audio, lang, promptFor(t, job), (job.seg.map || []).map((m) => m.at))
       .then(async (res) => {
@@ -259,7 +262,15 @@
             console.warn('Distinction des voix impossible pour ce passage', e);
           }
         }
-        t.addSegment(job.source, job.seg, res, voices, { block: job.seg.id, draft: fast });
+        let embs = null;
+        if (mic) {
+          try {
+            embs = await mic.embed(keep, res.chunks, job.seg);
+          } catch (e) {
+            console.warn('Empreinte du micro impossible pour ce passage', e);
+          }
+        }
+        t.addSegment(job.source, job.seg, res, voices, { block: job.seg.id, draft: fast, embs });
         if (tracker) regroupLive(t, tracker);
         if (fast) app.drafts.push({ source: job.source, seg: { ...job.seg, audio: null }, transcript: t, keepDraft });
       })
@@ -408,6 +419,9 @@
     });
     app.transcript.onChange(renderLive);
     app.transcript.onChange(renderDrafts);
+    // Micro = une seule personne (vous) : votre voix sert à reconnaître l'écho des haut-parleurs
+    if (app.analyzer && app.analyzer.hasSpeaker) app.transcript.micVoice = new L.MicVoice(app.analyzer);
+    app.transcript.othersBusy = [];
     if (app.analyzer && app.analyzer.hasSpeaker && $('distinguish').checked) {
       app.transcript.tracker = new L.SpeakerTracker(app.analyzer);
       // Nombre de personnes indiqué (vous compris) : les autres voix sont au plus n - 1
@@ -421,6 +435,8 @@
     app.capture = new L.Capture(
       (source, seg) => {
         seg.id = ++app.blockSeq;
+        // Moments où les participants parlent (pour reconnaître l'écho au micro, en fin de réunion)
+        if (source === 'others' && L.speechIntervals) app.transcript.othersBusy.push(...L.speechIntervals(seg));
         app.queue.push({ source, seg, transcript: app.transcript, queuedAt: Date.now() });
         pump();
       },
@@ -432,6 +448,13 @@
 
     setState('recording');
     renderLive();
+    // Après quelques réunions, le mode d'emploi se replie (il reste à un clic)
+    store.set('lowsper.meetings', String((Number(store.get('lowsper.meetings')) || 0) + 1));
+    // Comme un appel Teams : Lowsper se réduit tout de suite en mini-fenêtre, si le navigateur
+    // l'autorise encore (le clic sur « Démarrer » compte comme geste pendant quelques secondes).
+    if (store.get('lowsper.opt.autopip') !== '0' && navigator.userActivation && navigator.userActivation.isActive) {
+      openPip({ quiet: true });
+    }
     setMeter('me', mic ? 'on' : 'off');
     setMeter('others', others ? 'on' : 'off');
     if (!mic) notice("Micro indisponible : seule la voix des participants est transcrite.");
@@ -539,7 +562,8 @@
       app.transcript.addPause(app.pausedAt, app.capture.now());
       app.pausedAt = null;
     }
-    $('pause').textContent = paused ? 'Reprendre' : 'Pause';
+    $('pause').querySelector('.lbl').textContent = paused ? 'Reprendre' : 'Pause';
+    $('pause').classList.toggle('paused', paused);
     $('rec-label').textContent = paused ? 'En pause' : 'Enregistrement';
     $('rec-status').classList.toggle('paused', paused);
   }
@@ -622,11 +646,21 @@
         console.warn('Regroupement final des voix impossible', e);
       }
     }
+    // Écho des haut-parleurs reconnu à la voix (micro = vous seul)
+    try {
+      app.transcript.meta.echoRemoved = app.transcript.removeVoiceEcho(app.transcript.micVoice, app.transcript.othersBusy);
+    } catch (e) {
+      console.warn('Filtrage de l’écho par la voix impossible', e);
+    }
     app.transcript.emit(); // dernière sauvegarde, marquée comme terminée
     app.finalMarkdown = app.transcript.toMarkdown();
     const paras = app.transcript.paragraphs().length;
     const minutes = Math.max(1, Math.round((app.transcript.meta.endedAt - app.transcript.meta.startedAt) / 60000));
-    $('done-info').textContent = `${minutes} min de réunion, ${paras} intervention${paras > 1 ? 's' : ''}. Le fichier a été enregistré dans votre dossier Téléchargements.`;
+    const echo = app.transcript.meta.echoRemoved || 0;
+    $('done-info').textContent =
+      `${minutes} min de réunion, ${paras} intervention${paras > 1 ? 's' : ''}.` +
+      (echo ? ` ${echo} phrase${echo > 1 ? 's' : ''} du micro retirée${echo > 1 ? 's' : ''} : écho des haut-parleurs, pas votre voix.` : '') +
+      ' Le fichier a été enregistré dans votre dossier Téléchargements.';
     $('preview').textContent = app.finalMarkdown;
     renderVoices();
     setState('done');
@@ -713,7 +747,8 @@
     $('title').value = '';
     $('people').value = '';
     $('start').disabled = false;
-    $('pause').textContent = 'Pause';
+    $('pause').querySelector('.lbl').textContent = 'Pause';
+    $('pause').classList.remove('paused');
     $('rec-label').textContent = 'Enregistrement';
     $('rec-status').classList.remove('paused');
     $('rec-notice').hidden = true;
@@ -727,8 +762,16 @@
   // Utilitaires
   // ---------------------------------------------------------------------------
 
+  // Fenêtre de Lowsper réduite à une barre (très basse) pendant l'enregistrement : même
+  // présentation que la mini-fenêtre.
+  function updateMini() {
+    document.body.classList.toggle('mini', app.state === 'recording' && !app.pip && window.innerHeight <= 240);
+  }
+  window.addEventListener('resize', updateMini);
+
   function setState(state) {
     app.state = state;
+    setTimeout(updateMini, 0);
     $('view-install').hidden = state !== 'install';
     $('view-idle').hidden = state !== 'idle';
     $('view-rec').hidden = state !== 'recording';
@@ -875,18 +918,21 @@
   // ---------------------------------------------------------------------------
 
   app.pip = null;
+  app.closePip = () => closePip(); // tests
 
-  async function openPip() {
+  async function openPip(opts) {
+    const quiet = opts && opts.quiet;
     if (app.pip || app.state !== 'recording') return;
     if (!('documentPictureInPicture' in window)) {
-      toast("Ce navigateur ne propose pas de mini-fenêtre. Astuce : réduisez la fenêtre de Lowsper, l'affichage devient compact.", 7000);
+      if (!quiet) toast("Ce navigateur ne propose pas de mini-fenêtre. Astuce : réduisez la hauteur de la fenêtre de Lowsper, elle devient une simple barre.", 7000);
       return;
     }
     let win;
     try {
-      win = await window.documentPictureInPicture.requestWindow({ width: 360, height: 250 });
+      // Taille d'un appel Teams réduit : une barre, la dernière phrase en dessous
+      win = await window.documentPictureInPicture.requestWindow({ width: 340, height: 96 });
     } catch (e) {
-      toast("La mini-fenêtre n'a pas pu s'ouvrir : " + e.message, 6000);
+      if (!quiet) toast("La mini-fenêtre n'a pas pu s'ouvrir : " + e.message, 6000);
       return;
     }
     // Même feuille de style (fichier local : autorisé par la politique de sécurité)
@@ -895,10 +941,11 @@
     link.href = new URL('app/css/lowsper.css', location.href).href;
     win.document.head.appendChild(link);
     win.document.title = 'Lowsper';
-    win.document.body.className = 'pip';
+    win.document.body.className = 'pip mini';
     win.document.body.appendChild($('rec-core'));
     $('pip-placeholder').hidden = false;
     app.pip = win;
+    updateMini();
     win.addEventListener('pagehide', closePip, { once: true });
   }
 
@@ -909,6 +956,7 @@
     $('pip-placeholder').hidden = true;
     const w = app.pip;
     app.pip = null;
+    updateMini();
     try {
       if (w && !w.closed) w.close();
     } catch {}
@@ -1062,6 +1110,8 @@
       }
       return;
     }
+    // Le dossier sert aussi à conserver les réglages (sigles...) même si le navigateur les efface
+    L.Settings.setFolder(folder).then(() => L.Settings.save({ force: true })).then(renderSaved).catch(() => {});
     app.installing = true;
     $('install').disabled = true;
     document.querySelectorAll('input[name="model-choice"]').forEach((i) => (i.disabled = true));
@@ -1193,6 +1243,41 @@
     const d = $('settings');
     if (d.open) d.close();
   }
+  // À la fermeture des paramètres (geste de l'utilisateur) : copie des réglages dans le dossier
+  // Lowsper si quelque chose a changé et que le dossier est connu.
+  $('settings').addEventListener('close', () => {
+    L.Settings.save({ interactive: true })
+      .then(renderSaved)
+      .catch((e) => console.warn('Réglages non copiés dans le dossier', e));
+  });
+  $('settings-keep').addEventListener('click', async () => {
+    try {
+      const r = await L.Settings.save({ interactive: true, force: true });
+      if (r === 'saved') toast('Réglages conservés dans le dossier Lowsper.');
+    } catch (e) {
+      if (e.code !== 'CANCELLED') toast(e.message, 7000);
+    }
+    renderSaved();
+  });
+  function renderSaved() {
+    const st = L.Settings.status();
+    const line = $('settings-saved');
+    if (st.savedAt) {
+      const d = new Date(st.savedAt);
+      line.textContent =
+        'Réglages copiés dans le dossier Lowsper (' + d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) +
+        ') : ils survivent à un nettoyage du navigateur.' + (st.dirty ? ' Les dernières modifications seront copiées à la fermeture de ce panneau.' : '');
+      $('settings-keep').hidden = true;
+    } else {
+      line.textContent =
+        'Vos réglages sont gardés par le navigateur. Certains postes d’entreprise les effacent à la fermeture : conservez-les aussi dans le dossier Lowsper.';
+      $('settings-keep').hidden = false;
+    }
+  }
+  renderSaved();
+  if (L.Settings.status().restored.length) {
+    toast('Vos réglages (sigles, préférences) ont été restaurés depuis le dossier Lowsper : le navigateur les avait effacés.', 7000);
+  }
   $('settings-open').addEventListener('click', openSettings);
   // Bandeau d'avertissement : fermé pour cette session, il revient à chaque ouverture de Lowsper
   try {
@@ -1227,6 +1312,15 @@
     box.addEventListener('change', () => store.set('lowsper.vocab', selectedVocab().join(',')));
     $('vocab-list').appendChild(label);
   }
+  // Langue et options : mémorisées comme le reste
+  const lang = store.get('lowsper.language');
+  if (lang && [...$('language').options].some((o) => o.value === lang)) $('language').value = lang;
+  $('language').addEventListener('change', (e) => store.set('lowsper.language', e.target.value));
+  for (const id of ['with-others', 'distinguish', 'autopip']) {
+    const v = store.get('lowsper.opt.' + id);
+    if (v != null && !$(id).disabled) $(id).checked = v === '1';
+    $(id).addEventListener('change', (e) => store.set('lowsper.opt.' + id, e.target.checked ? '1' : '0'));
+  }
   $('glossary').value = store.get('lowsper.glossary') || '';
   $('glossary').addEventListener('input', (e) => store.set('lowsper.glossary', e.target.value));
   $('start').addEventListener('click', start);
@@ -1240,12 +1334,13 @@
     reset();
     start(); // le clic sert de geste utilisateur pour le partage d'écran
   });
-  $('pip').addEventListener('click', openPip);
+  $('pip').addEventListener('click', () => openPip());
   $('pip-back').addEventListener('click', closePip);
   $('title').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') start();
   });
 
+  if ((Number(store.get('lowsper.meetings')) || 0) >= 3) $('howto-idle').open = false;
   checkRecovery();
   L.detectWebGPU().then((gpu) => {
     app.gpu = gpu;

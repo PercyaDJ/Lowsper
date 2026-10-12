@@ -487,6 +487,12 @@
   Lowsper.Capture = Capture;
   Lowsper.Segmenter = Segmenter;
   Lowsper.blockTime = blockTime;
+  /** Intervalles de parole réels [début, fin] (s) d'un bloc, d'après la détection de parole. */
+  Lowsper.speechIntervals = function (block) {
+    const m = block.map || [];
+    const total = block.audio ? block.audio.length / RATE : block.end - block.start;
+    return m.map((x, i) => [x.t, x.t + Math.max(0, (i + 1 < m.length ? m[i + 1].at - VAD.gap : total) - x.at)]);
+  };
   Lowsper.Resampler = Resampler;
   Lowsper.AUDIO_RATE = RATE;
 })();

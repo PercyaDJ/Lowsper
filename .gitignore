@@ -6,3 +6,5 @@ Thumbs.db
 # Modèles téléchargés par l'application ou embarqués pour les tests (trop lourds pour le dépôt)
 app/models/*
 !app/models/LISEZMOI.txt
+# Réglages de l'utilisateur, copiés dans le dossier par l'application
+app/reglages.txt

@@ -599,6 +599,69 @@ n'a pas pu traiter ce corpus de 3 min en une heure : il n'est pas envisageable s
 carte graphique, même après la réunion. Sa précision sur ce corpus dégradé n'a donc pas pu être
 mesurée ici.
 
+### 15.16 Réglages perdus, micro à une seule voix, mini-fenêtre façon Teams
+
+Retours après la fusion : les sigles saisis le vendredi avaient disparu le lundi ; « ce qui vient de
+mon micro est toujours un seul interlocuteur » ; l'application doit se réduire comme un appel Teams
+et être vraiment petite.
+
+**1. Réglages conservés.** Cause la plus probable (non vérifiable d'ici) : la stratégie d'entreprise
+qui efface les données du navigateur à sa fermeture (fréquente sur les postes gérés). Le stockage
+du navigateur ne peut donc pas être la seule copie. Lowsper écrit désormais ses réglages dans son
+propre dossier (`app/reglages.txt`), relu au lancement par une balise `<script>`, comme les modèles :
+tout réglage absent du navigateur est restauré depuis ce fichier, sans action de l'utilisateur.
+- Contenu : sigles, vocabulaires métier, langue, options, puissance, modèle, mesures de vitesse,
+  voix mémorisées si cette option est activée. Jamais le texte d'une réunion.
+- Écriture : il faut l'accord du navigateur pour écrire dans le dossier. Il est obtenu à
+  l'installation d'un modèle (le dossier est déjà choisi à ce moment-là), sinon par un bouton des
+  paramètres. Ensuite, la copie est mise à jour à chaque fermeture du panneau Paramètres, si quelque
+  chose a changé (au pire une petite demande d'autorisation du navigateur).
+- Le navigateur garde la main : un réglage qu'il possède n'est jamais écrasé par la copie.
+- Sont aussi mémorisés désormais : la langue et les cases à cocher (avant : remises à zéro).
+
+**2. Le micro, c'est vous, et seulement vous.** C'était déjà le cas pour l'étiquette (« Vous »), mais
+sans casque le micro réentend les haut-parleurs : l'écho des participants était attribué à « Vous »
+(constaté dans l'entretien : « de la partie technique. », « complexe. »). L'anti-écho existant
+compare les textes, ce qui échoue quand Whisper transcrit différemment les deux versions.
+Lowsper utilise maintenant le fait que le micro n'a qu'une voix :
+- votre empreinte vocale est apprise sur les phrases du micro dites **pendant que les participants
+  se taisent** (détection de parole du son de la réunion) : à ce moment-là, ce ne peut être que vous ;
+- une phrase du micro dite pendant que les participants parlent, et dont la voix n'est pas la vôtre
+  (similarité < 0,4), est retirée en fin de réunion ; l'écran de fin indique combien.
+Premier essai écarté : apprendre la voix sur tout le micro. Dans un entretien où l'autre parle
+beaucoup, l'écho est majoritaire et c'est **sa** voix qui était apprise (mesuré : écho à 0,8, vraie
+voix à 0,2) ; le filtre aurait retiré vos propres réponses.
+Prudence : rien n'est retiré tant qu'il n'y a pas 15 s de parole « seul au micro » ; une phrase dite
+quand les participants se taisent est toujours gardée ; l'empreinte n'est jamais enregistrée.
+Mesure (entretien de test, micro sans casque : l'écho du recruteur arrive au micro à environ 35 %
+de son volume) :
+
+| | Erreurs sur votre voix | Phrases d'écho attribuées à « Vous » | Vos phrases perdues |
+|---|---|---|---|
+| Avec casque (référence) | 6,7 % | 0 | 0 |
+| Sans casque, avant | 70 % | 6 | 0 |
+| Sans casque, après | 10,6 % | 2 (très courtes : « PingCastle. », « Eh, le... ») | 0 |
+
+Deuxième piège corrigé en route : Whisper réunit parfois la fin de l'écho et votre réponse dans la
+même phrase. Une telle phrase est gardée dès que plus d'1,2 s tombe hors de la parole des
+participants (premier réglage : 3 de vos réponses perdues ; réglage final : aucune). Choix assumé :
+mieux vaut un reste d'écho que la perte d'une de vos phrases. Les phrases de moins d'une seconde ne
+sont pas jugées (empreinte trop peu fiable).
+
+**3. Mini-fenêtre façon appel Teams.**
+- Dès le début de l'enregistrement, Lowsper se réduit en mini-fenêtre (Document Picture-in-Picture,
+  toujours au premier plan) **si le navigateur l'autorise** : il faut que le clic sur « Démarrer »
+  soit encore récent après les fenêtres de partage d'écran et de micro. Sinon, un clic sur
+  « Mini-fenêtre » suffit, et Chrome/Edge peuvent l'ouvrir d'eux-mêmes au changement d'onglet.
+  Désactivable dans les paramètres.
+- Mini-fenêtre ramenée de 360 x 250 à **340 x 96** pixels : une barre (point rouge, durée, niveaux
+  « Vous » et « Réunion », pause et fin en icônes), un avis éventuel, la dernière phrase transcrite.
+- Même barre si l'on réduit la hauteur de la fenêtre de Lowsper (240 pixels ou moins).
+- Écran d'accueil allégé : « Personnes » sans parenthèse (précision en info-bulle), mode d'emploi
+  repliable, replié automatiquement après 3 réunions.
+Non vérifiable ici : l'ouverture automatique de la mini-fenêtre dépend des règles d'activation du
+navigateur, que le navigateur sans écran des tests ne reproduit pas.
+
 ## 16. Limites connues et pistes d'évolution
 
 1. **Mesures sur machine réelle** : vitesses mesurées sur un conteneur lent sans carte graphique,

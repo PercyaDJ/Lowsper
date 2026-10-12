@@ -31,6 +31,9 @@
     maxSegments: 900, // au-delà, les tours voisins sont regroupés deux à deux (temps de calcul borné)
     minVoice: 8, // une voix de moins de 8 s de parole...
     minShare: 0.02, // ... ou de moins de 2 % du temps de parole est rattachée à la plus proche
+    micMin: 1.0, // phrase du micro analysée à partir de 1 s
+    micLearn: 10, // secondes de parole « seul au micro » avant de juger une phrase
+    micForeign: 0.4, // en dessous : phrase étrangère à votre voix
     sameVoice: 0.75, // deux voix finales plus proches que cela sont une même personne (mesuré : 0,89 vs 0,6 au plus)
     remember: 0.65, // similarité pour reconnaître une voix mémorisée (prudent : un mauvais nom est pire qu'aucun)
   };
@@ -436,6 +439,73 @@
   }
 
   /**
+   * Voix du micro : par construction, une seule personne (vous). Sans casque, le micro réentend
+   * aussi les participants dans les haut-parleurs, et cet écho était attribué à « Vous ».
+   *
+   * Votre empreinte vocale est apprise uniquement sur les phrases du micro prononcées pendant que
+   * les participants se taisent : à ce moment-là, ce ne peut être que vous. (Apprendre sur tout le
+   * micro ne marche pas : dans un entretien où l'autre parle beaucoup, l'écho est majoritaire et
+   * c'est sa voix qui aurait été apprise.) Une phrase du micro prononcée pendant que les
+   * participants parlent, et qui n'a pas votre voix, est retirée (Transcript.removeEcho).
+   * L'empreinte reste en mémoire le temps de la réunion, elle n'est jamais enregistrée.
+   */
+  class MicVoice {
+    constructor(analyzer) {
+      this.analyzer = analyzer;
+      this.items = []; // { emb, from, to } en temps réel de la réunion
+    }
+
+    /** Une empreinte par phrase (au centre, 3 s au plus), null si la phrase est trop courte. */
+    async embed(audio, chunks, block) {
+      const total = audio.length / RATE;
+      const at = (t) => (block && Lowsper.blockTime ? Lowsper.blockTime(block, t) : t);
+      const out = [];
+      for (const c of chunks) {
+        const from = Math.max(0, c.from || 0);
+        const to = Math.min(total, c.to != null ? c.to : total);
+        if (to - from < CFG.micMin) {
+          out.push(null);
+          continue;
+        }
+        const mid = (from + to) / 2;
+        const half = Math.min(1.5, (to - from) / 2);
+        const slice = audio.slice(Math.floor((mid - half) * RATE), Math.floor((mid + half) * RATE));
+        let emb = null;
+        if (hasVoice(slice)) {
+          try {
+            emb = await this.analyzer.embed(slice);
+          } catch (err) {
+            console.warn('Empreinte du micro indisponible', err);
+          }
+        }
+        if (emb) this.items.push({ emb, from: at(from), to: at(to) });
+        out.push(emb);
+      }
+      return out;
+    }
+
+    /**
+     * Votre empreinte, à partir des phrases du micro sans participant qui parle au même moment
+     * (busy : intervalles [début, fin] de parole des participants, donnés par la détection de
+     * parole, plus précise que les horodatages du texte). Rien sous 10 s de parole.
+     */
+    centroid(busy) {
+      // « Seul au micro » : moins d'un quart de la phrase pendant que les participants parlent
+      // (les horodatages de Whisper débordent souvent un peu sur la parole voisine)
+      const quiet = this.items.filter((it) => {
+        const shared = busy.reduce((n, [a, b]) => n + Math.max(0, Math.min(b, it.to) - Math.max(a, it.from)), 0);
+        return shared <= 0.25 * (it.to - it.from);
+      });
+      const total = quiet.reduce((n, it) => n + (it.to - it.from), 0);
+      if (!quiet.length || total < CFG.micLearn) return null;
+      const dim = quiet[0].emb.length;
+      const sum = new Float64Array(dim);
+      for (const it of quiet) for (let k = 0; k < dim; k++) sum[k] += it.emb[k] * (it.to - it.from);
+      return normalize(sum);
+    }
+  }
+
+  /**
    * Mémoire des voix (facultative, désactivée par défaut).
    *
    * Quand l'utilisateur nomme un intervenant, son empreinte vocale moyenne (256 nombres, pas
@@ -547,6 +617,8 @@
   }
 
   Lowsper.SpeakerTracker = SpeakerTracker;
+  Lowsper.MicVoice = MicVoice;
+  Lowsper.SPEAKER_CFG = CFG;
   Lowsper.VoiceMemory = VoiceMemory;
   Lowsper.SPEAKER_CONFIG = CFG;
 })();
