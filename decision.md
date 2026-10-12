@@ -484,6 +484,53 @@ dans le catalogue. Leur vitesse sur une puce intégrée n'est pas connue : le te
 - Le bandeau d'avertissement peut être fermé (croix) ; il revient à chaque ouverture de Lowsper, car
   c'est le rappel de prévenir les participants.
 
+### 15.14 Retour terrain : 300 intervenants détectés pour 6 personnes
+
+Réunion réelle de 6 personnes, avec beaucoup d'interruptions : plus de 300 « intervenants ». La
+transcription elle-même était complète.
+
+**Cause.** Le regroupement final fusionnait deux voix seulement si leurs empreintes se
+ressemblaient au-delà d'un seuil fixe (0,55), réglé sur mes voix de synthèse au son propre. Avec le
+son réel d'une visio (compression, bruit, paroles mêlées), les empreintes d'une même personne se
+ressemblent moins : presque rien n'était fusionné, et chaque tranche d'au moins 8 s devenait une
+« voix » (une heure de parole / 8 s, soit de l'ordre de 300). S'y ajoutait un calcul en temps
+cubique, qui devenait très lent sur une heure.
+
+**Reproduction.** Réunion simulée d'une heure (6 ou 10 voix, empreintes bruitées comme un son de
+visio, tours enchaînés et chevauchements) et corpus hebdo dégradé façon Teams (Opus 12 kb/s,
+bande 200-3800 Hz, bruit rose). L'ancien seuil donnait 12 à 20 voix pour 6 après 5 à 10 minutes,
+en hausse avec la durée.
+
+**Corrections.**
+1. Pendant la réunion, jamais plus de 12 voix (ou le nombre de personnes indiqué) : au-delà, une
+   fenêtre rejoint la voix la plus proche.
+2. Regroupement final sans seuil fixe : arbre de regroupement complet, puis choix automatique du
+   nombre de voix (critère de silhouette, de 1 à 12) parmi les coupes qui font apparaître des voix
+   « significatives » (au moins 8 s et 2 % du temps de parole) ; les fragments rejoignent la voix
+   la plus proche.
+3. Calcul rapide : matrice des produits scalaires mise à jour par simple addition, plus proche
+   voisin mémorisé ; une heure se traite en moins de 3 s (au lieu de plusieurs minutes).
+4. Nouveau champ facultatif **« Personnes (vous compris) »** sur l'écran d'accueil : s'il est
+   rempli, le nombre de voix est plafonné à ce nombre moins un (vous êtes au micro).
+
+**Résultats.**
+
+| Cas (simulations, 10 à 60 min) | Avant | Après |
+|---|---|---|
+| 1 personne | jusqu'à 12 | 1 |
+| 2 personnes | jusqu'à 12 | 2 |
+| 6 personnes, son normal ou très dégradé | 12 à 20, et plus avec la durée | 6 |
+| 10 personnes, 1 h | 12 et plus | 10 |
+| 6 personnes, « 4 » indiqué | | 4 |
+
+Sur le corpus hebdo (8 voix de synthèse en 2 min 40, deux personnes ne disant qu'une phrase), la
+méthode trouve 5 à 6 voix : elle fusionne les voix les plus proches plutôt que d'en créer trop.
+Avec « 9 personnes » indiqué, elle en sépare 8. Choix assumé : mieux vaut regrouper deux voix
+proches (on peut corriger en renommant) que d'éclater une personne en dizaines de numéros.
+
+Non vérifié : le résultat sur ta vraie réunion. Les empreintes de vraies voix humaines sont en
+principe mieux séparées que mes voix de synthèse, mais seul un nouvel essai le dira.
+
 ## 16. Limites connues et pistes d'évolution
 
 1. **Mesures sur machine réelle** : vitesses mesurées sur un conteneur lent sans carte graphique,

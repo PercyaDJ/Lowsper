@@ -386,6 +386,12 @@
     app.transcript.onChange(renderDrafts);
     if (app.analyzer && app.analyzer.hasSpeaker && $('distinguish').checked) {
       app.transcript.tracker = new L.SpeakerTracker(app.analyzer);
+      // Nombre de personnes indiqué (vous compris) : les autres voix sont au plus n - 1
+      const people = parseInt($('people').value, 10);
+      if (people >= 2) {
+        app.transcript.tracker.expected = Math.min(29, people - 1);
+        app.transcript.meta.people = people;
+      }
     }
 
     app.capture = new L.Capture(
@@ -681,6 +687,7 @@
     app.transcript = null;
     app.finalMarkdown = '';
     $('title').value = '';
+    $('people').value = '';
     $('start').disabled = false;
     $('pause').textContent = 'Pause';
     $('rec-label').textContent = 'Enregistrement';

@@ -22,7 +22,9 @@ const opts = { energy: process.argv.includes('--energy'), noSpeakers: process.ar
 const corpus = JSON.parse(await readFile(join(here, 'corpus', 'hebdo-fr.json'), 'utf8'));
 const truth = JSON.parse(await readFile(join(here, 'corpus', 'hebdo.truth.json'), 'utf8'));
 const pcm = {};
-for (const ch of ['me', 'others']) pcm[ch] = (await readFile(join(here, 'corpus', `hebdo-${ch}.wav`))).subarray(44).toString('base64');
+// --teams : son des participants dégradé façon visio (compression Opus 12 kb/s, bande 200-3800 Hz, bruit rose)
+const variant = process.argv.includes('--teams') ? '-teams' : '';
+for (const ch of ['me', 'others']) pcm[ch] = (await readFile(join(here, 'corpus', `hebdo-${ch}${ch === 'others' ? variant : ''}.wav`))).subarray(44).toString('base64');
 await writeFile(join(out, 'hebdo-pcm.js'), `window.HEBDO=${JSON.stringify(pcm)};`);
 
 const scripts = ['manifest.js', 'models/index.txt', 'js/engine.js', 'js/analyzer.js', 'js/capture.js', 'js/transcript.js', 'js/speakers.js']
@@ -160,6 +162,6 @@ console.log(JSON.stringify(report, null, 1));
 console.log('Termes manqués : ' + tMissed.join(', '));
 console.log('Répliques mal captées :\n  ' + missed.join('\n  '));
 console.log('Blocs : ' + res.blocks.map((b) => `${b.ch}:${b.dur}s/${(b.ms / 1000).toFixed(1)}s${b.capped ? ' TRONQUÉ' : ''}${b.retried ? ' relu' : ''}`).join('  '));
-await writeFile(join(out, 'hebdo-embeddings.json'), JSON.stringify(res.items));
+await writeFile(join(out, `hebdo-embeddings${variant}.json`), JSON.stringify(res.items));
 await writeFile(join(out, `hebdo-${modelId}${device ? '-' + device : ''}.md`), res.markdown);
 console.log(`(durée totale du banc ${((Date.now() - t0) / 1000).toFixed(0)} s)`);
