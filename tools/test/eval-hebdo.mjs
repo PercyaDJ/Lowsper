@@ -6,7 +6,9 @@
 //   - les blocs tronqués (plafond de jetons) et le temps de calcul,
 //   - si disponible, la justesse de l'identification des intervenants.
 // Prérequis : node build.mjs --embed <modèle>
-// Usage : node test/eval-hebdo.mjs <modèle> [--no-glossary] [--device=webgpu]
+// Usage : node test/eval-hebdo.mjs <modèle> [--no-glossary] [--device=webgpu] [--teams]
+//         [--corpus=entretien] (entretien d'embauche en tête-à-tête, vocabulaire cybersécurité, son de visio)
+//         [--vocab=cyber,it] (vocabulaire métier intégré) [--title] (titre de réunion dans le contexte) [--context]
 import { chromium } from 'playwright-core';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -19,13 +21,20 @@ const modelId = process.argv[2] || 'whisper-small';
 const useGlossary = !process.argv.includes('--no-glossary');
 const device = (process.argv.find((a) => a.startsWith('--device=')) || '').split('=')[1] || '';
 const opts = { energy: process.argv.includes('--energy'), noSpeakers: process.argv.includes('--no-speakers') };
-const corpus = JSON.parse(await readFile(join(here, 'corpus', 'hebdo-fr.json'), 'utf8'));
-const truth = JSON.parse(await readFile(join(here, 'corpus', 'hebdo.truth.json'), 'utf8'));
+const arg = (k) => (process.argv.find((a) => a.startsWith('--' + k + '=')) || '').split('=')[1] || '';
+const name = arg('corpus') || 'hebdo';
+const corpus = JSON.parse(await readFile(join(here, 'corpus', `${name}-fr.json`), 'utf8'));
+const truth = JSON.parse(await readFile(join(here, 'corpus', `${name}.truth.json`), 'utf8'));
+opts.vocab = arg('vocab') ? arg('vocab').split(',') : [];
+opts.title = process.argv.includes('--title') ? corpus.title.replace(/ \(.*\)$/, '') : '';
+opts.context = process.argv.includes('--context');
 const pcm = {};
-for (const ch of ['me', 'others']) pcm[ch] = (await readFile(join(here, 'corpus', `hebdo-${ch}.wav`))).subarray(44).toString('base64');
+// --teams : son des participants dégradé façon visio (compression Opus 12 kb/s, bande 200-3800 Hz, bruit rose)
+const variant = process.argv.includes('--teams') || name === 'entretien' ? '-teams' : '';
+for (const ch of ['me', 'others']) pcm[ch] = (await readFile(join(here, 'corpus', `${name}-${ch}${ch === 'others' ? variant : ''}.wav`))).subarray(44).toString('base64');
 await writeFile(join(out, 'hebdo-pcm.js'), `window.HEBDO=${JSON.stringify(pcm)};`);
 
-const scripts = ['manifest.js', 'models/index.txt', 'js/engine.js', 'js/analyzer.js', 'js/capture.js', 'js/transcript.js', 'js/speakers.js']
+const scripts = ['manifest.js', 'models/index.txt', 'js/engine.js', 'js/analyzer.js', 'js/capture.js', 'js/transcript.js', 'js/speakers.js', 'js/vocabulary.js']
   .map((s) => `<script src="../../../app/${s}"></script>`).join('\n');
 await writeFile(
   join(out, 'eval-hebdo.html'),
@@ -43,7 +52,8 @@ window.runHebdo = async (modelId, glossary, opts) => {
   if (an) await an.ready;
   if (an) { const p = await an.vad('test', new Float32Array(1024)); if (!p || p.length !== 2) throw new Error('VAD Silero en échec'); }
   const tracker = an && an.hasSpeaker && !opts.noSpeakers ? new Lowsper.SpeakerTracker(an) : null;
-  const transcript = new Lowsper.Transcript({ glossary, sources: ['me', 'others'] });
+  const V = Lowsper.Vocabulary;
+  const transcript = new Lowsper.Transcript({ glossary, title: opts.title, vocab: opts.vocab, sources: ['me', 'others'] });
   const blocks = [];
   let ms = 0;
   for (const ch of ['me', 'others']) {
@@ -54,7 +64,8 @@ window.runHebdo = async (modelId, glossary, opts) => {
     await s.flush();
     for (const b of segs) {
       const keep = b.audio.slice();
-      const r = await tr.transcribe(b.audio, 'fr', glossary, (b.map || []).map((m) => m.at));
+      const prompt = V ? V.prompt({ title: opts.title, glossary: transcript.fullGlossary(), context: opts.context ? transcript.contextFor(ch, b.start) : '' }) : glossary;
+      const r = await tr.transcribe(b.audio, 'fr', prompt, (b.map || []).map((m) => m.at));
       ms += r.ms;
       blocks.push({ ch, dur: +(keep.length / 16000).toFixed(1), ms: Math.round(r.ms), capped: r.capped, retried: r.retried });
       const voices = tracker && ch === 'others' ? await tracker.label(keep, r.chunks, b) : null;
@@ -111,7 +122,7 @@ for (const t of truth) {
   sumCov += cov;
   if (cov < 0.7) missed.push(`${t.who} [${t.start}s] ${(cov * 100).toFixed(0)} % : ${t.ref.slice(0, 70)}`);
 }
-const report = { modele: modelId, glossaire: useGlossary, vad: opts.energy ? 'volume' : 'silero' };
+const report = { corpus: name, modele: modelId, glossaire: useGlossary, vocabulaire: opts.vocab.join(',') || 'aucun', titre: !!opts.title, contexte: opts.context, vad: opts.energy ? 'volume' : 'silero' };
 for (const ch of ['me', 'others']) {
   const ref = truth.filter((t) => t.channel === ch).map((t) => t.ref).join(' ');
   const hyp = res.lines.filter((l) => l.source === ch).map((l) => l.text).join(' ');
@@ -119,7 +130,7 @@ for (const ch of ['me', 'others']) {
 }
 report.couverture = ((sumCov / truth.length) * 100).toFixed(1) + ' %';
 report.repliques_mal_captees = missed.length + ' / ' + truth.length;
-const terms = corpus.glossary.split(',').map((s) => s.trim());
+const terms = corpus.terms || corpus.glossary.split(',').map((s) => s.trim());
 const allRef = truth.map((t) => t.ref).join(' ');
 const allHyp = res.lines.map((l) => l.text).join(' ');
 let tTotal = 0, tFound = 0;
@@ -160,6 +171,6 @@ console.log(JSON.stringify(report, null, 1));
 console.log('Termes manqués : ' + tMissed.join(', '));
 console.log('Répliques mal captées :\n  ' + missed.join('\n  '));
 console.log('Blocs : ' + res.blocks.map((b) => `${b.ch}:${b.dur}s/${(b.ms / 1000).toFixed(1)}s${b.capped ? ' TRONQUÉ' : ''}${b.retried ? ' relu' : ''}`).join('  '));
-await writeFile(join(out, 'hebdo-embeddings.json'), JSON.stringify(res.items));
-await writeFile(join(out, `hebdo-${modelId}${device ? '-' + device : ''}.md`), res.markdown);
+await writeFile(join(out, `${name}-embeddings${variant}.json`), JSON.stringify(res.items));
+await writeFile(join(out, `${name}-${modelId}${device ? '-' + device : ''}.md`), res.markdown);
 console.log(`(durée totale du banc ${((Date.now() - t0) / 1000).toFixed(0)} s)`);

@@ -21,7 +21,7 @@ const sandbox = {
 sandbox.window = sandbox;
 sandbox.self = sandbox;
 vm.createContext(sandbox);
-for (const f of ['capture.js', 'transcript.js', 'speakers.js']) {
+for (const f of ['capture.js', 'vocabulary.js', 'transcript.js', 'speakers.js']) {
   vm.runInContext(await readFile(join(appJs, f), 'utf8'), sandbox, { filename: f });
 }
 const L = sandbox.Lowsper;
@@ -211,6 +211,52 @@ await test('les intervenants sont numérotés par ordre d’apparition et peuven
   assert.equal(t.voiceSummary().length, 1, 'le regroupement final fusionne les deux voix');
 });
 
+// Réunion simulée : empreintes bruitées (comme un son de visio compressé), tours enchaînés
+async function simulateMeeting(speakers, minutes, noise, expected) {
+  let seed = 11;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const gauss = () => Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd());
+  const unitv = (v) => { const n = Math.hypot(...v); return v.map((x) => x / n); };
+  const centers = Array.from({ length: speakers }, () => unitv(Array.from({ length: 256 }, gauss)));
+  const fake = {
+    embed: async (a) => {
+      let i1 = 0; while (i1 < a.length && !a[i1]) i1++;
+      let i2 = a.length - 1; while (i2 > 0 && !a[i2]) i2--;
+      const s1 = Math.round(a[i1] * 10) - 1, s2 = Math.round(a[i2] * 10) - 1;
+      const c = centers[s1].map((x, i) => (s1 === s2 ? x : (x + centers[s2][i]) / 2));
+      return Float32Array.from(unitv(c.map((x) => x + (gauss() * noise) / 16)));
+    },
+  };
+  const tr = new L.SpeakerTracker(fake);
+  if (expected) tr.expected = expected;
+  let t = 0;
+  while (t < minutes * 60) {
+    const parts = [];
+    let bd = 0;
+    while (bd < 18) { const spk = Math.floor(rnd() * speakers); const d = 1 + rnd() * 10; parts.push({ spk, d }); bd += d; }
+    const audio = new Float32Array(Math.floor(bd * 16000));
+    let off = 0;
+    const chunks = [];
+    for (const p of parts) { const n = Math.floor(p.d * 16000); audio.fill((p.spk + 1) / 10, off, off + n); chunks.push({ from: off / 16000, to: (off + n) / 16000 }); off += n; }
+    await tr.label(audio, chunks, { start: t, map: [{ at: 0, t }] });
+    t += bd + 0.5;
+  }
+  return { tr, voices: new Set(tr.finalize().values()).size };
+}
+
+await test('intervenants : le bon nombre de voix, même sur un son dégradé (bug des 300 intervenants)', async () => {
+  for (const [spk, noise] of [[1, 1.1], [2, 1.1], [6, 1.1], [6, 1.6]]) {
+    const { tr, voices } = await simulateMeeting(spk, 10, noise);
+    assert.equal(voices, spk, `${spk} personne(s), bruit ${noise} : ${voices} voix trouvées`);
+    assert.ok(tr.voices.length <= 12, 'pendant la réunion, jamais plus de 12 voix');
+  }
+});
+
+await test('intervenants : le nombre de personnes indiqué est respecté', async () => {
+  const { voices } = await simulateMeeting(6, 10, 1.4, 4);
+  assert.equal(voices, 4);
+});
+
 await test('mémoire des voix : reconnaissance, prudence, effacement', () => {
   const mem = new Map();
   const storage = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, v) };
@@ -256,6 +302,82 @@ await test('sauvegarde et récupération d’une session interrompue', () => {
   t.meta.endedAt = Date.now();
   t.save();
   assert.equal(L.Transcript.loadUnfinished(), null, 'une session terminée ne déclenche pas la récupération');
+});
+
+// --- Cas réels relevés dans le transcript d'un entretien (one-to-one, cybersécurité) ---
+await test('entretien : lettres étirées, hésitations seules et phrases répétées en boucle', () => {
+  assert.equal(L.collapseRepeats('Heuuuuuuuuuuuuuuuuuuu'), 'Heu');
+  assert.ok(L.isHallucination('Heu', 2), 'une hésitation seule ne mérite pas une ligne');
+  assert.ok(L.isHallucination('Euh... Hum.', 2));
+  assert.ok(!L.isHallucination('Euh, non plus.', 2));
+  assert.equal(
+    L.collapseRepeats("c'est qu'il y ait aussi l'autonomie, qu'on a aussi l'autonomie, qu'on a aussi l'autonomie, qu'on a aussi l'autonomie,"),
+    "c'est qu'il y ait aussi l'autonomie, qu'on a aussi l'autonomie,"
+  );
+  assert.equal(
+    L.collapseRepeats('Vous aurez un second entretien, pas de repis. pas de repis, pas de vie, pas de vies, pas de balefette, pas de vrais, pas des balefettes'),
+    'Vous aurez un second entretien, pas de repis.'
+  );
+  // répétition naturelle courte : conservée
+  const natural = 'alors vous êtes sorti il y a combien il y a combien de temps ?';
+  assert.equal(L.collapseRepeats(natural), natural);
+});
+
+await test('entretien : vocabulaire cybersécurité, déformations connues corrigées', () => {
+  const t = new L.Transcript({ glossary: 'Ombrelune', vocab: ['cyber'] });
+  const seg = { start: 0, end: 30, speech: 30 };
+  const said = [
+    "C'est poussé par l'NSI pour certains produits.",
+    'Pourquoi supprimer le protocole NTRM ?',
+    'Si vous connaissez les BIOCRM, c\'est bien.',
+    "Derrière ça c'est surtout Wannakrai et Eternal Blue.",
+    'Et le SMBV1 ? Et Apoker ? Le passe du hash ?',
+    'Je suis chez ombrelune, on parle de gmsa et de pki.',
+  ];
+  t.addSegment('others', seg, { chunks: said.map((text, i) => ({ from: i * 4, to: i * 4 + 3, text })) });
+  const all = t.lines.map((l) => l.text).join(' ');
+  for (const w of ["l'ANSSI", 'NTLM', 'EBIOS RM', 'WannaCry', 'EternalBlue', 'SMBv1', 'AppLocker', 'pass-the-hash', 'Ombrelune', 'gMSA', 'PKI']) {
+    assert.ok(all.includes(w), w + ' manquant dans : ' + all);
+  }
+  // sans le vocabulaire coché, rien n'est réécrit
+  const t2 = new L.Transcript({});
+  t2.addSegment('others', seg, { chunks: [{ from: 0, to: 3, text: 'Pourquoi supprimer le protocole NTRM ?' }] });
+  assert.match(t2.lines[0].text, /NTRM/);
+  assert.match(t.toMarkdown(), /\*\*Domaine\*\* : cybersécurité/);
+});
+
+await test("entretien : Whisper qui récite la liste du glossaire est filtré", () => {
+  const g = L.Vocabulary.merge('', ['cyber']);
+  assert.ok(L.isHallucination('ANSSI, EBIOS RM, SSI, RSSI, CISO, SOC.', 3, g));
+  assert.ok(!L.isHallucination("On travaille avec le SOC et le SIEM tous les jours.", 3, g));
+});
+
+await test('entretien : le contexte et le titre sont donnés à Whisper, le plus important en dernier', () => {
+  const p = L.Vocabulary.prompt({ title: 'Entretien Ombrelune', glossary: 'ANSSI, PKI', context: 'la suite' });
+  assert.equal(p, 'Entretien Ombrelune. ANSSI, PKI. la suite');
+  const t = new L.Transcript({});
+  t.addSegment('others', { start: 0, end: 10, speech: 10 }, { chunks: [{ from: 0, to: 4, text: 'Bonjour, je suis responsable de la sécurité.' }] });
+  assert.equal(t.contextFor('others', 12), 'Bonjour, je suis responsable de la sécurité.');
+  assert.equal(t.contextFor('me', 12), '');
+});
+
+await test("entretien : un fragment court coincé dans le discours d'une voix reste à cette voix", () => {
+  const t = new L.Transcript({});
+  const mk = (from, to, text, key) => ({ chunks: [{ from, to, text }] });
+  t.addSegment('others', { start: 0, end: 30, speech: 30 }, mk(0, 5, 'Donc voilà il faut passer par le jeu des'), [{ voice: 1, key: 0 }]);
+  t.addSegment('others', { start: 0, end: 30, speech: 30 }, mk(5.3, 6.5, 'questions techniques'), [{ voice: 2, key: 1 }]);
+  t.addSegment('others', { start: 0, end: 30, speech: 30 }, mk(6.8, 12, 'pour qu\'on puisse faire une évaluation.'), [{ voice: 1, key: 2 }]);
+  t.applyVoiceMap(new Map());
+  assert.equal(new Set(t.lines.map((l) => l.voice)).size, 1);
+  assert.equal(t.paragraphs().length, 1, 'une seule prise de parole');
+});
+
+await test('entretien en tête-à-tête de 40 min, son dégradé : une seule voix, y compris en direct', async () => {
+  const { tr, voices } = await simulateMeeting(1, 40, 2.0);
+  assert.equal(voices, 1);
+  // après un regroupement en cours de réunion, les phrases suivantes prennent la voix regroupée
+  const target = tr.liveMap.get(tr.voices[tr.voices.length - 1].id);
+  assert.ok(target >= 1000, 'voix provisoire traduite en voix regroupée');
 });
 
 if (failed) {

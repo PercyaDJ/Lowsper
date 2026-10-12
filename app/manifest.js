@@ -1,6 +1,6 @@
 /* Fichier généré par tools/build.mjs : ne pas modifier à la main. */
 self.LOWSPER_MANIFEST={
-  "builtAt": "2026-10-08",
+  "builtAt": "2026-10-12",
   "runtime": {
     "src": "engine/runtime.js",
     "bytes": 500261

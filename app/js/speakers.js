@@ -24,10 +24,14 @@
   const CFG = {
     window: 2, // durée (s) d'une fenêtre d'analyse
     hop: 1, // pas entre deux fenêtres
-    onlineJoin: 0.55, // similarité pour rejoindre une voix existante pendant la réunion
+    onlineJoin: 0.5, // similarité pour rejoindre une voix existante pendant la réunion
+    maxVoices: 12, // nombre maximal de voix si le nombre de participants n'est pas indiqué
     segment: 0.6, // similarité pour prolonger un tour de parole avec la fenêtre suivante
-    finalMerge: 0.55, // similarité moyenne pour fusionner deux voix à la fin (réglé sur corpus)
-    minVoice: 8, // une « voix » de moins de 8 s de parole est rattachée à la plus proche
+    silhouetteMin: 0.12, // en dessous, aucun découpage n'est net : une seule voix (réglé sur simulations)
+    maxSegments: 900, // au-delà, les tours voisins sont regroupés deux à deux (temps de calcul borné)
+    minVoice: 8, // une voix de moins de 8 s de parole...
+    minShare: 0.02, // ... ou de moins de 2 % du temps de parole est rattachée à la plus proche
+    sameVoice: 0.75, // deux voix finales plus proches que cela sont une même personne (mesuré : 0,89 vs 0,6 au plus)
     remember: 0.65, // similarité pour reconnaître une voix mémorisée (prudent : un mauvais nom est pire qu'aucun)
   };
 
@@ -116,7 +120,9 @@
         const key = this.covers.length;
         this.covers.push(items.length ? items : this.covers[key - 1] || []);
         prev = voice;
-        return voice == null ? null : { voice, key };
+        if (voice == null) return null;
+        // Après un regroupement en cours de réunion, les voix provisoires prennent leur voix regroupée
+        return { voice: (this.liveMap && this.liveMap.get(voice)) || voice, key };
       });
     }
 
@@ -130,7 +136,10 @@
           best = v;
         }
       }
-      if (!best || bestSim < CFG.onlineJoin) {
+      // Nouvelle voix seulement si aucune n'est proche, et dans la limite du nombre attendu :
+      // au-delà, la fenêtre rejoint la voix la plus proche (évite l'explosion du nombre de voix).
+      const cap = this.expected || CFG.maxVoices;
+      if (!best || (bestSim < CFG.onlineJoin && this.voices.length < cap)) {
         best = { id: this.nextId++, sum: new Float32Array(emb.length), dur: 0 };
         this.voices.push(best);
       }
@@ -141,85 +150,277 @@
     }
 
     /**
-     * Regroupement global de fin de réunion, sur toutes les fenêtres :
-     * 1. les fenêtres consécutives et semblables forment des « tours de parole » ;
-     * 2. regroupement hiérarchique à lien moyen (UPGMA) des tours, tant que deux groupes
-     *    ont une similarité moyenne d'au moins CFG.finalMerge. Avec des empreintes
-     *    normalisées, la similarité moyenne entre deux groupes se calcule directement à partir
-     *    de la somme pondérée de leurs empreintes : le calcul reste rapide sur une heure ;
-     * 3. les voix de moins de CFG.minVoice secondes rejoignent la voix la plus proche.
+     * Regroupement global de fin de réunion, sur toutes les fenêtres analysées.
+     *
+     * 1. Tours de parole : fenêtres consécutives et semblables réunies.
+     * 2. Arbre de regroupement complet (UPGMA, lien moyen). Avec des empreintes normalisées, la
+     *    similarité moyenne entre deux groupes vaut dot(somme A, somme B) / (poids A x poids B) :
+     *    on tient à jour la matrice des produits scalaires et le plus proche voisin de chaque
+     *    groupe. Une heure de réunion se traite en quelques secondes.
+     * 3. Choix du nombre de voix :
+     *    - si l'utilisateur a indiqué le nombre de participants, on coupe l'arbre à ce nombre ;
+     *    - sinon, on choisit le nombre (2 à 12) dont les groupes sont les plus nets (critère de
+     *      silhouette : chaque tour ressemble-t-il davantage à sa voix qu'à la voix voisine ?),
+     *      et une seule voix si aucun découpage n'est net.
+     *    Un seuil de similarité fixe ne convient pas : avec le son compressé d'une visio, les
+     *    empreintes d'une même personne se ressemblent moins, et un seuil réglé sur un son propre
+     *    découpait une réunion d'une heure en centaines de « voix ».
+     * 4. Les voix qui parlent trop peu (moins de 8 s ou de 2 % du temps de parole) sont
+     *    rattachées à la plus proche (bruit, rires, paroles simultanées).
      * @returns {Map<number, number>} clé de phrase -> voix finale
      */
     finalize() {
       const items = this.items;
       if (!items.length) return new Map();
       const dim = items[0].emb.length;
-      const add = (sum, e, w) => {
-        for (let i = 0; i < dim; i++) sum[i] += e[i] * w;
+      const dotv = (a, b) => {
+        let d = 0;
+        for (let k = 0; k < dim; k++) d += a[k] * b[k];
+        return d;
       };
-      const dot = (a, b) => {
-        let s = 0;
-        for (let i = 0; i < dim; i++) s += a[i] * b[i];
-        return s;
-      };
+
       // 1. tours de parole
-      let groups = [];
+      let segs = [];
       items.forEach((it, idx) => {
-        const last = groups[groups.length - 1];
+        const last = segs[segs.length - 1];
         const near = last && it.at != null && last.endAt != null && it.at - last.endAt <= 1.6;
         if (near && cosine(normalize(last.sum), it.emb) >= CFG.segment) {
-          add(last.sum, it.emb, it.dur);
+          for (let k = 0; k < dim; k++) last.sum[k] += it.emb[k] * it.dur;
           last.w += it.dur;
           last.members.push(idx);
           last.endAt = it.at;
         } else {
-          const sum = new Float32Array(dim);
-          add(sum, it.emb, it.dur);
-          groups.push({ sum, w: it.dur, members: [idx], endAt: it.at });
+          const sum = new Float64Array(dim);
+          for (let k = 0; k < dim; k++) sum[k] = it.emb[k] * it.dur;
+          segs.push({ sum, w: it.dur, members: [idx], endAt: it.at });
         }
       });
-      const sim = (a, b) => dot(a.sum, b.sum) / (a.w * b.w);
-      // 2. UPGMA
-      for (;;) {
-        let best = null;
-        for (let i = 0; i < groups.length; i++) {
-          for (let j = i + 1; j < groups.length; j++) {
-            const v = sim(groups[i], groups[j]);
-            if (!best || v > best.v) best = { i, j, v };
+      // Réunion très longue : on regroupe deux à deux les tours voisins pour borner le calcul
+      while (segs.length > CFG.maxSegments) {
+        const next = [];
+        for (let i = 0; i < segs.length; i += 2) {
+          const a = segs[i];
+          const b = segs[i + 1];
+          if (b) {
+            for (let k = 0; k < dim; k++) a.sum[k] += b.sum[k];
+            a.w += b.w;
+            a.members.push(...b.members);
+          }
+          next.push(a);
+        }
+        segs = next;
+      }
+      const n = segs.length;
+
+      // 2. arbre UPGMA complet, avec historique des fusions
+      const D = new Float64Array(n * n);
+      for (let i = 0; i < n; i++) for (let j = i; j < n; j++) D[i * n + j] = D[j * n + i] = dotv(segs[i].sum, segs[j].sum);
+      const W = Float64Array.from(segs, (g) => g.w);
+      const alive = new Uint8Array(n).fill(1);
+      const sim = (i, j) => D[i * n + j] / (W[i] * W[j]);
+      const best = new Int32Array(n).fill(-1);
+      const bestV = new Float64Array(n).fill(-Infinity);
+      const refresh = (i) => {
+        best[i] = -1;
+        bestV[i] = -Infinity;
+        for (let j = 0; j < n; j++) {
+          if (j === i || !alive[j]) continue;
+          const v = sim(i, j);
+          if (v > bestV[i]) {
+            bestV[i] = v;
+            best[i] = j;
           }
         }
-        if (!best || best.v < CFG.finalMerge) break;
-        const a = groups[best.i];
-        const b = groups[best.j];
-        add(a.sum, b.sum, 1);
-        a.w += b.w;
-        a.members.push(...b.members);
-        groups.splice(best.j, 1);
-      }
-      // 3. petites voix
-      groups.sort((x, y) => x.w - y.w);
-      for (const g of groups.slice()) {
-        if (groups.length < 2 || g.w >= CFG.minVoice) continue;
-        let target = null;
-        let bv = -Infinity;
-        for (const o of groups) {
-          if (o === g) continue;
-          const v = sim(g, o);
-          if (v > bv) {
-            bv = v;
-            target = o;
+      };
+      for (let i = 0; i < n; i++) refresh(i);
+      const history = [];
+      for (let count = n; count > 1; count--) {
+        let a = -1;
+        for (let i = 0; i < n; i++) if (alive[i] && best[i] >= 0 && (a < 0 || bestV[i] > bestV[a])) a = i;
+        if (a < 0) break;
+        const b = best[a];
+        for (let k = 0; k < n; k++) {
+          if (!alive[k] || k === b) continue;
+          D[a * n + k] += D[b * n + k];
+          D[k * n + a] = D[a * n + k];
+        }
+        W[a] += W[b];
+        alive[b] = 0;
+        history.push([a, b]);
+        for (let i = 0; i < n; i++) {
+          if (!alive[i]) continue;
+          if (i === a || best[i] === a || best[i] === b) refresh(i);
+          else {
+            const v = sim(i, a);
+            if (v > bestV[i]) {
+              bestV[i] = v;
+              best[i] = a;
+            }
           }
         }
-        add(target.sum, g.sum, 1);
-        target.w += g.w;
-        target.members.push(...g.members);
-        groups.splice(groups.indexOf(g), 1);
       }
+      // Étiquettes obtenues en coupant l'arbre à K groupes
+      const cut = (K) => {
+        const parent = Int32Array.from({ length: n }, (_, i) => i);
+        const find = (x) => {
+          while (parent[x] !== x) x = parent[x] = parent[parent[x]];
+          return x;
+        };
+        for (let m = 0; m < Math.min(history.length, n - K); m++) parent[find(history[m][1])] = find(history[m][0]);
+        const roots = new Map();
+        return Int32Array.from({ length: n }, (_, i) => {
+          const r = find(i);
+          if (!roots.has(r)) roots.set(r, roots.size);
+          return roots.get(r);
+        });
+      };
+
+      // 3. nombre de voix
+      //    Seuls les groupes qui parlent assez longtemps (« voix significatives ») comptent : en
+      //    coupant l'arbre, les petits fragments (bruit, paroles mêlées) apparaissent souvent avant
+      //    les vraies voix. Pour K voix, on prend donc la coupe la plus grossière qui fait
+      //    apparaître K voix significatives, puis les fragments rejoignent la voix la plus proche.
+      const totalW = segs.reduce((acc, g) => acc + g.w, 0);
+      const minW = Math.max(CFG.minVoice, CFG.minShare * totalW);
+      const unit = segs.map((g) => normalize(g.sum));
+      const absorb = (lab) => {
+        // poids et sommes par groupe ; les petits groupes rejoignent le grand groupe le plus proche
+        const sums = new Map();
+        lab.forEach((l, i) => {
+          let g = sums.get(l);
+          if (!g) sums.set(l, (g = { sum: new Float64Array(dim), w: 0 }));
+          for (let k = 0; k < dim; k++) g.sum[k] += segs[i].sum[k];
+          g.w += segs[i].w;
+        });
+        const big = [...sums].filter(([, g]) => g.w >= minW);
+        if (!big.length) return { lab: new Int32Array(n), k: 1 };
+        const remap = new Map();
+        big.forEach(([id], r) => remap.set(id, r));
+        for (const [id, g] of sums) {
+          if (remap.has(id)) continue;
+          let target = 0;
+          let tv = -Infinity;
+          big.forEach(([, o], r) => {
+            const v = dotv(g.sum, o.sum) / (g.w * o.w);
+            if (v > tv) {
+              tv = v;
+              target = r;
+            }
+          });
+          remap.set(id, target);
+        }
+        return { lab: Int32Array.from(lab, (l) => remap.get(l)), k: big.length };
+      };
+      // Pour chaque nombre de voix significatives, la coupe la plus grossière qui le donne
+      const byK = new Map();
+      const kMax = Math.max(CFG.maxVoices, this.expected || 0);
+      for (let c = 1; c <= n; c++) {
+        const r = absorb(cut(c));
+        if (!byK.has(r.k)) byK.set(r.k, r.lab);
+        if (r.k > kMax) break;
+      }
+      let lab;
+      if (this.expected) {
+        // nombre indiqué : la coupe qui s'en approche le plus sans le dépasser
+        const ks = [...byK.keys()].filter((k) => k <= this.expected).sort((x, y) => y - x);
+        lab = byK.get(ks[0] || 1) || new Int32Array(n);
+      } else {
+        const dist = new Float32Array(n * n);
+        for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) dist[i * n + j] = dist[j * n + i] = 1 - dotv(unit[i], unit[j]);
+        const silhouette = (labs, k) => {
+          const acc = new Float64Array(k);
+          const wts = new Float64Array(k);
+          let total = 0;
+          let wsum = 0;
+          for (let i = 0; i < n; i++) {
+            acc.fill(0);
+            wts.fill(0);
+            for (let j = 0; j < n; j++) {
+              if (j === i) continue;
+              acc[labs[j]] += dist[i * n + j] * segs[j].w;
+              wts[labs[j]] += segs[j].w;
+            }
+            if (!wts[labs[i]]) continue;
+            const own = acc[labs[i]] / wts[labs[i]];
+            let other = Infinity;
+            for (let c = 0; c < k; c++) if (c !== labs[i] && wts[c]) other = Math.min(other, acc[c] / wts[c]);
+            total += ((other - own) / Math.max(own, other, 1e-9)) * segs[i].w;
+            wsum += segs[i].w;
+          }
+          return wsum ? total / wsum : -1;
+        };
+        lab = new Int32Array(n);
+        this.scores = [];
+        let bestS = CFG.silhouetteMin;
+        for (const [k, l] of byK) {
+          if (k < 2 || k > CFG.maxVoices) continue;
+          const sc = silhouette(l, k);
+          this.scores.push([k, sc]);
+          if (sc > bestS) {
+            bestS = sc;
+            lab = l;
+          }
+        }
+        this.silhouette = bestS;
+      }
+
+      const groups = new Map();
+      lab.forEach((l, i) => {
+        let g = groups.get(l);
+        if (!g) groups.set(l, (g = { sum: new Float64Array(dim), w: 0, segs: [] }));
+        for (let k = 0; k < dim; k++) g.sum[k] += segs[i].sum[k];
+        g.w += segs[i].w;
+        g.segs.push(i);
+      });
+
+      // 5. Deux groupes dont les empreintes moyennes restent très proches sont une même personne
+      //    (le critère de silhouette trouve toujours une « structure », même dans une seule voix :
+      //    variations d'intonation, de micro, de compression). Mesuré : une même voix coupée en deux
+      //    donne des moyennes à 0,89 ; deux personnes réelles, 0,6 au plus après regroupement.
+      if (!this.expected) {
+        for (let merged = true; merged && groups.size > 1; ) {
+          merged = false;
+          const gl = [...groups];
+          let best = null;
+          let bestSim = CFG.sameVoice;
+          for (let i = 0; i < gl.length; i++) {
+            for (let j = i + 1; j < gl.length; j++) {
+              const sim = cosine(normalize(gl[i][1].sum), normalize(gl[j][1].sum));
+              if (sim >= bestSim) {
+                bestSim = sim;
+                best = [gl[i], gl[j]];
+              }
+            }
+          }
+          if (best) {
+            const [[, a], [kb, b]] = best;
+            for (let k = 0; k < dim; k++) a.sum[k] += b.sum[k];
+            a.w += b.w;
+            a.segs.push(...b.segs);
+            groups.delete(kb);
+            merged = true;
+          }
+        }
+      }
+
+      // Voix finales : identifiants stables, empreinte moyenne (mémoire des voix)
       const itemGroup = new Int32Array(items.length);
-      groups.forEach((g, gi) => g.members.forEach((m) => (itemGroup[m] = gi + 1)));
-      // Empreinte moyenne de chaque voix finale (pour la mémoire des voix)
       this.centroids = new Map();
-      groups.forEach((g, gi) => this.centroids.set(1000 + gi + 1, { emb: Float32Array.from(normalize(g.sum)), seconds: g.w }));
+      let rank = 0;
+      for (const g of groups.values()) {
+        const id = 1000 + ++rank;
+        for (const si of g.segs) for (const m of segs[si].members) itemGroup[m] = id;
+        this.centroids.set(id, { emb: Float32Array.from(normalize(g.sum)), seconds: g.w });
+      }
+      // Correspondance voix provisoire -> voix regroupée (pour les phrases suivantes, en direct)
+      const live = new Map();
+      items.forEach((it, idx) => {
+        const m = live.get(it.voice) || new Map();
+        m.set(itemGroup[idx], (m.get(itemGroup[idx]) || 0) + it.dur);
+        live.set(it.voice, m);
+      });
+      this.liveMap = new Map();
+      for (const [v, m] of live) this.liveMap.set(v, [...m].sort((a, b) => b[1] - a[1])[0][0]);
       // Chaque phrase prend la voix finale majoritaire parmi ses fenêtres
       const map = new Map();
       this.covers.forEach((cover, key) => {
@@ -228,7 +429,7 @@
         let bestG = null;
         let bestO = 0;
         for (const [g, o] of votes) if (o > bestO) { bestO = o; bestG = g; }
-        if (bestG != null) map.set(key, 1000 + bestG);
+        if (bestG != null) map.set(key, bestG);
       });
       return map;
     }
