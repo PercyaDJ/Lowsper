@@ -380,6 +380,98 @@ await test('entretien en tête-à-tête de 40 min, son dégradé : une seule voi
   assert.ok(target >= 1000, 'voix provisoire traduite en voix regroupée');
 });
 
+await test("réglages : restaurés depuis le dossier quand le navigateur les a effacés (sigles perdus du vendredi au lundi)", async () => {
+  const mem = new Map([['lowsper.glossary', 'RSSI, COPIL (modifié dans le navigateur)']]);
+  const box = {
+    console,
+    localStorage: {
+      getItem: (k) => (mem.has(k) ? mem.get(k) : null),
+      setItem: (k, v) => mem.set(k, String(v)),
+      removeItem: (k) => mem.delete(k),
+    },
+    LOWSPER_SETTINGS: {
+      savedAt: 1,
+      data: {
+        'lowsper.glossary': 'RSSI, COPIL',
+        'lowsper.vocab': 'cyber',
+        'lowsper.voices.v1': '{"enabled":true}',
+        'lowsper.session.v1': '{"texte":"ne doit pas revenir"}',
+        'autre.cle': 'x',
+      },
+    },
+  };
+  box.window = box;
+  box.self = box;
+  Object.defineProperty(box.localStorage, 'keys', { value: () => [...mem.keys()] });
+  vm.createContext(box);
+  vm.runInContext('Object.keys = ((orig) => (o) => (o === localStorage ? localStorage.keys() : orig(o)))(Object.keys);', box);
+  vm.runInContext(await readFile(join(appJs, 'settings.js'), 'utf8'), box, { filename: 'settings.js' });
+  assert.equal(mem.get('lowsper.vocab'), 'cyber', 'réglage perdu : restauré');
+  assert.equal(mem.get('lowsper.voices.v1'), '{"enabled":true}');
+  assert.equal(mem.get('lowsper.glossary'), 'RSSI, COPIL (modifié dans le navigateur)', 'le navigateur garde la main sur ce qu’il a');
+  assert.ok(!mem.has('lowsper.session.v1'), 'la réunion en cours n’est jamais copiée ni restaurée');
+  assert.ok(!mem.has('autre.cle'));
+  const st = box.Lowsper.Settings.status();
+  assert.deepEqual([...st.restored].sort(), ['lowsper.vocab', 'lowsper.voices.v1']);
+  assert.ok(st.dirty, 'le glossaire modifié devra être recopié');
+  // écriture dans un dossier factice
+  const files = new Map();
+  const dir = {
+    queryPermission: async () => 'granted',
+    getDirectoryHandle: async () => ({
+      getFileHandle: async (name) => ({
+        createWritable: async () => { let buf = ''; return { write: async (t) => (buf += t), close: async () => files.set(name, buf) }; },
+      }),
+    }),
+  };
+  await box.Lowsper.Settings.setFolder(dir);
+  assert.equal(await box.Lowsper.Settings.save(), 'saved');
+  const written = files.get('reglages.txt');
+  assert.match(written, /self\.LOWSPER_SETTINGS=/);
+  assert.match(written, /modifié dans le navigateur/);
+  assert.ok(!/ne doit pas revenir/.test(written));
+  assert.equal(await box.Lowsper.Settings.save(), 'unchanged');
+});
+
+await test("micro = une seule voix : l'écho des haut-parleurs est retiré, jamais vos phrases", async () => {
+  const unit = (i, j = i, w = 0) => { const v = new Float32Array(256); v[i] = 1; v[j] += w; const n = Math.hypot(...v); return v.map((x) => x / n); };
+  const YOU = 3, OTHER = 40;
+  // Analyse factice : la valeur de l'audio dit qui parle (1 = vous, 2 = l'autre)
+  const fake = { embed: async (a) => (a[0] > 1.5 ? unit(OTHER, OTHER + 1, 0.2) : unit(YOU, YOU + 1, 0.2)) };
+  const mic = new L.MicVoice(fake);
+  const t = new L.Transcript({});
+  // L'autre parle beaucoup (comme un recruteur) : 60 s côté participants
+  const others = [[0, 20], [30, 50], [60, 80]];
+  for (const [a, b] of others) t.addSegment('others', { start: a, end: b, speech: b - a }, { chunks: [{ from: 0, to: b - a, text: 'Le recruteur pose une longue question technique ici.' }] });
+  // Micro : vos réponses (participants silencieux) et l'écho, plus fréquent que vous
+  const said = [
+    [21, 29, 1, 'Ma réponse détaillée numéro un.'],
+    [2, 8, 2, 'Phrase entendue en écho numéro un.'],
+    [33, 40, 2, 'Une autre phrase du recruteur entendue en écho.'],
+    [51, 59, 1, 'Ma deuxième réponse détaillée.'],
+    [62, 70, 2, 'Encore un écho différent du texte original.'],
+    [75, 78, 1, 'Oui je vous coupe, pardon.'],
+    // Whisper a réuni la fin de l'écho et votre réponse en une phrase : gardée (votre parole d'abord)
+    [78, 84, 2, 'Fin de question et début de ma réponse.'],
+  ];
+  for (const [a, b, who, text] of said) {
+    const audio = new Float32Array((b - a) * 16000).fill(who === 1 ? 1 : 2);
+    const seg = { start: a, end: b, speech: b - a, map: [{ at: 0, t: a }] };
+    const embs = await mic.embed(audio, [{ from: 0, to: b - a }], seg);
+    t.addSegment('me', seg, { chunks: [{ from: 0, to: b - a, text }] }, null, { embs });
+  }
+  const removed = t.removeVoiceEcho(mic);
+  const mine = Array.from(t.lines.filter((l) => l.source === 'me'), (l) => l.text);
+  assert.equal(removed, 3);
+  assert.deepEqual(mine, ['Ma réponse détaillée numéro un.', 'Ma deuxième réponse détaillée.', 'Oui je vous coupe, pardon.', 'Fin de question et début de ma réponse.'], 'vous gardez la parole, même en coupant la parole');
+  // L'empreinte n'est jamais enregistrée
+  assert.ok(!JSON.stringify(t.lines).includes('emb'));
+  // Sans assez de parole « seul au micro », on ne retire rien (prudence)
+  const t2 = new L.Transcript({});
+  t2.addSegment('others', { start: 0, end: 10, speech: 10 }, { chunks: [{ from: 0, to: 10, text: 'Bonjour.' }] });
+  assert.equal(t2.removeVoiceEcho(new L.MicVoice(fake)), 0);
+});
+
 if (failed) {
   console.log(`\n${failed} test(s) en échec`);
   process.exit(1);

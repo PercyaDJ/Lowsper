@@ -28,19 +28,24 @@ un transcript Markdown horodaté, prêt à être confié à une IA pour rédiger
 4. Dans les **paramètres** (roue crantée en haut à droite), cochez votre **vocabulaire métier**
    (cybersécurité, informatique, gestion de projet) et remplissez une fois pour toutes le champ
    **« Sigles et noms propres »** avec le vocabulaire de vos réunions (ex. `Ombrelune, projet Atlas,
-   Mme Durand`). Tout est mémorisé. Donnez aussi un **nom à chaque réunion** (« Entretien Ombrelune ») :
+   Mme Durand`). Tout est mémorisé, et copié dans le dossier Lowsper pour survivre à un nettoyage
+   du navigateur. Donnez aussi un **nom à chaque réunion** (« Entretien Ombrelune ») :
    Lowsper le fournit au moteur, les noms propres qu'il contient sont alors bien écrits.
 5. **Prévenez les participants** que la réunion est transcrite.
 6. Cliquez sur **« Démarrer l'enregistrement »** :
    - le navigateur propose un **partage d'écran** : choisissez l'écran entier (ou l'onglet de la
      réunion) et **cochez « Partager l'audio »**. Seul le son est utilisé, rien n'est filmé ;
    - autorisez le **micro**.
-7. En fin de réunion, cliquez sur **« Terminer la réunion »**. Le fichier `.md` est enregistré
+   Lowsper se réduit aussitôt en **mini-fenêtre** : une petite barre toujours visible (durée,
+   niveaux, pause, fin), comme un appel Teams réduit.
+7. En fin de réunion, cliquez sur **« Terminer »** (carré rouge). Le fichier `.md` est enregistré
    dans vos Téléchargements. Le bouton **« Copier pour une IA »** copie le transcript précédé
    d'une consigne de compte rendu.
 
 Conseils :
-- Un **casque** donne un meilleur résultat (le micro ne réentend pas les participants).
+- Un **casque** donne un meilleur résultat (le micro ne réentend pas les participants). Sans
+  casque, Lowsper reconnaît votre voix et retire à la fin les phrases du micro qui sont l'écho des
+  haut-parleurs.
 - Gardez l'onglet Lowsper ouvert pendant la réunion (il peut être en arrière-plan).
 - Si le navigateur se ferme pendant une réunion, le texte déjà transcrit est proposé au lancement suivant.
 
@@ -88,10 +93,17 @@ modèles peuvent être installés en une fois ; un sélecteur apparaît alors da
 modèle « carte graphique » peut être installé même sur un PC sans carte compatible, pour copier
 ensuite le dossier Lowsper vers un PC équipé.
 
+**Mes sigles et réglages ont disparu après avoir fermé le navigateur.**
+Beaucoup de postes d'entreprise effacent les données du navigateur à la fermeture. Lowsper en garde
+une copie dans son dossier (`app\reglages.txt`) et la restaure tout seul au lancement suivant.
+Il faut avoir autorisé Lowsper une fois à écrire dans le dossier : c'est fait à l'installation du
+modèle, sinon via le bouton « Conserver mes réglages dans le dossier Lowsper » des paramètres.
+
 **Le modèle est retéléchargé à chaque fois.**
 Vérifiez que Lowsper n'est pas ouvert directement depuis le zip (clic droit sur le zip, « Extraire
 tout »). Après avoir téléchargé une nouvelle version de Lowsper, copiez le dossier `app\models`
-de l'ancienne version dans la nouvelle au lieu de retélécharger.
+de l'ancienne version dans la nouvelle au lieu de retélécharger (et le fichier `app\reglages.txt`,
+qui contient vos sigles et préférences).
 
 **Lowsper va-t-il ralentir mon PC pendant les réunions ?**
 Non, par défaut (puissance « Équilibrée ») il n'utilise qu'environ un quart du processeur, un peu
@@ -117,8 +129,10 @@ restent sur votre poste, sont effacées automatiquement après 1, 3 ou 6 mois, e
 effacées à tout moment.
 
 **Comment garder Lowsper visible pendant la visio ?**
-Bouton « Mini-fenêtre » pendant l'enregistrement : une petite fenêtre toujours au premier plan,
-à placer où vous voulez. Vous pouvez aussi simplement réduire la fenêtre : l'affichage devient compact.
+Par défaut, Lowsper se réduit en mini-fenêtre dès le démarrage : une barre de 340 x 96 pixels,
+toujours au premier plan, à placer où vous voulez. Si le navigateur ne l'a pas ouverte (il exige
+parfois un clic), utilisez le bouton « Mini-fenêtre ». Vous pouvez aussi réduire la hauteur de la
+fenêtre de Lowsper : elle devient la même barre. Réglable dans les paramètres.
 
 **Le partage d'écran ne propose pas « Partager l'audio ».**
 Sur Windows, choisissez « Écran entier » : la case « Partager aussi l'audio du système » apparaît.
@@ -169,6 +183,7 @@ Lowsper.html          page à ouvrir (interface + politique de sécurité)
 app/css/              styles
 app/js/engine.js      chargement des fichiers, moteur Whisper dans un Worker (glossaire, langue)
 app/js/installer.js   installation du modèle au premier lancement
+app/js/settings.js    réglages copiés dans le dossier (survivent au nettoyage du navigateur)
 app/js/analyzer.js    détection de parole (Silero) et empreintes vocales (WeSpeaker), dans un Worker
 app/js/speakers.js    distinction et regroupement des intervenants
 app/js/capture.js     capture micro / partage d'écran, détection de parole, découpage
