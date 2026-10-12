@@ -484,6 +484,121 @@ dans le catalogue. Leur vitesse sur une puce intégrée n'est pas connue : le te
 - Le bandeau d'avertissement peut être fermé (croix) ; il revient à chaque ouverture de Lowsper, car
   c'est le rappel de prévenir les participants.
 
+### 15.14 Retour terrain : 300 intervenants détectés pour 6 personnes
+
+Réunion réelle de 6 personnes, avec beaucoup d'interruptions : plus de 300 « intervenants ». La
+transcription elle-même était complète.
+
+**Cause.** Le regroupement final fusionnait deux voix seulement si leurs empreintes se
+ressemblaient au-delà d'un seuil fixe (0,55), réglé sur mes voix de synthèse au son propre. Avec le
+son réel d'une visio (compression, bruit, paroles mêlées), les empreintes d'une même personne se
+ressemblent moins : presque rien n'était fusionné, et chaque tranche d'au moins 8 s devenait une
+« voix » (une heure de parole / 8 s, soit de l'ordre de 300). S'y ajoutait un calcul en temps
+cubique, qui devenait très lent sur une heure.
+
+**Reproduction.** Réunion simulée d'une heure (6 ou 10 voix, empreintes bruitées comme un son de
+visio, tours enchaînés et chevauchements) et corpus hebdo dégradé façon Teams (Opus 12 kb/s,
+bande 200-3800 Hz, bruit rose). L'ancien seuil donnait 12 à 20 voix pour 6 après 5 à 10 minutes,
+en hausse avec la durée.
+
+**Corrections.**
+1. Pendant la réunion, jamais plus de 12 voix (ou le nombre de personnes indiqué) : au-delà, une
+   fenêtre rejoint la voix la plus proche.
+2. Regroupement final sans seuil fixe : arbre de regroupement complet, puis choix automatique du
+   nombre de voix (critère de silhouette, de 1 à 12) parmi les coupes qui font apparaître des voix
+   « significatives » (au moins 8 s et 2 % du temps de parole) ; les fragments rejoignent la voix
+   la plus proche.
+3. Calcul rapide : matrice des produits scalaires mise à jour par simple addition, plus proche
+   voisin mémorisé ; une heure se traite en moins de 3 s (au lieu de plusieurs minutes).
+4. Nouveau champ facultatif **« Personnes (vous compris) »** sur l'écran d'accueil : s'il est
+   rempli, le nombre de voix est plafonné à ce nombre moins un (vous êtes au micro).
+
+**Résultats.**
+
+| Cas (simulations, 10 à 60 min) | Avant | Après |
+|---|---|---|
+| 1 personne | jusqu'à 12 | 1 |
+| 2 personnes | jusqu'à 12 | 2 |
+| 6 personnes, son normal ou très dégradé | 12 à 20, et plus avec la durée | 6 |
+| 10 personnes, 1 h | 12 et plus | 10 |
+| 6 personnes, « 4 » indiqué | | 4 |
+
+Sur le corpus hebdo (8 voix de synthèse en 2 min 40, deux personnes ne disant qu'une phrase), la
+méthode trouve 5 à 6 voix : elle fusionne les voix les plus proches plutôt que d'en créer trop.
+Avec « 9 personnes » indiqué, elle en sépare 8. Choix assumé : mieux vaut regrouper deux voix
+proches (on peut corriger en renommant) que d'éclater une personne en dizaines de numéros.
+
+Non vérifié : le résultat sur ta vraie réunion. Les empreintes de vraies voix humaines sont en
+principe mieux séparées que mes voix de synthèse, mais seul un nouvel essai le dira.
+
+### 15.15 Retour terrain : entretien en tête-à-tête (cybersécurité), 41 min
+
+Transcript réel d'un entretien d'embauche en visio, deux personnes, vocabulaire cybersécurité.
+Défauts relevés, ligne par ligne :
+
+| Constat dans le transcript | Cause | Correction |
+|---|---|---|
+| 105 « intervenants » pour 1 interlocuteur, changement presque à chaque phrase | ancienne version, avant la correction du §15.14 (l'en-tête n'a pas la ligne « Participants ») | §15.14 + fusion des voix quasi identiques + regroupement en direct (ci-dessous) |
+| Phrases coupées en plusieurs lignes (« c'est sur mon périmètre que... » / « que va ouvrir... ») | conséquence directe des fausses voix : deux lignes de voix différentes ne se regroupent pas | idem, plus lissage des fragments |
+| « l'NSI », « l'ANC », « BIOCRM », « NTRM », « carpéro hosting », « Wannakrai », « Apoker », « Radat » | sigles inconnus de Whisper, glossaire vide, son de visio compressé | vocabulaires métier intégrés, nom de la réunion en contexte, corrections des déformations relevées |
+| « Heuuuuuuuuuuuuuuu », lignes « Euh... », « Hum. » | Whisper étire les hésitations | lettres étirées réduites, hésitations seules retirées |
+| « qu'on a aussi l'autonomie » x 3, « pas de répit, pas de vie, pas de vies... » | petites boucles de répétition, non détectées par le moteur | réduction des groupes de mots répétés et coupure des fins de passage en boucle |
+| Phrase d'accueil perdue (« Morgenon! » au lieu de « Bonjour ») | son dégradé : Whisper small ne la comprend pas, même isolée | aucune côté logiciel ; un modèle plus gros aide (ci-dessous) |
+
+**Corpus de reproduction.** Entretien fictif de 3 min (« entretien-fr.json »), un recruteur et un
+candidat, 28 sigles et noms propres relevés dans le vrai transcript (ANSSI, EBIOS RM, NTLM,
+Kerberoasting, ORADAD, gMSA, SMBv1, EternalBlue, AppLocker, WDAC, CRL, OCSP...). Voix de synthèse,
+son du recruteur dégradé façon Teams (comme au §15.14). Il reproduit fidèlement les défauts :
+« Chichinade Electric », « l'ANCI », « G. M. BZV1 », une boucle en fin de passage, et 2 voix
+trouvées pour 1.
+
+**1. Une seule voix pour une seule personne.** Le critère de silhouette trouve toujours une
+« structure », même dans une voix unique (intonation, compression) : le recruteur était coupé en
+2 voix. Les deux moitiés ont pourtant des empreintes moyennes très proches (0,89), alors que des
+personnes réellement distinctes restent à 0,6 au plus après regroupement (corpus hebdo, son propre
+ou dégradé). Règle ajoutée : deux voix finales à plus de 0,75 sont fusionnées (sauf si le nombre de
+personnes est indiqué). Résultat : 1 voix sur l'entretien, inchangé sur l'hebdo (5 à 6 voix). Les
+simulations de 40 min en tête-à-tête, même très dégradées, donnent 1 voix.
+
+**2. Regroupement en direct.** Pendant la réunion, jusqu'à 12 voix provisoires pouvaient
+s'afficher pour une seule personne (le regroupement n'avait lieu qu'à la fin). Le regroupement
+complet tourne désormais toutes les 45 s environ (moins d'une seconde de calcul) et les voix
+provisoires suivantes sont traduites vers les voix regroupées : l'affichage en direct converge.
+
+**3. Lissage.** Un fragment de moins de 2 s, collé sans pause entre deux phrases d'une même voix,
+prend cette voix : une phrase n'est plus coupée en deux intervenants.
+
+**4. Vocabulaire métier et contexte.** Nouveau réglage « Vocabulaire métier intégré » (cases :
+cybersécurité, informatique et cloud, gestion de projet) qui complète le glossaire personnel. Le
+contexte donné à Whisper avant chaque passage devient : nom de la réunion, vocabulaires cochés,
+glossaire personnel (le plus important à la fin, car seule la fin est gardée). Chaque vocabulaire
+porte quelques corrections de déformations réellement observées (« l'NSI » -> « l'ANSSI »,
+« NTRM » -> « NTLM », « BIOCRM » -> « EBIOS RM », « Wannakrai » -> « WannaCry »...), appliquées
+seulement si le vocabulaire est coché. Garde-fous : si Whisper récite la liste du glossaire ou le
+nom de la réunion sur un passage peu audible, la ligne est retirée.
+
+Mesures sur le corpus d'entretien (Whisper small, processeur) :
+
+| Réglage | Sigles et noms bien écrits | Erreurs (micro) | Erreurs (recruteur, son de visio) |
+|---|---|---|---|
+| Aucun vocabulaire (cas du vrai entretien) | 6 / 35 | 9,6 % | 48 % |
+| Vocabulaire cybersécurité + nom de la réunion | 13 / 35 | 6,7 % | 47 % |
+| Idem + fin du passage précédent en contexte | 13 / 35 | 8,7 % | 49 % |
+| **Version finale** (vocabulaire + nom + filtres + fusion des voix) | **13 / 35** | **6,7 %** | **42 %** |
+
+Version finale : 1 intervenant trouvé pour 1 réel (2 auparavant), la boucle de fin coupée.
+
+Le contexte « passage précédent » (pratique de l'implémentation de référence de Whisper) n'apporte
+rien ici et risque de propager une erreur : non retenu.
+
+**5. Limite principale : le son de la visio.** Côté recruteur, Whisper small se trompe sur près d'un
+mot sur deux avec un son compressé, quels que soient les réglages ; côté micro, moins d'un mot sur
+dix. Le levier restant est le modèle : large-v3 turbo, plus précis sur les sigles (§15.7), mais
+seulement avec une carte graphique (le PC fixe). Sur le processeur de l'environnement de test, il
+n'a pas pu traiter ce corpus de 3 min en une heure : il n'est pas envisageable sur un portable sans
+carte graphique, même après la réunion. Sa précision sur ce corpus dégradé n'a donc pas pu être
+mesurée ici.
+
 ## 16. Limites connues et pistes d'évolution
 
 1. **Mesures sur machine réelle** : vitesses mesurées sur un conteneur lent sans carte graphique,

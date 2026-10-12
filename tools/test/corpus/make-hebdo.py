@@ -1,12 +1,13 @@
 # Génère hebdo-me.wav (micro) et hebdo-others.wav (audio partagé), 16 kHz mono, plus la
 # vérité terrain (hebdo.truth.json : qui parle, quand, quoi). Voix de synthèse Piper.
-# Usage : python make-hebdo.py <dossier_des_voix_piper>
+# Usage : python make-hebdo.py <dossier_des_voix_piper> [nom du corpus : hebdo (défaut), entretien]
 import json, sys, wave
 import numpy as np
 from piper import PiperVoice, SynthesisConfig
 
 voices_dir = sys.argv[1]
-data = json.load(open('hebdo-fr.json', encoding='utf-8'))
+name = sys.argv[2] if len(sys.argv) > 2 else 'hebdo'
+data = json.load(open(f'{name}-fr.json', encoding='utf-8'))
 cache = {}
 def voice(name):
     if name not in cache:
@@ -38,8 +39,8 @@ for line in data['lines']:
     end = max(end, start + dur)
 n = int((end + 2) * 16000)
 for ch, tr in tracks.items():
-    with wave.open(f'hebdo-{ch}.wav', 'wb') as w:
+    with wave.open(f'{name}-{ch}.wav', 'wb') as w:
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000)
         w.writeframes((np.clip(tr[:n], -1, 1) * 32767).astype(np.int16).tobytes())
-json.dump(truth, open('hebdo.truth.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+json.dump(truth, open(f'{name}.truth.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 print(f'{end:.1f} s, {len(truth)} répliques')

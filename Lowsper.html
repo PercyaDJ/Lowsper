@@ -65,6 +65,10 @@
             <span>Sigles et noms propres de vos réunions <em>(aide la reconnaissance, conservé sur ce poste)</em></span>
             <textarea id="glossary" rows="3" spellcheck="false" placeholder="Ex. RSSI, COMEX, KPI, RGPD, NIS 2, projet Atlas, Mme Durand"></textarea>
           </label>
+        <div class="field inline">
+            <span>Vocabulaire métier intégré <em>(sigles et termes du domaine, en plus des vôtres)</em></span>
+            <div class="vocab-list" id="vocab-list"></div>
+          </div>
         <label class="check">
             <input type="checkbox" id="with-others" checked>
             <span>Capter aussi le son des participants (partage d'écran)</span>
@@ -171,10 +175,16 @@
       <h1>Transcrire une réunion</h1>
       <p class="lead">Lancez l'enregistrement en début de réunion, arrêtez-le à la fin : vous récupérez un transcript Markdown horodaté.</p>
 
-      <label class="field">
-        <span>Nom de la réunion <em>(facultatif)</em></span>
-        <input id="title" type="text" maxlength="80" placeholder="Ex. Point hebdo projet" autocomplete="off">
-      </label>
+      <div class="field-row">
+        <label class="field grow">
+          <span>Nom de la réunion <em>(facultatif)</em></span>
+          <input id="title" type="text" maxlength="80" placeholder="Ex. Point hebdo projet" autocomplete="off">
+        </label>
+        <label class="field people">
+          <span>Personnes <em>(vous compris)</em></span>
+          <input id="people" type="number" min="2" max="30" step="1" inputmode="numeric" placeholder="Auto" title="Facultatif : aide Lowsper à distinguer les intervenants. Laissez vide pour une détection automatique.">
+        </label>
+      </div>
 
       <button class="btn primary big" id="start">
         <span class="rec-dot"></span> Démarrer l'enregistrement
@@ -277,6 +287,7 @@
   <script src="app/js/speakers.js"></script>
   <script src="app/js/installer.js"></script>
   <script src="app/js/capture.js"></script>
+  <script src="app/js/vocabulary.js"></script>
   <script src="app/js/transcript.js"></script>
   <script src="app/js/app.js"></script>
 </body>
