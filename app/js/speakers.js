@@ -31,6 +31,7 @@
     maxSegments: 900, // au-delà, les tours voisins sont regroupés deux à deux (temps de calcul borné)
     minVoice: 8, // une voix de moins de 8 s de parole...
     minShare: 0.02, // ... ou de moins de 2 % du temps de parole est rattachée à la plus proche
+    sameVoice: 0.75, // deux voix finales plus proches que cela sont une même personne (mesuré : 0,89 vs 0,6 au plus)
     remember: 0.65, // similarité pour reconnaître une voix mémorisée (prudent : un mauvais nom est pire qu'aucun)
   };
 
@@ -119,7 +120,9 @@
         const key = this.covers.length;
         this.covers.push(items.length ? items : this.covers[key - 1] || []);
         prev = voice;
-        return voice == null ? null : { voice, key };
+        if (voice == null) return null;
+        // Après un regroupement en cours de réunion, les voix provisoires prennent leur voix regroupée
+        return { voice: (this.liveMap && this.liveMap.get(voice)) || voice, key };
       });
     }
 
@@ -370,6 +373,36 @@
         g.segs.push(i);
       });
 
+      // 5. Deux groupes dont les empreintes moyennes restent très proches sont une même personne
+      //    (le critère de silhouette trouve toujours une « structure », même dans une seule voix :
+      //    variations d'intonation, de micro, de compression). Mesuré : une même voix coupée en deux
+      //    donne des moyennes à 0,89 ; deux personnes réelles, 0,6 au plus après regroupement.
+      if (!this.expected) {
+        for (let merged = true; merged && groups.size > 1; ) {
+          merged = false;
+          const gl = [...groups];
+          let best = null;
+          let bestSim = CFG.sameVoice;
+          for (let i = 0; i < gl.length; i++) {
+            for (let j = i + 1; j < gl.length; j++) {
+              const sim = cosine(normalize(gl[i][1].sum), normalize(gl[j][1].sum));
+              if (sim >= bestSim) {
+                bestSim = sim;
+                best = [gl[i], gl[j]];
+              }
+            }
+          }
+          if (best) {
+            const [[, a], [kb, b]] = best;
+            for (let k = 0; k < dim; k++) a.sum[k] += b.sum[k];
+            a.w += b.w;
+            a.segs.push(...b.segs);
+            groups.delete(kb);
+            merged = true;
+          }
+        }
+      }
+
       // Voix finales : identifiants stables, empreinte moyenne (mémoire des voix)
       const itemGroup = new Int32Array(items.length);
       this.centroids = new Map();
@@ -379,6 +412,15 @@
         for (const si of g.segs) for (const m of segs[si].members) itemGroup[m] = id;
         this.centroids.set(id, { emb: Float32Array.from(normalize(g.sum)), seconds: g.w });
       }
+      // Correspondance voix provisoire -> voix regroupée (pour les phrases suivantes, en direct)
+      const live = new Map();
+      items.forEach((it, idx) => {
+        const m = live.get(it.voice) || new Map();
+        m.set(itemGroup[idx], (m.get(itemGroup[idx]) || 0) + it.dur);
+        live.set(it.voice, m);
+      });
+      this.liveMap = new Map();
+      for (const [v, m] of live) this.liveMap.set(v, [...m].sort((a, b) => b[1] - a[1])[0][0]);
       // Chaque phrase prend la voix finale majoritaire parmi ses fenêtres
       const map = new Map();
       this.covers.forEach((cover, key) => {
