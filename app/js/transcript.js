@@ -364,6 +364,7 @@
       out.push(`- **Date** : ${date}`);
       out.push(`- **Horaires** : ${hm(start)} à ${hm(end)} (${durationMin} min)`);
       out.push(`- **Sources** : ${sources || 'aucune'}`);
+      if (m.people) out.push(`- **Participants** : ${m.people} personnes (vous compris)`);
       out.push(`- **Langue** : ${langs[m.language] || m.language}`);
       out.push(`- **Transcription** : ${m.model || 'Whisper'}, exécuté localement par Lowsper (hors ligne)`);
       if (m.glossary) out.push(`- **Vocabulaire de référence** (sigles et noms propres attendus) : ${m.glossary.replace(/\s+/g, ' ')}`);

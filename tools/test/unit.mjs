@@ -211,6 +211,52 @@ await test('les intervenants sont numérotés par ordre d’apparition et peuven
   assert.equal(t.voiceSummary().length, 1, 'le regroupement final fusionne les deux voix');
 });
 
+// Réunion simulée : empreintes bruitées (comme un son de visio compressé), tours enchaînés
+async function simulateMeeting(speakers, minutes, noise, expected) {
+  let seed = 11;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const gauss = () => Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd());
+  const unitv = (v) => { const n = Math.hypot(...v); return v.map((x) => x / n); };
+  const centers = Array.from({ length: speakers }, () => unitv(Array.from({ length: 256 }, gauss)));
+  const fake = {
+    embed: async (a) => {
+      let i1 = 0; while (i1 < a.length && !a[i1]) i1++;
+      let i2 = a.length - 1; while (i2 > 0 && !a[i2]) i2--;
+      const s1 = Math.round(a[i1] * 10) - 1, s2 = Math.round(a[i2] * 10) - 1;
+      const c = centers[s1].map((x, i) => (s1 === s2 ? x : (x + centers[s2][i]) / 2));
+      return Float32Array.from(unitv(c.map((x) => x + (gauss() * noise) / 16)));
+    },
+  };
+  const tr = new L.SpeakerTracker(fake);
+  if (expected) tr.expected = expected;
+  let t = 0;
+  while (t < minutes * 60) {
+    const parts = [];
+    let bd = 0;
+    while (bd < 18) { const spk = Math.floor(rnd() * speakers); const d = 1 + rnd() * 10; parts.push({ spk, d }); bd += d; }
+    const audio = new Float32Array(Math.floor(bd * 16000));
+    let off = 0;
+    const chunks = [];
+    for (const p of parts) { const n = Math.floor(p.d * 16000); audio.fill((p.spk + 1) / 10, off, off + n); chunks.push({ from: off / 16000, to: (off + n) / 16000 }); off += n; }
+    await tr.label(audio, chunks, { start: t, map: [{ at: 0, t }] });
+    t += bd + 0.5;
+  }
+  return { tr, voices: new Set(tr.finalize().values()).size };
+}
+
+await test('intervenants : le bon nombre de voix, même sur un son dégradé (bug des 300 intervenants)', async () => {
+  for (const [spk, noise] of [[1, 1.1], [2, 1.1], [6, 1.1], [6, 1.6]]) {
+    const { tr, voices } = await simulateMeeting(spk, 10, noise);
+    assert.equal(voices, spk, `${spk} personne(s), bruit ${noise} : ${voices} voix trouvées`);
+    assert.ok(tr.voices.length <= 12, 'pendant la réunion, jamais plus de 12 voix');
+  }
+});
+
+await test('intervenants : le nombre de personnes indiqué est respecté', async () => {
+  const { voices } = await simulateMeeting(6, 10, 1.4, 4);
+  assert.equal(voices, 4);
+});
+
 await test('mémoire des voix : reconnaissance, prudence, effacement', () => {
   const mem = new Map();
   const storage = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, v) };

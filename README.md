@@ -90,6 +90,11 @@ plus seulement quand il prend du retard. Si la réunion est très dense, une « 
 quand même le texte en direct (en italique), puis le retranscrit précisément dès que possible.
 Réglable dans paramètres : Économe, Équilibrée, Maximale.
 
+**Lowsper trouve trop ou pas assez d'intervenants.**
+Indiquez le nombre de personnes (vous compris) sur l'écran d'accueil, à côté du nom de la réunion :
+c'est le réglage le plus fiable. Sans indication, Lowsper estime lui-même le nombre de voix (12 au
+maximum). Deux voix très proches peuvent être regroupées : renommez-les à la fin de la réunion.
+
 **Mon PC est-il assez rapide ?**
 paramètres, « Mesurer la vitesse de ce PC » (fait automatiquement la première fois) : Lowsper indique
 la charge estimée pour une réunion où l'on parle sans arrêt, et conseille un modèle plus rapide si

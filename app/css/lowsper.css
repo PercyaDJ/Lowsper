@@ -431,3 +431,12 @@ body.pip #pip { display: none; }
 .consent-close:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
 .consent-close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .model-opt.auto .desc::after { content: " Ajouté automatiquement : il sert de voie rapide de secours quand le PC prend du retard."; color: var(--accent); }
+
+/* Nom de la réunion + nombre de personnes */
+.field-row { display: flex; gap: 12px; align-items: flex-end; }
+.field-row .field { margin-bottom: 18px; }
+.field-row .grow { flex: 1; min-width: 0; }
+.field-row .people { width: 150px; flex: none; }
+input[type="number"] { font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; outline: none; width: 100%; }
+input[type="number"]:focus { border-color: var(--accent); }
+@media (max-width: 480px) { .field-row .people { width: 110px; } }
