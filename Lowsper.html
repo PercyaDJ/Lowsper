@@ -77,6 +77,12 @@
             <input type="checkbox" id="distinguish" checked>
             <span>Distinguer les intervenants (Intervenant 1, 2, 3...)</span>
           </label>
+        <label class="check">
+            <input type="checkbox" id="autopip" checked>
+            <span>Réduire Lowsper en mini-fenêtre dès le début de l'enregistrement</span>
+          </label>
+        <p class="fine saved-line" id="settings-saved"></p>
+        <button class="btn ghost small" id="settings-keep" hidden>Conserver mes réglages dans le dossier Lowsper</button>
       </section>
       <section>
         <h3>Modèle</h3>
@@ -181,8 +187,8 @@
           <input id="title" type="text" maxlength="80" placeholder="Ex. Point hebdo projet" autocomplete="off">
         </label>
         <label class="field people">
-          <span>Personnes <em>(vous compris)</em></span>
-          <input id="people" type="number" min="2" max="30" step="1" inputmode="numeric" placeholder="Auto" title="Facultatif : aide Lowsper à distinguer les intervenants. Laissez vide pour une détection automatique.">
+          <span>Personnes</span>
+          <input id="people" type="number" min="2" max="30" step="1" inputmode="numeric" placeholder="Auto" title="Nombre de personnes, vous compris (2 pour un tête-à-tête). Facultatif : aide Lowsper à distinguer les intervenants.">
         </label>
       </div>
 
@@ -193,11 +199,15 @@
 
       <p class="fine settings-hint">Langue, sigles, modèle, puissance : <button class="linkish" id="settings-open-2" type="button">paramètres</button> (roue crantée en haut à droite).</p>
 
+      <details class="howto-box" id="howto-idle" open>
+      <summary>Comment ça marche ?</summary>
       <ol class="howto">
         <li>Votre navigateur va proposer un <strong>partage d'écran</strong> : choisissez l'écran entier (ou l'onglet de la réunion) et <strong>cochez « Partager l'audio »</strong>. Rien n'est filmé ni enregistré, seul le son est utilisé.</li>
         <li>Autorisez ensuite le <strong>micro</strong>.</li>
         <li>Avec un casque, le résultat est plus propre (le micro ne réentend pas les participants).</li>
+        <li>Lowsper se réduit en <strong>mini-fenêtre</strong>, toujours visible, comme un appel Teams.</li>
       </ol>
+      </details>
     </section>
 
     <!-- Pendant la réunion -->
@@ -211,12 +221,12 @@
 
         <div class="meters">
           <div class="meter" id="meter-me">
-            <span class="who">Vous</span>
+            <span class="who" data-short="Vous">Vous</span>
             <span class="bar"><i></i></span>
             <span class="state"></span>
           </div>
           <div class="meter" id="meter-others">
-            <span class="who">Participants</span>
+            <span class="who" data-short="Réunion">Participants</span>
             <span class="bar"><i></i></span>
             <span class="state"></span>
           </div>
@@ -226,9 +236,18 @@
         <div class="queue" id="queue"></div>
 
         <div class="row actions">
-          <button class="btn ghost" id="pause">Pause</button>
-          <button class="btn ghost" id="pip" title="Ouvre une petite fenêtre toujours visible, à déplacer où vous voulez">Mini-fenêtre</button>
-          <button class="btn danger" id="stop"><span class="sq"></span> Terminer</button>
+          <button class="btn ghost" id="pause" title="Mettre en pause / reprendre">
+            <svg class="ico i-pause" viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="2.5" width="3" height="11" rx="1"/><rect x="9.5" y="2.5" width="3" height="11" rx="1"/></svg>
+            <svg class="ico i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2.8v10.4a.6.6 0 0 0 .9.5l8.2-5.2a.6.6 0 0 0 0-1L5.4 2.3a.6.6 0 0 0-.9.5z"/></svg>
+            <span class="lbl">Pause</span>
+          </button>
+          <button class="btn ghost" id="pip" title="Petite fenêtre toujours visible, comme un appel Teams réduit">
+            <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="8" y="8" width="5" height="4" rx=".8"/></svg>
+            <span class="lbl">Mini-fenêtre</span>
+          </button>
+          <button class="btn danger" id="stop" title="Terminer la réunion et produire le transcript">
+            <span class="sq"></span><span class="lbl">Terminer</span>
+          </button>
         </div>
       </div>
       <div class="pip-placeholder" id="pip-placeholder" hidden>
@@ -282,10 +301,13 @@
   <script src="app/manifest.js"></script>
   <!-- Modèles installés (absent tant que le modèle n'a pas été téléchargé) -->
   <script src="app/models/index.txt"></script>
+  <!-- Copie des réglages dans le dossier (absente tant qu'elle n'a pas été écrite) -->
+  <script src="app/reglages.txt"></script>
   <script src="app/js/engine.js"></script>
   <script src="app/js/analyzer.js"></script>
   <script src="app/js/speakers.js"></script>
   <script src="app/js/installer.js"></script>
+  <script src="app/js/settings.js"></script>
   <script src="app/js/capture.js"></script>
   <script src="app/js/vocabulary.js"></script>
   <script src="app/js/transcript.js"></script>

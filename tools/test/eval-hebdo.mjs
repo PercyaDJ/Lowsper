@@ -28,10 +28,12 @@ const truth = JSON.parse(await readFile(join(here, 'corpus', `${name}.truth.json
 opts.vocab = arg('vocab') ? arg('vocab').split(',') : [];
 opts.title = process.argv.includes('--title') ? corpus.title.replace(/ \(.*\)$/, '') : '';
 opts.context = process.argv.includes('--context');
+// --echo : micro sans casque, qui réentend les participants dans les haut-parleurs
+opts.echo = process.argv.includes('--echo');
 const pcm = {};
 // --teams : son des participants dégradé façon visio (compression Opus 12 kb/s, bande 200-3800 Hz, bruit rose)
 const variant = process.argv.includes('--teams') || name === 'entretien' ? '-teams' : '';
-for (const ch of ['me', 'others']) pcm[ch] = (await readFile(join(here, 'corpus', `${name}-${ch}${ch === 'others' ? variant : ''}.wav`))).subarray(44).toString('base64');
+for (const ch of ['me', 'others']) pcm[ch] = (await readFile(join(here, 'corpus', `${name}-${ch}${ch === 'others' ? variant : opts.echo ? '-echo' : ''}.wav`))).subarray(44).toString('base64');
 await writeFile(join(out, 'hebdo-pcm.js'), `window.HEBDO=${JSON.stringify(pcm)};`);
 
 const scripts = ['manifest.js', 'models/index.txt', 'js/engine.js', 'js/analyzer.js', 'js/capture.js', 'js/transcript.js', 'js/speakers.js', 'js/vocabulary.js']
@@ -52,29 +54,49 @@ window.runHebdo = async (modelId, glossary, opts) => {
   if (an) await an.ready;
   if (an) { const p = await an.vad('test', new Float32Array(1024)); if (!p || p.length !== 2) throw new Error('VAD Silero en échec'); }
   const tracker = an && an.hasSpeaker && !opts.noSpeakers ? new Lowsper.SpeakerTracker(an) : null;
+  const mic = an && an.hasSpeaker && !opts.noSpeakers ? new Lowsper.MicVoice(an) : null;
+  const micSims = [];
   const V = Lowsper.Vocabulary;
   const transcript = new Lowsper.Transcript({ glossary, title: opts.title, vocab: opts.vocab, sources: ['me', 'others'] });
   const blocks = [];
   let ms = 0;
+  // Les deux sources sont traitées dans l'ordre chronologique des passages, comme en réunion
+  const queue = [];
   for (const ch of ['me', 'others']) {
     const audio = toF32(HEBDO[ch]);
-    const segs = [];
-    const s = new Lowsper.Segmenter((b) => segs.push(b), { vad: an ? { run: (x) => an.vad(ch, x) } : null });
+    const s = new Lowsper.Segmenter((b) => queue.push({ ch, b }), { vad: an ? { run: (x) => an.vad(ch, x) } : null });
     for (let i = 0; i < audio.length; i += 4096) await s.push(audio.subarray(i, i + 4096), false);
     await s.flush();
-    for (const b of segs) {
+  }
+  queue.sort((x, y) => x.b.start - y.b.start);
+  const busy = queue.filter((q) => q.ch === 'others').flatMap((q) => Lowsper.speechIntervals(q.b));
+  for (const { ch, b } of queue) {
+    {
       const keep = b.audio.slice();
       const prompt = V ? V.prompt({ title: opts.title, glossary: transcript.fullGlossary(), context: opts.context ? transcript.contextFor(ch, b.start) : '' }) : glossary;
       const r = await tr.transcribe(b.audio, 'fr', prompt, (b.map || []).map((m) => m.at));
       ms += r.ms;
       blocks.push({ ch, dur: +(keep.length / 16000).toFixed(1), ms: Math.round(r.ms), capped: r.capped, retried: r.retried });
       const voices = tracker && ch === 'others' ? await tracker.label(keep, r.chunks, b) : null;
-      transcript.addSegment(ch, b, r, voices);
+      let embs = null;
+      if (mic && ch === 'me') {
+        embs = await mic.embed(keep, r.chunks, b);
+        embs.forEach((e, i) => micSims.push({ at: Lowsper.blockTime(b, r.chunks[i].from || 0), to: Lowsper.blockTime(b, r.chunks[i].to != null ? r.chunks[i].to : (keep.length / 16000)), e, text: r.chunks[i].text }));
+      }
+      transcript.addSegment(ch, b, r, voices, { embs });
     }
   }
   if (tracker) transcript.applyVoiceMap(tracker.finalize());
   window.SPK_ITEMS = tracker ? tracker.items.map((it) => ({ emb: Array.from(it.emb), dur: it.dur, at: it.at })) : [];
-  return { items: window.SPK_ITEMS, lines: transcript.lines.map((l) => ({ ...l, speaker: l.voice != null ? transcript.speakerName(l) : null })), blocks, ms, markdown: transcript.toMarkdown() };
+  // similarité finale (empreinte complète) de chaque phrase du micro, pour le réglage du seuil
+  if (mic) {
+    window.ECHO_REMOVED = transcript.removeVoiceEcho(mic, busy);
+    window.MIC_DEBUG = { busy, items: mic.items.map((it) => ({ from: it.from, to: it.to, emb: Array.from(it.emb) })) };
+    const c = mic.centroid(busy);
+    for (const m of micSims) { m.sim = m.e && c ? m.e.reduce((n, x, k) => n + x * c[k], 0) : null; delete m.e; }
+  }
+  window.MIC_SIMS = micSims;
+  return { micDebug: window.MIC_DEBUG, echoRemoved: window.ECHO_REMOVED || 0, micSims, items: window.SPK_ITEMS, lines: transcript.lines.map((l) => ({ ...l, speaker: l.voice != null ? transcript.speakerName(l) : null })), blocks, ms, markdown: transcript.toMarkdown() };
 };
 </script>`
 );
@@ -122,7 +144,7 @@ for (const t of truth) {
   sumCov += cov;
   if (cov < 0.7) missed.push(`${t.who} [${t.start}s] ${(cov * 100).toFixed(0)} % : ${t.ref.slice(0, 70)}`);
 }
-const report = { corpus: name, modele: modelId, glossaire: useGlossary, vocabulaire: opts.vocab.join(',') || 'aucun', titre: !!opts.title, contexte: opts.context, vad: opts.energy ? 'volume' : 'silero' };
+const report = { corpus: name, echo_micro: opts.echo, modele: modelId, glossaire: useGlossary, vocabulaire: opts.vocab.join(',') || 'aucun', titre: !!opts.title, contexte: opts.context, vad: opts.energy ? 'volume' : 'silero' };
 for (const ch of ['me', 'others']) {
   const ref = truth.filter((t) => t.channel === ch).map((t) => t.ref).join(' ');
   const hyp = res.lines.filter((l) => l.source === ch).map((l) => l.text).join(' ');
@@ -167,10 +189,26 @@ if (res.lines.some((l) => l.speaker)) {
   report.intervenants_detectes = byLabel.size + ' (réels : ' + new Set(truth.filter((t) => t.channel === 'others').map((t) => t.who)).size + ')';
   report.purete_intervenants = ((ok / all) * 100).toFixed(0) + ' %';
 }
+{
+  // Écho : phrases attribuées à « Vous » alors que seul le participant parlait à ce moment-là
+  const inside = (who, a, b) => truth.some((t) => (who === 'me' ? t.channel === 'me' : t.channel === 'others') && a < t.end + 0.3 && b > t.start - 0.3);
+  const meLines = res.lines.filter((l) => l.source === 'me');
+  const echo = meLines.filter((l) => !inside('me', l.start, l.end) && inside('others', l.start, l.end));
+  report.echo_attribue_a_vous = echo.length + ' phrase(s) sur ' + meLines.length;
+  report.echo_retire_par_la_voix = res.echoRemoved;
+  if (opts.echo || process.argv.includes('--mic-sims')) {
+    for (const m of res.micSims) {
+      const own = inside('me', m.at, m.to);
+      console.log(`  micro ${m.at.toFixed(1)}s ${own ? 'VOUS ' : 'ÉCHO '} sim=${m.sim == null ? '-' : m.sim.toFixed(2)} ${m.text.slice(0, 60)}`);
+    }
+    for (const l of echo) console.log('  écho restant : ' + l.text.slice(0, 80));
+  }
+}
 console.log(JSON.stringify(report, null, 1));
 console.log('Termes manqués : ' + tMissed.join(', '));
 console.log('Répliques mal captées :\n  ' + missed.join('\n  '));
 console.log('Blocs : ' + res.blocks.map((b) => `${b.ch}:${b.dur}s/${(b.ms / 1000).toFixed(1)}s${b.capped ? ' TRONQUÉ' : ''}${b.retried ? ' relu' : ''}`).join('  '));
 await writeFile(join(out, `${name}-embeddings${variant}.json`), JSON.stringify(res.items));
+if (res.micDebug) await writeFile(join(out, `${name}-micro${opts.echo ? '-echo' : ''}.json`), JSON.stringify(res.micDebug));
 await writeFile(join(out, `${name}-${modelId}${device ? '-' + device : ''}.md`), res.markdown);
 console.log(`(durée totale du banc ${((Date.now() - t0) / 1000).toFixed(0)} s)`);

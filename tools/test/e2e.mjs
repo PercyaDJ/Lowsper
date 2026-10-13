@@ -221,11 +221,27 @@ for (let waited = 0; waited < meetingSeconds; waited += 2) {
 const draftsDuring = await page.evaluate(() => (LowsperApp.transcript ? LowsperApp.transcript.draftCount() : 0) + LowsperApp.drafts.length);
 console.log(`Passages pris en charge par la voie rapide : ${draftsDuring}`);
 console.log(`File d'attente maximale pendant la réunion : ${maxBacklog} passage(s)`);
+// Comme un appel Teams : la mini-fenêtre s'ouvre d'elle-même au démarrage (si le navigateur le permet)
+const pipAuto = await page.evaluate(() => !!LowsperApp.pip);
+const pipSize = pipAuto ? await page.evaluate(() => [LowsperApp.pip.innerWidth, LowsperApp.pip.innerHeight, !!LowsperApp.pip.document.getElementById('stop')]) : null;
+console.log('Mini-fenêtre ouverte au démarrage : ' + (pipAuto ? `oui (${pipSize[0]} x ${pipSize[1]})` : 'non (navigateur sans mini-fenêtre)'));
+if (pipAuto) await page.evaluate(() => LowsperApp.closePip());
+await page.waitForTimeout(300);
 await page.screenshot({ path: join(out, '3-enregistrement.png') });
 // Fenêtre réduite : les boutons doivent rester visibles sans défiler
 await page.setViewportSize({ width: 360, height: 460 });
 await page.waitForTimeout(300);
 await page.screenshot({ path: join(out, '3b-fenetre-reduite.png') });
+// Fenêtre très basse : Lowsper devient une simple barre, comme la mini-fenêtre
+await page.setViewportSize({ width: 360, height: 110 });
+await page.waitForTimeout(300);
+await page.screenshot({ path: join(out, '3c-barre.png') });
+const barOk = await page.evaluate(() => {
+  const r = document.getElementById('stop').getBoundingClientRect();
+  return document.body.classList.contains('mini') && r.bottom <= window.innerHeight && r.width > 0;
+});
+await page.setViewportSize({ width: 360, height: 460 });
+await page.waitForTimeout(300);
 const compactOk = await page.evaluate(() => {
   const r = document.getElementById('stop').getBoundingClientRect();
   return r.bottom <= window.innerHeight && r.right <= window.innerWidth && r.width > 0;
@@ -269,6 +285,9 @@ const checks = [
   ['plusieurs intervenants distingués', /Intervenant 2/.test(md)],
   ['aucune requête réseau après installation', network.length === 0],
   ['bouton Terminer visible en fenêtre réduite', compactOk],
+  ['fenêtre très basse : barre façon appel Teams', barOk],
+  // (taille non vérifiable sans écran : le navigateur de test donne à la mini-fenêtre la taille de la page)
+  ['mini-fenêtre ouverte au démarrage, avec les commandes', !pipAuto || pipSize[2]],
   ['le moteur suit le rythme (file <= 3)', maxBacklog <= 3],
   ['passages rapides tous retranscrits ensuite', draftsLeft === 0],
 ];
