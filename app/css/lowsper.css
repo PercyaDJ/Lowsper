@@ -174,6 +174,9 @@ input[type="text"]:focus, select:focus { border-color: var(--accent); box-shadow
 .options summary { cursor: pointer; color: var(--muted); font-size: 14px; width: max-content; }
 .options-grid { display: grid; gap: 14px; margin-top: 14px; grid-template-columns: 1fr; }
 
+.howto-box { margin-top: 14px; }
+.howto-box summary { cursor: pointer; color: var(--muted); font-size: 13.5px; }
+.howto-box .howto { margin-top: 8px; }
 .howto { margin: 18px 0 0; padding-left: 20px; color: var(--muted); font-size: 13.5px; }
 .howto li { margin: 4px 0; }
 .howto strong { color: var(--text); font-weight: 600; }
@@ -341,21 +344,47 @@ textarea { resize: vertical; min-height: 64px; font: inherit; }
   .rec-core .row.actions .btn { min-width: 0; }
 }
 
-/* Mini-fenêtre (Document Picture-in-Picture) */
-body.pip { min-height: 0; background: var(--surface); }
-body.pip .rec-core { padding: 10px 12px; }
-body.pip .rec-head { margin-bottom: 8px; }
-body.pip .timer { font-size: 22px; }
-body.pip .meters { gap: 6px; margin-bottom: 8px; }
-body.pip .meter { grid-template-columns: 78px 1fr; font-size: 12.5px; }
-body.pip .meter .state { display: none; }
-body.pip .last-line { display: -webkit-box; font-size: 12.5px; }
-body.pip .queue { display: none; }
-body.pip .notice { font-size: 12px; padding: 6px 8px; margin-bottom: 8px; }
-body.pip .row.actions { margin-top: 6px; display: flex; flex-wrap: nowrap; gap: 6px; }
-body.pip .row.actions #stop { order: 0; }
-body.pip .row.actions .btn { flex: 1; padding: 7px 8px; font-size: 13px; }
-body.pip #pip { display: none; }
+/* Icônes des boutons d'enregistrement */
+.btn .ico { width: 14px; height: 14px; fill: currentColor; flex: none; }
+#pause .i-play, #pause.paused .i-pause { display: none; }
+#pause.paused .i-play { display: inline; }
+
+/* Barre mini : mini-fenêtre (Document Picture-in-Picture) et fenêtre très basse.
+   Comme un appel Teams réduit : point rouge et durée, niveaux des deux sources, pause et
+   fin en icônes, et la dernière phrase transcrite en dessous. */
+body.mini { min-height: 0; background: var(--surface); }
+body.pip { overflow: hidden; }
+body.mini .consent, body.mini .top, body.mini .foot, body.mini .feed, body.mini .pip-placeholder { display: none !important; }
+body.mini main { padding: 0; margin: 0; max-width: none; }
+body.mini .card { border: 0; box-shadow: none; padding: 0; border-radius: 0; background: transparent; }
+body.mini .rec-core {
+  display: grid;
+  grid-template-columns: auto minmax(60px, 1fr) auto;
+  grid-template-areas: 'head meters actions' 'notice notice notice' 'line line line';
+  align-items: center;
+  gap: 4px 10px;
+  padding: 8px 10px 6px;
+}
+body.mini .rec-head { grid-area: head; margin: 0; gap: 8px; justify-content: flex-start; }
+body.mini .rec-status { gap: 6px; }
+body.mini #rec-label { display: none; }
+body.mini .rec-dot { width: 10px; height: 10px; }
+body.mini .timer { font-size: 17px; letter-spacing: 0; }
+body.mini .meters { grid-area: meters; gap: 4px; margin: 0; }
+body.mini .meter { grid-template-columns: 46px 1fr; gap: 6px; font-size: 10.5px; }
+body.mini .meter .who { font-size: 0; }
+body.mini .meter .who::after { content: attr(data-short); font-size: 10.5px; font-weight: 500; color: var(--muted); }
+body.mini .meter .bar { height: 5px; }
+body.mini .meter .state { display: none; }
+body.mini .notice { grid-area: notice; margin: 0; font-size: 11.5px; padding: 3px 6px; }
+body.mini .last-line { grid-area: line; display: block; margin: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.mini .queue { display: none; }
+body.mini .row.actions { grid-area: actions; margin: 0; display: flex; flex-wrap: nowrap; gap: 6px; }
+body.mini .row.actions .btn { flex: none; width: 34px; height: 30px; padding: 0; justify-content: center; border-radius: 8px; }
+body.mini .row.actions .lbl { display: none; }
+body.mini .row.actions #stop { order: 0; width: 40px; }
+body.mini #pip { display: none; }
+body.mini:not(.pip) #pip { display: inline-flex; }
 
 .fine code, .folder code { font-size: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; word-break: break-all; }
 .folder { margin: -6px 0 14px; }
@@ -437,7 +466,7 @@ body.pip #pip { display: none; }
 .field-row { display: flex; gap: 12px; align-items: flex-end; }
 .field-row .field { margin-bottom: 18px; }
 .field-row .grow { flex: 1; min-width: 0; }
-.field-row .people { width: 150px; flex: none; }
+.field-row .people { width: 110px; flex: none; }
 input[type="number"] { font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; outline: none; width: 100%; }
 input[type="number"]:focus { border-color: var(--accent); }
 @media (max-width: 480px) { .field-row .people { width: 110px; } }
