@@ -225,6 +225,18 @@ console.log(`File d'attente maximale pendant la réunion : ${maxBacklog} passage
 const pipAuto = await page.evaluate(() => !!LowsperApp.pip);
 const pipSize = pipAuto ? await page.evaluate(() => [LowsperApp.pip.innerWidth, LowsperApp.pip.innerHeight, !!LowsperApp.pip.document.getElementById('stop')]) : null;
 console.log('Mini-fenêtre ouverte au démarrage : ' + (pipAuto ? `oui (${pipSize[0]} x ${pipSize[1]})` : 'non (navigateur sans mini-fenêtre)'));
+// Les boutons de la mini-fenêtre répondent (vrai clic de souris dans la mini-fenêtre)
+let pipClickOk = !pipAuto;
+if (pipAuto) {
+  const pipPage = context.pages().find((p) => p !== page);
+  if (pipPage) {
+    await pipPage.click('#pause', { timeout: 5000 }).catch(() => {});
+    const paused = await page.evaluate(() => LowsperApp.capture.paused);
+    await pipPage.click('#pause', { timeout: 5000 }).catch(() => {});
+    const resumed = await page.evaluate(() => !LowsperApp.capture.paused);
+    pipClickOk = paused && resumed;
+  }
+}
 if (pipAuto) await page.evaluate(() => LowsperApp.closePip());
 await page.waitForTimeout(300);
 await page.screenshot({ path: join(out, '3-enregistrement.png') });
@@ -267,6 +279,18 @@ const draftsLeft = await page.evaluate(() => LowsperApp.transcript.draftCount())
 console.log(`Passages « rapides » restant à améliorer : ${draftsLeft}`);
 console.log('----- ' + download.suggestedFilename() + ' -----\n' + md + '-----');
 
+// Corriger un mot partout : remplacé dans l'aperçu, retenu pour les réunions suivantes
+await page.click('#fixer summary');
+await page.fill('#fix-wrong', 'tickets');
+await page.fill('#fix-right', 'demandes');
+await page.click('#fix-apply');
+await page.waitForTimeout(300);
+const fixOk = await page.evaluate(() => /demandes/.test(document.getElementById('preview').textContent) &&
+  JSON.parse(localStorage.getItem('lowsper.fixes') || '[]').some(([w, r]) => w === 'tickets' && r === 'demandes'));
+const suspects = await page.evaluate(() => [...document.querySelectorAll('#fix-suspects button')].map((b) => b.textContent));
+console.log('Mots à vérifier proposés : ' + suspects.join(', '));
+await page.screenshot({ path: join(out, '4b-corriger.png'), fullPage: true });
+
 // Thème sombre
 await page.emulateMedia({ colorScheme: 'dark' });
 await page.waitForTimeout(500);
@@ -288,8 +312,10 @@ const checks = [
   ['fenêtre très basse : barre façon appel Teams', barOk],
   // (taille non vérifiable sans écran : le navigateur de test donne à la mini-fenêtre la taille de la page)
   ['mini-fenêtre ouverte au démarrage, avec les commandes', !pipAuto || pipSize[2]],
+  ['boutons de la mini-fenêtre : pause puis reprise au clic', pipClickOk],
   ['le moteur suit le rythme (file <= 3)', maxBacklog <= 3],
   ['passages rapides tous retranscrits ensuite', draftsLeft === 0],
+  ['corriger un mot partout, correction retenue', fixOk],
 ];
 let ok = true;
 for (const [name, pass] of checks) {

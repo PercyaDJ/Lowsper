@@ -662,6 +662,49 @@ sont pas jugées (empreinte trop peu fiable).
 Non vérifiable ici : l'ouverture automatique de la mini-fenêtre dépend des règles d'activation du
 navigateur, que le navigateur sans écran des tests ne reproduit pas.
 
+### 15.17 Retour terrain : boutons bloqués après une heure, mots mal compris, barre encore plus petite
+
+**1. Boutons qui ne répondent plus (réunion d'une heure, mini-fenêtre).** Cause exacte non prouvée
+(pas de journal du poste), mais une cause mesurée suffit à l'expliquer : le regroupement des voix
+en direct (§15.15), qui tourne sur la page elle-même toutes les 45 s, prenait **2,5 à 2,8 s** de
+calcul après une heure de réunion (simulation, sur la machine de test ; davantage sur un portable
+occupé par Teams et la transcription). Pendant ce temps, la page et la mini-fenêtre sont figées :
+un clic tombe dans le vide ou arrive en retard, et deux clics rapides sur « Pause » s'annulent.
+Corrections :
+- regroupement en direct allégé (240 tours de parole au lieu de 900) : **0,2 à 0,3 s** après une
+  heure, même nombre de voix trouvé (2 et 6) ; le regroupement final, une seule fois à la fin,
+  garde le calcul complet ; un test vérifie le budget (moins d'une seconde) ;
+- « Terminer » ne peut plus être bloqué : fermeture de la mini-fenêtre et arrêt de la capture
+  protégés (au pire 10 s d'attente), retour des commandes dans la page sécurisé ;
+- bouton **« Terminer la réunion » de secours dans la page principale**, toujours présent quand
+  la mini-fenêtre est ouverte, indépendant d'elle ;
+- test de bout en bout : vrais clics de souris dans la mini-fenêtre (pause puis reprise).
+Autre cause possible, hors de portée du code : la mise en veille des onglets par Edge (« onglets
+en veille », mode efficacité). À surveiller si le blocage se reproduit.
+
+**2. Mini-fenêtre sur une seule ligne.** 300 x 48 pixels : point rouge et durée, deux fines
+barres (micro et réunion, détail au survol), pause, flèche, fin. La flèche déplie une deuxième
+ligne (dernière phrase, avis) ; elle se colore quand un avis attend d'être lu.
+
+**3. Mots mal compris.** Dans l'extrait transmis, les erreurs portent surtout sur des noms propres
+et du jargon interne que Whisper ne peut pas connaître : noms de projets et de clients, sigles
+maison (« Edity Carchivage », « Trackfine », « Cossack », « Clésia »...). Aucun modèle ne les
+devinera ; le levier est de les lui apprendre, et de le faire sans effort :
+- **« Corriger un mot partout »** sur l'écran de fin : mot mal reconnu, bonne écriture, et le
+  transcript est corrigé partout ; la correction est **retenue** (appliquée d'office aux réunions
+  suivantes) et le bon mot rejoint le glossaire (Whisper l'écrira directement la fois suivante) ;
+- **« À vérifier »** : Lowsper propose les noms propres probables les plus rares (une majuscule en
+  milieu de phrase, absents du glossaire). Sur le transcript Schneider, il propose « Siver »,
+  « Schneller », « Roche Nédaire », « BIOCRM », « Hydro », « Corée » : exactement les mots déformés.
+  Un clic pré-remplit la correction ;
+- corrections apprises visibles et supprimables dans les paramètres, conservées avec les réglages
+  (copie dans le dossier, §15.16) ;
+- vocabulaires enrichis : BIA, PSSI, matrice de conformité, sensibilisation (cybersécurité) ; RAO,
+  appel d'offres, TMA (gestion de projet). Écarté : « PAS » (plan d'assurance sécurité), qui
+  aurait mis en majuscules chaque « pas » de la langue française.
+Je n'ai pas deviné les termes ambigus de l'extrait (« Cossack », « Edity Carchivage ») : la bonne
+écriture doit venir de l'utilisateur.
+
 ## 16. Limites connues et pistes d'évolution
 
 1. **Mesures sur machine réelle** : vitesses mesurées sur un conteneur lent sans carte graphique,

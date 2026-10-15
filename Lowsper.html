@@ -81,6 +81,10 @@
             <input type="checkbox" id="autopip" checked>
             <span>Réduire Lowsper en mini-fenêtre dès le début de l'enregistrement</span>
           </label>
+        <div class="field inline" id="fixes-field" hidden>
+            <span>Corrections apprises <em>(appliquées automatiquement)</em></span>
+            <div class="fix-chips" id="fix-chips"></div>
+          </div>
         <p class="fine saved-line" id="settings-saved"></p>
         <button class="btn ghost small" id="settings-keep" hidden>Conserver mes réglages dans le dossier Lowsper</button>
       </section>
@@ -220,12 +224,12 @@
         </div>
 
         <div class="meters">
-          <div class="meter" id="meter-me">
+          <div class="meter" id="meter-me" title="Vous (micro)">
             <span class="who" data-short="Vous">Vous</span>
             <span class="bar"><i></i></span>
             <span class="state"></span>
           </div>
-          <div class="meter" id="meter-others">
+          <div class="meter" id="meter-others" title="Réunion (son partagé)">
             <span class="who" data-short="Réunion">Participants</span>
             <span class="bar"><i></i></span>
             <span class="state"></span>
@@ -245,6 +249,9 @@
             <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="8" y="8" width="5" height="4" rx=".8"/></svg>
             <span class="lbl">Mini-fenêtre</span>
           </button>
+          <button class="btn ghost" id="pip-more" title="Afficher ou masquer la dernière phrase">
+            <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
           <button class="btn danger" id="stop" title="Terminer la réunion et produire le transcript">
             <span class="sq"></span><span class="lbl">Terminer</span>
           </button>
@@ -252,7 +259,11 @@
       </div>
       <div class="pip-placeholder" id="pip-placeholder" hidden>
         <p>L'enregistrement est piloté depuis la <strong>mini-fenêtre</strong>.</p>
-        <button class="btn" id="pip-back">Revenir ici</button>
+        <div class="row center-row">
+          <button class="btn" id="pip-back">Revenir ici</button>
+          <!-- Toujours disponible ici, même si la mini-fenêtre ne répond plus -->
+          <button class="btn danger" id="stop-main"><span class="sq"></span> Terminer la réunion</button>
+        </div>
       </div>
 
       <div class="feed" id="live" aria-live="polite">
@@ -282,6 +293,17 @@
         <p class="fine">Donnez un nom aux voix que vous reconnaissez : le transcript est mis à jour (pensez à le retélécharger).</p>
         <div id="voice-list"></div>
       </div>
+      <details class="fixer" id="fixer">
+        <summary>Corriger un mot mal reconnu, partout et pour les prochaines réunions</summary>
+        <div class="fixer-row">
+          <input id="fix-wrong" type="text" maxlength="80" placeholder="Mal reconnu (ex. Edity Carchivage)" autocomplete="off" spellcheck="false">
+          <span class="arrow" aria-hidden="true">→</span>
+          <input id="fix-right" type="text" maxlength="80" placeholder="Bonne écriture" autocomplete="off" spellcheck="false">
+          <button class="btn small" id="fix-apply">Corriger</button>
+        </div>
+        <div class="fix-chips suspects" id="fix-suspects"></div>
+        <p class="fine">Lowsper retient la correction : elle s'appliquera toute seule aux réunions suivantes, et le bon mot rejoint vos sigles et noms propres.</p>
+      </details>
       <div class="row next">
         <button class="btn primary-soft" id="next-meeting"><span class="rec-dot"></span> Démarrer la réunion suivante</button>
         <button class="btn ghost" id="again">Retour à l'accueil</button>
