@@ -491,6 +491,11 @@ await test('corriger un mot partout : remplacé dans le transcript et appliqué 
   const t2 = new L.Transcript({ fixes: [['Mira Bello', 'Mirabelle'], ['Trivelle', 'TRIVEL']] });
   t2.addSegment('me', seg, { chunks: [{ from: 0, to: 5, text: 'Une RAO pour Trivelle et Mira-Bello.' }] });
   assert.equal(t2.lines[0].text, 'Une RAO pour TRIVEL et Mirabelle.');
+  // Corrections confirmées par l'utilisateur (saisies à l'avance dans les paramètres)
+  const mine = [['Kalmar', 'CALMAR'], ['Mira Bello', 'Mirabelle'], ['Trivelle', 'TRIVEL'], ['Ostrale', 'Austral']];
+  const t3 = new L.Transcript({ fixes: mine });
+  t3.addSegment('others', seg, { chunks: [{ from: 0, to: 5, text: 'Il y a un Kalmar pour Mira Bello, une RAO TriVelle et Ostrale.' }] });
+  assert.equal(t3.lines[0].text, 'Il y a un CALMAR pour Mirabelle, une RAO TRIVEL et Austral.');
 });
 
 await test("regroupement des voix en direct : jamais plus d'une seconde de calcul, même après 1 h", async () => {
