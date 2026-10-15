@@ -26,7 +26,8 @@
         'ANSSI, EBIOS RM, SSI, RSSI, CISO, SOC, CSIRT, CERT, SIEM, EDR, PKI, Active Directory, NTLM, ' +
         'Kerberos, Kerberoasting, pass-the-hash, ORADAD, PingCastle, gMSA, SMBv1, EternalBlue, WannaCry, ' +
         'AppLocker, WDAC, CRL, OCSP, RSA, CSPN, CRA, NIS 2, DORA, ISO 27001, HDS, RGPD, II 901, ' +
-        'Diffusion Restreinte, homologation, MCO, MCS, tiering, pentest, ransomware, MFA, IAM, PAM',
+        'Diffusion Restreinte, homologation, MCO, MCS, tiering, pentest, ransomware, MFA, IAM, PAM, ' +
+        'BIA, PSSI, matrice de conformité, sensibilisation',
       fixes: [
         [/\b([Ll]['’]\s?)(?:NSI|NCI|ANSI|ANC|ANSII)\b/g, '$1ANSSI'],
         [/\b(?:NTRM|NTM|NTLN)\b/g, 'NTLM'],
@@ -51,7 +52,7 @@
       label: 'Gestion de projet',
       terms:
         'COPIL, COMEX, CODIR, KPI, ROI, RACI, PMO, MOA, MOE, recette, jalon, livrable, roadmap, ' +
-        'planning, Agile, Scrum, go/no-go, RETEX, budget, arbitrage',
+        'planning, Agile, Scrum, go/no-go, RETEX, budget, arbitrage, RAO, appel d\'offres, TMA',
       fixes: [],
     },
   };
@@ -77,14 +78,35 @@
     return out.join(', ');
   }
 
-  /** Corrige les déformations connues des vocabulaires cochés. */
-  function fix(text, ids) {
+  // Expression d'un mot ou groupe de mots entier, sans tenir compte de la casse ni des accents
+  // proches (« edity carchivage », « Edity Carchivage »).
+  function wordPattern(wrong) {
+    const esc = String(wrong).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '[\\s-]+');
+    return new RegExp('(^|[^\\p{L}\\p{N}])(' + esc + ')(?![\\p{L}\\p{N}])', 'giu');
+  }
+
+  /** Remplace un mot ou groupe de mots entier. Retourne { text, count }. */
+  function replaceWord(text, wrong, right) {
+    let count = 0;
+    const out = String(text).replace(wordPattern(wrong), (m, before) => {
+      count++;
+      return before + right;
+    });
+    return { text: out, count };
+  }
+
+  /**
+   * Corrige les déformations connues : celles des vocabulaires cochés, puis vos propres
+   * corrections (« Edity Carchivage » -> « Éditique archivage »), apprises à la fin des réunions.
+   */
+  function fix(text, ids, userFixes) {
     let out = text;
     for (const id of ids || []) {
       const p = PRESETS[id];
       if (!p) continue;
       for (const [re, rep] of p.fixes) out = out.replace(re, rep);
     }
+    for (const [wrong, right] of userFixes || []) if (wrong && right) out = replaceWord(out, wrong, right).text;
     return out;
   }
 
@@ -100,5 +122,5 @@
     return parts.join(' ');
   }
 
-  Lowsper.Vocabulary = { PRESETS, merge, fix, prompt };
+  Lowsper.Vocabulary = { PRESETS, merge, fix, prompt, replaceWord };
 })();

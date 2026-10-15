@@ -172,7 +172,10 @@
      *    rattachées à la plus proche (bruit, rires, paroles simultanées).
      * @returns {Map<number, number>} clé de phrase -> voix finale
      */
-    finalize() {
+    finalize(opts) {
+      // En cours de réunion, calcul allégé (moins de tours de parole) : le regroupement tourne
+      // sur la page elle-même, il ne doit jamais la figer plus d'une fraction de seconde.
+      const maxSegments = (opts && opts.maxSegments) || CFG.maxSegments;
       const items = this.items;
       if (!items.length) return new Map();
       const dim = items[0].emb.length;
@@ -199,7 +202,7 @@
         }
       });
       // Réunion très longue : on regroupe deux à deux les tours voisins pour borner le calcul
-      while (segs.length > CFG.maxSegments) {
+      while (segs.length > maxSegments) {
         const next = [];
         for (let i = 0; i < segs.length; i += 2) {
           const a = segs[i];

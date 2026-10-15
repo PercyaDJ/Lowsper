@@ -35,6 +35,10 @@
     /^(\.|,|!|\?|…|\s)*$/,
     /^(musique|music|applaudissements|rires|silence)$/,
   ];
+  // Mots courants souvent écrits avec une majuscule après une virgule (pas des noms propres)
+  const COMMON = new Set(
+    "donc c'est et mais alors voilà oui non ok okay bon bah ben ah oh après moi toi lui je tu il elle on nous vous ils elles ça ca pour parce enfin puis ensuite sinon bref quand comme est-ce est d'accord merci bonjour salut exactement effectivement tout tous très".split(' ')
+  );
   const HALLUCINATION_ONLY = [/^merci\.?$/, /^thank you\.?$/, /^bye\.?$/, /^au revoir\.?$/];
 
   function normalizeText(t) {
@@ -269,7 +273,7 @@
       chunks.forEach((c, i) => {
         const glossary = this.fullGlossary();
         const raw = collapseRepeats(String(c.text || '').trim());
-        const fixed = Lowsper.Vocabulary ? Lowsper.Vocabulary.fix(raw, this.meta.vocab) : raw;
+        const fixed = Lowsper.Vocabulary ? Lowsper.Vocabulary.fix(raw, this.meta.vocab, this.meta.fixes) : raw;
         const text = fixCase(fixAcronyms(fixed, glossary), glossary);
         if (!text || isHallucination(text, seg.speech, glossary)) return;
         // Whisper qui récite le nom de la réunion (donné en contexte)
@@ -291,6 +295,44 @@
       this.lines.sort((a, b) => a.start - b.start);
       this.removeEcho();
       this.emit();
+    }
+
+    /** Remplace un mot mal reconnu dans tout le transcript. Retourne le nombre de remplacements. */
+    replaceEverywhere(wrong, right) {
+      if (!Lowsper.Vocabulary || !String(wrong).trim()) return 0;
+      let n = 0;
+      for (const l of this.lines) {
+        const r = Lowsper.Vocabulary.replaceWord(l.text, wrong, right);
+        if (r.count) {
+          l.text = r.text;
+          n += r.count;
+        }
+      }
+      if (n) this.emit();
+      return n;
+    }
+
+    /**
+     * Mots à vérifier : noms propres probables (majuscule en milieu de phrase) absents du
+     * glossaire. Ce sont eux que Whisper déforme le plus (« Trackfine », « Cossack »...).
+     */
+    suspectWords(max = 12) {
+      const known = new Set(
+        this.fullGlossary().split(/[,;\n]+/).flatMap((t) => t.trim().toLowerCase().split(/\s+/)).filter(Boolean)
+      );
+      const count = new Map();
+      for (const l of this.lines) {
+        const words = l.text.split(/\s+/);
+        for (let i = 1; i < words.length; i++) {
+          if (/[.!?…:]$/.test(words[i - 1])) continue; // début de phrase
+          const w = words[i].replace(/^[«"'(]+|[»"'),.;:!?…]+$/g, '');
+          if (!/^\p{Lu}[\p{L}\p{N}'-]{2,}$/u.test(w) || /^\p{Lu}+$/u.test(w) && w.length <= 3) continue;
+          if (known.has(w.toLowerCase()) || COMMON.has(w.toLowerCase())) continue;
+          count.set(w, (count.get(w) || 0) + 1);
+        }
+      }
+      // Les déformations sont rares (1 à 3 fois) ; un nom bien reconnu revient souvent
+      return [...count].sort((a, b) => a[1] - b[1]).slice(0, max).map(([w]) => w);
     }
 
     /** Glossaire personnel complété par les vocabulaires métier cochés. */
