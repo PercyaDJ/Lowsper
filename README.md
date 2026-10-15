@@ -103,6 +103,8 @@ modèle, sinon via le bouton « Conserver mes réglages dans le dossier Lowsper 
 Whisper ne peut pas connaître votre jargon. À la fin de la réunion, utilisez « Corriger un mot mal
 reconnu » : le mot est corrigé partout, et Lowsper retient la correction pour les réunions
 suivantes. La liste « À vérifier » propose les noms propres douteux : un clic suffit pour commencer.
+Si vous connaissez déjà les déformations, entrez-les à l'avance dans les paramètres (« Mots que
+Whisper déforme », ex. `Cossack` → `COSEC`).
 
 **Les boutons de la mini-fenêtre ne répondent pas.**
 Utilisez le bouton « Terminer la réunion » de la page principale de Lowsper : il fonctionne même si

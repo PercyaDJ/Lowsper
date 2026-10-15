@@ -702,8 +702,12 @@ devinera ; le levier est de les lui apprendre, et de le faire sans effort :
 - vocabulaires enrichis : BIA, PSSI, matrice de conformité, sensibilisation (cybersécurité) ; RAO,
   appel d'offres, TMA (gestion de projet). Écarté : « PAS » (plan d'assurance sécurité), qui
   aurait mis en majuscules chaque « pas » de la langue française.
-Je n'ai pas deviné les termes ambigus de l'extrait (« Cossack », « Edity Carchivage ») : la bonne
-écriture doit venir de l'utilisateur.
+Je n'ai pas deviné les termes ambigus de l'extrait : la bonne écriture est venue de l'utilisateur
+(« Cossack » = COSEC, « Edity Carchivage » = Editique & Archivage, « Trackfine » = Tracfin,
+« Clésia » = Klesia ; « de la thé » reste indécis : TMA ou AT). Ce sont ses projets et ses clients :
+ils vont dans ses réglages, pas dans les vocabulaires intégrés partagés. Pour les saisir sans
+attendre la fin d'une réunion, les paramètres permettent désormais d'ajouter une correction à
+l'avance (« Mots que Whisper déforme »).
 
 ## 16. Limites connues et pistes d'évolution
 
