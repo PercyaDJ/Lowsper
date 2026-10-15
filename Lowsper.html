@@ -81,8 +81,14 @@
             <input type="checkbox" id="autopip" checked>
             <span>Réduire Lowsper en mini-fenêtre dès le début de l'enregistrement</span>
           </label>
-        <div class="field inline" id="fixes-field" hidden>
-            <span>Corrections apprises <em>(appliquées automatiquement)</em></span>
+        <div class="field inline" id="fixes-field">
+            <span>Mots que Whisper déforme <em>(corrigés automatiquement dans chaque transcript)</em></span>
+            <div class="fixer-row">
+              <input id="set-fix-wrong" type="text" maxlength="80" placeholder="Mal reconnu (ex. Kalmar)" autocomplete="off" spellcheck="false">
+              <span class="arrow" aria-hidden="true">→</span>
+              <input id="set-fix-right" type="text" maxlength="80" placeholder="Bonne écriture (ex. CALMAR)" autocomplete="off" spellcheck="false">
+              <button class="btn small" id="set-fix-add" type="button">Ajouter</button>
+            </div>
             <div class="fix-chips" id="fix-chips"></div>
           </div>
         <p class="fine saved-line" id="settings-saved"></p>
