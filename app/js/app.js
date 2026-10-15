@@ -282,6 +282,87 @@
       });
   }
 
+  // Corrections apprises (« Mira Bello » -> « Mirabelle »), conservées comme les réglages
+  function learnedFixes() {
+    try {
+      const v = JSON.parse(store.get('lowsper.fixes') || '[]');
+      return Array.isArray(v) ? v.filter((x) => Array.isArray(x) && x.length === 2) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function applyFix() {
+    const t = app.transcript;
+    const wrong = $('fix-wrong').value.trim();
+    const right = $('fix-right').value.trim().replace(/[*_`\[\]]/g, '');
+    if (!t || !wrong || !right || wrong.toLowerCase() === right.toLowerCase()) return;
+    const n = t.replaceEverywhere(wrong, right);
+    const fixes = learnedFixes().filter(([w]) => w.toLowerCase() !== wrong.toLowerCase());
+    fixes.push([wrong, right]);
+    store.set('lowsper.fixes', JSON.stringify(fixes.slice(-200)));
+    // Le bon mot rejoint le glossaire : Whisper l'écrira directement la prochaine fois
+    const terms = $('glossary').value.split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean);
+    if (!terms.some((x) => x.toLowerCase() === right.toLowerCase())) {
+      terms.push(right);
+      $('glossary').value = terms.join(', ');
+      store.set('lowsper.glossary', $('glossary').value);
+    }
+    app.finalMarkdown = t.toMarkdown();
+    $('preview').textContent = app.finalMarkdown;
+    $('fix-wrong').value = '';
+    $('fix-right').value = '';
+    $('fix-wrong').focus();
+    renderFixes();
+    renderSuspects();
+    toast(
+      (n ? `${n} remplacement${n > 1 ? 's' : ''} dans ce transcript (retéléchargez le fichier). ` : 'Mot absent de ce transcript. ') +
+        'Correction retenue pour les prochaines réunions.',
+      6000
+    );
+    // Copie dans le dossier Lowsper (clic = geste de l'utilisateur)
+    L.Settings.save({ interactive: true }).then(renderSaved).catch(() => {});
+  }
+
+  // Écran de fin : noms propres probables à vérifier, un clic pré-remplit la correction
+  function renderSuspects() {
+    const box = $('fix-suspects');
+    box.replaceChildren();
+    if (!app.transcript) return;
+    for (const w of app.transcript.suspectWords()) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = w;
+      b.addEventListener('click', () => {
+        $('fix-wrong').value = w;
+        $('fix-right').focus();
+      });
+      box.appendChild(b);
+    }
+  }
+
+  function renderFixes() {
+    const fixes = learnedFixes();
+    $('fixes-field').hidden = !fixes.length;
+    const box = $('fix-chips');
+    box.replaceChildren();
+    for (const [wrong, right] of fixes) {
+      const chip = document.createElement('span');
+      chip.className = 'fix-chip';
+      chip.textContent = `${wrong} → ${right}`;
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.title = 'Oublier cette correction';
+      del.textContent = '×';
+      del.addEventListener('click', () => {
+        store.set('lowsper.fixes', JSON.stringify(learnedFixes().filter(([w]) => w !== wrong)));
+        renderFixes();
+      });
+      chip.appendChild(del);
+      box.appendChild(chip);
+    }
+  }
+
   function selectedVocab() {
     return [...document.querySelectorAll('#vocab-list input:checked')].map((b) => b.value);
   }
@@ -298,7 +379,7 @@
     if (Date.now() - (tracker.regroupedAt || 0) < 45000) return;
     tracker.regroupedAt = Date.now();
     try {
-      t.applyVoiceMap(tracker.finalize());
+      t.applyVoiceMap(tracker.finalize({ maxSegments: 240 }));
     } catch (e) {
       console.warn('Regroupement des voix en direct impossible', e);
     }
@@ -414,6 +495,7 @@
       language: $('language').value,
       glossary: $('glossary').value.trim(),
       vocab: selectedVocab(),
+      fixes: learnedFixes(),
       model: app.modelLabel,
       sources: [],
     });
@@ -615,9 +697,20 @@
     }
     app.transcript.meta.endedAt = Date.now();
     clearInterval(app.timer);
-    if (app.pip) closePip();
+    // Rien ne doit empêcher de terminer : chaque étape est protégée
+    try {
+      if (app.pip) closePip();
+    } catch (e) {
+      console.warn('Fermeture de la mini-fenêtre', e);
+      app.pip = null;
+    }
     setState('finishing');
-    await app.capture.stop(); // termine les segments en cours -> file d'attente
+    try {
+      // termine les segments en cours -> file d'attente (10 s au plus)
+      await Promise.race([app.capture.stop(), new Promise((r) => setTimeout(r, 10000))]);
+    } catch (e) {
+      console.warn('Arrêt de la capture', e);
+    }
     app.capture = null;
     releaseWakeLock();
     pump();
@@ -663,6 +756,7 @@
       ' Le fichier a été enregistré dans votre dossier Téléchargements.';
     $('preview').textContent = app.finalMarkdown;
     renderVoices();
+    renderSuspects();
     setState('done');
     renderDrafts();
     download(app.finalMarkdown, app.transcript.fileName());
@@ -930,7 +1024,8 @@
     let win;
     try {
       // Taille d'un appel Teams réduit : une barre, la dernière phrase en dessous
-      win = await window.documentPictureInPicture.requestWindow({ width: 340, height: 96 });
+      // Une seule ligne, comme un appel Teams réduit (la flèche déplie la dernière phrase)
+      win = await window.documentPictureInPicture.requestWindow({ width: 300, height: 48 });
     } catch (e) {
       if (!quiet) toast("La mini-fenêtre n'a pas pu s'ouvrir : " + e.message, 6000);
       return;
@@ -941,7 +1036,7 @@
     link.href = new URL('app/css/lowsper.css', location.href).href;
     win.document.head.appendChild(link);
     win.document.title = 'Lowsper';
-    win.document.body.className = 'pip mini';
+    win.document.body.className = 'pip mini' + (document.body.classList.contains('expanded') ? ' expanded' : '');
     win.document.body.appendChild($('rec-core'));
     $('pip-placeholder').hidden = false;
     app.pip = win;
@@ -950,12 +1045,16 @@
   }
 
   function closePip() {
-    const core = app.pip && app.pip.document.getElementById('rec-core');
-    const view = $('view-rec');
-    view.insertBefore(core || $('rec-core'), view.firstChild);
-    $('pip-placeholder').hidden = true;
     const w = app.pip;
     app.pip = null;
+    try {
+      const core = (w && !w.closed && w.document.getElementById('rec-core')) || $('rec-core');
+      const view = $('view-rec');
+      if (core) view.insertBefore(document.adoptNode(core), view.firstChild);
+    } catch (e) {
+      console.warn('Retour des commandes dans la page', e);
+    }
+    $('pip-placeholder').hidden = true;
     updateMini();
     try {
       if (w && !w.closed) w.close();
@@ -1236,6 +1335,7 @@
   // Roue crantée : panneau Paramètres, accessible à tout moment
   const openSettings = () => {
     renderMemory();
+    renderFixes();
     const d = $('settings');
     if (!d.open) d.showModal();
   };
@@ -1323,9 +1423,15 @@
   }
   $('glossary').value = store.get('lowsper.glossary') || '';
   $('glossary').addEventListener('input', (e) => store.set('lowsper.glossary', e.target.value));
+  $('fix-apply').addEventListener('click', applyFix);
+  $('fix-right').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') applyFix();
+  });
+  renderFixes();
   $('start').addEventListener('click', start);
   $('pause').addEventListener('click', togglePause);
   $('stop').addEventListener('click', stop);
+  $('stop-main').addEventListener('click', stop);
   $('download').addEventListener('click', () => download(app.finalMarkdown, app.transcript.fileName()));
   $('copy').addEventListener('click', () => copy(app.finalMarkdown));
   $('copy-ai').addEventListener('click', () => copy(AI_PROMPT + app.finalMarkdown));
@@ -1335,6 +1441,17 @@
     start(); // le clic sert de geste utilisateur pour le partage d'écran
   });
   $('pip').addEventListener('click', () => openPip());
+  // Flèche de la barre : déplie ou replie la deuxième ligne (dernière phrase, avis)
+  $('pip-more').addEventListener('click', () => {
+    const bodies = [document.body, app.pip && app.pip.document.body].filter(Boolean);
+    const on = !document.body.classList.contains('expanded');
+    for (const b of bodies) b.classList.toggle('expanded', on);
+    if (app.pip) {
+      try {
+        app.pip.resizeTo(app.pip.outerWidth, app.pip.outerHeight + (on ? 40 : -40));
+      } catch {}
+    }
+  });
   $('pip-back').addEventListener('click', closePip);
   $('title').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') start();
