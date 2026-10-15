@@ -292,12 +292,12 @@
     }
   }
 
-  function applyFix() {
-    const t = app.transcript;
-    const wrong = $('fix-wrong').value.trim();
-    const right = $('fix-right').value.trim().replace(/[*_`\[\]]/g, '');
-    if (!t || !wrong || !right || wrong.toLowerCase() === right.toLowerCase()) return;
-    const n = t.replaceEverywhere(wrong, right);
+  // Retient une correction (mal reconnu -> bonne écriture) ; le bon mot rejoint le glossaire.
+  // Retourne false si la saisie est incomplète.
+  function learnFix(wrong, right) {
+    wrong = String(wrong || '').trim();
+    right = String(right || '').trim().replace(/[*_`\[\]]/g, '');
+    if (!wrong || !right || wrong.toLowerCase() === right.toLowerCase()) return false;
     const fixes = learnedFixes().filter(([w]) => w.toLowerCase() !== wrong.toLowerCase());
     fixes.push([wrong, right]);
     store.set('lowsper.fixes', JSON.stringify(fixes.slice(-200)));
@@ -308,12 +308,30 @@
       $('glossary').value = terms.join(', ');
       store.set('lowsper.glossary', $('glossary').value);
     }
+    renderFixes();
+    return true;
+  }
+
+  // Paramètres : ajouter une correction à l'avance, sans attendre la fin d'une réunion
+  function addFixFromSettings() {
+    if (!learnFix($('set-fix-wrong').value, $('set-fix-right').value)) return;
+    $('set-fix-wrong').value = '';
+    $('set-fix-right').value = '';
+    $('set-fix-wrong').focus();
+  }
+
+  // Écran de fin : corriger dans le transcript et retenir pour la suite
+  function applyFix() {
+    const t = app.transcript;
+    const wrong = $('fix-wrong').value.trim();
+    const right = $('fix-right').value.trim().replace(/[*_`\[\]]/g, '');
+    if (!t || !learnFix(wrong, right)) return;
+    const n = t.replaceEverywhere(wrong, right);
     app.finalMarkdown = t.toMarkdown();
     $('preview').textContent = app.finalMarkdown;
     $('fix-wrong').value = '';
     $('fix-right').value = '';
     $('fix-wrong').focus();
-    renderFixes();
     renderSuspects();
     toast(
       (n ? `${n} remplacement${n > 1 ? 's' : ''} dans ce transcript (retéléchargez le fichier). ` : 'Mot absent de ce transcript. ') +
@@ -343,7 +361,6 @@
 
   function renderFixes() {
     const fixes = learnedFixes();
-    $('fixes-field').hidden = !fixes.length;
     const box = $('fix-chips');
     box.replaceChildren();
     for (const [wrong, right] of fixes) {
@@ -1424,6 +1441,10 @@
   $('glossary').value = store.get('lowsper.glossary') || '';
   $('glossary').addEventListener('input', (e) => store.set('lowsper.glossary', e.target.value));
   $('fix-apply').addEventListener('click', applyFix);
+  $('set-fix-add').addEventListener('click', addFixFromSettings);
+  $('set-fix-right').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addFixFromSettings();
+  });
   $('fix-right').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') applyFix();
   });

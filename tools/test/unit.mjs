@@ -491,6 +491,11 @@ await test('corriger un mot partout : remplacé dans le transcript et appliqué 
   const t2 = new L.Transcript({ fixes: [['Edity Carchivage', 'Éditique archivage'], ['Trackfine', 'Tracfin']] });
   t2.addSegment('me', seg, { chunks: [{ from: 0, to: 5, text: 'Une RAO pour Trackfine et Edity-Carchivage.' }] });
   assert.equal(t2.lines[0].text, 'Une RAO pour Tracfin et Éditique archivage.');
+  // Corrections confirmées par l'utilisateur (saisies à l'avance dans les paramètres)
+  const mine = [['Cossack', 'COSEC'], ['Edity Carchivage', 'Editique & Archivage'], ['Trackfine', 'Tracfin'], ['Clésia', 'Klesia']];
+  const t3 = new L.Transcript({ fixes: mine });
+  t3.addSegment('others', seg, { chunks: [{ from: 0, to: 5, text: 'Il y a un Cossack pour Edity Carchivage, une RAO TrackFine et Clésia.' }] });
+  assert.equal(t3.lines[0].text, 'Il y a un COSEC pour Editique & Archivage, une RAO Tracfin et Klesia.');
 });
 
 await test("regroupement des voix en direct : jamais plus d'une seconde de calcul, même après 1 h", async () => {
