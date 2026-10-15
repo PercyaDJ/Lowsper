@@ -36,8 +36,8 @@ un transcript Markdown horodaté, prêt à être confié à une IA pour rédiger
    - le navigateur propose un **partage d'écran** : choisissez l'écran entier (ou l'onglet de la
      réunion) et **cochez « Partager l'audio »**. Seul le son est utilisé, rien n'est filmé ;
    - autorisez le **micro**.
-   Lowsper se réduit aussitôt en **mini-fenêtre** : une petite barre toujours visible (durée,
-   niveaux, pause, fin), comme un appel Teams réduit.
+   Lowsper se réduit aussitôt en **mini-fenêtre** : une barre d'une ligne toujours visible (durée,
+   niveaux, pause, fin), comme un appel Teams réduit. La flèche affiche la dernière phrase.
 7. En fin de réunion, cliquez sur **« Terminer »** (carré rouge). Le fichier `.md` est enregistré
    dans vos Téléchargements. Le bouton **« Copier pour une IA »** copie le transcript précédé
    d'une consigne de compte rendu.
@@ -99,6 +99,16 @@ une copie dans son dossier (`app\reglages.txt`) et la restaure tout seul au lanc
 Il faut avoir autorisé Lowsper une fois à écrire dans le dossier : c'est fait à l'installation du
 modèle, sinon via le bouton « Conserver mes réglages dans le dossier Lowsper » des paramètres.
 
+**Des mots sont mal compris (noms de projets, de clients, sigles maison).**
+Whisper ne peut pas connaître votre jargon. À la fin de la réunion, utilisez « Corriger un mot mal
+reconnu » : le mot est corrigé partout, et Lowsper retient la correction pour les réunions
+suivantes. La liste « À vérifier » propose les noms propres douteux : un clic suffit pour commencer.
+
+**Les boutons de la mini-fenêtre ne répondent pas.**
+Utilisez le bouton « Terminer la réunion » de la page principale de Lowsper : il fonctionne même si
+la mini-fenêtre est bloquée. Le texte déjà transcrit n'est jamais perdu (il est proposé au
+lancement suivant si le navigateur se ferme).
+
 **Le modèle est retéléchargé à chaque fois.**
 Vérifiez que Lowsper n'est pas ouvert directement depuis le zip (clic droit sur le zip, « Extraire
 tout »). Après avoir téléchargé une nouvelle version de Lowsper, copiez le dossier `app\models`
@@ -129,7 +139,7 @@ restent sur votre poste, sont effacées automatiquement après 1, 3 ou 6 mois, e
 effacées à tout moment.
 
 **Comment garder Lowsper visible pendant la visio ?**
-Par défaut, Lowsper se réduit en mini-fenêtre dès le démarrage : une barre de 340 x 96 pixels,
+Par défaut, Lowsper se réduit en mini-fenêtre dès le démarrage : une barre de 300 x 48 pixels,
 toujours au premier plan, à placer où vous voulez. Si le navigateur ne l'a pas ouverte (il exige
 parfois un clic), utilisez le bouton « Mini-fenêtre ». Vous pouvez aussi réduire la hauteur de la
 fenêtre de Lowsper : elle devient la même barre. Réglable dans les paramètres.

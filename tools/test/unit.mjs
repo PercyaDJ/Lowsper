@@ -472,6 +472,36 @@ await test("micro = une seule voix : l'écho des haut-parleurs est retiré, jama
   assert.equal(t2.removeVoiceEcho(new L.MicVoice(fake)), 0);
 });
 
+await test('corriger un mot partout : remplacé dans le transcript et appliqué aux réunions suivantes', () => {
+  const t = new L.Transcript({});
+  const seg = { start: 0, end: 20, speech: 20 };
+  t.addSegment('others', seg, { chunks: [
+    { from: 0, to: 5, text: "Le dernier projet suivi, c'était Mira Bello." },
+    { from: 6, to: 10, text: 'Il y a un Kalmar pour mira bello ?' },
+    { from: 11, to: 15, text: 'Les éditions et le bello ne changent pas.' },
+  ] });
+  assert.equal(t.replaceEverywhere('Mira Bello', 'Mirabelle'), 2);
+  assert.equal(t.lines[0].text, "Le dernier projet suivi, c'était Mirabelle.");
+  assert.equal(t.lines[1].text, 'Il y a un Kalmar pour Mirabelle ?');
+  assert.equal(t.lines[2].text, 'Les éditions et le bello ne changent pas.', 'mots entiers seulement');
+  const sus = Array.from(t.suspectWords());
+  assert.ok(sus.includes('Kalmar'), 'nom propre douteux proposé : ' + sus.join(', '));
+  assert.ok(!sus.includes('Les') && !sus.includes('Il'), 'pas les débuts de phrase');
+  // réunion suivante : correction apprise appliquée d'office
+  const t2 = new L.Transcript({ fixes: [['Mira Bello', 'Mirabelle'], ['Trivelle', 'TRIVEL']] });
+  t2.addSegment('me', seg, { chunks: [{ from: 0, to: 5, text: 'Une RAO pour Trivelle et Mira-Bello.' }] });
+  assert.equal(t2.lines[0].text, 'Une RAO pour TRIVEL et Mirabelle.');
+});
+
+await test("regroupement des voix en direct : jamais plus d'une seconde de calcul, même après 1 h", async () => {
+  const { tr } = await simulateMeeting(6, 60, 1.6);
+  const t0 = performance.now();
+  const m = tr.finalize({ maxSegments: 240 });
+  const ms = performance.now() - t0;
+  assert.ok(ms < 1000, `${ms.toFixed(0)} ms (la page serait figée et les boutons ne répondraient plus)`);
+  assert.equal(new Set(m.values()).size, 6);
+});
+
 if (failed) {
   console.log(`\n${failed} test(s) en échec`);
   process.exit(1);
