@@ -507,6 +507,26 @@ await test("regroupement des voix en direct : jamais plus d'une seconde de calcu
   assert.equal(new Set(m.values()).size, 6);
 });
 
+await test('couverture : la parole non transcrite est comptée et signalée, jamais perdue en silence', () => {
+  const t = new L.Transcript({ sources: ['me', 'others'] });
+  const a = { start: 0, end: 20, speech: 18 };
+  const b = { start: 540, end: 560, speech: 15 };
+  t.markQueued('others', a);
+  t.markQueued('others', b);
+  t.addSegment('others', a, { chunks: [{ from: 0, to: 5, text: 'On a trente minutes, ça va être rapide.' }] });
+  t.markDone('others', a);
+  t.markGap('others', b);
+  let md = t.toMarkdown();
+  assert.match(md, /\*\*Couverture\*\* : 55 % de la parole détectée transcrite ; 15 s de parole/);
+  assert.match(md, /_\[00:09:00 à 00:09:20\] Passage non transcrit \(Participants\)/);
+  // relance réussie à la fin : le trou disparaît
+  t.addSegment('others', b, { chunks: [{ from: 0, to: 5, text: 'Et malgré tout ce travail ?' }] });
+  t.markDone('others', b);
+  md = t.toMarkdown();
+  assert.match(md, /\*\*Couverture\*\* : toute la parole détectée a été transcrite/);
+  assert.ok(!/non transcrit/.test(md));
+});
+
 if (failed) {
   console.log(`\n${failed} test(s) en échec`);
   process.exit(1);
