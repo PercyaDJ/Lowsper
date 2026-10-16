@@ -297,6 +297,47 @@
       this.emit();
     }
 
+    // --- Couverture : part de la parole détectée qui a bien été transcrite ---
+
+    coverage() {
+      this.meta.coverage = this.meta.coverage || {};
+      return this.meta.coverage;
+    }
+
+    /** Un passage de parole part vers le moteur. */
+    markQueued(source, seg) {
+      const c = this.coverage();
+      c[source] = c[source] || { speech: 0, done: 0 };
+      c[source].speech += seg.speech || seg.end - seg.start;
+    }
+
+    /** Le passage est transcrit (ou relancé avec succès : son éventuel trou disparaît). */
+    markDone(source, seg) {
+      const c = this.coverage();
+      c[source] = c[source] || { speech: 0, done: 0 };
+      c[source].done += seg.speech || seg.end - seg.start;
+      if (this.meta.gaps) this.meta.gaps = this.meta.gaps.filter((g) => !(g.source === source && g.start === seg.start));
+      this.save();
+    }
+
+    /** Passage impossible à transcrire malgré les relances : signalé dans le transcript. */
+    markGap(source, seg) {
+      this.meta.gaps = this.meta.gaps || [];
+      this.meta.gaps.push({ source, start: seg.start, end: seg.end, speech: seg.speech || seg.end - seg.start });
+      this.emit();
+    }
+
+    /** Part de la parole transcrite (1 = tout), et secondes de parole manquantes. */
+    coverageSummary() {
+      let speech = 0;
+      let done = 0;
+      for (const c of Object.values(this.coverage())) {
+        speech += c.speech;
+        done += Math.min(c.done, c.speech);
+      }
+      return { ratio: speech ? done / speech : 1, missing: Math.max(0, speech - done), speech };
+    }
+
     /** Remplace un mot mal reconnu dans tout le transcript. Retourne le nombre de remplacements. */
     replaceEverywhere(wrong, right) {
       if (!Lowsper.Vocabulary || !String(wrong).trim()) return 0;
@@ -559,6 +600,14 @@
       if (m.people) out.push(`- **Participants** : ${m.people} personnes (vous compris)`);
       out.push(`- **Langue** : ${langs[m.language] || m.language}`);
       out.push(`- **Transcription** : ${m.model || 'Whisper'}, exécuté localement par Lowsper (hors ligne)`);
+      const cov = this.coverageSummary();
+      if (cov.speech > 0) {
+        out.push(
+          cov.missing < 1
+            ? '- **Couverture** : toute la parole détectée a été transcrite'
+            : `- **Couverture** : ${Math.round(cov.ratio * 100)} % de la parole détectée transcrite ; ${fmtDur(cov.missing)} de parole n'ont pas pu l'être (passages signalés ci-dessous)`
+        );
+      }
       if (m.glossary) out.push(`- **Vocabulaire de référence** (sigles et noms propres attendus) : ${m.glossary.replace(/\s+/g, ' ')}`);
       const vocab = (m.vocab || []).map((id) => Lowsper.Vocabulary && Lowsper.Vocabulary.PRESETS[id] && Lowsper.Vocabulary.PRESETS[id].label).filter(Boolean);
       if (vocab.length) out.push(`- **Domaine** : ${vocab.join(', ').toLowerCase()}`);
@@ -582,12 +631,15 @@
 
       const events = this.paragraphs().map((p) => ({ t: p.start, p }));
       for (const pause of m.pauses) events.push({ t: pause.from, pause });
+      for (const gap of m.gaps || []) events.push({ t: gap.start, gap });
       events.sort((a, b) => a.t - b.t);
 
       if (!events.length) out.push('_Aucune parole détectée._');
       for (const e of events) {
         if (e.pause) {
           out.push(`_[${fmt(e.pause.from)} à ${fmt(e.pause.to)}] Enregistrement en pause._`);
+        } else if (e.gap) {
+          out.push(`_[${fmt(e.gap.start)} à ${fmt(e.gap.end)}] Passage non transcrit (${SPEAKERS[e.gap.source] || e.gap.source}) : le moteur a échoué sur ce passage._`);
         } else {
           out.push(`**[${fmt(e.p.start)}] ${this.speakerName(e.p)} :** ${e.p.text}`);
         }
@@ -635,6 +687,10 @@
         return null;
       }
     }
+  }
+
+  function fmtDur(sec) {
+    return sec < 90 ? `${Math.round(sec)} s` : `${Math.round(sec / 60)} min`;
   }
 
   function fmt(sec) {

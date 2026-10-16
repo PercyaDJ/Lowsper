@@ -106,6 +106,12 @@ suivantes. La liste « À vérifier » propose les noms propres douteux : un cli
 Si vous connaissez déjà les déformations, entrez-les à l'avance dans les paramètres (« Mots que
 Whisper déforme », ex. `Cossack` → `COSEC`).
 
+**Il manque des passages dans le transcript.**
+Regardez la ligne « Couverture » en haut du transcript : elle dit si toute la parole détectée a
+été transcrite. Si le moteur échoue sur un passage, Lowsper le relance sur un moteur neuf ; s'il
+échoue encore, le passage est signalé à sa place et un bouton « Réessayer ces passages » apparaît
+sur l'écran de fin. Rien n'est perdu en silence.
+
 **Les boutons de la mini-fenêtre ne répondent pas.**
 Utilisez le bouton « Terminer la réunion » de la page principale de Lowsper : il fonctionne même si
 la mini-fenêtre est bloquée. Le texte déjà transcrit n'est jamais perdu (il est proposé au

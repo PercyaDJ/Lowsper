@@ -212,6 +212,14 @@ await page.click('#settings-close');
 await page.click('#start');
 await page.waitForSelector('#view-rec:not([hidden])');
 console.log(`Réunion simulée pendant ${meetingSeconds} s...`);
+// Panne simulée du moteur au milieu de la réunion : le passage doit être relancé, pas perdu
+await page.waitForTimeout(8000);
+await page.evaluate(() => {
+  const w = LowsperApp.workers[0];
+  const real = w.transcribe.bind(w);
+  let once = true;
+  w.transcribe = (...a) => (once ? ((once = false), Promise.reject(new Error('panne simulée'))) : real(...a));
+});
 let maxBacklog = 0;
 for (let waited = 0; waited < meetingSeconds; waited += 2) {
   await page.waitForTimeout(2000);
@@ -269,6 +277,8 @@ const mdPath = join(out, download.suggestedFilename());
 await download.saveAs(mdPath);
 await page.screenshot({ path: join(out, '4-termine.png'), fullPage: true });
 const md = await readFile(mdPath, 'utf8');
+const health = await page.evaluate(() => ({ ...LowsperApp.health, failed: LowsperApp.failed.length }));
+console.log(`Santé du moteur : ${health.retried} relance(s), ${health.restarts} redémarrage(s), ${health.failed} passage(s) abandonné(s)`);
 // Laisse le temps à la retranscription précise des passages « rapides »
 for (let i = 0; i < 60; i++) {
   const left = await page.evaluate(() => LowsperApp.transcript.draftCount());
@@ -316,6 +326,7 @@ const checks = [
   ['le moteur suit le rythme (file <= 3)', maxBacklog <= 3],
   ['passages rapides tous retranscrits ensuite', draftsLeft === 0],
   ['corriger un mot partout, correction retenue', fixOk],
+  ['panne du moteur : passage relancé, toute la parole transcrite', health.retried >= 1 && health.failed === 0 && /toute la parole détectée a été transcrite/.test(md)],
 ];
 let ok = true;
 for (const [name, pass] of checks) {

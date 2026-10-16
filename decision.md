@@ -709,6 +709,38 @@ ils vont dans ses réglages, pas dans les vocabulaires intégrés partagés. Pou
 attendre la fin d'une réunion, les paramètres permettent désormais d'ajouter une correction à
 l'avance (« Mots que Whisper déforme »).
 
+### 15.18 Retour terrain : la moitié d'un entretien manquante
+
+Entretien de 22 min : transcript complet jusqu'à 9 min, puis une seule phrase isolée (14 min), puis
+plus rien. Les deux sources (micro et participants) s'arrêtent au même moment : ce n'est pas la
+capture du son, c'est le moteur.
+
+**Cause dans le code (certaine) : un échec du moteur faisait perdre le passage, en silence.**
+- L'audio d'un passage était *transféré* au moteur (plus aucune copie côté page) ; en cas
+  d'erreur, le passage était simplement abandonné (`console.error`), sans nouvel essai.
+- Le moteur en échec restait dans le circuit. Une erreur de mémoire du moteur WebAssembly le laisse
+  inutilisable : tous les passages suivants échouent à leur tour. C'est exactement le profil
+  observé (tout disparaît à partir d'un instant, sur les deux sources).
+- Le transcript ne disait rien : impossible de savoir qu'il manquait la moitié de l'entretien.
+Cause première de l'échec du moteur sur le poste (mémoire, mise en veille de l'onglet...) : non
+déterminée faute de journal ; le test d'endurance ci-dessous vise à la reproduire.
+
+**Principe adopté : ne jamais perdre un passage, et ne jamais se taire.**
+1. Le moteur reçoit une *copie* de l'audio ; l'original reste dans la file jusqu'au succès.
+2. En cas d'échec, le moteur est **remplacé par un moteur neuf** (mémoire remise à zéro) et le
+   passage repart en tête de file, jusqu'à 3 essais.
+3. **Chien de garde** : un passage sans réponse après 3 min (ou 15 fois sa durée) déclare le moteur
+   bloqué ; il est remplacé et le passage relancé.
+4. Après 3 échecs, le passage est mis de côté **avec son audio** (en mémoire seulement), signalé
+   dans le transcript à sa place (« Passage non transcrit ») et un bouton « Réessayer ces passages »
+   le relance sur l'écran de fin.
+5. **Couverture** dans l'en-tête de chaque transcript : « toute la parole détectée a été
+   transcrite », ou le pourcentage et la durée manquante. L'écran de fin le dit aussi.
+6. Test de bout en bout : panne simulée du moteur en pleine réunion, le passage est relancé et la
+   couverture reste totale.
+Test d'endurance (`tools/test/soak.mjs`) : un moteur transcrit 45 min de parole réaliste d'affilée
+pour détecter pannes et ralentissements ; résultats ci-dessous dès qu'il est terminé.
+
 ## 16. Limites connues et pistes d'évolution
 
 1. **Mesures sur machine réelle** : vitesses mesurées sur un conteneur lent sans carte graphique,
