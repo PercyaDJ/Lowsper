@@ -738,8 +738,40 @@ déterminée faute de journal ; le test d'endurance ci-dessous vise à la reprod
    transcrite », ou le pourcentage et la durée manquante. L'écran de fin le dit aussi.
 6. Test de bout en bout : panne simulée du moteur en pleine réunion, le passage est relancé et la
    couverture reste totale.
-Test d'endurance (`tools/test/soak.mjs`) : un moteur transcrit 45 min de parole réaliste d'affilée
-pour détecter pannes et ralentissements ; résultats ci-dessous dès qu'il est terminé.
+Test d'endurance (`tools/test/soak.mjs`) : un même moteur transcrit en continu des passages
+réalistes (son de visio dégradé, glossaire). Sur 45 min de parole (147 passages, 80 min de calcul) :
+**aucun échec, mémoire stable** (2,1 Go pour la page, sans dérive), vitesse stable. La panne observée chez
+l'utilisateur ne vient donc pas d'une usure progressive du moteur seul ; elle reste à attribuer
+(mémoire du poste en multitâche, mise en veille de l'onglet, moteurs supplémentaires). Quelle
+qu'en soit la cause, elle ne fait plus perdre de passage.
+
+### 15.19 Exigence : quatre réunions d'une heure d'affilée, sans temps mort ni parole perdue
+
+Rappel de l'utilisateur : l'outil devient stratégique (comptes rendus de réunion, aujourd'hui
+inexistants) seulement s'il ne manque aucune parole et s'il enchaîne une matinée de réunions ; sa
+valeur ajoutée est que tout reste sur le poste.
+
+**Enchaînement sans temps mort.** Avant : « Terminer » arrêtait le partage d'écran et le micro,
+attendait la fin des calculs, puis il fallait redémarrer et revalider le partage d'écran. Désormais
+un bouton **« Réunion suivante »** (aussi dans la mini-fenêtre) termine la réunion en cours et
+démarre la suivante **à la même seconde**, avec le même partage d'écran et le même micro : aucune
+fenêtre à revalider, aucune parole perdue entre les deux. La réunion terminée est finalisée en
+arrière-plan (derniers passages, voix, écho) puis enregistrée dans les Téléchargements ; chaque
+fichier a ses propres horodatages, ses propres intervenants et sa ligne de couverture. L'écran de
+fin liste les réunions précédentes de la session (nouveau téléchargement possible).
+
+**Qualité « niveau Teams » : ce qui est atteignable, honnêtement.**
+- La transcription de Teams tourne sur des serveurs avec de très gros modèles, sur le son avant
+  compression. Lowsper n'entend que le son tel qu'il sort des haut-parleurs (compressé).
+- Mesures : Whisper small sur le processeur fait environ 7 à 10 % de mots erronés sur le micro,
+  mais 42 % sur notre son de visio de test très dégradé (voir §15.15). C'est la limite principale.
+- Le levier est un modèle plus gros (large-v3 turbo), qui demande un processeur graphique. Les
+  Ryzen 5 de portable ont un processeur graphique **intégré** (Radeon) ; Edge peut l'utiliser
+  (WebGPU). À vérifier sur le poste : installer « Whisper small (carte graphique) » puis turbo, et
+  lancer « Mesurer la vitesse de ce PC ». Non mesurable ici (pas de processeur graphique).
+- Les noms propres et le jargon, quel que soit le modèle : glossaire, vocabulaires métier et
+  corrections apprises (§15.17).
+
 
 ## 16. Limites connues et pistes d'évolution
 

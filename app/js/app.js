@@ -144,6 +144,8 @@
   // Santé du moteur pendant la réunion : relances, passages impossibles à transcrire (audio gardé)
   app.health = { restarts: 0, retried: 0 };
   app.failed = [];
+  app.running = new Set(); // passages en cours de transcription
+  app.finished = []; // réunions déjà terminées pendant cette session (enchaînement)
   app.drafts = []; // passages transcrits par la voie rapide, à améliorer
   app.blockSeq = 0;
 
@@ -227,7 +229,8 @@
 
   function pump() {
     if (!app.engineReady) return updateQueue();
-    app.queue.sort((a, b) => a.seg.start - b.seg.start);
+    // Ordre d'arrivée (numéro de passage) : deux réunions enchaînées ont chacune leur horloge
+    app.queue.sort((a, b) => a.seg.id - b.seg.id);
     const backlog = app.queue.length;
     // Combien de moteurs principaux ont le droit de travailler en ce moment
     // Réunion terminée : le PC est libéré, la fin du transcript peut utiliser le renfort
@@ -269,6 +272,7 @@
     w.idle = false;
     w.jobs++;
     app.inFlight++;
+    app.running.add(job);
     const t = job.transcript;
     const lang = t.meta.language === 'auto' ? ['fr', 'en'] : t.meta.language;
     const tracker = job.source === 'others' ? t.tracker : null;
@@ -315,6 +319,7 @@
       .catch((err) => jobFailed(w, job, err))
       .finally(() => {
         clearTimeout(timer);
+        app.running.delete(job);
         w.idle = true;
         app.inFlight--;
         pump();
@@ -567,44 +572,17 @@
     app.warnedSlow = false;
     app.behindSince = null;
     app.loadSamples = [];
-    app.transcript = new L.Transcript({
-      title: $('title').value.trim(),
-      startedAt: Date.now(),
-      language: $('language').value,
-      glossary: $('glossary').value.trim(),
-      vocab: selectedVocab(),
-      fixes: learnedFixes(),
-      model: app.modelLabel,
-      sources: [],
-    });
-    app.transcript.onChange(renderLive);
-    app.transcript.onChange(renderDrafts);
-    app.transcript.onChange(() => {
-      if (app.state !== 'done' || !app.gapsShown) return;
-      app.finalMarkdown = app.transcript.toMarkdown();
-      $('preview').textContent = app.finalMarkdown;
-      renderGaps();
-    });
-    // Micro = une seule personne (vous) : votre voix sert à reconnaître l'écho des haut-parleurs
-    if (app.analyzer && app.analyzer.hasSpeaker) app.transcript.micVoice = new L.MicVoice(app.analyzer);
-    app.transcript.othersBusy = [];
-    if (app.analyzer && app.analyzer.hasSpeaker && $('distinguish').checked) {
-      app.transcript.tracker = new L.SpeakerTracker(app.analyzer);
-      // Nombre de personnes indiqué (vous compris) : les autres voix sont au plus n - 1
-      const people = parseInt($('people').value, 10);
-      if (people >= 2) {
-        app.transcript.tracker.expected = Math.min(29, people - 1);
-        app.transcript.meta.people = people;
-      }
-    }
+    app.transcript = createTranscript($('title').value.trim(), parseInt($('people').value, 10));
 
     app.capture = new L.Capture(
       (source, seg) => {
+        const t = app.transcript;
         seg.id = ++app.blockSeq;
+        shiftSeg(seg, t.meta.offset); // horodatage relatif au début de CETTE réunion
         // Moments où les participants parlent (pour reconnaître l'écho au micro, en fin de réunion)
-        if (source === 'others' && L.speechIntervals) app.transcript.othersBusy.push(...L.speechIntervals(seg));
-        app.queue.push({ source, seg, transcript: app.transcript, queuedAt: Date.now() });
-        app.transcript.markQueued(source, seg);
+        if (source === 'others' && L.speechIntervals) t.othersBusy.push(...L.speechIntervals(seg));
+        app.queue.push({ source, seg, transcript: t, queuedAt: Date.now() });
+        t.markQueued(source, seg);
         pump();
       },
       { analyzer: app.analyzer, emitEarly: engineIdle }
@@ -630,6 +608,130 @@
 
     app.timer = setInterval(tick, 100);
     requestWakeLock();
+  }
+
+  // Nouveau transcript de réunion, avec ses propres outils (voix, écho, couverture)
+  function createTranscript(title, people, offset) {
+    const t = new L.Transcript({
+      title,
+      startedAt: Date.now(),
+      language: $('language').value,
+      glossary: $('glossary').value.trim(),
+      vocab: selectedVocab(),
+      fixes: learnedFixes(),
+      model: app.modelLabel,
+      sources: [],
+      offset: offset || 0,
+    });
+    L.Transcript.current = t; // seule la réunion en cours est sauvegardée pour la récupération
+    t.onChange(renderLive);
+    t.onChange(renderDrafts);
+    t.onChange(() => {
+      if (app.state !== 'done' || !app.gapsShown || t !== app.transcript) return;
+      app.finalMarkdown = t.toMarkdown();
+      $('preview').textContent = app.finalMarkdown;
+      renderGaps();
+    });
+    // Micro = une seule personne (vous) : votre voix sert à reconnaître l'écho des haut-parleurs
+    if (app.analyzer && app.analyzer.hasSpeaker) t.micVoice = new L.MicVoice(app.analyzer);
+    t.othersBusy = [];
+    if (app.analyzer && app.analyzer.hasSpeaker && $('distinguish').checked) {
+      t.tracker = new L.SpeakerTracker(app.analyzer);
+      // Nombre de personnes indiqué (vous compris) : les autres voix sont au plus n - 1
+      if (people >= 2) {
+        t.tracker.expected = Math.min(29, people - 1);
+        t.meta.people = people;
+      }
+    }
+    return t;
+  }
+
+  // Temps de la réunion en cours (la capture continue d'une réunion à l'autre quand on enchaîne)
+  function meetingNow() {
+    return app.capture ? app.capture.now() - ((app.transcript && app.transcript.meta.offset) || 0) : 0;
+  }
+
+  function shiftSeg(seg, off) {
+    if (!off) return;
+    seg.start -= off;
+    seg.end -= off;
+    if (seg.map) for (const m of seg.map) m.t -= off;
+  }
+
+  /**
+   * « Réunion suivante » : la réunion en cours se termine et la suivante commence aussitôt, avec le
+   * même partage d'écran et le même micro (aucune fenêtre à revalider, aucun temps mort). La
+   * réunion terminée est finalisée en arrière-plan puis enregistrée dans les Téléchargements.
+   */
+  async function chainNext() {
+    if (app.state !== 'recording' || app.chaining) return;
+    app.chaining = true;
+    try {
+      const old = app.transcript;
+      if (app.capture.paused) togglePause();
+      // Les paroles en cours appartiennent encore à la réunion qui se termine
+      await app.capture.cut();
+      const cut = app.capture.now();
+      old.meta.endedAt = Date.now();
+      app.transcript = createTranscript('', NaN, cut);
+      for (const id of Object.keys(app.capture.sources)) if (!app.transcript.meta.sources.includes(id)) app.transcript.meta.sources.push(id);
+      app.pausedAt = null;
+      renderLive();
+      toast('Nouvelle réunion démarrée. La précédente sera enregistrée dans vos Téléchargements dès qu’elle est prête.', 6000);
+      finalizeMeeting(old)
+        .then(() => {
+          app.finished.push(old);
+          download(old.toMarkdown(), old.fileName());
+          toast(`Transcript de la réunion précédente${old.meta.title ? ' « ' + old.meta.title + ' »' : ''} enregistré dans vos Téléchargements.`, 7000);
+        })
+        .catch((e) => console.error('Finalisation de la réunion précédente', e));
+    } finally {
+      app.chaining = false;
+    }
+  }
+
+  // Passages encore à transcrire pour une réunion donnée
+  function pendingFor(t) {
+    let n = app.queue.filter((j) => j.transcript === t).length;
+    for (const j of app.running) if (j.transcript === t && !j.redo) n++;
+    return n;
+  }
+
+  /**
+   * Termine une réunion : attend ses derniers passages, regroupe les voix, retire l'écho reconnu
+   * à la voix. Utilisé à la fin (« Terminer ») et en arrière-plan quand on enchaîne.
+   */
+  async function finalizeMeeting(t, onStep) {
+    await new Promise((resolve) => {
+      const check = () => ((pendingFor(t) === 0 && app.engineReady) || app.engineError ? resolve() : setTimeout(check, 200));
+      check();
+    });
+    if (t.tracker) {
+      if (onStep) onStep('Identification des intervenants…');
+      await new Promise((r) => setTimeout(r, 30)); // laisse l'affichage se mettre à jour
+      try {
+        const tracker = t.tracker;
+        t.applyVoiceMap(tracker.finalize());
+        // Voix mémorisées : reconnaissance automatique des intervenants déjà nommés
+        if (app.memory.enabled && app.memory.count && tracker.centroids) {
+          const present = new Map([...tracker.centroids].filter(([v]) => t.lines.some((l) => l.voice === v)));
+          t.meta.recognized = [];
+          for (const [voice, name] of app.memory.match(present)) {
+            t.nameVoice(voice, name);
+            t.meta.recognized.push(voice);
+          }
+        }
+      } catch (e) {
+        console.warn('Regroupement final des voix impossible', e);
+      }
+    }
+    // Écho des haut-parleurs reconnu à la voix (micro = vous seul)
+    try {
+      t.meta.echoRemoved = t.removeVoiceEcho(t.micVoice, t.othersBusy);
+    } catch (e) {
+      console.warn('Filtrage de l’écho par la voix impossible', e);
+    }
+    t.emit();
   }
 
   function attachSource(id, stream) {
@@ -708,8 +810,7 @@
 
   function tick() {
     if (!app.capture) return;
-    const t = app.capture.now();
-    $('timer').textContent = L.formatTime(t);
+    $('timer').textContent = L.formatTime(meetingNow());
     for (const id of ['me', 'others']) {
       const el = $('meter-' + id);
       const on = !!app.capture.sources[id];
@@ -724,9 +825,9 @@
     const paused = !app.capture.paused;
     app.capture.setPaused(paused);
     if (paused) {
-      app.pausedAt = app.capture.now();
+      app.pausedAt = meetingNow();
     } else if (app.pausedAt != null) {
-      app.transcript.addPause(app.pausedAt, app.capture.now());
+      app.transcript.addPause(app.pausedAt, meetingNow());
       app.pausedAt = null;
     }
     $('pause').querySelector('.lbl').textContent = paused ? 'Reprendre' : 'Pause';
@@ -777,7 +878,7 @@
   async function stop() {
     if (app.state !== 'recording') return;
     if (app.capture.paused && app.pausedAt != null) {
-      app.transcript.meta.pauses.push({ from: app.pausedAt, to: app.capture.now() });
+      app.transcript.meta.pauses.push({ from: app.pausedAt, to: meetingNow() });
       app.pausedAt = null;
     }
     app.transcript.meta.endedAt = Date.now();
@@ -800,37 +901,7 @@
     releaseWakeLock();
     pump();
 
-    await new Promise((resolve) => {
-      const check = () => (pendingCount() === 0 && app.engineReady) || app.engineError ? resolve() : setTimeout(check, 200);
-      check();
-    });
-
-    if (app.transcript.tracker) {
-      $('finish-text').textContent = 'Identification des intervenants…';
-      await new Promise((r) => setTimeout(r, 30)); // laisse l'affichage se mettre à jour
-      try {
-        const tracker = app.transcript.tracker;
-        app.transcript.applyVoiceMap(tracker.finalize());
-        // Voix mémorisées : reconnaissance automatique des intervenants déjà nommés
-        if (app.memory.enabled && app.memory.count && tracker.centroids) {
-          const present = new Map([...tracker.centroids].filter(([v]) => app.transcript.lines.some((l) => l.voice === v)));
-          app.transcript.meta.recognized = [];
-          for (const [voice, name] of app.memory.match(present)) {
-            app.transcript.nameVoice(voice, name);
-            app.transcript.meta.recognized.push(voice);
-          }
-        }
-      } catch (e) {
-        console.warn('Regroupement final des voix impossible', e);
-      }
-    }
-    // Écho des haut-parleurs reconnu à la voix (micro = vous seul)
-    try {
-      app.transcript.meta.echoRemoved = app.transcript.removeVoiceEcho(app.transcript.micVoice, app.transcript.othersBusy);
-    } catch (e) {
-      console.warn('Filtrage de l’écho par la voix impossible', e);
-    }
-    app.transcript.emit(); // dernière sauvegarde, marquée comme terminée
+    await finalizeMeeting(app.transcript, (text) => ($('finish-text').textContent = text));
     app.finalMarkdown = app.transcript.toMarkdown();
     const paras = app.transcript.paragraphs().length;
     const minutes = Math.max(1, Math.round((app.transcript.meta.endedAt - app.transcript.meta.startedAt) / 60000));
@@ -845,6 +916,7 @@
     renderVoices();
     renderSuspects();
     renderGaps();
+    renderFinished();
     setState('done');
     renderDrafts();
     download(app.finalMarkdown, app.transcript.fileName());
@@ -870,6 +942,22 @@
     } else {
       box.hidden = true;
     }
+  }
+
+  // Écran de fin : réunions enchaînées plus tôt dans la session (nouveau téléchargement possible)
+  function renderFinished() {
+    const box = $('finished-list');
+    box.replaceChildren();
+    for (const t of app.finished) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      const d = new Date(t.meta.startedAt);
+      b.textContent = (t.meta.title || 'Réunion') + ' · ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      b.title = 'Télécharger à nouveau';
+      b.addEventListener('click', () => download(t.toMarkdown(), t.fileName()));
+      box.appendChild(b);
+    }
+    $('finished').hidden = !app.finished.length;
   }
 
   // Écran de fin : passages que le moteur n'a pas pu transcrire (audio gardé en mémoire)
@@ -960,6 +1048,7 @@
     L.Transcript.clearSaved();
     app.transcript = null;
     app.failed = [];
+    app.finished = [];
     app.gapsShown = false;
     $('gaps').hidden = true;
     app.finalMarkdown = '';
@@ -1562,6 +1651,7 @@
   $('pause').addEventListener('click', togglePause);
   $('stop').addEventListener('click', stop);
   $('stop-main').addEventListener('click', stop);
+  $('chain').addEventListener('click', chainNext);
   $('download').addEventListener('click', () => download(app.finalMarkdown, app.transcript.fileName()));
   $('copy').addEventListener('click', () => copy(app.finalMarkdown));
   $('copy-ai').addEventListener('click', () => copy(AI_PROMPT + app.finalMarkdown));

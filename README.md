@@ -106,6 +106,11 @@ suivantes. La liste « À vérifier » propose les noms propres douteux : un cli
 Si vous connaissez déjà les déformations, entrez-les à l'avance dans les paramètres (« Mots que
 Whisper déforme », ex. `Kalmar` → `CALMAR`).
 
+**J'enchaîne plusieurs réunions.**
+Bouton « Réunion suivante » (icône lecture-fin, aussi dans la mini-fenêtre) : la réunion en cours
+se termine et la suivante commence aussitôt, sans repartager l'écran. La réunion terminée est
+enregistrée dans vos Téléchargements dès qu'elle est prête, chacune dans son propre fichier.
+
 **Il manque des passages dans le transcript.**
 Regardez la ligne « Couverture » en haut du transcript : elle dit si toute la parole détectée a
 été transcrite. Si le moteur échoue sur un passage, Lowsper le relance sur un moteur neuf ; s'il
