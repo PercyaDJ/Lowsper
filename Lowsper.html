@@ -255,6 +255,10 @@
             <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="8" y="8" width="5" height="4" rx=".8"/></svg>
             <span class="lbl">Mini-fenêtre</span>
           </button>
+          <button class="btn ghost" id="chain" title="Terminer cette réunion et démarrer la suivante tout de suite, sans repartager l'écran">
+            <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3.2v9.6a.5.5 0 0 0 .8.4l6.4-4.8a.5.5 0 0 0 0-.8L3.8 2.8a.5.5 0 0 0-.8.4z"/><rect x="11" y="3" width="2" height="10" rx=".8"/></svg>
+            <span class="lbl">Réunion suivante</span>
+          </button>
           <button class="btn ghost" id="pip-more" title="Afficher ou masquer la dernière phrase">
             <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
@@ -292,6 +296,10 @@
         <button class="btn primary" id="download">Télécharger le fichier .md</button>
         <button class="btn" id="copy">Copier</button>
         <button class="btn" id="copy-ai" title="Copie le transcript précédé d'une consigne pour obtenir un compte rendu">Copier pour une IA</button>
+      </div>
+      <div class="finished" id="finished" hidden>
+        <span class="fine">Réunions précédentes de cette session (déjà dans vos Téléchargements) :</span>
+        <div class="fix-chips" id="finished-list"></div>
       </div>
       <div class="notice soft" id="drafts" hidden></div>
       <div class="notice" id="gaps" hidden><span id="gaps-text"></span> <button class="btn small" id="gaps-retry" type="button">Réessayer ces passages</button></div>

@@ -490,3 +490,6 @@ input[type="number"]:focus { border-color: var(--accent); }
 .fix-chips.suspects:empty { display: none; }
 .fix-chips.suspects::before { content: 'À vérifier :'; color: var(--muted); font-size: 12.5px; align-self: center; }
 .fix-chips.suspects button { font: inherit; font-size: 12.5px; padding: 2px 10px; border: 1px solid var(--border); border-radius: 99px; background: var(--surface); cursor: pointer; color: var(--text); }
+.finished { margin: 12px 0 0; display: grid; gap: 6px; }
+.finished .fine { margin: 0; }
+.finished button { font: inherit; font-size: 12.5px; padding: 3px 10px; border: 1px solid var(--border); border-radius: 99px; background: var(--surface); color: var(--text); cursor: pointer; }

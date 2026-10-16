@@ -662,6 +662,8 @@
     // --- Sauvegarde locale (survit à un plantage ou une fermeture accidentelle) ---
 
     save() {
+      // Deux réunions enchaînées : seule la réunion en cours est gardée pour la récupération
+      if (Transcript.current && Transcript.current !== this) return;
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ meta: this.meta, lines: this.lines }));
       } catch {}

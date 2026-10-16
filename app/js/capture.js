@@ -422,6 +422,11 @@
       return Promise.resolve(done);
     }
 
+    /** Termine les passages en cours sur toutes les sources, sans couper la capture (enchaînement). */
+    cut() {
+      return Promise.all(Object.values(this.sources).map((e) => e.segmenter.flush()));
+    }
+
     setPaused(paused) {
       this.paused = paused;
       if (paused) for (const e of Object.values(this.sources)) e.segmenter.flush();
