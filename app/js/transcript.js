@@ -608,6 +608,7 @@
             : `- **Couverture** : ${Math.round(cov.ratio * 100)} % de la parole détectée transcrite ; ${fmtDur(cov.missing)} de parole n'ont pas pu l'être (passages signalés ci-dessous)`
         );
       }
+      if (m.recovered >= 1) out.push(`- **Rattrapage** : ${fmtDur(m.recovered)} de parole manquée en direct, retrouvée et transcrite en fin de réunion`);
       if (m.glossary) out.push(`- **Vocabulaire de référence** (sigles et noms propres attendus) : ${m.glossary.replace(/\s+/g, ' ')}`);
       const vocab = (m.vocab || []).map((id) => Lowsper.Vocabulary && Lowsper.Vocabulary.PRESETS[id] && Lowsper.Vocabulary.PRESETS[id].label).filter(Boolean);
       if (vocab.length) out.push(`- **Domaine** : ${vocab.join(', ').toLowerCase()}`);

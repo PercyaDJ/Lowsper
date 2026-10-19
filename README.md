@@ -113,7 +113,10 @@ enregistrée dans vos Téléchargements dès qu'elle est prête, chacune dans so
 
 **Il manque des passages dans le transcript.**
 Regardez la ligne « Couverture » en haut du transcript : elle dit si toute la parole détectée a
-été transcrite. Si le moteur échoue sur un passage, Lowsper le relance sur un moteur neuf ; s'il
+été transcrite. Pendant la réunion, Lowsper garde le son en mémoire : en fin de réunion, il le
+relit et transcrit toute parole qui aurait échappé au direct (ligne « Rattrapage »). Si un problème
+persiste, téléchargez le « Journal technique » sur l'écran de fin (aucun texte de réunion dedans)
+et transmettez-le. Si le moteur échoue sur un passage, Lowsper le relance sur un moteur neuf ; s'il
 échoue encore, le passage est signalé à sa place et un bouton « Réessayer ces passages » apparaît
 sur l'écran de fin. Rien n'est perdu en silence.
 
@@ -170,7 +173,8 @@ travaille une bonne partie de la réunion ; le reste du PC reste disponible. Voi
 **Mes données partent-elles quelque part ?**
 Non. La seule connexion autorisée est le téléchargement du modèle depuis Hugging Face au premier
 lancement ; tout autre site est bloqué par la page elle-même. L'audio n'est jamais enregistré
-sur le disque. Seul le texte du transcript en cours est sauvegardé dans le navigateur (pour la
+sur le disque : il est seulement gardé en mémoire pendant la réunion (filet de sécurité contre les
+pertes) et effacé en quittant la page. Seul le texte du transcript en cours est sauvegardé dans le navigateur (pour la
 récupération en cas de plantage), et effacé à la réunion suivante.
 
 **Quel navigateur ?**

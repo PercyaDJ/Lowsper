@@ -773,6 +773,42 @@ fin liste les réunions précédentes de la session (nouveau téléchargement po
   corrections apprises (§15.17).
 
 
+### 15.20 Retour terrain : réunion de 1 h 30, cinq phrases transcrites
+
+Transcript d'une réunion de 90 min : 5 passages, très espacés (20, 23, 50, 63 et
+87 min). L'en-tête n'a pas de ligne « Couverture » : la réunion a tourné **sans** le correctif du
+§15.18 (pull request pas encore fusionnée), donc avec l'ancien comportement où un passage en échec
+était jeté en silence. Cause première sur le poste : toujours inconnue faute de journal.
+
+Deux autres maillons faibles trouvés en relisant la chaîne, chacun capable de perdre de la parole :
+- **Détection de parole et empreintes vocales partageaient le même processus**, avec une file
+  unique : sur un PC saturé (Teams, Office, trois moteurs de transcription), la détection de
+  parole attendait derrière le calcul des empreintes et prenait des minutes de retard.
+- **À la fin, l'arrêt n'attendait que 10 s** la fin de la détection en retard (§15.17) : tout le
+  son encore en attente était abandonné.
+
+**Principe : le son reçu est la référence, et rien ne doit dépendre d'un seul maillon.**
+1. **Analyseurs séparés** : la détection de parole a son propre processus, jamais bloqué par les
+   empreintes vocales.
+2. **Détection jamais bloquante** : sans réponse en 3 s, le morceau est découpé au seuil de volume
+   et la capture continue.
+3. **Filet de sécurité** : tout le son reçu est gardé **en mémoire** (16 kHz, 16 bits : environ
+   115 Mo par heure et par source ; jamais écrit sur le disque, effacé en quittant la page ou à la
+   réunion suivante de la session). En fin de réunion, Lowsper relit ce son, repère la parole
+   qu'aucun passage transcrit ne couvre (volume au-dessus du bruit de fond, confirmé par le
+   détecteur de parole) et la transcrit : **rattrapage**. L'en-tête l'indique (« Rattrapage :
+   X s de parole manquée en direct, retrouvée et transcrite »).
+4. **Alerte pendant la réunion** si la détection prend plus de 30 s de retard (PC saturé), en
+   précisant que rien n'est perdu.
+5. **Journal technique** téléchargeable sur l'écran de fin : déroulé de la réunion côté logiciel
+   (blocs, échecs et messages d'erreur, relances, retard de la détection, file d'attente, onglet
+   masqué ou visible, mémoire), **sans aucun texte de la réunion**. Au prochain incident, il dira
+   où la chaîne a cédé, au lieu de supposer.
+
+Test de bout en bout : 12 s de parole volontairement jetées en direct (comme un détecteur bloqué),
+plus une panne simulée du moteur, plus un enchaînement de deux réunions. Résultat : la parole jetée
+est retrouvée par le rattrapage (« Rattrapage : 9 s »), couverture totale, 20 vérifications sur 20.
+
 ## 16. Limites connues et pistes d'évolution
 
 1. **Mesures sur machine réelle** : vitesses mesurées sur un conteneur lent sans carte graphique,
