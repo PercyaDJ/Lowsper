@@ -29,6 +29,7 @@
     blockMax: 24, // Whisper traite des fenêtres de 30 s ; plus court = un passage raté contamine moins
     flushSilence: 6, // ...ou après ce délai sans parole (affichage en direct)
     earlyMin: 3, // ...ou dès 3 s de parole si un moteur est libre
+    vadTimeout: 3, // détecteur sans réponse : ce morceau passe au seuil de volume (rien n'attend)
   };
 
   // ---------------------------------------------------------------------------
@@ -109,7 +110,16 @@
         if (!n) return;
         let probs = null;
         try {
-          probs = await this.vad.run(buf.subarray(0, n));
+          // Le détecteur ne doit jamais bloquer la capture : sans réponse rapide (PC surchargé),
+          // ce morceau est découpé au seuil de volume et la suite continue.
+          probs = await Promise.race([
+            this.vad.run(buf.subarray(0, n)),
+            new Promise((r) => setTimeout(() => r('timeout'), VAD.vadTimeout * 1000)),
+          ]);
+          if (probs === 'timeout') {
+            probs = null;
+            this.vadTimeouts = (this.vadTimeouts || 0) + 1;
+          }
         } catch (e) {
           console.warn('Détecteur de parole indisponible, repli sur le seuil de volume', e);
           this.vad = null;
@@ -311,6 +321,91 @@
     registerProcessor('lowsper-tap', LowsperTap);
   `;
 
+  /**
+   * Enregistreur en mémoire d'une source : morceaux de son 16 bits horodatés. Lecture d'un
+   * intervalle quelconque, libération des morceaux anciens (réunions enchaînées).
+   */
+  class Recorder {
+    constructor(t0) {
+      this.parts = []; // { t, data: Int16Array }
+      this.t = t0; // instant de fin du dernier morceau
+    }
+
+    // Source rebranchée (partage relancé) : le temps reprend à l'heure de la capture
+    resync(now) {
+      if (now > this.t) this.t = now;
+    }
+
+    push(samples) {
+      const data = new Int16Array(samples.length);
+      for (let i = 0; i < samples.length; i++) data[i] = Math.max(-32768, Math.min(32767, Math.round(samples[i] * 32767)));
+      this.parts.push({ t: this.t, data });
+      this.t += samples.length / RATE;
+    }
+
+    end() {
+      return this.t;
+    }
+
+    read(from, to) {
+      const out = new Float32Array(Math.max(0, Math.round((to - from) * RATE)));
+      for (const p of this.parts) {
+        const pEnd = p.t + p.data.length / RATE;
+        if (pEnd <= from || p.t >= to) continue;
+        const a = Math.max(0, Math.round((from - p.t) * RATE));
+        const b = Math.min(p.data.length, Math.round((to - p.t) * RATE));
+        const at = Math.round((p.t - from) * RATE);
+        for (let i = a; i < b; i++) {
+          const k = at + i;
+          if (k >= 0 && k < out.length) out[k] = p.data[i] / 32768;
+        }
+      }
+      return out;
+    }
+
+    /** Oublie le son antérieur à un instant (mémoire libérée). */
+    trim(before) {
+      this.parts = this.parts.filter((p) => p.t + p.data.length / RATE > before);
+    }
+  }
+
+  /**
+   * Repère la parole d'un son brut qui n'a PAS été transcrite (rattrapage de fin de réunion).
+   * Trames de 32 ms au-dessus du bruit de fond, regroupées en passages (pause < 0,8 s), hors des
+   * intervalles déjà couverts. Retourne des passages { from, to, speech } en temps absolu.
+   */
+  function findUncovered(samples, t0, covered, opts) {
+    const o = Object.assign({ margin: 10, floor: -55, gap: 0.8, minSpeech: 0.8, pad: 0.3 }, opts || {});
+    const dt = FRAME / RATE;
+    const n = Math.floor(samples.length / FRAME);
+    if (!n) return [];
+    const db = new Float32Array(n);
+    for (let k = 0; k < n; k++) {
+      let e = 0;
+      for (let i = k * FRAME; i < (k + 1) * FRAME; i++) e += samples[i] * samples[i];
+      db[k] = 10 * Math.log10(e / FRAME + 1e-10);
+    }
+    const sorted = Array.from(db).sort((a, b) => a - b);
+    const noise = sorted[Math.floor(n * 0.2)];
+    const limit = Math.max(noise + o.margin, o.floor);
+    const isCovered = (t) => covered.some(([a, b]) => t >= a - o.pad && t <= b + o.pad);
+    const regions = [];
+    let cur = null;
+    for (let k = 0; k < n; k++) {
+      const t = t0 + k * dt;
+      if (db[k] <= limit || isCovered(t)) continue;
+      if (cur && t - cur.to <= o.gap) {
+        cur.to = t + dt;
+        cur.speech += dt;
+      } else {
+        if (cur) regions.push(cur);
+        cur = { from: t, to: t + dt, speech: dt };
+      }
+    }
+    if (cur) regions.push(cur);
+    return regions.filter((r) => r.speech >= o.minSpeech);
+  }
+
   class Capture {
     /**
      * @param {(source:string, seg:object) => void} onSegment
@@ -327,6 +422,22 @@
       this.sources = {}; // id -> { stream, node, segmenter, resampler }
       this.paused = false;
       this.startTime = 0;
+      // Filet de sécurité : tout le son reçu, en mémoire (16 kHz, 16 bits), pour rattraper en fin de
+      // réunion la parole que la chaîne en direct aurait manquée. Jamais écrit sur le disque.
+      this.recorders = (options && options.recorders) || {};
+    }
+
+    /** Son brut reçu d'une source entre deux instants (s, temps de la capture). */
+    audio(id, from, to) {
+      const rec = this.recorders[id];
+      return rec ? rec.read(from, to) : new Float32Array(0);
+    }
+
+    /** Retard de la détection de parole sur le son reçu (s) : PC surchargé si ça grandit. */
+    lag(id) {
+      const e = this.sources[id];
+      const rec = this.recorders[id];
+      return e && rec ? Math.max(0, rec.end() - e.segmenter.t) : 0;
     }
 
     async init() {
@@ -373,7 +484,14 @@
       // La source peut être branchée en cours de session : on aligne son horloge.
       segmenter.t = this.now();
       const entry = { stream, src, resampler, segmenter };
-      const feed = (block) => segmenter.push(resampler.process(block), this.paused);
+      if (!this.recorders[id]) this.recorders[id] = new Recorder(this.now());
+      const rec = this.recorders[id];
+      rec.resync(this.now());
+      const feed = (block) => {
+        const samples = resampler.process(block);
+        rec.push(samples);
+        return segmenter.push(samples, this.paused);
+      };
 
       if (this.useWorklet) {
         const node = new AudioWorkletNode(ctx, 'lowsper-tap', { numberOfOutputs: 0 });
@@ -420,6 +538,11 @@
       (e.stream._lowsperVideo || []).forEach((t) => t.stop());
       delete this.sources[id];
       return Promise.resolve(done);
+    }
+
+    /** Termine les passages en cours sur toutes les sources, sans couper la capture (enchaînement). */
+    cut() {
+      return Promise.all(Object.values(this.sources).map((e) => e.segmenter.flush()));
     }
 
     setPaused(paused) {
@@ -487,6 +610,8 @@
   Lowsper.Capture = Capture;
   Lowsper.Segmenter = Segmenter;
   Lowsper.blockTime = blockTime;
+  Lowsper.Recorder = Recorder;
+  Lowsper.findUncovered = findUncovered;
   /** Intervalles de parole réels [début, fin] (s) d'un bloc, d'après la détection de parole. */
   Lowsper.speechIntervals = function (block) {
     const m = block.map || [];

@@ -507,6 +507,52 @@ await test("regroupement des voix en direct : jamais plus d'une seconde de calcu
   assert.equal(new Set(m.values()).size, 6);
 });
 
+await test('couverture : la parole non transcrite est comptée et signalée, jamais perdue en silence', () => {
+  const t = new L.Transcript({ sources: ['me', 'others'] });
+  const a = { start: 0, end: 20, speech: 18 };
+  const b = { start: 540, end: 560, speech: 15 };
+  t.markQueued('others', a);
+  t.markQueued('others', b);
+  t.addSegment('others', a, { chunks: [{ from: 0, to: 5, text: 'On a trente minutes, ça va être rapide.' }] });
+  t.markDone('others', a);
+  t.markGap('others', b);
+  let md = t.toMarkdown();
+  assert.match(md, /\*\*Couverture\*\* : 55 % de la parole détectée transcrite ; 15 s de parole/);
+  assert.match(md, /_\[00:09:00 à 00:09:20\] Passage non transcrit \(Participants\)/);
+  // relance réussie à la fin : le trou disparaît
+  t.addSegment('others', b, { chunks: [{ from: 0, to: 5, text: 'Et malgré tout ce travail ?' }] });
+  t.markDone('others', b);
+  md = t.toMarkdown();
+  assert.match(md, /\*\*Couverture\*\* : toute la parole détectée a été transcrite/);
+  assert.ok(!/non transcrit/.test(md));
+});
+
+await test('filet de sécurité : le son brut est gardé et la parole jamais transcrite est retrouvée', () => {
+  const rec = new L.Recorder(0);
+  // 30 s : parole 2-8 s (transcrite en direct), parole 12-20 s (perdue en direct), silence ailleurs
+  const sr = 16000;
+  const sig = new Float32Array(30 * sr);
+  for (let i = 0; i < sig.length; i++) {
+    const t = i / sr;
+    const speaking = (t >= 2 && t < 8) || (t >= 12 && t < 20);
+    sig[i] = speaking ? 0.3 * Math.sin(2 * Math.PI * 180 * t) * (0.6 + 0.4 * Math.sin(2 * Math.PI * 3 * t)) : (Math.random() - 0.5) * 0.002;
+  }
+  for (let i = 0; i < sig.length; i += 4096) rec.push(sig.subarray(i, i + 4096));
+  assert.ok(Math.abs(rec.end() - 30) < 0.01);
+  const back = rec.read(12, 13);
+  assert.equal(back.length, sr);
+  assert.ok(Math.abs(back[100] - sig[12 * sr + 100]) < 1e-3, 'relecture fidèle');
+  const found = Array.from(L.findUncovered(rec.read(0, 30), 0, [[2, 8]]));
+  assert.equal(found.length, 1, JSON.stringify(found));
+  assert.ok(found[0].from >= 11.5 && found[0].from <= 12.5 && found[0].to >= 19.5 && found[0].to <= 20.5, JSON.stringify(found));
+  // tout couvert : rien à rattraper
+  assert.equal(L.findUncovered(rec.read(0, 30), 0, [[2, 8], [12, 20]]).length, 0);
+  // mémoire libérée après une réunion enchaînée
+  rec.trim(25);
+  assert.equal(rec.read(0, 10).some((v) => v !== 0), false);
+  assert.ok(rec.read(26, 27).length === sr);
+});
+
 if (failed) {
   console.log(`\n${failed} test(s) en échec`);
   process.exit(1);

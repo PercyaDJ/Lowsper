@@ -709,6 +709,106 @@ ils vont dans ses réglages, pas dans les vocabulaires intégrés partagés. Pou
 attendre la fin d'une réunion, les paramètres permettent désormais d'ajouter une correction à
 l'avance (« Mots que Whisper déforme »).
 
+### 15.18 Retour terrain : la moitié d'un entretien manquante
+
+Entretien de 22 min : transcript complet jusqu'à 9 min, puis une seule phrase isolée (14 min), puis
+plus rien. Les deux sources (micro et participants) s'arrêtent au même moment : ce n'est pas la
+capture du son, c'est le moteur.
+
+**Cause dans le code (certaine) : un échec du moteur faisait perdre le passage, en silence.**
+- L'audio d'un passage était *transféré* au moteur (plus aucune copie côté page) ; en cas
+  d'erreur, le passage était simplement abandonné (`console.error`), sans nouvel essai.
+- Le moteur en échec restait dans le circuit. Une erreur de mémoire du moteur WebAssembly le laisse
+  inutilisable : tous les passages suivants échouent à leur tour. C'est exactement le profil
+  observé (tout disparaît à partir d'un instant, sur les deux sources).
+- Le transcript ne disait rien : impossible de savoir qu'il manquait la moitié de l'entretien.
+Cause première de l'échec du moteur sur le poste (mémoire, mise en veille de l'onglet...) : non
+déterminée faute de journal ; le test d'endurance ci-dessous vise à la reproduire.
+
+**Principe adopté : ne jamais perdre un passage, et ne jamais se taire.**
+1. Le moteur reçoit une *copie* de l'audio ; l'original reste dans la file jusqu'au succès.
+2. En cas d'échec, le moteur est **remplacé par un moteur neuf** (mémoire remise à zéro) et le
+   passage repart en tête de file, jusqu'à 3 essais.
+3. **Chien de garde** : un passage sans réponse après 3 min (ou 15 fois sa durée) déclare le moteur
+   bloqué ; il est remplacé et le passage relancé.
+4. Après 3 échecs, le passage est mis de côté **avec son audio** (en mémoire seulement), signalé
+   dans le transcript à sa place (« Passage non transcrit ») et un bouton « Réessayer ces passages »
+   le relance sur l'écran de fin.
+5. **Couverture** dans l'en-tête de chaque transcript : « toute la parole détectée a été
+   transcrite », ou le pourcentage et la durée manquante. L'écran de fin le dit aussi.
+6. Test de bout en bout : panne simulée du moteur en pleine réunion, le passage est relancé et la
+   couverture reste totale.
+Test d'endurance (`tools/test/soak.mjs`) : un même moteur transcrit en continu des passages
+réalistes (son de visio dégradé, glossaire). Sur 45 min de parole (147 passages, 80 min de calcul) :
+**aucun échec, mémoire stable** (2,1 Go pour la page, sans dérive), vitesse stable. La panne observée chez
+l'utilisateur ne vient donc pas d'une usure progressive du moteur seul ; elle reste à attribuer
+(mémoire du poste en multitâche, mise en veille de l'onglet, moteurs supplémentaires). Quelle
+qu'en soit la cause, elle ne fait plus perdre de passage.
+
+### 15.19 Exigence : quatre réunions d'une heure d'affilée, sans temps mort ni parole perdue
+
+Rappel de l'utilisateur : l'outil devient stratégique (comptes rendus de réunion, aujourd'hui
+inexistants) seulement s'il ne manque aucune parole et s'il enchaîne une matinée de réunions ; sa
+valeur ajoutée est que tout reste sur le poste.
+
+**Enchaînement sans temps mort.** Avant : « Terminer » arrêtait le partage d'écran et le micro,
+attendait la fin des calculs, puis il fallait redémarrer et revalider le partage d'écran. Désormais
+un bouton **« Réunion suivante »** (aussi dans la mini-fenêtre) termine la réunion en cours et
+démarre la suivante **à la même seconde**, avec le même partage d'écran et le même micro : aucune
+fenêtre à revalider, aucune parole perdue entre les deux. La réunion terminée est finalisée en
+arrière-plan (derniers passages, voix, écho) puis enregistrée dans les Téléchargements ; chaque
+fichier a ses propres horodatages, ses propres intervenants et sa ligne de couverture. L'écran de
+fin liste les réunions précédentes de la session (nouveau téléchargement possible).
+
+**Qualité « niveau Teams » : ce qui est atteignable, honnêtement.**
+- La transcription de Teams tourne sur des serveurs avec de très gros modèles, sur le son avant
+  compression. Lowsper n'entend que le son tel qu'il sort des haut-parleurs (compressé).
+- Mesures : Whisper small sur le processeur fait environ 7 à 10 % de mots erronés sur le micro,
+  mais 42 % sur notre son de visio de test très dégradé (voir §15.15). C'est la limite principale.
+- Le levier est un modèle plus gros (large-v3 turbo), qui demande un processeur graphique. Les
+  Ryzen 5 de portable ont un processeur graphique **intégré** (Radeon) ; Edge peut l'utiliser
+  (WebGPU). À vérifier sur le poste : installer « Whisper small (carte graphique) » puis turbo, et
+  lancer « Mesurer la vitesse de ce PC ». Non mesurable ici (pas de processeur graphique).
+- Les noms propres et le jargon, quel que soit le modèle : glossaire, vocabulaires métier et
+  corrections apprises (§15.17).
+
+
+### 15.20 Retour terrain : réunion de 1 h 30, cinq phrases transcrites
+
+Transcript d'une réunion de 90 min : 5 passages, très espacés (20, 23, 50, 63 et
+87 min). L'en-tête n'a pas de ligne « Couverture » : la réunion a tourné **sans** le correctif du
+§15.18 (pull request pas encore fusionnée), donc avec l'ancien comportement où un passage en échec
+était jeté en silence. Cause première sur le poste : toujours inconnue faute de journal.
+
+Deux autres maillons faibles trouvés en relisant la chaîne, chacun capable de perdre de la parole :
+- **Détection de parole et empreintes vocales partageaient le même processus**, avec une file
+  unique : sur un PC saturé (Teams, Office, trois moteurs de transcription), la détection de
+  parole attendait derrière le calcul des empreintes et prenait des minutes de retard.
+- **À la fin, l'arrêt n'attendait que 10 s** la fin de la détection en retard (§15.17) : tout le
+  son encore en attente était abandonné.
+
+**Principe : le son reçu est la référence, et rien ne doit dépendre d'un seul maillon.**
+1. **Analyseurs séparés** : la détection de parole a son propre processus, jamais bloqué par les
+   empreintes vocales.
+2. **Détection jamais bloquante** : sans réponse en 3 s, le morceau est découpé au seuil de volume
+   et la capture continue.
+3. **Filet de sécurité** : tout le son reçu est gardé **en mémoire** (16 kHz, 16 bits : environ
+   115 Mo par heure et par source ; jamais écrit sur le disque, effacé en quittant la page ou à la
+   réunion suivante de la session). En fin de réunion, Lowsper relit ce son, repère la parole
+   qu'aucun passage transcrit ne couvre (volume au-dessus du bruit de fond, confirmé par le
+   détecteur de parole) et la transcrit : **rattrapage**. L'en-tête l'indique (« Rattrapage :
+   X s de parole manquée en direct, retrouvée et transcrite »).
+4. **Alerte pendant la réunion** si la détection prend plus de 30 s de retard (PC saturé), en
+   précisant que rien n'est perdu.
+5. **Journal technique** téléchargeable sur l'écran de fin : déroulé de la réunion côté logiciel
+   (blocs, échecs et messages d'erreur, relances, retard de la détection, file d'attente, onglet
+   masqué ou visible, mémoire), **sans aucun texte de la réunion**. Au prochain incident, il dira
+   où la chaîne a cédé, au lieu de supposer.
+
+Test de bout en bout : 12 s de parole volontairement jetées en direct (comme un détecteur bloqué),
+plus une panne simulée du moteur, plus un enchaînement de deux réunions. Résultat : la parole jetée
+est retrouvée par le rattrapage (« Rattrapage : 9 s »), couverture totale, 20 vérifications sur 20.
+
 ## 16. Limites connues et pistes d'évolution
 
 1. **Mesures sur machine réelle** : vitesses mesurées sur un conteneur lent sans carte graphique,

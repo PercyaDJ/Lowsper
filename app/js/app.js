@@ -83,8 +83,13 @@
       // Analyse audio : détection de parole (Silero) et empreintes vocales (WeSpeaker)
       if (assets.analysis) {
         try {
-          app.analyzer = new L.Analyzer(assets.analysis);
+          // Deux analyseurs séparés : la détection de parole (temps réel, légère) ne doit jamais
+          // attendre derrière le calcul des empreintes vocales (lourd). Sur un PC chargé, une file
+          // commune retardait la détection de plusieurs minutes, et l'audio en attente était perdu.
+          app.analyzer = new L.Analyzer({ ...assets.analysis, speaker: null });
+          app.voiceAnalyzer = assets.analysis.speaker ? new L.Analyzer(assets.analysis) : null;
           await app.analyzer.ready;
+          if (app.voiceAnalyzer) await app.voiceAnalyzer.ready.catch(() => (app.voiceAnalyzer = null));
         } catch (e) {
           console.warn("Analyse audio indisponible, repli sur la détection par volume", e);
           app.analyzer = null;
@@ -141,6 +146,22 @@
   // ---------------------------------------------------------------------------
 
   app.fastWorkers = [];
+  // Santé du moteur pendant la réunion : relances, passages impossibles à transcrire (audio gardé)
+  app.health = { restarts: 0, retried: 0 };
+  app.failed = [];
+  app.running = new Set(); // passages en cours de transcription
+  app.stats = { ok: 0, failed: 0 };
+  // Journal technique (sur ce poste uniquement, sans aucun texte de réunion) : pour comprendre
+  // un incident. Téléchargeable sur l'écran de fin.
+  app.journalLines = [];
+  function journal(type, data) {
+    const line = new Date().toISOString().slice(11, 19) + ' ' + type + (data ? ' ' + JSON.stringify(data) : '');
+    app.journalLines.push(line);
+    if (app.journalLines.length > 5000) app.journalLines.splice(0, 1000);
+  }
+  document.addEventListener('visibilitychange', () => journal('onglet', { visible: !document.hidden }));
+  window.addEventListener('error', (e) => journal('erreur-page', { message: String(e.message).slice(0, 200) }));
+  app.finished = []; // réunions déjà terminées pendant cette session (enchaînement)
   app.drafts = []; // passages transcrits par la voie rapide, à améliorer
   app.blockSeq = 0;
 
@@ -163,9 +184,32 @@
 
   function newWorker(assets) {
     const w = new L.Transcriber(assets);
+    w.assets = assets;
     w.idle = true;
+    w.jobs = 0;
     w.ready.catch(() => (w.broken = true));
     return w;
+  }
+
+  // Remplace un moteur en panne (ou usé) par un moteur neuf : mémoire remise à zéro.
+  // La file d'attente garde l'audio : rien n'est perdu pendant le redémarrage (une vingtaine de s).
+  function replaceWorker(w) {
+    const pool = app.fastWorkers.includes(w) ? app.fastWorkers : app.workers;
+    const i = pool.indexOf(w);
+    if (i < 0) return;
+    try {
+      w.dispose();
+    } catch {}
+    const fresh = newWorker(w.assets);
+    fresh.starting = true;
+    pool[i] = fresh;
+    app.health.restarts++;
+    fresh.ready
+      .then(() => {
+        fresh.starting = false;
+        pump();
+      })
+      .catch((e) => console.error('Redémarrage du moteur impossible', e));
   }
 
   // Renfort : démarre des moteurs supplémentaires (une vingtaine de secondes de préparation)
@@ -201,7 +245,8 @@
 
   function pump() {
     if (!app.engineReady) return updateQueue();
-    app.queue.sort((a, b) => a.seg.start - b.seg.start);
+    // Ordre d'arrivée (numéro de passage) : deux réunions enchaînées ont chacune leur horloge
+    app.queue.sort((a, b) => a.seg.id - b.seg.id);
     const backlog = app.queue.length;
     // Combien de moteurs principaux ont le droit de travailler en ce moment
     // Réunion terminée : le PC est libéré, la fin du transcript peut utiliser le renfort
@@ -236,18 +281,28 @@
     updateQueue();
   }
 
+  // Délai maximal d'un passage : au-delà, le moteur est considéré bloqué et remplacé
+  const jobTimeout = (job) => Math.max(180000, job.dur * 15000);
+
   function run(w, job, fast) {
     w.idle = false;
+    w.jobs++;
     app.inFlight++;
+    app.running.add(job);
     const t = job.transcript;
     const lang = t.meta.language === 'auto' ? ['fr', 'en'] : t.meta.language;
     const tracker = job.source === 'others' ? t.tracker : null;
     job.dur = job.seg.audio.length / 16000;
-    // Copies de l'audio : pour l'analyse des voix, et pour retranscrire un passage « rapide »
+    // L'audio du passage reste dans la file tant qu'il n'est pas transcrit : le moteur reçoit
+    // une copie. Si le moteur tombe en panne, le passage est relancé au lieu d'être perdu.
     const mic = job.source === 'me' && !job.redo ? t.micVoice : null;
     const keep = (tracker || mic) && !job.redo ? job.seg.audio.slice() : null;
     const keepDraft = fast ? job.seg.audio.slice() : null;
-    w.transcribe(job.seg.audio, lang, promptFor(t, job), (job.seg.map || []).map((m) => m.at))
+    let timer;
+    const watchdog = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('le moteur ne répond plus')), jobTimeout(job));
+    });
+    Promise.race([w.transcribe(job.seg.audio.slice(), lang, promptFor(t, job), (job.seg.map || []).map((m) => m.at)), watchdog])
       .then(async (res) => {
         if (!fast) recordLoad(res.ms || 0, job.dur);
         if (job.redo) {
@@ -274,12 +329,45 @@
         if (tracker) regroupLive(t, tracker);
         if (fast) app.drafts.push({ source: job.source, seg: { ...job.seg, audio: null }, transcript: t, keepDraft });
       })
-      .catch((err) => console.error('Segment non transcrit', err))
+      .then(() => {
+        if (job.redo) return;
+        t.markDone(job.source, job.seg);
+        t.covered = t.covered || {};
+        (t.covered[job.source] = t.covered[job.source] || []).push(...(job.seg.abs || []));
+        app.stats.ok++;
+      })
+      .catch((err) => jobFailed(w, job, err))
       .finally(() => {
+        clearTimeout(timer);
+        app.running.delete(job);
         w.idle = true;
         app.inFlight--;
         pump();
       });
+  }
+
+  // Échec d'un passage : le moteur est remplacé (une panne de mémoire le laisse inutilisable),
+  // le passage repart en tête de file. Après 3 essais, il est mis de côté avec son audio et
+  // signalé dans le transcript ; « Réessayer » sur l'écran de fin le relance.
+  function jobFailed(w, job, err) {
+    console.error('Passage non transcrit, essai ' + ((job.attempts || 0) + 1), err);
+    journal('échec', { source: job.source, essai: (job.attempts || 0) + 1, erreur: String((err && err.message) || err).slice(0, 200) });
+    app.stats.failed++;
+    replaceWorker(w);
+    job.attempts = (job.attempts || 0) + 1;
+    app.health.retried++;
+    if (job.redo) {
+      // Retranscription d'un passage « rapide » : la version rapide reste en place
+      if (job.attempts < 3) app.drafts.push({ ...job, seg: { ...job.seg, audio: null }, keepDraft: job.seg.audio });
+      return;
+    }
+    if (job.attempts < 3) {
+      app.queue.unshift(job);
+    } else {
+      app.failed.push(job);
+      job.transcript.markGap(job.source, job.seg);
+      if (app.state === 'recording') notice('Un passage n’a pas pu être transcrit : il sera signalé dans le transcript, et vous pourrez le relancer à la fin.');
+    }
   }
 
   // Corrections apprises (« Mira Bello » -> « Mirabelle »), conservées comme les réglages
@@ -506,46 +594,41 @@
     app.warnedSlow = false;
     app.behindSince = null;
     app.loadSamples = [];
-    app.transcript = new L.Transcript({
-      title: $('title').value.trim(),
-      startedAt: Date.now(),
-      language: $('language').value,
-      glossary: $('glossary').value.trim(),
-      vocab: selectedVocab(),
-      fixes: learnedFixes(),
-      model: app.modelLabel,
-      sources: [],
-    });
-    app.transcript.onChange(renderLive);
-    app.transcript.onChange(renderDrafts);
-    // Micro = une seule personne (vous) : votre voix sert à reconnaître l'écho des haut-parleurs
-    if (app.analyzer && app.analyzer.hasSpeaker) app.transcript.micVoice = new L.MicVoice(app.analyzer);
-    app.transcript.othersBusy = [];
-    if (app.analyzer && app.analyzer.hasSpeaker && $('distinguish').checked) {
-      app.transcript.tracker = new L.SpeakerTracker(app.analyzer);
-      // Nombre de personnes indiqué (vous compris) : les autres voix sont au plus n - 1
-      const people = parseInt($('people').value, 10);
-      if (people >= 2) {
-        app.transcript.tracker.expected = Math.min(29, people - 1);
-        app.transcript.meta.people = people;
-      }
-    }
+    app.transcript = createTranscript($('title').value.trim(), parseInt($('people').value, 10));
 
     app.capture = new L.Capture(
       (source, seg) => {
+        const t = app.transcript;
         seg.id = ++app.blockSeq;
+        const abs = L.speechIntervals ? L.speechIntervals(seg) : []; // temps de la capture
+        shiftSeg(seg, t.meta.offset); // horodatage relatif au début de CETTE réunion
+        seg.abs = abs;
+        journal('bloc', { source, s: +(seg.speech || 0).toFixed(1) });
         // Moments où les participants parlent (pour reconnaître l'écho au micro, en fin de réunion)
-        if (source === 'others' && L.speechIntervals) app.transcript.othersBusy.push(...L.speechIntervals(seg));
-        app.queue.push({ source, seg, transcript: app.transcript, queuedAt: Date.now() });
+        if (source === 'others' && L.speechIntervals) t.othersBusy.push(...L.speechIntervals(seg));
+        app.queue.push({ source, seg, transcript: t, queuedAt: Date.now() });
+        t.markQueued(source, seg);
         pump();
       },
-      { analyzer: app.analyzer, emitEarly: engineIdle }
+      { analyzer: app.analyzer, emitEarly: engineIdle, recorders: (app.recorders = {}) }
     );
     await app.capture.init();
     if (mic) attachSource('me', mic);
     if (others) attachSource('others', others);
 
     setState('recording');
+    journal('début', {
+      modèle: app.modelId,
+      puissance: store.get('lowsper.power') || 'balanced',
+      moteurs: app.workers.length,
+      coeurs: navigator.hardwareConcurrency,
+      memoire_go: navigator.deviceMemory,
+      micro: !!mic,
+      participants: !!others,
+      navigateur: navigator.userAgent.slice(0, 120),
+    });
+    app.lastHealth = 0;
+    app.warnedLag = false;
     renderLive();
     // Après quelques réunions, le mode d'emploi se replie (il reste à un clic)
     store.set('lowsper.meetings', String((Number(store.get('lowsper.meetings')) || 0) + 1));
@@ -562,6 +645,223 @@
 
     app.timer = setInterval(tick, 100);
     requestWakeLock();
+  }
+
+  // Nouveau transcript de réunion, avec ses propres outils (voix, écho, couverture)
+  function createTranscript(title, people, offset) {
+    const t = new L.Transcript({
+      title,
+      startedAt: Date.now(),
+      language: $('language').value,
+      glossary: $('glossary').value.trim(),
+      vocab: selectedVocab(),
+      fixes: learnedFixes(),
+      model: app.modelLabel,
+      sources: [],
+      offset: offset || 0,
+    });
+    L.Transcript.current = t; // seule la réunion en cours est sauvegardée pour la récupération
+    t.onChange(renderLive);
+    t.onChange(renderDrafts);
+    t.onChange(() => {
+      if (app.state !== 'done' || !app.gapsShown || t !== app.transcript) return;
+      app.finalMarkdown = t.toMarkdown();
+      $('preview').textContent = app.finalMarkdown;
+      renderGaps();
+    });
+    // Micro = une seule personne (vous) : votre voix sert à reconnaître l'écho des haut-parleurs
+    if (app.voiceAnalyzer) t.micVoice = new L.MicVoice(app.voiceAnalyzer);
+    t.othersBusy = [];
+    if (app.voiceAnalyzer && $('distinguish').checked) {
+      t.tracker = new L.SpeakerTracker(app.voiceAnalyzer);
+      // Nombre de personnes indiqué (vous compris) : les autres voix sont au plus n - 1
+      if (people >= 2) {
+        t.tracker.expected = Math.min(29, people - 1);
+        t.meta.people = people;
+      }
+    }
+    return t;
+  }
+
+  // Temps de la réunion en cours (la capture continue d'une réunion à l'autre quand on enchaîne)
+  function meetingNow() {
+    return app.capture ? app.capture.now() - ((app.transcript && app.transcript.meta.offset) || 0) : 0;
+  }
+
+  function shiftSeg(seg, off) {
+    if (!off) return;
+    seg.start -= off;
+    seg.end -= off;
+    if (seg.map) for (const m of seg.map) m.t -= off;
+  }
+
+  /**
+   * « Réunion suivante » : la réunion en cours se termine et la suivante commence aussitôt, avec le
+   * même partage d'écran et le même micro (aucune fenêtre à revalider, aucun temps mort). La
+   * réunion terminée est finalisée en arrière-plan puis enregistrée dans les Téléchargements.
+   */
+  async function chainNext() {
+    if (app.state !== 'recording' || app.chaining) return;
+    app.chaining = true;
+    try {
+      const old = app.transcript;
+      if (app.capture.paused) togglePause();
+      // Les paroles en cours appartiennent encore à la réunion qui se termine
+      await app.capture.cut();
+      const cut = app.capture.now();
+      old.meta.endedAt = Date.now();
+      old.meta.endAbs = cut;
+      app.transcript = createTranscript('', NaN, cut);
+      for (const id of Object.keys(app.capture.sources)) if (!app.transcript.meta.sources.includes(id)) app.transcript.meta.sources.push(id);
+      app.pausedAt = null;
+      renderLive();
+      toast('Nouvelle réunion démarrée. La précédente sera enregistrée dans vos Téléchargements dès qu’elle est prête.', 6000);
+      finalizeMeeting(old)
+        .then(() => {
+          // Le son brut de la réunion terminée n'est plus utile : mémoire libérée
+          for (const rec of Object.values(app.recorders || {})) rec.trim(old.meta.endAbs);
+          app.finished.push(old);
+          download(old.toMarkdown(), old.fileName());
+          toast(`Transcript de la réunion précédente${old.meta.title ? ' « ' + old.meta.title + ' »' : ''} enregistré dans vos Téléchargements.`, 7000);
+        })
+        .catch((e) => console.error('Finalisation de la réunion précédente', e));
+    } finally {
+      app.chaining = false;
+    }
+  }
+
+  /**
+   * Rattrapage d'une réunion : relit le son brut reçu (en mémoire), repère la parole qu'aucun
+   * passage transcrit ne couvre, la confirme avec le détecteur de parole et l'envoie au moteur.
+   * Retourne le nombre de passages ajoutés.
+   */
+  async function sweepMeeting(t) {
+    const recs = app.recorders || {};
+    const from = t.meta.offset || 0;
+    const to = t.meta.endAbs || from;
+    let added = 0;
+    for (const [source, rec] of Object.entries(recs)) {
+      const covered = ((t.covered && t.covered[source]) || []).slice();
+      for (const p of t.meta.pauses || []) covered.push([p.from + from, p.to + from]); // pauses voulues
+      const regions = [];
+      for (let w = from; w < to; w += 300) {
+        const we = Math.min(to, w + 300);
+        regions.push(...L.findUncovered(rec.read(w, we), w, covered));
+      }
+      // Confirmation par le détecteur de parole (évite de transcrire bruits, clics, musique)
+      const speech = [];
+      for (const r of regions) {
+        const audio = rec.read(r.from, r.to);
+        let keep = true;
+        if (app.analyzer) {
+          try {
+            await app.analyzer.reset('rattrapage');
+            const probs = await app.analyzer.vad('rattrapage', audio.subarray(0, Math.floor(audio.length / 512) * 512));
+            const voiced = Array.from(probs).filter((p) => p > 0.4).length;
+            keep = voiced >= Math.max(8, probs.length * 0.2);
+          } catch {}
+        }
+        if (keep) speech.push({ ...r, audio });
+      }
+      // Passages regroupés en blocs de 22 s de parole au plus, comme en direct
+      let block = null;
+      const flush = () => {
+        if (!block) return;
+        const total = block.parts.reduce((n, p) => n + p.audio.length, 0) + 4800 * (block.parts.length - 1);
+        const audio = new Float32Array(total);
+        const map = [];
+        let off = 0;
+        block.parts.forEach((p, i) => {
+          if (i) off += 4800; // 0,3 s de silence entre deux passages
+          map.push({ at: off / 16000, t: p.from - from });
+          audio.set(p.audio, off);
+          off += p.audio.length;
+        });
+        const seg = {
+          id: ++app.blockSeq,
+          start: block.parts[0].from - from,
+          end: block.parts[block.parts.length - 1].to - from,
+          audio,
+          speech: block.speech,
+          map,
+          abs: block.parts.map((p) => [p.from, p.to]),
+        };
+        app.queue.push({ source, seg, transcript: t, queuedAt: Date.now(), sweep: true });
+        t.markQueued(source, seg);
+        t.meta.recovered = (t.meta.recovered || 0) + seg.speech;
+        added++;
+        block = null;
+      };
+      for (const r of speech) {
+        if (block && (block.speech + r.speech > 22 || r.from - block.parts[block.parts.length - 1].to > 30)) flush();
+        if (!block) block = { parts: [], speech: 0 };
+        block.parts.push(r);
+        block.speech += r.speech;
+      }
+      flush();
+    }
+    journal('rattrapage', { passages: added, secondes: Math.round(t.meta.recovered || 0) });
+    pump();
+    return added;
+  }
+
+  // Passages encore à transcrire pour une réunion donnée
+  function pendingFor(t) {
+    let n = app.queue.filter((j) => j.transcript === t).length;
+    for (const j of app.running) if (j.transcript === t && !j.redo) n++;
+    return n;
+  }
+
+  /**
+   * Termine une réunion : attend ses derniers passages, regroupe les voix, retire l'écho reconnu
+   * à la voix. Utilisé à la fin (« Terminer ») et en arrière-plan quand on enchaîne.
+   */
+  async function finalizeMeeting(t, onStep) {
+    const settled = () =>
+      new Promise((resolve) => {
+        const check = () => ((pendingFor(t) === 0 && app.engineReady) || app.engineError ? resolve() : setTimeout(check, 200));
+        check();
+      });
+    await settled();
+    // Rattrapage : la parole présente dans le son reçu mais jamais transcrite (détection en retard,
+    // moteur en panne, PC saturé...) est retrouvée et transcrite maintenant.
+    try {
+      if (onStep) onStep('Vérification : aucune parole oubliée…');
+      const n = await sweepMeeting(t);
+      if (n) {
+        if (onStep) onStep(`Rattrapage de ${n} passage${n > 1 ? 's' : ''} oublié${n > 1 ? 's' : ''}…`);
+        await settled();
+      }
+    } catch (e) {
+      console.warn('Rattrapage impossible', e);
+      journal('rattrapage-erreur', { erreur: String(e.message || e).slice(0, 200) });
+    }
+    if (t.tracker) {
+      if (onStep) onStep('Identification des intervenants…');
+      await new Promise((r) => setTimeout(r, 30)); // laisse l'affichage se mettre à jour
+      try {
+        const tracker = t.tracker;
+        t.applyVoiceMap(tracker.finalize());
+        // Voix mémorisées : reconnaissance automatique des intervenants déjà nommés
+        if (app.memory.enabled && app.memory.count && tracker.centroids) {
+          const present = new Map([...tracker.centroids].filter(([v]) => t.lines.some((l) => l.voice === v)));
+          t.meta.recognized = [];
+          for (const [voice, name] of app.memory.match(present)) {
+            t.nameVoice(voice, name);
+            t.meta.recognized.push(voice);
+          }
+        }
+      } catch (e) {
+        console.warn('Regroupement final des voix impossible', e);
+      }
+    }
+    // Écho des haut-parleurs reconnu à la voix (micro = vous seul)
+    try {
+      t.meta.echoRemoved = t.removeVoiceEcho(t.micVoice, t.othersBusy);
+    } catch (e) {
+      console.warn('Filtrage de l’écho par la voix impossible', e);
+    }
+    t.emit();
   }
 
   function attachSource(id, stream) {
@@ -640,8 +940,19 @@
 
   function tick() {
     if (!app.capture) return;
-    const t = app.capture.now();
-    $('timer').textContent = L.formatTime(t);
+    $('timer').textContent = L.formatTime(meetingNow());
+    // Santé toutes les 30 s : retard de la détection de parole, file d'attente
+    const now = Date.now();
+    if (now - (app.lastHealth || 0) > 30000) {
+      app.lastHealth = now;
+      const lag = Math.max(...['me', 'others'].map((id) => app.capture.lag(id)), 0);
+      const vadTimeouts = Object.values(app.capture.sources).reduce((n, e) => n + (e.segmenter.vadTimeouts || 0), 0);
+      journal('santé', { retard_s: Math.round(lag), file: app.queue.length, en_cours: app.inFlight, vad_lent: vadTimeouts, ok: app.stats.ok, échecs: app.stats.failed, mémoire_mo: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1e6) : undefined });
+      if (lag > 30 && !app.warnedLag) {
+        app.warnedLag = true;
+        notice('PC très chargé : la détection de parole prend du retard. Rien n’est perdu : le son est gardé et sera rattrapé.');
+      }
+    }
     for (const id of ['me', 'others']) {
       const el = $('meter-' + id);
       const on = !!app.capture.sources[id];
@@ -656,9 +967,9 @@
     const paused = !app.capture.paused;
     app.capture.setPaused(paused);
     if (paused) {
-      app.pausedAt = app.capture.now();
+      app.pausedAt = meetingNow();
     } else if (app.pausedAt != null) {
-      app.transcript.addPause(app.pausedAt, app.capture.now());
+      app.transcript.addPause(app.pausedAt, meetingNow());
       app.pausedAt = null;
     }
     $('pause').querySelector('.lbl').textContent = paused ? 'Reprendre' : 'Pause';
@@ -709,10 +1020,11 @@
   async function stop() {
     if (app.state !== 'recording') return;
     if (app.capture.paused && app.pausedAt != null) {
-      app.transcript.meta.pauses.push({ from: app.pausedAt, to: app.capture.now() });
+      app.transcript.meta.pauses.push({ from: app.pausedAt, to: meetingNow() });
       app.pausedAt = null;
     }
     app.transcript.meta.endedAt = Date.now();
+    app.transcript.meta.endAbs = app.capture.now();
     clearInterval(app.timer);
     // Rien ne doit empêcher de terminer : chaque étape est protégée
     try {
@@ -732,48 +1044,25 @@
     releaseWakeLock();
     pump();
 
-    await new Promise((resolve) => {
-      const check = () => (pendingCount() === 0 && app.engineReady) || app.engineError ? resolve() : setTimeout(check, 200);
-      check();
-    });
-
-    if (app.transcript.tracker) {
-      $('finish-text').textContent = 'Identification des intervenants…';
-      await new Promise((r) => setTimeout(r, 30)); // laisse l'affichage se mettre à jour
-      try {
-        const tracker = app.transcript.tracker;
-        app.transcript.applyVoiceMap(tracker.finalize());
-        // Voix mémorisées : reconnaissance automatique des intervenants déjà nommés
-        if (app.memory.enabled && app.memory.count && tracker.centroids) {
-          const present = new Map([...tracker.centroids].filter(([v]) => app.transcript.lines.some((l) => l.voice === v)));
-          app.transcript.meta.recognized = [];
-          for (const [voice, name] of app.memory.match(present)) {
-            app.transcript.nameVoice(voice, name);
-            app.transcript.meta.recognized.push(voice);
-          }
-        }
-      } catch (e) {
-        console.warn('Regroupement final des voix impossible', e);
-      }
-    }
-    // Écho des haut-parleurs reconnu à la voix (micro = vous seul)
-    try {
-      app.transcript.meta.echoRemoved = app.transcript.removeVoiceEcho(app.transcript.micVoice, app.transcript.othersBusy);
-    } catch (e) {
-      console.warn('Filtrage de l’écho par la voix impossible', e);
-    }
-    app.transcript.emit(); // dernière sauvegarde, marquée comme terminée
+    journal('fin', { durée_min: Math.round(((app.transcript.meta.endAbs || 0) - (app.transcript.meta.offset || 0)) / 60) });
+    await finalizeMeeting(app.transcript, (text) => ($('finish-text').textContent = text));
+    journal('couverture', app.transcript.coverageSummary());
     app.finalMarkdown = app.transcript.toMarkdown();
     const paras = app.transcript.paragraphs().length;
     const minutes = Math.max(1, Math.round((app.transcript.meta.endedAt - app.transcript.meta.startedAt) / 60000));
     const echo = app.transcript.meta.echoRemoved || 0;
+    const cov = app.transcript.coverageSummary();
     $('done-info').textContent =
       `${minutes} min de réunion, ${paras} intervention${paras > 1 ? 's' : ''}.` +
+      (cov.missing < 1 ? ' Toute la parole détectée a été transcrite.' : '') +
+      (app.transcript.meta.recovered >= 1 ? ` (dont ${Math.round(app.transcript.meta.recovered)} s rattrapées en fin de réunion).` : '') +
       (echo ? ` ${echo} phrase${echo > 1 ? 's' : ''} du micro retirée${echo > 1 ? 's' : ''} : écho des haut-parleurs, pas votre voix.` : '') +
       ' Le fichier a été enregistré dans votre dossier Téléchargements.';
     $('preview').textContent = app.finalMarkdown;
     renderVoices();
     renderSuspects();
+    renderGaps();
+    renderFinished();
     setState('done');
     renderDrafts();
     download(app.finalMarkdown, app.transcript.fileName());
@@ -799,6 +1088,56 @@
     } else {
       box.hidden = true;
     }
+  }
+
+  // Écran de fin : réunions enchaînées plus tôt dans la session (nouveau téléchargement possible)
+  function renderFinished() {
+    const box = $('finished-list');
+    box.replaceChildren();
+    for (const t of app.finished) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      const d = new Date(t.meta.startedAt);
+      b.textContent = (t.meta.title || 'Réunion') + ' · ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      b.title = 'Télécharger à nouveau';
+      b.addEventListener('click', () => download(t.toMarkdown(), t.fileName()));
+      box.appendChild(b);
+    }
+    $('finished').hidden = !app.finished.length;
+  }
+
+  // Écran de fin : passages que le moteur n'a pas pu transcrire (audio gardé en mémoire)
+  function renderGaps() {
+    const t = app.transcript;
+    if (!t || app.state !== 'done') return;
+    const gaps = (t.meta.gaps || []).length;
+    const pending = app.failed.length;
+    if (gaps) {
+      const cov = t.coverageSummary();
+      $('gaps-text').textContent =
+        `${gaps} passage${gaps > 1 ? 's' : ''} (${Math.round(cov.missing)} s de parole) n'${gaps > 1 ? 'ont' : 'a'} pas pu être transcrit${gaps > 1 ? 's' : ''}. ` +
+        'Ils sont signalés dans le transcript.';
+      $('gaps-retry').hidden = !pending;
+      $('gaps').hidden = false;
+    } else if (app.gapsShown) {
+      $('gaps-text').textContent = 'Tous les passages ont finalement été transcrits. Retéléchargez le fichier.';
+      $('gaps-retry').hidden = true;
+      $('gaps').hidden = false;
+    } else {
+      $('gaps').hidden = true;
+    }
+    if (gaps) app.gapsShown = true;
+  }
+
+  function retryGaps() {
+    const jobs = app.failed.splice(0);
+    for (const j of jobs) {
+      j.attempts = 0;
+      app.queue.push(j);
+    }
+    $('gaps-retry').hidden = true;
+    $('gaps-text').textContent = 'Nouvel essai en cours…';
+    pump();
   }
 
   // Écran de fin : renommer les intervenants détectés
@@ -854,6 +1193,10 @@
   function reset() {
     L.Transcript.clearSaved();
     app.transcript = null;
+    app.failed = [];
+    app.finished = [];
+    app.gapsShown = false;
+    $('gaps').hidden = true;
     app.finalMarkdown = '';
     $('title').value = '';
     $('people').value = '';
@@ -1441,6 +1784,14 @@
   $('glossary').value = store.get('lowsper.glossary') || '';
   $('glossary').addEventListener('input', (e) => store.set('lowsper.glossary', e.target.value));
   $('fix-apply').addEventListener('click', applyFix);
+  $('gaps-retry').addEventListener('click', retryGaps);
+  $('journal-dl').addEventListener('click', () => {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const name = `lowsper-journal_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}h${pad(d.getMinutes())}.txt`;
+    const head = 'Journal technique de Lowsper : aucun texte de réunion, uniquement le fonctionnement du logiciel.\n\n';
+    download(head + app.journalLines.join('\n') + '\n', name);
+  });
   $('set-fix-add').addEventListener('click', addFixFromSettings);
   $('set-fix-right').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') addFixFromSettings();
@@ -1453,6 +1804,7 @@
   $('pause').addEventListener('click', togglePause);
   $('stop').addEventListener('click', stop);
   $('stop-main').addEventListener('click', stop);
+  $('chain').addEventListener('click', chainNext);
   $('download').addEventListener('click', () => download(app.finalMarkdown, app.transcript.fileName()));
   $('copy').addEventListener('click', () => copy(app.finalMarkdown));
   $('copy-ai').addEventListener('click', () => copy(AI_PROMPT + app.finalMarkdown));

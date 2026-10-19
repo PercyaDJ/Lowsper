@@ -212,9 +212,36 @@ await page.click('#settings-close');
 await page.click('#start');
 await page.waitForSelector('#view-rec:not([hidden])');
 console.log(`Réunion simulée pendant ${meetingSeconds} s...`);
+// Panne simulée du moteur au milieu de la réunion : le passage doit être relancé, pas perdu
+await page.waitForTimeout(8000);
+await page.evaluate(() => {
+  const w = LowsperApp.workers[0];
+  const real = w.transcribe.bind(w);
+  let once = true;
+  w.transcribe = (...a) => (once ? ((once = false), Promise.reject(new Error('panne simulée'))) : real(...a));
+});
 let maxBacklog = 0;
+// Enchaînement : à mi-parcours, « Réunion suivante » ; la première réunion est enregistrée seule
+const downloads = [];
+page.on('download', (d) => downloads.push(d));
+let chained = false;
+let chainAt = null;
 for (let waited = 0; waited < meetingSeconds; waited += 2) {
   await page.waitForTimeout(2000);
+  // Perte simulée en direct (comme un détecteur bloqué) : les blocs de 38 à 50 s sont jetés.
+  // Le rattrapage de fin de réunion doit les retrouver dans le son brut.
+  if (waited === 2) {
+    await page.evaluate(() => {
+      const c = LowsperApp.capture;
+      const real = c.onSegment;
+      c.onSegment = (id, seg) => (seg.start >= 38 && seg.start < 50 ? (window.__dropped = (window.__dropped || 0) + 1) : real(id, seg));
+    });
+  }
+  if (!chained && waited >= meetingSeconds / 2) {
+    chained = true;
+    chainAt = await page.evaluate(() => LowsperApp.capture.now());
+    await page.evaluate(() => (LowsperApp.pip ? LowsperApp.pip.document : document).getElementById('chain').click());
+  }
   const backlog = await page.evaluate(() => LowsperApp.queue.length + LowsperApp.inFlight);
   maxBacklog = Math.max(maxBacklog, backlog);
 }
@@ -260,15 +287,23 @@ const compactOk = await page.evaluate(() => {
 });
 await page.setViewportSize({ width: 900, height: 1000 });
 
-const downloadPromise = page.waitForEvent('download', { timeout: 180000 });
 const tStop = Date.now();
 await page.click('#stop');
-const download = await downloadPromise;
+for (let i = 0; i < 360 && downloads.length < 2; i++) await page.waitForTimeout(500);
+// La première réunion porte le titre « Test automatique » ; la seconde, enchaînée, n'en a pas
+const firstDl = downloads.find((d) => /test-automatique/.test(d.suggestedFilename())) || downloads[0];
+const download = downloads.find((d) => d !== firstDl) || firstDl;
+const firstPath = join(out, 'premiere-' + firstDl.suggestedFilename());
+await firstDl.saveAs(firstPath);
+const firstMd = await readFile(firstPath, 'utf8');
 console.log(`Transcript final ${((Date.now() - tStop) / 1000).toFixed(1)} s après « Terminer »`);
 const mdPath = join(out, download.suggestedFilename());
 await download.saveAs(mdPath);
 await page.screenshot({ path: join(out, '4-termine.png'), fullPage: true });
 const md = await readFile(mdPath, 'utf8');
+const health = await page.evaluate(() => ({ ...LowsperApp.health, failed: LowsperApp.failed.length, dropped: window.__dropped || 0 }));
+console.log(`Blocs jetés volontairement en direct : ${health.dropped}`);
+console.log(`Santé du moteur : ${health.retried} relance(s), ${health.restarts} redémarrage(s), ${health.failed} passage(s) abandonné(s)`);
 // Laisse le temps à la retranscription précise des passages « rapides »
 for (let i = 0; i < 60; i++) {
   const left = await page.evaluate(() => LowsperApp.transcript.draftCount());
@@ -280,13 +315,14 @@ console.log(`Passages « rapides » restant à améliorer : ${draftsLeft}`);
 console.log('----- ' + download.suggestedFilename() + ' -----\n' + md + '-----');
 
 // Corriger un mot partout : remplacé dans l'aperçu, retenu pour les réunions suivantes
+const hadTickets = await page.evaluate(() => /tickets/i.test(document.getElementById('preview').textContent));
 await page.click('#fixer summary');
 await page.fill('#fix-wrong', 'tickets');
 await page.fill('#fix-right', 'demandes');
 await page.click('#fix-apply');
 await page.waitForTimeout(300);
-const fixOk = await page.evaluate(() => /demandes/.test(document.getElementById('preview').textContent) &&
-  JSON.parse(localStorage.getItem('lowsper.fixes') || '[]').some(([w, r]) => w === 'tickets' && r === 'demandes'));
+const fixOk = await page.evaluate((had) => (!had || /demandes/.test(document.getElementById('preview').textContent)) &&
+  JSON.parse(localStorage.getItem('lowsper.fixes') || '[]').some(([w, r]) => w === 'tickets' && r === 'demandes'), hadTickets);
 const suspects = await page.evaluate(() => [...document.querySelectorAll('#fix-suspects button')].map((b) => b.textContent));
 console.log('Mots à vérifier proposés : ' + suspects.join(', '));
 await page.screenshot({ path: join(out, '4b-corriger.png'), fullPage: true });
@@ -299,23 +335,27 @@ await browser.close();
 
 const checks = [
   ['installation du modèle', served > 50e6],
-  ['titre', md.startsWith('# Transcript de réunion : Test automatique')],
-  ['glossaire dans l\'en-tête', md.includes('ServiceNow, P1')],
+  ['titre', firstMd.startsWith('# Transcript de réunion : Test automatique')],
+  ['glossaire dans l\'en-tête', md.includes('ServiceNow, P1') && firstMd.includes('ServiceNow, P1')],
   ['horodatage', /\*\*\[00:00:\d\d\] /.test(md)],
-  ['voix micro (Vous)', /\] Vous :\*\*/.test(md)],
-  ['voix participants', /\] (Participants|Intervenant \d+) :\*\*/.test(md)],
-  ['contenu « participants »', /tickets/i.test(md) && /indicateurs/i.test(md)],
-  ['contenu « vous »', /VPN/.test(md)],
-  ['plusieurs intervenants distingués', /Intervenant 2/.test(md)],
+  ['voix micro (Vous)', /\] Vous :\*\*/.test(firstMd + md)],
+  ['voix participants', /\] (Participants|Intervenant \d+) :\*\*/.test(firstMd + md)],
+  ['contenu « participants »', /tickets/i.test(firstMd + md) && /indicateurs/i.test(firstMd + md)],
+  ['contenu « vous »', /VPN/.test(firstMd + md)],
+  ['plusieurs intervenants distingués', /Intervenant 2/.test(firstMd + md)],
   ['aucune requête réseau après installation', network.length === 0],
   ['bouton Terminer visible en fenêtre réduite', compactOk],
   ['fenêtre très basse : barre façon appel Teams', barOk],
   // (taille non vérifiable sans écran : le navigateur de test donne à la mini-fenêtre la taille de la page)
   ['mini-fenêtre ouverte au démarrage, avec les commandes', !pipAuto || pipSize[2]],
   ['boutons de la mini-fenêtre : pause puis reprise au clic', pipClickOk],
-  ['le moteur suit le rythme (file <= 3)', maxBacklog <= 3],
+  // (file un peu plus longue tolérée : la panne simulée impose le redémarrage d'un moteur, ~20 s)
+  ['le moteur suit le rythme malgré la panne simulée (file <= 6)', maxBacklog <= 6],
   ['passages rapides tous retranscrits ensuite', draftsLeft === 0],
   ['corriger un mot partout, correction retenue', fixOk],
+  ['réunion suivante sans temps mort : deux fichiers, chacun horodaté depuis son début', downloads.length === 2 && firstMd !== md && /\*\*\[00:00:\d\d\] /.test(md) && /à tous/.test(firstMd)],
+  ['parole perdue en direct retrouvée par le rattrapage', health.dropped === 0 || /\*\*Rattrapage\*\*/.test(md)],
+  ['panne du moteur : passage relancé, toute la parole transcrite', health.retried >= 1 && health.failed === 0 && /toute la parole détectée a été transcrite/.test(md) && /toute la parole détectée a été transcrite/.test(firstMd)],
 ];
 let ok = true;
 for (const [name, pass] of checks) {
