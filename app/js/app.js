@@ -83,8 +83,13 @@
       // Analyse audio : détection de parole (Silero) et empreintes vocales (WeSpeaker)
       if (assets.analysis) {
         try {
-          app.analyzer = new L.Analyzer(assets.analysis);
+          // Deux analyseurs séparés : la détection de parole (temps réel, légère) ne doit jamais
+          // attendre derrière le calcul des empreintes vocales (lourd). Sur un PC chargé, une file
+          // commune retardait la détection de plusieurs minutes, et l'audio en attente était perdu.
+          app.analyzer = new L.Analyzer({ ...assets.analysis, speaker: null });
+          app.voiceAnalyzer = assets.analysis.speaker ? new L.Analyzer(assets.analysis) : null;
           await app.analyzer.ready;
+          if (app.voiceAnalyzer) await app.voiceAnalyzer.ready.catch(() => (app.voiceAnalyzer = null));
         } catch (e) {
           console.warn("Analyse audio indisponible, repli sur la détection par volume", e);
           app.analyzer = null;
@@ -145,6 +150,17 @@
   app.health = { restarts: 0, retried: 0 };
   app.failed = [];
   app.running = new Set(); // passages en cours de transcription
+  app.stats = { ok: 0, failed: 0 };
+  // Journal technique (sur ce poste uniquement, sans aucun texte de réunion) : pour comprendre
+  // un incident. Téléchargeable sur l'écran de fin.
+  app.journalLines = [];
+  function journal(type, data) {
+    const line = new Date().toISOString().slice(11, 19) + ' ' + type + (data ? ' ' + JSON.stringify(data) : '');
+    app.journalLines.push(line);
+    if (app.journalLines.length > 5000) app.journalLines.splice(0, 1000);
+  }
+  document.addEventListener('visibilitychange', () => journal('onglet', { visible: !document.hidden }));
+  window.addEventListener('error', (e) => journal('erreur-page', { message: String(e.message).slice(0, 200) }));
   app.finished = []; // réunions déjà terminées pendant cette session (enchaînement)
   app.drafts = []; // passages transcrits par la voie rapide, à améliorer
   app.blockSeq = 0;
@@ -314,7 +330,11 @@
         if (fast) app.drafts.push({ source: job.source, seg: { ...job.seg, audio: null }, transcript: t, keepDraft });
       })
       .then(() => {
-        if (!job.redo) t.markDone(job.source, job.seg);
+        if (job.redo) return;
+        t.markDone(job.source, job.seg);
+        t.covered = t.covered || {};
+        (t.covered[job.source] = t.covered[job.source] || []).push(...(job.seg.abs || []));
+        app.stats.ok++;
       })
       .catch((err) => jobFailed(w, job, err))
       .finally(() => {
@@ -331,6 +351,8 @@
   // signalé dans le transcript ; « Réessayer » sur l'écran de fin le relance.
   function jobFailed(w, job, err) {
     console.error('Passage non transcrit, essai ' + ((job.attempts || 0) + 1), err);
+    journal('échec', { source: job.source, essai: (job.attempts || 0) + 1, erreur: String((err && err.message) || err).slice(0, 200) });
+    app.stats.failed++;
     replaceWorker(w);
     job.attempts = (job.attempts || 0) + 1;
     app.health.retried++;
@@ -578,20 +600,35 @@
       (source, seg) => {
         const t = app.transcript;
         seg.id = ++app.blockSeq;
+        const abs = L.speechIntervals ? L.speechIntervals(seg) : []; // temps de la capture
         shiftSeg(seg, t.meta.offset); // horodatage relatif au début de CETTE réunion
+        seg.abs = abs;
+        journal('bloc', { source, s: +(seg.speech || 0).toFixed(1) });
         // Moments où les participants parlent (pour reconnaître l'écho au micro, en fin de réunion)
         if (source === 'others' && L.speechIntervals) t.othersBusy.push(...L.speechIntervals(seg));
         app.queue.push({ source, seg, transcript: t, queuedAt: Date.now() });
         t.markQueued(source, seg);
         pump();
       },
-      { analyzer: app.analyzer, emitEarly: engineIdle }
+      { analyzer: app.analyzer, emitEarly: engineIdle, recorders: (app.recorders = {}) }
     );
     await app.capture.init();
     if (mic) attachSource('me', mic);
     if (others) attachSource('others', others);
 
     setState('recording');
+    journal('début', {
+      modèle: app.modelId,
+      puissance: store.get('lowsper.power') || 'balanced',
+      moteurs: app.workers.length,
+      coeurs: navigator.hardwareConcurrency,
+      memoire_go: navigator.deviceMemory,
+      micro: !!mic,
+      participants: !!others,
+      navigateur: navigator.userAgent.slice(0, 120),
+    });
+    app.lastHealth = 0;
+    app.warnedLag = false;
     renderLive();
     // Après quelques réunions, le mode d'emploi se replie (il reste à un clic)
     store.set('lowsper.meetings', String((Number(store.get('lowsper.meetings')) || 0) + 1));
@@ -633,10 +670,10 @@
       renderGaps();
     });
     // Micro = une seule personne (vous) : votre voix sert à reconnaître l'écho des haut-parleurs
-    if (app.analyzer && app.analyzer.hasSpeaker) t.micVoice = new L.MicVoice(app.analyzer);
+    if (app.voiceAnalyzer) t.micVoice = new L.MicVoice(app.voiceAnalyzer);
     t.othersBusy = [];
-    if (app.analyzer && app.analyzer.hasSpeaker && $('distinguish').checked) {
-      t.tracker = new L.SpeakerTracker(app.analyzer);
+    if (app.voiceAnalyzer && $('distinguish').checked) {
+      t.tracker = new L.SpeakerTracker(app.voiceAnalyzer);
       // Nombre de personnes indiqué (vous compris) : les autres voix sont au plus n - 1
       if (people >= 2) {
         t.tracker.expected = Math.min(29, people - 1);
@@ -673,6 +710,7 @@
       await app.capture.cut();
       const cut = app.capture.now();
       old.meta.endedAt = Date.now();
+      old.meta.endAbs = cut;
       app.transcript = createTranscript('', NaN, cut);
       for (const id of Object.keys(app.capture.sources)) if (!app.transcript.meta.sources.includes(id)) app.transcript.meta.sources.push(id);
       app.pausedAt = null;
@@ -680,6 +718,8 @@
       toast('Nouvelle réunion démarrée. La précédente sera enregistrée dans vos Téléchargements dès qu’elle est prête.', 6000);
       finalizeMeeting(old)
         .then(() => {
+          // Le son brut de la réunion terminée n'est plus utile : mémoire libérée
+          for (const rec of Object.values(app.recorders || {})) rec.trim(old.meta.endAbs);
           app.finished.push(old);
           download(old.toMarkdown(), old.fileName());
           toast(`Transcript de la réunion précédente${old.meta.title ? ' « ' + old.meta.title + ' »' : ''} enregistré dans vos Téléchargements.`, 7000);
@@ -688,6 +728,81 @@
     } finally {
       app.chaining = false;
     }
+  }
+
+  /**
+   * Rattrapage d'une réunion : relit le son brut reçu (en mémoire), repère la parole qu'aucun
+   * passage transcrit ne couvre, la confirme avec le détecteur de parole et l'envoie au moteur.
+   * Retourne le nombre de passages ajoutés.
+   */
+  async function sweepMeeting(t) {
+    const recs = app.recorders || {};
+    const from = t.meta.offset || 0;
+    const to = t.meta.endAbs || from;
+    let added = 0;
+    for (const [source, rec] of Object.entries(recs)) {
+      const covered = ((t.covered && t.covered[source]) || []).slice();
+      for (const p of t.meta.pauses || []) covered.push([p.from + from, p.to + from]); // pauses voulues
+      const regions = [];
+      for (let w = from; w < to; w += 300) {
+        const we = Math.min(to, w + 300);
+        regions.push(...L.findUncovered(rec.read(w, we), w, covered));
+      }
+      // Confirmation par le détecteur de parole (évite de transcrire bruits, clics, musique)
+      const speech = [];
+      for (const r of regions) {
+        const audio = rec.read(r.from, r.to);
+        let keep = true;
+        if (app.analyzer) {
+          try {
+            await app.analyzer.reset('rattrapage');
+            const probs = await app.analyzer.vad('rattrapage', audio.subarray(0, Math.floor(audio.length / 512) * 512));
+            const voiced = Array.from(probs).filter((p) => p > 0.4).length;
+            keep = voiced >= Math.max(8, probs.length * 0.2);
+          } catch {}
+        }
+        if (keep) speech.push({ ...r, audio });
+      }
+      // Passages regroupés en blocs de 22 s de parole au plus, comme en direct
+      let block = null;
+      const flush = () => {
+        if (!block) return;
+        const total = block.parts.reduce((n, p) => n + p.audio.length, 0) + 4800 * (block.parts.length - 1);
+        const audio = new Float32Array(total);
+        const map = [];
+        let off = 0;
+        block.parts.forEach((p, i) => {
+          if (i) off += 4800; // 0,3 s de silence entre deux passages
+          map.push({ at: off / 16000, t: p.from - from });
+          audio.set(p.audio, off);
+          off += p.audio.length;
+        });
+        const seg = {
+          id: ++app.blockSeq,
+          start: block.parts[0].from - from,
+          end: block.parts[block.parts.length - 1].to - from,
+          audio,
+          speech: block.speech,
+          map,
+          abs: block.parts.map((p) => [p.from, p.to]),
+        };
+        app.queue.push({ source, seg, transcript: t, queuedAt: Date.now(), sweep: true });
+        t.markQueued(source, seg);
+        t.meta.recovered = (t.meta.recovered || 0) + seg.speech;
+        added++;
+        block = null;
+      };
+      for (const r of speech) {
+        if (block && (block.speech + r.speech > 22 || r.from - block.parts[block.parts.length - 1].to > 30)) flush();
+        if (!block) block = { parts: [], speech: 0 };
+        block.parts.push(r);
+        block.speech += r.speech;
+      }
+      flush();
+    }
+    journal('rattrapage', { passages: added, secondes: Math.round(t.meta.recovered || 0) });
+    pump();
+    return added;
   }
 
   // Passages encore à transcrire pour une réunion donnée
@@ -702,10 +817,25 @@
    * à la voix. Utilisé à la fin (« Terminer ») et en arrière-plan quand on enchaîne.
    */
   async function finalizeMeeting(t, onStep) {
-    await new Promise((resolve) => {
-      const check = () => ((pendingFor(t) === 0 && app.engineReady) || app.engineError ? resolve() : setTimeout(check, 200));
-      check();
-    });
+    const settled = () =>
+      new Promise((resolve) => {
+        const check = () => ((pendingFor(t) === 0 && app.engineReady) || app.engineError ? resolve() : setTimeout(check, 200));
+        check();
+      });
+    await settled();
+    // Rattrapage : la parole présente dans le son reçu mais jamais transcrite (détection en retard,
+    // moteur en panne, PC saturé...) est retrouvée et transcrite maintenant.
+    try {
+      if (onStep) onStep('Vérification : aucune parole oubliée…');
+      const n = await sweepMeeting(t);
+      if (n) {
+        if (onStep) onStep(`Rattrapage de ${n} passage${n > 1 ? 's' : ''} oublié${n > 1 ? 's' : ''}…`);
+        await settled();
+      }
+    } catch (e) {
+      console.warn('Rattrapage impossible', e);
+      journal('rattrapage-erreur', { erreur: String(e.message || e).slice(0, 200) });
+    }
     if (t.tracker) {
       if (onStep) onStep('Identification des intervenants…');
       await new Promise((r) => setTimeout(r, 30)); // laisse l'affichage se mettre à jour
@@ -811,6 +941,18 @@
   function tick() {
     if (!app.capture) return;
     $('timer').textContent = L.formatTime(meetingNow());
+    // Santé toutes les 30 s : retard de la détection de parole, file d'attente
+    const now = Date.now();
+    if (now - (app.lastHealth || 0) > 30000) {
+      app.lastHealth = now;
+      const lag = Math.max(...['me', 'others'].map((id) => app.capture.lag(id)), 0);
+      const vadTimeouts = Object.values(app.capture.sources).reduce((n, e) => n + (e.segmenter.vadTimeouts || 0), 0);
+      journal('santé', { retard_s: Math.round(lag), file: app.queue.length, en_cours: app.inFlight, vad_lent: vadTimeouts, ok: app.stats.ok, échecs: app.stats.failed, mémoire_mo: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1e6) : undefined });
+      if (lag > 30 && !app.warnedLag) {
+        app.warnedLag = true;
+        notice('PC très chargé : la détection de parole prend du retard. Rien n’est perdu : le son est gardé et sera rattrapé.');
+      }
+    }
     for (const id of ['me', 'others']) {
       const el = $('meter-' + id);
       const on = !!app.capture.sources[id];
@@ -882,6 +1024,7 @@
       app.pausedAt = null;
     }
     app.transcript.meta.endedAt = Date.now();
+    app.transcript.meta.endAbs = app.capture.now();
     clearInterval(app.timer);
     // Rien ne doit empêcher de terminer : chaque étape est protégée
     try {
@@ -901,7 +1044,9 @@
     releaseWakeLock();
     pump();
 
+    journal('fin', { durée_min: Math.round(((app.transcript.meta.endAbs || 0) - (app.transcript.meta.offset || 0)) / 60) });
     await finalizeMeeting(app.transcript, (text) => ($('finish-text').textContent = text));
+    journal('couverture', app.transcript.coverageSummary());
     app.finalMarkdown = app.transcript.toMarkdown();
     const paras = app.transcript.paragraphs().length;
     const minutes = Math.max(1, Math.round((app.transcript.meta.endedAt - app.transcript.meta.startedAt) / 60000));
@@ -910,6 +1055,7 @@
     $('done-info').textContent =
       `${minutes} min de réunion, ${paras} intervention${paras > 1 ? 's' : ''}.` +
       (cov.missing < 1 ? ' Toute la parole détectée a été transcrite.' : '') +
+      (app.transcript.meta.recovered >= 1 ? ` (dont ${Math.round(app.transcript.meta.recovered)} s rattrapées en fin de réunion).` : '') +
       (echo ? ` ${echo} phrase${echo > 1 ? 's' : ''} du micro retirée${echo > 1 ? 's' : ''} : écho des haut-parleurs, pas votre voix.` : '') +
       ' Le fichier a été enregistré dans votre dossier Téléchargements.';
     $('preview').textContent = app.finalMarkdown;
@@ -1639,6 +1785,13 @@
   $('glossary').addEventListener('input', (e) => store.set('lowsper.glossary', e.target.value));
   $('fix-apply').addEventListener('click', applyFix);
   $('gaps-retry').addEventListener('click', retryGaps);
+  $('journal-dl').addEventListener('click', () => {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const name = `lowsper-journal_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}h${pad(d.getMinutes())}.txt`;
+    const head = 'Journal technique de Lowsper : aucun texte de réunion, uniquement le fonctionnement du logiciel.\n\n';
+    download(head + app.journalLines.join('\n') + '\n', name);
+  });
   $('set-fix-add').addEventListener('click', addFixFromSettings);
   $('set-fix-right').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') addFixFromSettings();

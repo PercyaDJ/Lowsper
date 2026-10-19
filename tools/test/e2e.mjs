@@ -228,6 +228,15 @@ let chained = false;
 let chainAt = null;
 for (let waited = 0; waited < meetingSeconds; waited += 2) {
   await page.waitForTimeout(2000);
+  // Perte simulée en direct (comme un détecteur bloqué) : les blocs de 38 à 50 s sont jetés.
+  // Le rattrapage de fin de réunion doit les retrouver dans le son brut.
+  if (waited === 2) {
+    await page.evaluate(() => {
+      const c = LowsperApp.capture;
+      const real = c.onSegment;
+      c.onSegment = (id, seg) => (seg.start >= 38 && seg.start < 50 ? (window.__dropped = (window.__dropped || 0) + 1) : real(id, seg));
+    });
+  }
   if (!chained && waited >= meetingSeconds / 2) {
     chained = true;
     chainAt = await page.evaluate(() => LowsperApp.capture.now());
@@ -292,7 +301,8 @@ const mdPath = join(out, download.suggestedFilename());
 await download.saveAs(mdPath);
 await page.screenshot({ path: join(out, '4-termine.png'), fullPage: true });
 const md = await readFile(mdPath, 'utf8');
-const health = await page.evaluate(() => ({ ...LowsperApp.health, failed: LowsperApp.failed.length }));
+const health = await page.evaluate(() => ({ ...LowsperApp.health, failed: LowsperApp.failed.length, dropped: window.__dropped || 0 }));
+console.log(`Blocs jetés volontairement en direct : ${health.dropped}`);
 console.log(`Santé du moteur : ${health.retried} relance(s), ${health.restarts} redémarrage(s), ${health.failed} passage(s) abandonné(s)`);
 // Laisse le temps à la retranscription précise des passages « rapides »
 for (let i = 0; i < 60; i++) {
@@ -344,6 +354,7 @@ const checks = [
   ['passages rapides tous retranscrits ensuite', draftsLeft === 0],
   ['corriger un mot partout, correction retenue', fixOk],
   ['réunion suivante sans temps mort : deux fichiers, chacun horodaté depuis son début', downloads.length === 2 && firstMd !== md && /\*\*\[00:00:\d\d\] /.test(md) && /à tous/.test(firstMd)],
+  ['parole perdue en direct retrouvée par le rattrapage', health.dropped === 0 || /\*\*Rattrapage\*\*/.test(md)],
   ['panne du moteur : passage relancé, toute la parole transcrite', health.retried >= 1 && health.failed === 0 && /toute la parole détectée a été transcrite/.test(md) && /toute la parole détectée a été transcrite/.test(firstMd)],
 ];
 let ok = true;
