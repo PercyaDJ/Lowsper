@@ -3,182 +3,182 @@
   "who": "Recruteur",
   "channel": "others",
   "start": 1.5,
-  "end": 10.43,
+  "end": 10.7,
   "ref": "Bonjour, merci d'être là. Je vous reçois pour le poste de chef de projet technique cybersécurité chez Ombrelune Industries."
  },
  {
   "who": "Vous",
   "channel": "me",
-  "start": 11.03,
-  "end": 12.75,
+  "start": 11.3,
+  "end": 13.03,
   "ref": "Bonjour, merci à vous."
  },
  {
   "who": "Recruteur",
   "channel": "others",
-  "start": 13.35,
-  "end": 21.55,
+  "start": 13.63,
+  "end": 21.91,
   "ref": "Je suis dans l'équipe du CISO pour la région EMEA, et je suis aussi officier de sécurité d'un système d'information sensible, classé Diffusion Restreinte."
  },
  {
   "who": "Recruteur",
   "channel": "others",
-  "start": 22.15,
-  "end": 32.42,
+  "start": 22.51,
+  "end": 32.5,
   "ref": "Ce système est soumis à l'instruction interministérielle 901, et il doit être homologué. Si vous connaissez la méthode EBIOS RM, c'est un plus."
  },
  {
   "who": "Vous",
   "channel": "me",
-  "start": 33.02,
-  "end": 37.07,
+  "start": 33.1,
+  "end": 37.37,
   "ref": "Oui, on fait des analyses EBIOS RM sur mes projets actuels."
  },
  {
   "who": "Recruteur",
   "channel": "others",
-  "start": 37.67,
-  "end": 46.32,
+  "start": 37.97,
+  "end": 46.27,
   "ref": "Très bien. On va remplacer notre infrastructure PKI et intégrer le post-quantique, donc il y a beaucoup de crypto."
  },
  {
   "who": "Recruteur",
   "channel": "others",
-  "start": 46.92,
-  "end": 53.01,
+  "start": 46.87,
+  "end": 52.06,
   "ref": "Il y aura aussi une partie certification CSPN avec un laboratoire agréé par l'ANSSI."
  },
  {
   "who": "Vous",
   "channel": "me",
-  "start": 53.61,
-  "end": 54.49,
+  "start": 52.66,
+  "end": 53.56,
   "ref": "D'accord."
  },
  {
   "who": "Recruteur",
   "channel": "others",
-  "start": 55.09,
-  "end": 63.35,
+  "start": 54.16,
+  "end": 63.34,
   "ref": "Passons à la partie technique. Pourquoi recommande-t-on de supprimer le protocole NTLM ?"
  },
  {
   "who": "Vous",
   "channel": "me",
-  "start": 63.95,
-  "end": 68.33,
+  "start": 63.94,
+  "end": 68.6,
   "ref": "Pour réduire la surface d'attaque, et il me semble qu'il va être déprécié."
  },
  {
   "who": "Recruteur",
   "channel": "others",
-  "start": 68.93,
-  "end": 79.27,
+  "start": 69.2,
+  "end": 77.55,
   "ref": "Exact. Le pass-the-hash, ça vous parle ? Et le Kerberoasting ?"
  },
  {
   "who": "Vous",
   "channel": "me",
-  "start": 79.87,
-  "end": 82.54,
+  "start": 78.15,
+  "end": 81.04,
   "ref": "Pas vraiment, je l'ai vu en master mais de loin."
  },
  {
   "who": "Recruteur",
   "channel": "others",
-  "start": 83.14,
-  "end": 89.94,
+  "start": 81.64,
+  "end": 88.83,
   "ref": "Pour auditer un Active Directory, l'ANSSI propose l'outil ORADAD. On utilise aussi PingCastle."
  },
  {
   "who": "Recruteur",
   "channel": "others",
-  "start": 90.54,
-  "end": 96.42,
+  "start": 89.43,
+  "end": 94.58,
   "ref": "Quelle différence entre un compte de service classique et un gMSA ?"
  },
  {
   "who": "Vous",
   "channel": "me",
-  "start": 97.02,
-  "end": 101.54,
+  "start": 95.18,
+  "end": 99.84,
   "ref": "Je ne sais pas, je dirais que le compte de service classique est géré à la main."
  },
  {
   "who": "Recruteur",
   "channel": "others",
-  "start": 102.14,
-  "end": 112.31,
+  "start": 100.44,
+  "end": 110.76,
   "ref": "Oui, le gMSA permet la rotation automatique du mot de passe. Et le SMBv1, pourquoi on le supprime ?"
  },
  {
   "who": "Recruteur",
   "channel": "others",
-  "start": 112.91,
-  "end": 118.22,
+  "start": 111.36,
+  "end": 116.0,
   "ref": "C'est à cause d'EternalBlue, exploité par WannaCry en 2017."
  },
  {
   "who": "Recruteur",
   "channel": "others",
-  "start": 118.82,
-  "end": 121.62,
+  "start": 116.6,
+  "end": 119.78,
   "ref": "Vous connaissez AppLocker et WDAC ?"
  },
  {
   "who": "Vous",
   "channel": "me",
-  "start": 122.22,
-  "end": 125.75,
+  "start": 120.38,
+  "end": 123.66,
   "ref": "AppLocker oui, c'est de la liste blanche d'applications."
  },
  {
   "who": "Recruteur",
   "channel": "others",
-  "start": 126.35,
-  "end": 131.18,
+  "start": 124.26,
+  "end": 129.27,
   "ref": "Et la différence entre une CRL et OCSP pour la révocation des certificats ?"
  },
  {
   "who": "Vous",
   "channel": "me",
-  "start": 131.78,
-  "end": 137.34,
+  "start": 129.87,
+  "end": 135.33,
   "ref": "La CRL est une liste de révocation, OCSP interroge en temps réel."
  },
  {
   "who": "Recruteur",
   "channel": "others",
-  "start": 137.94,
-  "end": 145.33,
+  "start": 135.93,
+  "end": 143.67,
   "ref": "Parfait. Dernière question : RSA 2048 ou 4096, et que pensez-vous des courbes elliptiques ?"
  },
  {
   "who": "Vous",
   "channel": "me",
-  "start": 145.93,
-  "end": 151.83,
+  "start": 144.27,
+  "end": 150.2,
   "ref": "Je dirais 2048 minimum, et les courbes elliptiques donnent la même sécurité avec des clés plus courtes."
  },
  {
   "who": "Recruteur",
   "channel": "others",
-  "start": 152.43,
-  "end": 159.48,
+  "start": 150.8,
+  "end": 156.6,
   "ref": "Très bien. On a aussi un SIEM, et vous travaillerez avec le SOC sur les incidents."
  },
  {
   "who": "Recruteur",
   "channel": "others",
-  "start": 160.08,
-  "end": 169.23,
+  "start": 157.2,
+  "end": 167.03,
   "ref": "Je n'ai pas d'autre question. Vous aurez un second entretien vendredi. Merci et bon après-midi."
  },
  {
   "who": "Vous",
   "channel": "me",
-  "start": 169.83,
-  "end": 171.87,
+  "start": 167.63,
+  "end": 169.52,
   "ref": "Merci à vous, au revoir."
  }
 ]

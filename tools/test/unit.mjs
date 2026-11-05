@@ -478,12 +478,12 @@ await test('corriger un mot partout : remplacé dans le transcript et appliqué 
   t.addSegment('others', seg, { chunks: [
     { from: 0, to: 5, text: "Le dernier projet suivi, c'était Mira Bello." },
     { from: 6, to: 10, text: 'Il y a un Kalmar pour mira bello ?' },
-    { from: 11, to: 15, text: 'Les éditions et le bello ne changent pas.' },
+    { from: 11, to: 15, text: 'Les mirages et le bello ne changent pas.' },
   ] });
   assert.equal(t.replaceEverywhere('Mira Bello', 'Mirabelle'), 2);
   assert.equal(t.lines[0].text, "Le dernier projet suivi, c'était Mirabelle.");
   assert.equal(t.lines[1].text, 'Il y a un Kalmar pour Mirabelle ?');
-  assert.equal(t.lines[2].text, 'Les éditions et le bello ne changent pas.', 'mots entiers seulement');
+  assert.equal(t.lines[2].text, 'Les mirages et le bello ne changent pas.', 'mots entiers seulement');
   const sus = Array.from(t.suspectWords());
   assert.ok(sus.includes('Kalmar'), 'nom propre douteux proposé : ' + sus.join(', '));
   assert.ok(!sus.includes('Les') && !sus.includes('Il'), 'pas les débuts de phrase');

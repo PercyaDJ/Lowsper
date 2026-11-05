@@ -438,9 +438,9 @@ sur le corpus (environ 1,5 s de calcul par seconde de parole).
 
 ### 15.12 Portable de bureau sans carte graphique, en multitâche
 
-Cible précisée par l'utilisateur : portable professionnel milieu de gamme (Ryzen 5 de 5e génération,
-6 cœurs / 12 fils, 32 Go, pas de carte graphique dédiée), avec Teams, Outlook, Excel, Word
-et Obsidian ouverts. Lowsper doit tourner partout, sans faire ramer le PC, en restant le plus en
+Cible précisée par l'utilisateur : portable professionnel milieu de gamme (processeur de type
+Ryzen 5, 6 cœurs / 12 fils, pas de carte graphique dédiée), avec la visio et la suite bureautique
+ouvertes. Lowsper doit tourner partout, sans faire ramer le PC, en restant le plus en
 direct possible.
 
 Mesures préalables (machine de test) : changer la précision des calculs n'accélère rien sur le
@@ -546,7 +546,7 @@ Défauts relevés, ligne par ligne :
 | Phrase d'accueil perdue (« Morgenon! » au lieu de « Bonjour ») | son dégradé : Whisper small ne la comprend pas, même isolée | aucune côté logiciel ; un modèle plus gros aide (ci-dessous) |
 
 **Corpus de reproduction.** Entretien fictif de 3 min (« entretien-fr.json »), un recruteur et un
-candidat, 28 sigles et noms propres relevés dans le vrai transcript (ANSSI, EBIOS RM, NTLM,
+candidat, 28 sigles et noms propres du même type que ceux du retour terrain (ANSSI, EBIOS RM, NTLM,
 Kerberoasting, ORADAD, gMSA, SMBv1, EternalBlue, AppLocker, WDAC, CRL, OCSP...). Voix de synthèse,
 son du recruteur dégradé façon Teams (comme au §15.14). Il reproduit fidèlement les défauts :
 « Ombre Lunaire Industrie », « l'ANCI », « G. M. BZV1 », une boucle en fin de passage, et 2 voix
@@ -688,24 +688,21 @@ ligne (dernière phrase, avis) ; elle se colore quand un avis attend d'être lu.
 
 **3. Mots mal compris.** Dans l'extrait transmis, les erreurs portent surtout sur des noms propres
 et du jargon interne que Whisper ne peut pas connaître : noms de projets et de clients, sigles
-maison (« Mira Bello », « Trivelle », « Kalmar », « Ostrale »...). Aucun modèle ne les
+maison. Aucun modèle ne les
 devinera ; le levier est de les lui apprendre, et de le faire sans effort :
 - **« Corriger un mot partout »** sur l'écran de fin : mot mal reconnu, bonne écriture, et le
   transcript est corrigé partout ; la correction est **retenue** (appliquée d'office aux réunions
   suivantes) et le bon mot rejoint le glossaire (Whisper l'écrira directement la fois suivante) ;
 - **« À vérifier »** : Lowsper propose les noms propres probables les plus rares (une majuscule en
-  milieu de phrase, absents du glossaire). Sur le transcript Ombrelune, il propose « Talvane »,
-  « Ombreline », « Pierre Lunaire », « BIOCRM », « Hydro », « Corée » : exactement les mots déformés.
-  Un clic pré-remplit la correction ;
+  milieu de phrase, absents du glossaire). Sur l'extrait transmis, les mots proposés étaient exactement les mots
+  déformés. Un clic pré-remplit la correction ;
 - corrections apprises visibles et supprimables dans les paramètres, conservées avec les réglages
   (copie dans le dossier, §15.16) ;
 - vocabulaires enrichis : BIA, PSSI, matrice de conformité, sensibilisation (cybersécurité) ; RAO,
   appel d'offres, TMA (gestion de projet). Écarté : « PAS » (plan d'assurance sécurité), qui
   aurait mis en majuscules chaque « pas » de la langue française.
-Je n'ai pas deviné les termes ambigus de l'extrait : la bonne écriture est venue de l'utilisateur
-(« Kalmar » = CALMAR, « Mira Bello » = Mirabelle, « Trivelle » = TRIVEL,
-« Ostrale » = Austral ; « de la thé » reste indécis : TMA ou AT). Ce sont ses projets et ses clients :
-ils vont dans ses réglages, pas dans les vocabulaires intégrés partagés. Pour les saisir sans
+Les termes ambigus de l'extrait n'ont pas été devinés : la bonne écriture vient de l'utilisateur.
+Ce sont ses projets et ses clients : ils vont dans ses réglages, pas dans les vocabulaires intégrés partagés. Pour les saisir sans
 attendre la fin d'une réunion, les paramètres permettent désormais d'ajouter une correction à
 l'avance (« Mots que Whisper déforme »).
 
