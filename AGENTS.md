@@ -97,6 +97,7 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Bout en bout : installation, réunion, non-fuite (4 min) | `npm run test:e2e` |
 | Décodage des fichiers importés, 7 formats (10 s, Chrome) ; `--long` : 3 h, mémoire | `npm run test:import` |
 | Bout en bout de l'import de fichiers (après `--embed`, 3 min) | `npm run test:e2e-import` |
+| Bout en bout des profils et des notes, faux dossier (après `--embed`, 5 min) | `npm run test:e2e-notes` |
 | Mesure de vitesse du moteur (après `node build.mjs --embed whisper-small`) | `npm run bench` |
 | Paquet de distribution `tools/dist/Lowsper-X.Y.Z.zip` (et son test) | `npm run release`, `npm run test:release` |
 | Captures d'écran de la documentation (après `--embed`, 5 min) | `node test/screenshots.mjs` |
@@ -120,6 +121,7 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/js/audiofile.js` | Fichiers importés : lecteurs de conteneur (WAV, MP3, AAC, M4A, Ogg, WebM), décodage WebCodecs en flux |
 | `app/js/speakers.js` | Distinction, regroupement et mémoire des voix ; voix du micro (anti-écho) |
 | `app/js/transcript.js` | Assemblage, sigles, filtres, couverture, Markdown, sauvegarde de secours |
+| `app/js/notes.js` | Profils de sortie : modèle de note, nom de fichier, front matter, liens, dossier de destination |
 | `app/js/vocabulary.js` | Vocabulaires métier et contexte donné à Whisper |
 | `app/js/installer.js` | Téléchargement vérifié du modèle : seul code réseau de l'application |
 | `app/js/settings.js` | Copie des réglages dans `app/reglages.txt` |

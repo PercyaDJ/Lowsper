@@ -27,6 +27,8 @@ Ce que Lowsper fait :
 - **intervenants distingués** automatiquement (Intervenant 1, 2, 3...), renommables à la fin ;
 - **glossaire** et **vocabulaires métier** pour bien écrire vos sigles et noms propres, corrections
   de mots retenues d'une réunion à l'autre ;
+- **profils de sortie** : la note arrive directement dans votre base de notes (type Obsidian),
+  avec son modèle, ses propriétés et ses liens `[[Nom]]`, un profil par contexte ;
 - **mini-fenêtre** toujours visible pendant la visio, **réunions enchaînées** sans temps mort ;
 - **import de fichiers audio** (dictaphone, téléphone, enregistrement fait ailleurs), même de
   plusieurs heures, avec le même moteur que le direct ;
@@ -107,6 +109,35 @@ cliquez sur **« Transcrire un fichier »**, ou glissez un ou plusieurs fichiers
 
 ![Transcription de deux fichiers fictifs : avancement, file d'attente, annulation](docs/images/import.png)
 
+### Envoyer la note dans votre base de notes : les profils
+
+Un **profil de sortie** dit où et sous quelle forme arrive la note d'une réunion. Créez-en autant
+que de contextes (« Personnel », « Travail »...) dans les paramètres, section **« Profils de
+sortie »**, puis choisissez le profil sur l'écran d'accueil avant la réunion.
+
+- **Dossier de destination** : choisi une fois (par exemple le dossier de votre base Obsidian).
+  La note y est écrite dès la fin de la réunion ; sans dossier, elle va dans vos Téléchargements.
+- **Nom du fichier** à variables, par exemple `{{date}} {{titre}}` ; les caractères interdits par
+  Windows sont retirés d'office. Un nom déjà pris reçoit « (2) » : aucune note n'est écrasée.
+- **Propriétés en tête de note** (front matter YAML) : date, durée, intervenants, source,
+  modèle, étiquettes et champs libres (`projet: Atlas`).
+- **Modèle de note** éditable, avec des variables (`{{titre}}`, `{{date}}`, `{{intervenants}}`,
+  `{{transcript}}`... liste complète dans les paramètres).
+- **Liens** : les intervenants que vous nommez peuvent être écrits `[[Nom]]`, comme des liens
+  entre notes.
+- Après la réunion, chaque correction (intervenant nommé, mot corrigé) **met à jour la note** du
+  dossier, toute seule.
+- Le profil **« Par défaut »** garde le format classique de Lowsper, dans les Téléchargements :
+  rien ne change pour qui ne configure rien.
+
+Attention : si ce dossier est synchronisé par un autre outil (stockage en ligne, synchronisation
+de votre base de notes), la note quittera l'ordinateur par cet outil. Pour des réunions
+confidentielles, choisissez un dossier qui reste sur le poste.
+
+Les profils sont conservés avec vos réglages (y compris dans `app\reglages.txt`). L'accès au
+dossier, lui, est un accord donné au navigateur : s'il est oublié ou doit être redonné, l'écran
+d'accueil le signale et un clic suffit.
+
 Déploiement sur un parc (DSI, RSSI) : voir [docs/deploiement.md](docs/deploiement.md).
 
 ## À quoi ressemble le transcript
@@ -175,6 +206,18 @@ lisent en 20 à 30 s (MP3, M4A) et en moins de 2 min (OGG). C'est la transcripti
 temps : le même calcul qu'en direct, avec le renfort de moteurs de votre réglage de puissance,
 puisque le PC n'est pas occupé par une visio. La barre d'avancement affiche une estimation après quelques
 secondes ; le test de vitesse des paramètres donne un ordre de grandeur pour votre PC.
+
+**J'utilise Obsidian (ou une autre base de notes en Markdown).**
+Créez un profil, choisissez comme dossier celui de votre coffre (ou un sous-dossier, comme
+`Réunions`), cochez les propriétés et les liens `[[Nom]]` : la note arrive dans le coffre à la fin
+de la réunion, avec ses propriétés lisibles par Obsidian, et les intervenants que vous nommez
+renvoient vers leurs notes.
+
+**Ma note est partie dans les Téléchargements et pas dans mon dossier.**
+Le navigateur demande votre accord pour écrire dans un dossier, et ne peut le faire qu'après un
+clic. Sur l'écran de fin, « Enregistrer aussi dans le dossier » règle la question ; pour l'éviter,
+cliquez sur « Autoriser maintenant » sur l'écran d'accueil avant la réunion. Si le navigateur a
+effacé ses données (fréquent sur un poste d'entreprise), il faut désigner le dossier à nouveau.
 
 **Mon fichier est refusé.**
 Lowsper lit le contenu du fichier, pas son extension. Formats lus en entier : WAV, MP3, M4A/AAC,
@@ -271,14 +314,16 @@ seul, dans un dossier Lowsper où le modèle a déjà été installé depuis Edg
 - **Fichiers importés** : les formats sans lecteur dédié (FLAC, Vorbis...) sont limités à 25 Mo.
   Les horodatages d'un MP3 ou d'un AAC peuvent être décalés de quelques centièmes de seconde
   (délai propre à ces formats).
+- **Dossier de notes** : l'accès est gardé par le navigateur ; il disparaît avec ses données
+  (nettoyage, profil effacé) et doit alors être redonné. Le navigateur peut aussi redemander son
+  accord à chaque ouverture de Lowsper : un clic sur l'accueil suffit.
 
 ## Feuille de route
 
 Évolutions prévues, dans l'ordre (détail dans les [jalons](https://github.com/PercyaDJ/Lowsper/milestones)
 et `decision.md`) :
-1. **Export Markdown et profils** : la note arrive directement dans votre base de notes (type
-   Obsidian), avec des profils séparés (personnel, travail) et des modèles de note.
-2. **Compte rendu** : consignes éditables pour l'IA, et étude d'un résumé 100 % local.
+1. **Compte rendu** : consignes éditables pour l'IA, rattachées à un profil, et étude d'un
+   résumé 100 % local.
 
 Une idée, un problème ? Ouvrez une [issue](https://github.com/PercyaDJ/Lowsper/issues/new/choose),
 ou posez votre question dans les [discussions](https://github.com/PercyaDJ/Lowsper/discussions).

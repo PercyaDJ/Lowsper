@@ -1105,3 +1105,63 @@ et les fait lire une par une (C).
   entrées MP4 QuickTime anciennes (non vérifiées) : repli limité à 25 Mo.
 - Firefox : la disponibilité de WebCodecs pour l'audio n'a pas été vérifiée ; Lowsper y reste
   en mode dégradé (§14).
+
+## 20. Profils de sortie et notes Markdown (3.2.0)
+
+Objectif : la note d'une réunion arrive directement au bon endroit (une base de notes de type
+Obsidian), au bon format, avec des profils distincts pour séparer les contextes (personnel,
+travail).
+
+### 20.1 Choix validés avec l'utilisateur
+
+| Question | Options | Choix et raison |
+|---|---|---|
+| Syntaxe du modèle de note | Variables seules ; variables et blocs conditionnels | **Variables seules** (`{{titre}}`...). Impossible à casser, facile à tester ; une variable inconnue reste visible telle quelle, et les paramètres la signalent. |
+| Note déjà enregistrée, puis corrigée | Mise à jour automatique ; bouton « Enregistrer » | **Mise à jour automatique** : chaque correction sur l'écran de fin réécrit la note du dossier 1,5 s après la dernière modification. |
+| Profils proposés d'office | Un profil « Par défaut » ; « Personnel » et « Travail » | **Un profil « Par défaut »**, qui garde le format classique de Lowsper dans les Téléchargements : rien ne change pour qui ne configure rien. |
+
+### 20.2 L'accès au dossier : une contrainte du navigateur
+
+L'écriture dans un dossier passe par l'API d'accès aux fichiers (déjà utilisée pour installer le
+modèle, §13). Deux contraintes structurent la conception :
+1. **L'accord du navigateur ne peut être demandé qu'après un clic.** La fin d'une réunion n'est pas
+   un clic. Donc : si l'accord est déjà donné, la note est écrite ; sinon, elle part dans les
+   Téléchargements et l'écran de fin propose « Enregistrer aussi dans le dossier » (un clic). Pour
+   l'éviter, l'écran d'accueil signale avant la réunion qu'un accord est à donner, avec un bouton.
+   Demander l'accord au clic sur « Démarrer » a été écarté : ce clic sert déjà au partage d'écran,
+   que le navigateur exige immédiatement après (§7).
+2. **L'accès à un dossier ne peut être gardé que par le navigateur** (IndexedDB), pas dans
+   `app/reglages.txt`. Les profils eux-mêmes sont des réglages et survivent à un nettoyage du
+   navigateur ; l'accès au dossier, non. Lowsper le détecte (« dossier oublié ») et propose de le
+   désigner à nouveau ; la note va dans les Téléchargements en attendant, rien n'est perdu.
+
+### 20.3 Format de la note
+
+- **Profil « Par défaut »** : `toMarkdown()` a été découpé en morceaux (`parts()` : titre, en-tête,
+  avertissement, corps) puis réassemblé. Sortie vérifiée **identique à l'octet près** avant et
+  après, sur cinq transcripts de référence (réunion, fichier importé, pause, passage en échec,
+  voix nommées et numérotées).
+- **Nom de fichier** : variables, puis nettoyage pour Windows (caractères `< > : " / \ | ? *` et de
+  contrôle, point ou espace final, noms réservés `CON`, `NUL`, `COM1`..., 120 caractères au plus).
+  Un nom déjà pris reçoit « (2) », « (3) »... : aucune note n'est jamais écrasée ; les mises à jour
+  réécrivent le même fichier.
+- **Front matter YAML** : toutes les chaînes entre guillemets, avec échappements. Raison : en YAML,
+  `no`, `yes`, `null`, un deux-points ou un dièse changent le sens d'une valeur nue. Vérifié en
+  relisant la sortie avec PyYAML : les valeurs piégées restent du texte.
+- **Liens `[[Nom]]`** : seulement pour les intervenants nommés à la main (« Intervenant 3 »
+  n'est pas une personne) ; les caractères qui casseraient un lien (`[ ] | # ^`) sont retirés.
+- **Date** : celle de l'enregistrement pour un fichier importé qui la contient (§19), sinon celle
+  de la réunion.
+
+### 20.4 Tests
+
+| Test | Résultat |
+|---|---|
+| 7 tests unitaires (format classique identique, modèle, liens, noms de fichier, YAML, fichier importé, profils abîmés ou d'une autre version) | OK, dans deux fuseaux horaires |
+| `tools/test/e2e-notes.mjs` (vraie page, faux dossier en mémoire, logique d'accès réelle) | 17/17, aucune requête réseau |
+
+Le dossier est simulé en mémoire : un vrai accès à un dossier exige un clic humain dans la fenêtre
+du système, que le navigateur de test ne peut pas produire. Le rangement des accès est
+remplaçable pour cela ; tout le reste (accord demandé, oublié, accordé, écriture, mise à jour) est
+le code réel. **Non vérifié** : le comportement exact d'Edge et de Chrome sur la durée de l'accord
+d'une session à l'autre ; l'écran d'accueil s'adapte à ce que le navigateur répond.

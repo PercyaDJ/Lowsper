@@ -13,6 +13,19 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [3.2.0] - 2026-11-05
+
+### Ajouté
+- Profils de sortie (« Personnel », « Travail »...) : dossier de destination, nom de fichier à
+  variables, propriétés en tête de note (front matter YAML), modèle de note éditable, intervenants
+  nommés en liens `[[Nom]]`. Choix du profil sur l'écran d'accueil (decision.md §20).
+- La note est écrite directement dans le dossier du profil, puis mise à jour à chaque correction
+  sur l'écran de fin ; repli sur les Téléchargements quand le navigateur demande son accord, avec
+  un bouton pour enregistrer dans le dossier.
+
+### Modifié
+- Le profil « Par défaut » garde exactement le format classique et les Téléchargements.
+
 ## [3.1.0] - 2026-11-05
 
 ### Ajouté
@@ -84,7 +97,8 @@ antérieures n'ont pas été taguées (la numérotation reprend la « version 3 
   journal technique.
 - Réglages copiés dans le dossier (`app/reglages.txt`), restaurés après un nettoyage du navigateur.
 
-[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.1.0...HEAD
+[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.2.0...HEAD
+[3.2.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.2...v3.1.0
 [3.0.2]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.0...v3.0.1

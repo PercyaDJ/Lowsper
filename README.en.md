@@ -25,6 +25,9 @@ The interface and the full documentation are in French: see [README.md](README.m
 - **Built for meetings, not dictation.** Two sources (you and the other participants), speaker
   separation, custom glossary and domain vocabularies, a small always-on-top window, back-to-back
   meetings, and a safety net that never silently drops speech.
+- **Straight into your notes.** Output profiles (« Personnel », « Travail »...) write each note
+  into a folder of your choice, such as an Obsidian vault, with a note template, YAML front
+  matter, and `[[Name]]` links for the speakers you name. The note is updated as you fix it.
 - **Recordings too.** Drop a WAV, MP3, M4A/AAC, OGG/Opus or WebM file (even several hours long)
   and it goes through the same engine. Files are read in small pieces with bounded memory and are
   never copied or uploaded.

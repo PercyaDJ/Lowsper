@@ -113,6 +113,18 @@ await page.waitForTimeout(1500);
 await page.screenshot({ path: join(out, 'import.png') });
 await page.click('#import-cancel');
 await page.waitForSelector('#view-idle:not([hidden])', { timeout: 120000 });
+
+// Profils de sortie : éditeur dans les paramètres (profil fictif « Travail »)
+await page.click('#settings-open');
+await page.click('#prof-new');
+await page.fill('#prof-name', 'Travail');
+await page.check('#prof-links');
+await page.fill('#prof-tags', 'reunion, travail');
+await page.fill('#prof-extra', 'projet: Atlas');
+await page.evaluate(() => document.getElementById('prof-title').scrollIntoView({ block: 'start' }));
+await page.waitForTimeout(300);
+await page.locator('#settings').screenshot({ path: join(out, 'profils.png') });
+await page.click('#settings-close');
 await browser.close();
 
 if (network.length) {

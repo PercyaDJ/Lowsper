@@ -80,7 +80,7 @@ le rattrapage ne servent pas (decision.md §19).
 |---|---|---|
 | `installer.js` | Écrit les modèles dans `app/models/` (dossier choisi par l'utilisateur) | **Seul code réseau** : téléchargement depuis Hugging Face, révision figée, empreinte SHA-256 vérifiée |
 | `settings.js` | Écrit `app/reglages.txt` (réglages, jamais de texte de réunion) | Aucun |
-| `app.js` | Le transcript, par un téléchargement que le navigateur range dans Téléchargements | Aucun |
+| `app.js`, `notes.js` | La note : dans le dossier du profil choisi par l'utilisateur (accès accordé au navigateur), sinon par un téléchargement | Aucun |
 | Tous les autres | Aucun | Aucun |
 
 La politique de sécurité de `Lowsper.html` interdit tout le reste, et `tools/test/csp.mjs` le
@@ -96,6 +96,7 @@ vérifie à chaque pull request.
 | Changer la file, les moteurs, l'interface | `app/js/app.js`, `Lowsper.html`, `app/css/lowsper.css` |
 | Changer le Markdown, les filtres, les sigles | `app/js/transcript.js` |
 | Ajouter un vocabulaire métier | `app/js/vocabulary.js` |
+| Changer le format des notes, ajouter une variable de modèle | `app/js/notes.js` (et `parts()` dans `transcript.js`) |
 | Changer la distinction des voix | `app/js/speakers.js` |
 | Ajouter ou mettre à jour un modèle | `tools/models.mjs`, `tools/models.lock.json`, puis `npm run build` |
 
@@ -107,6 +108,7 @@ vérifie à chaque pull request.
 | `tools/test/csp.mjs` | Non-fuite réseau : politique, code, navigateur | 15 s |
 | `tools/test/import.mjs` | Décodage des fichiers importés, 7 formats ; `--long` : 3 h et mémoire | 10 s, 10 min |
 | `tools/test/e2e-import.mjs` | Import dans la vraie page : file, en-tête, voix, échec, annulation | 3 min |
+| `tools/test/e2e-notes.mjs` | Profils de sortie : éditeur, dossier oublié, écriture, mise à jour, repli | 5 min |
 | `tools/test/release.mjs` | Contenu et reproductibilité du paquet de distribution | 1 s |
 | `tools/test/e2e.mjs` | Installation, réunion simulée, panne de moteur, enchaînement, non-fuite | 4 min |
 | `tools/test/eval*.mjs`, `soak.mjs`, `bench.mjs` | Mesures : qualité, endurance, vitesse | 5 min à 1 h |
