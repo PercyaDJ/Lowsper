@@ -231,6 +231,19 @@ section « Consignes pour l'IA », et rattachez-en une à chaque profil. Attenti
 transcript dans un assistant en ligne le fait sortir de l'ordinateur ; c'est votre choix, pas celui
 de Lowsper.
 
+**Lowsper peut-il résumer lui-même la réunion, sans rien envoyer ?**
+Pas encore. Un petit modèle de langage dans la page a été mesuré : il invente des faits en
+français (`decision.md` §22). Chrome et Edge récents embarquent parfois leur propre modèle ; pour
+savoir si c'est le cas sur votre PC, ouvrez les paramètres, section « IA intégrée du navigateur
+(expérimental) », et cliquez sur « Vérifier ce PC ». Rien n'est téléchargé et aucun de vos
+transcripts n'est lu. Si le navigateur répond oui, « Essayer sur une réunion fictive » montre ce
+que vaut le résultat (le navigateur peut alors devoir télécharger son modèle, après votre
+accord). « Copier le rapport » produit un texte sans aucune donnée réelle, que vous pouvez joindre
+à une [issue](https://github.com/PercyaDJ/Lowsper/issues/new/choose) pour aider à décider de la
+suite.
+
+![La sonde de l'IA intégrée dans les paramètres (réponse simulée d'un navigateur qui peut télécharger son modèle)](docs/images/sonde-ia.png)
+
 **Mon fichier est refusé.**
 Lowsper lit le contenu du fichier, pas son extension. Formats lus en entier : WAV, MP3, M4A/AAC,
 OGG/Opus, WebM. Un autre format (FLAC, Vorbis, WMA...) n'est accepté que jusqu'à 25 Mo, et
@@ -334,10 +347,11 @@ seul, dans un dossier Lowsper où le modèle a déjà été installé depuis Edg
 
 Évolutions prévues, dans l'ordre (détail dans les [jalons](https://github.com/PercyaDJ/Lowsper/milestones)
 et `decision.md`) :
-1. **Résumé local, à l'étude** : un petit modèle de langage dans le navigateur, sur le processeur,
-   a été mesuré et écarté (qualité insuffisante en français, trop lent, `decision.md` §22). La
-   piste suivante, l'IA intégrée de Chrome, sera d'abord sondée en option expérimentale, sur
-   validation. D'ici là, « Copier pour une IA » et ses consignes restent la voie recommandée.
+1. **Résumé local, à l'étude** : un petit modèle de langage dans la page a été mesuré et écarté
+   (`decision.md` §22). L'IA intégrée de Chrome et d'Edge se vérifie désormais dans les
+   paramètres (`decision.md` §23) ; un « Résumé sur ce PC » ne sera proposé que si les rapports
+   obtenus sur de vrais PC montrent un résultat fidèle. D'ici là, « Copier pour une IA » et ses
+   consignes restent la voie recommandée.
 
 Une idée, un problème ? Ouvrez une [issue](https://github.com/PercyaDJ/Lowsper/issues/new/choose),
 ou posez votre question dans les [discussions](https://github.com/PercyaDJ/Lowsper/discussions).

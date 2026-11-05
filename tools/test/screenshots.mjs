@@ -124,6 +124,25 @@ await page.fill('#prof-extra', 'projet: Atlas');
 await page.evaluate(() => document.getElementById('prof-title').scrollIntoView({ block: 'start' }));
 await page.waitForTimeout(300);
 await page.locator('#settings').screenshot({ path: join(out, 'profils.png') });
+
+// Sonde de l'IA intégrée : réponse simulée d'un navigateur qui peut télécharger son modèle (le
+// Chromium de capture n'a pas d'IA intégrée) ; seul l'état est capturé, pas un résultat d'essai
+await page.evaluate(() => {
+  window.Summarizer = { availability: async () => 'downloadable' };
+  window.LanguageModel = { availability: async () => 'downloadable' };
+});
+await page.click('#lai-probe');
+await page.waitForFunction(() => !document.getElementById('lai-trial').hidden);
+await page.evaluate(() => {
+  // Titre de la section sous l'en-tête fixe des paramètres
+  const title = document.getElementById('lai-title');
+  title.scrollIntoView({ block: 'start' });
+  let box = title.parentElement;
+  while (box && box.scrollHeight <= box.clientHeight) box = box.parentElement;
+  if (box) box.scrollTop -= 90;
+});
+await page.waitForTimeout(300);
+await page.locator('#settings').screenshot({ path: join(out, 'sonde-ia.png') });
 await page.click('#settings-close');
 await browser.close();
 

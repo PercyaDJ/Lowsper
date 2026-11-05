@@ -1257,3 +1257,66 @@ morceaux pour tenir dans le contexte.
 (qualité, mémoire, durée mesurées ci-dessus). **Non mesuré** : transformers.js sur WebGPU avec un
 modèle de 1,5 à 4 milliards en 4 bits et activations 16 bits, faute de carte graphique ici ; à
 mesurer sur un PC équipé avec le même banc, si l'option A échoue.
+
+## 23. Sonde de l'IA intégrée du navigateur (3.4.0, expérimental)
+
+**Contexte.** L'étude du §22 retient une seule piste pour un résumé local : l'IA intégrée de
+Chrome et d'Edge (option A). Deux points décisifs n'étaient pas vérifiés : répond-elle à une page
+ouverte en `file://`, et que vaut-elle en français sur un compte rendu ? Ils ne se tranchent que
+sur un vrai PC équipé, pas sur la machine de développement. D'où une **sonde**, dans les
+paramètres, que chacun peut lancer chez soi.
+
+**Ce que fait la sonde.**
+- **Vérifier ce PC** : appelle `Summarizer.availability()` et `LanguageModel.availability()` avec
+  les options réellement visées (entrée et sortie en français, `expectedInputLanguages`,
+  `outputLanguage`, `expectedInputs`/`expectedOutputs`). Rien n'est téléchargé : `availability()`
+  ne fait que répondre `unavailable`, `downloadable`, `downloading` ou `available`. Délai de
+  10 s, au-delà duquel l'état « pas de réponse » est affiché ; une valeur inconnue est montrée
+  telle quelle.
+- **Essayer sur une réunion fictive** : seulement si une interface est utilisable, après un clic.
+  Si le navigateur doit d'abord télécharger son modèle, un avertissement le dit (téléchargement
+  fait par le navigateur, au moins 22 Go d'espace libre selon la documentation de Chrome) et
+  demande confirmation ; la progression est affichée. Le texte donné est le corpus fictif
+  « hebdo », avec la même consigne et les mêmes 8 faits que le banc du §22 : les résultats sont
+  directement comparables. Résumé (Summarizer) : type `key-points`, longueur `long`, Markdown.
+  Prompt API : consigne « compte rendu » du banc.
+- **Copier le rapport** : état de chaque interface, version du navigateur, protocole de la page,
+  durées, faits retrouvés et texte produit. Rien d'autre : ni transcript réel, ni réglage.
+
+**Arbitrages.**
+- **Aucun vrai transcript dans la sonde.** Tant que la qualité n'est pas mesurée, brancher l'IA
+  intégrée sur les réunions de l'utilisateur serait promettre ce que l'on ne sait pas tenir (§22.2,
+  point 3). L'exemple fictif suffit à juger, et le rapport peut être partagé sans risque.
+- **Aucun changement de la politique de sécurité.** La page ne fait aucune requête : le modèle
+  est géré par le navigateur, hors de la page. Le test `tools/test/localai.mjs` vérifie qu'aucune
+  requête ne part de la page pendant la sonde et l'essai.
+- **Données de l'étude partagées.** L'exemple, la consigne et les faits sont définis une seule
+  fois, dans `app/js/localai.js` ; le banc `tools/test/eval-summary.mjs` les y lit. Un test
+  unitaire vérifie que l'exemple reste identique au corpus.
+- **Rien n'est mémorisé.** La sonde n'ajoute aucun réglage : `app/reglages.txt` est inchangé.
+
+**Mesuré ici** (Chromium 153 de Playwright, sans écran, sans carte graphique) :
+
+| Page | Contexte sécurisé | `Summarizer` | `LanguageModel` | `LanguageDetector` |
+|---|---|---|---|---|
+| `file://` | oui | présent, `availability()` sans réponse en 15 s | idem | `downloadable` |
+| `http://127.0.0.1` | oui | idem | idem | `downloadable` |
+
+Ce que cela dit : une page `file://` est un contexte sécurisé, les interfaces de l'IA intégrée y
+sont exposées et y répondent **comme sur un site local** (même résultat, `LanguageDetector`
+répond). Le silence de `Summarizer` et `LanguageModel` vient donc de ce navigateur de test (pas
+de modèle Gemini Nano disponible ici), pas de `file://`. **Non vérifié** : Chrome et Edge du
+commerce sur un PC qui remplit les conditions matérielles ; c'est l'objet de la sonde.
+
+**Limites.**
+- Le premier `create()` exige un geste récent de l'utilisateur ; l'avertissement de
+  téléchargement pourrait le consommer dans certains navigateurs. Non observé ; si cela arrive,
+  le rapport montre l'erreur et un second clic suffit.
+- La qualité dépend du modèle choisi par le navigateur, qui peut changer d'une version à l'autre :
+  un rapport n'est valable que pour la version indiquée.
+- Une DSI peut désactiver ces modèles par stratégie (`GenAILocalFoundationalModelSettings`, §22) ;
+  la sonde affiche alors « indisponible ».
+
+**Suite.** Selon les rapports obtenus sur de vrais PC : si les faits sont retrouvés sans
+invention, proposer un « Résumé sur ce PC » à côté de « Copier pour une IA », toujours en option,
+dans un lot à valider ; sinon, en rester à « Copier pour une IA » et le noter ici.

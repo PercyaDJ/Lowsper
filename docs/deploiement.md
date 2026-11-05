@@ -73,6 +73,17 @@ reproduit pas pour ne pas risquer de donner un nom inexact ou périmé.
 Firefox et Safari ne sont pas pris en charge (pas d'écriture dans un dossier ; Firefox ne capte pas
 le son d'un partage d'écran).
 
+## IA intégrée du navigateur (expérimental)
+
+Les paramètres de Lowsper contiennent une sonde « IA intégrée du navigateur ». Elle demande à
+Edge ou Chrome si leur modèle de langage embarqué est utilisable en français sur le poste, sans
+rien télécharger. Un essai facultatif porte sur une réunion fictive livrée avec Lowsper ; aucun
+transcript réel n'est lu. Si le modèle manque, c'est le navigateur, pas Lowsper, qui le télécharge,
+après accord de l'utilisateur : la page elle-même ne fait aucune requête. Pour l'interdire sur le
+parc, la stratégie `GenAILocalFoundationalModelSettings` (documentée par Microsoft pour Edge) est
+le point de départ ; vérifiez son effet exact dans la documentation officielle d'Edge et de Chrome.
+Voir `decision.md` §23.
+
 ## Données produites sur le poste
 
 | Donnée | Où | Durée de vie |
