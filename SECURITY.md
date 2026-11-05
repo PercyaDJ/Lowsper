@@ -15,7 +15,7 @@ Seule la dernière version publiée (voir `CHANGELOG.md`) reçoit des correctifs
 | Le texte du transcript | Reste sur le poste : téléchargé par l'utilisateur, copie de secours dans le stockage local du navigateur, effacée à la réunion suivante. | Revue de code (`app/js/transcript.js`). |
 | La confidentialité réseau | La politique de sécurité de `Lowsper.html` interdit toute connexion, sauf vers Hugging Face pour télécharger le modèle. Une fois le modèle installé, aucune requête. | `tools/test/csp.mjs` (en CI) et `tools/test/e2e.mjs`. |
 | L'intégrité du modèle téléchargé | Révision figée, empreinte SHA-256 de chaque fichier contrôlée avant écriture. Un fichier modifié est refusé. | `app/js/installer.js`, `tools/models.lock.json`. |
-| L'intégrité du code livré | Aucun CDN, aucune police ni ressource distante. Moteur reconstruit à l'identique depuis le verrou. | `tools/test/csp.mjs`, `node build.mjs`. |
+| L'intégrité du code livré | Aucun CDN, aucune police ni ressource distante. Moteur reconstruit à l'identique depuis le verrou. Paquet de chaque version publié avec son empreinte SHA-256, reconstructible à l'identique. | `tools/test/csp.mjs`, `node build.mjs`, `tools/test/release.mjs`. |
 | Les empreintes vocales | Désactivées par défaut. Si activées : une suite de nombres (pas d'audio), sur le poste, effacée automatiquement après 1, 3 ou 6 mois. | `app/js/speakers.js` (`VoiceMemory`). |
 
 ## Ce que Lowsper ne protège pas

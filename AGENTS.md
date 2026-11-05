@@ -45,7 +45,8 @@ Une modification qui affaiblit l'une d'elles est refusée, quelle qu'en soit la 
   français. Types : `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `style`, `build`, `ci`,
   `chore`. Portée facultative : `feat(import): ...`.
 - **Versions** : SemVer. Majeur si l'utilisateur doit agir, mineur pour une fonctionnalité,
-  correctif sinon. Tag `vX.Y.Z` sur `main`.
+  correctif sinon. La version de `tools/package.json` fait foi ; la release `vX.Y.Z` est publiée
+  sur `main` et reçoit automatiquement son paquet (le workflow refuse un tag différent).
 - **CHANGELOG** : format Keep a Changelog. Chaque pull request remplit la section « Non publié ».
 - **Décisions** : tout choix technique non trivial va dans `decision.md`, dans le style existant :
   contexte, options, arbitrage, mesures, limites. Ne réécrivez pas une décision passée : ajoutez
@@ -61,7 +62,9 @@ Une modification qui affaiblit l'une d'elles est refusée, quelle qu'en soit la 
 - Tests unitaires pour toute logique nouvelle ; test e2e si la capture, le moteur ou l'interface
   changent.
 - README mis à jour dans le même lot que la fonctionnalité : usage, FAQ, limites connues.
-- Captures ou GIF courts pour toute fonctionnalité visible, sans aucune donnée réelle.
+  `README.en.md` aussi, si la promesse, l'installation ou une fonction majeure change.
+- Captures ou GIF courts pour toute fonctionnalité visible, sans aucune donnée réelle : étendre
+  `tools/test/screenshots.mjs` plutôt que capturer à la main.
 - Accessibilité de base : navigation au clavier, libellés, contrastes.
 - **Aucune régression de performance en direct.** Mesurez la charge du moteur avant et après
   (`npm run bench`) dès que le chemin du direct change ; notez les deux chiffres dans la PR.
@@ -93,6 +96,8 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Tout ce que lance la CI | `npm test` |
 | Bout en bout : installation, réunion, non-fuite (4 min) | `npm run test:e2e` |
 | Mesure de vitesse du moteur (après `node build.mjs --embed whisper-small`) | `npm run bench` |
+| Paquet de distribution `tools/dist/Lowsper-X.Y.Z.zip` (et son test) | `npm run release`, `npm run test:release` |
+| Captures d'écran de la documentation (après `--embed`, 5 min) | `node test/screenshots.mjs` |
 | Qualité sur corpus réaliste | `node test/eval-hebdo.mjs whisper-small` |
 
 Chromium : si Playwright ne trouve pas son navigateur, définissez `CHROMIUM_PATH`. Les tests e2e
@@ -120,6 +125,10 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/models/` | Modèles installés chez l'utilisateur (non versionnés) |
 | `tools/build.mjs`, `fetch-model.mjs`, `models.mjs`, `models.lock.json` | Construction et verrou des modèles |
 | `tools/test/` | Tests unitaires, non-fuite, e2e, bancs de mesure ; `corpus/` : corpus synthétiques et leurs générateurs |
+| `docs/` | Architecture, guide de déploiement (DSI, RSSI), captures d'écran (`docs/images`, régénérées par `tools/test/screenshots.mjs`) |
+| `tools/release.mjs` | Paquet de distribution, joint aux releases par `.github/workflows/release.yml` |
+| `README.en.md` | Résumé en anglais du README |
+| `CODE_OF_CONDUCT.md` | Code de conduite (Contributor Covenant 2.1, traduction officielle) |
 | `decision.md` | Décisions techniques et arbitrages |
 | `SECURITY.md` | Modèle de menace et signalement des failles |
 | `.github/` | CI, modèles d'issue et de pull request |

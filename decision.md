@@ -975,3 +975,57 @@ versions produisent un texte identique (4 transcriptions, horodatages compris), 
 nombre de jetons et le même calcul : l'écart est du bruit de mesure. Le correctif n'ajoute qu'un
 calcul arithmétique par décodage. Le banc ne fonctionnait plus depuis l'installation du modèle au
 premier lancement (`bench.html` ne lisait pas `app/models/index.txt`) : réparé.
+
+## 18. Ouverture à la communauté : paquet de distribution et documentation
+
+Objectif : qu'une personne qui découvre le dépôt comprenne en une minute ce que fait Lowsper,
+l'installe sans aide, et qu'un contributeur ou un RSSI trouve ce qu'il cherche sans lire le code.
+
+### 18.1 Un paquet par version, plutôt que « Download ZIP »
+
+Le zip automatique de GitHub contient tout le dépôt : outils, tests, une vingtaine de Mo de corpus
+audio, et des fichiers qui ne parlent qu'aux développeurs.
+
+| Option | Verdict |
+|---|---|
+| Garder « Download ZIP » | Simple, mais l'utilisateur reçoit des fichiers inutiles et ne peut vérifier aucune empreinte. Écarté. |
+| Paquet construit à la main à chaque version | Erreurs d'oubli, empreinte non reproductible. Écarté. |
+| Action GitHub tierce de publication | Dépendance de plus dans la chaîne de publication, pour un besoin couvert par la commande `gh` déjà présente sur les machines de GitHub. Écarté. |
+| **Script `tools/release.mjs` + workflow à la publication d'une release** | **Retenu.** |
+
+- Contenu : `Lowsper.html`, `app/` (sans modèles installés ni réglages, exclus explicitement),
+  `LICENSE`, les deux README, `SECURITY.md`, `CHANGELOG.md`. 27 fichiers, 22,7 Mo pour la 3.0.2.
+- **Reproductible** : fichiers triés, dates fixes, compression déterministe, zip écrit sans
+  dépendance (Node.js). Deux constructions donnent les mêmes octets : l'empreinte SHA-256 publiée
+  peut être vérifiée par quiconque reconstruit le paquet depuis le tag.
+- Vérifié : relu par `unzip` et par Python ; la page extraite s'ouvre dans Chromium sans erreur
+  ni requête réseau. Le test `tools/test/release.mjs` (en CI) contrôle le contenu et la
+  reproductibilité ; il a d'ailleurs attrapé un oubli dans la première version de la sélection
+  (`app/reglages.txt` aurait été livré s'il avait été versionné).
+- Le workflow refuse un tag qui ne correspond pas à la version de `tools/package.json`, et ignore
+  sans échec les versions antérieures au paquet (3.0.0 et 3.0.1).
+
+### 18.2 Documentation par public
+
+| Public | Document |
+|---|---|
+| Utilisateur | `README.md` : promesse, captures, comparatif, installation, FAQ, limites, feuille de route |
+| Lecteur anglophone | `README.en.md` : une page, renvoie au README pour le détail |
+| DSI, RSSI | `docs/deploiement.md` (flux réseau, distribution hors ligne, prérequis, données produites) et `SECURITY.md` |
+| Contributeur | `CONTRIBUTING.md`, `docs/architecture.md` (schéma du trajet du son, où modifier quoi), `AGENTS.md` |
+
+- **Langue** : l'interface et la documentation restent en français (contrainte du projet) ; un
+  résumé anglais d'une page élargit l'audience sans doubler la maintenance.
+- **Comparatif** : le README compare des catégories d'outils (services en ligne, applications de
+  dictée locales) plutôt que des produits nommés, dont les fonctions changent vite. Lowsper n'est
+  pas un outil de dictée : c'est un greffier de réunion hors ligne.
+- **Captures** : produites par `tools/test/screenshots.mjs`, qui rejoue le corpus synthétique dans
+  la vraie page avec le vrai moteur, puis nomme les voix avec des prénoms fictifs. Aucune donnée
+  réelle ne peut y apparaître, et elles se régénèrent à chaque évolution visible. Prises sur la
+  machine de développement, lente : l'indicateur de charge y dépasse 100 %, ce que la légende dit.
+- **Guide de déploiement** : les stratégies de navigateur (micro, capture d'écran, système de
+  fichiers, URL bloquées) sont citées par fonction, sans nom exact : ce guide renvoie à la
+  documentation officielle de Microsoft et de Google plutôt que de risquer un nom inexact.
+- **Code de conduite** : traduction française officielle du Contributor Covenant 2.1, sans
+  modification hormis le canal de signalement (signalement privé du dépôt, en attendant une
+  adresse dédiée).

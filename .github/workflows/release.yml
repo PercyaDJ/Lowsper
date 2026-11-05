@@ -1,0 +1,61 @@
+# Joint le paquet de distribution à chaque release publiée sur GitHub.
+# La release est créée à la main (tag vX.Y.Z sur main) ; ce workflow construit
+# Lowsper-X.Y.Z.zip avec tools/release.mjs, vérifie qu'il correspond au tag, puis le joint à la
+# release avec son empreinte SHA-256 (decision.md §18.1).
+name: Paquet de release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Construire et joindre Lowsper-X.Y.Z.zip
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+      - name: Version qui sait construire son paquet ?
+        id: check
+        run: |
+          if [ -f tools/release.mjs ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version antérieure au paquet de distribution (avant 3.0.2) : rien à joindre."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.present == 'true'
+        with:
+          node-version: 22
+      - name: Contrôle du paquet
+        if: steps.check.outputs.present == 'true'
+        working-directory: tools
+        run: node test/release.mjs
+      - name: Version du tag = version de tools/package.json
+        if: steps.check.outputs.present == 'true'
+        working-directory: tools
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "Le tag $TAG ne correspond pas à la version $VERSION de tools/package.json." >&2
+            exit 1
+          fi
+      - name: Construction du paquet
+        if: steps.check.outputs.present == 'true'
+        working-directory: tools
+        run: node release.mjs
+      - name: Ajout à la release
+        if: steps.check.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" tools/dist/*.zip tools/dist/*.sha256 --clobber --repo "$GITHUB_REPOSITORY"

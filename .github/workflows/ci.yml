@@ -36,6 +36,8 @@ jobs:
         run: npm run format:check
       - name: Tests unitaires
         run: npm run test:unit
+      - name: Paquet de distribution
+        run: npm run test:release
       - name: Navigateur pour le test de non-fuite
         run: npx playwright-core install --with-deps chromium
       - name: Test de non-fuite réseau

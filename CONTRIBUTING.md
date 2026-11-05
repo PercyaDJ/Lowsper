@@ -11,6 +11,18 @@ les personnes comme pour les agents de code.
    d'entreprise réels, nulle part (code, tests, issues, captures).
 3. Interface et documentation **en français**, ton clair et sobre.
 
+## Par où commencer
+
+- Les issues marquées **`bonne première contribution`** sont choisies pour être abordables sans
+  connaître tout le code ; **`aide bienvenue`** signale un sujet où un coup de main est attendu.
+- [docs/architecture.md](docs/architecture.md) explique le trajet du son, du micro au Markdown,
+  et indique quel fichier modifier pour quoi.
+- Une question qui n'est pas un bogue : les [discussions](https://github.com/PercyaDJ/Lowsper/discussions).
+- Les échanges peuvent se faire en français ou en anglais ; l'interface et la documentation du
+  projet restent en français.
+
+En participant, vous acceptez le [code de conduite](CODE_OF_CONDUCT.md).
+
 ## Proposer une modification
 
 1. Ouvrez d'abord une issue (modèle « Proposer une idée ») pour tout changement non trivial.
