@@ -14,8 +14,10 @@
     "test:unit": "node test/unit.mjs",
     "test:csp": "node test/csp.mjs --browser",
     "test:e2e": "node test/e2e.mjs 60",
-    "test": "npm run lint && npm run format:check && npm run test:unit && npm run test:csp",
-    "bench": "node test/bench.mjs"
+    "test:release": "node test/release.mjs",
+    "test": "npm run lint && npm run format:check && npm run test:unit && npm run test:release && npm run test:csp",
+    "bench": "node test/bench.mjs",
+    "release": "node release.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "4.3.0",

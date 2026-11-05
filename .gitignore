@@ -8,3 +8,4 @@ app/models/*
 !app/models/LISEZMOI.txt
 # Réglages de l'utilisateur, copiés dans le dossier par l'application
 app/reglages.txt
+tools/dist/
