@@ -359,11 +359,13 @@ Lowsper reconnaît Brave et affiche ces explications au bon moment.
 
 Évolutions prévues, dans l'ordre (détail dans les [jalons](https://github.com/PercyaDJ/Lowsper/milestones)
 et `decision.md`) :
-1. **Résumé local, à l'étude** : un petit modèle de langage dans la page a été mesuré et écarté
-   (`decision.md` §22). L'IA intégrée de Chrome et d'Edge se vérifie désormais dans les
-   paramètres (`decision.md` §23) ; un « Résumé sur ce PC » ne sera proposé que si les rapports
-   obtenus sur de vrais PC montrent un résultat fidèle. D'ici là, « Copier pour une IA » et ses
-   consignes restent la voie recommandée.
+1. **Refonte de l'interface** : style unique et épuré, pensé pour les débutants, interface en
+   anglais et en français, installation guidée selon la puissance du PC, mini-fenêtre réduite au
+   strict nécessaire. Spécifications : [docs/refonte.md](docs/refonte.md).
+2. **Langues parlées multiples et vocabulaires métier élargis**, après mesure de la qualité.
+3. **Mémoire des voix plus fiable** d'une visio à l'autre, après mesure.
+4. **Résumé local** : la piste de l'IA intégrée du navigateur reste à l'étude (`decision.md`
+   §22 et §23). D'ici là, « Copier pour une IA » reste la voie recommandée.
 
 Une idée, un problème ? Ouvrez une [issue](https://github.com/PercyaDJ/Lowsper/issues/new/choose),
 ou posez votre question dans les [discussions](https://github.com/PercyaDJ/Lowsper/discussions).

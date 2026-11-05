@@ -135,7 +135,7 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/models/` | Modèles installés chez l'utilisateur (non versionnés) |
 | `tools/build.mjs`, `fetch-model.mjs`, `models.mjs`, `models.lock.json` | Construction et verrou des modèles |
 | `tools/test/` | Tests unitaires, non-fuite, e2e, bancs de mesure ; `corpus/` : corpus synthétiques et leurs générateurs |
-| `docs/` | Architecture, guide de déploiement (DSI, RSSI), captures d'écran (`docs/images`, régénérées par `tools/test/screenshots.mjs`) |
+| `docs/` | Architecture, guide de déploiement (DSI, RSSI), spécifications de la refonte (`refonte.md`), captures d'écran (`docs/images`, régénérées par `tools/test/screenshots.mjs`) |
 | `tools/release.mjs` | Paquet de distribution, joint aux releases par `.github/workflows/release.yml` |
 | `README.en.md` | Résumé en anglais du README |
 | `CODE_OF_CONDUCT.md` | Code de conduite (Contributor Covenant 2.1, traduction officielle) |

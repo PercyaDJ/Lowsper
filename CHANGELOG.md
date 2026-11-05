@@ -13,6 +13,10 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+### Documentation
+- Spécifications de la refonte de l'interface (`docs/refonte.md`) : style, parcours, langues,
+  réglages, consigne de compte rendu réécrite, points à mesurer avant développement.
+
 ## [3.4.1] - 2026-11-05
 
 ### Corrigé
