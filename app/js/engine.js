@@ -7,7 +7,8 @@
  *    externe à charger), qui exécutent Whisper sur le processeur via WebAssembly.
  *
  * Aucune requête réseau n'est faite. La politique de sécurité (CSP) de Lowsper.html
- * l'interdit de toute façon : connect-src n'autorise ni http ni https.
+ * l'interdit de toute façon : connect-src n'autorise que Hugging Face, pour l'installation
+ * du modèle (installer.js), et rien d'autre.
  */
 (function () {
   'use strict';

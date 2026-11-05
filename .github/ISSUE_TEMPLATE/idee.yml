@@ -1,0 +1,25 @@
+name: Proposer une idée
+description: Une amélioration ou une nouvelle fonctionnalité.
+labels: [idée]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Lowsper reste 100 % local, sans installation, et n'écrit jamais l'audio sur le disque.
+        Une idée qui affaiblit l'un de ces principes ne pourra pas être retenue.
+  - type: textarea
+    id: besoin
+    attributes:
+      label: Le besoin
+      description: Quel problème voulez-vous résoudre, dans quelle situation ?
+    validations:
+      required: true
+  - type: textarea
+    id: proposition
+    attributes:
+      label: La proposition
+      description: Ce que Lowsper pourrait faire.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives envisagées

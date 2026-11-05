@@ -118,6 +118,7 @@ mémorisé sur le poste. Il accepte aussi les noms de projets et de personnes.
 - **WebGPU écarté pour la v1** : +27 Mo de WebAssembly, pilotes graphiques très hétérogènes sur
   un parc d'entreprise, et les modèles int8 sont mal accélérés en WebGPU (il faudrait d'autres
   fichiers de modèle). C'est la principale piste d'accélération future (§13).
+  *Remplacé par §15.7 : le moteur WebGPU est livré pour les modèles « carte graphique ».*
 
 ## 6. Performance : transcrire pendant la réunion, pas après
 
@@ -160,6 +161,7 @@ C'est la décision qui répond à « je ne veux pas laisser mon PC allumé une h
 - **Pas d'identification individuelle des participants (diarisation)** : les modèles qui le font
   (pyannote...) sont lourds, peu fiables en navigateur et auraient doublé la charge. L'IA de
   compte rendu déduit souvent qui parle grâce au contexte (« merci Julie »...).
+  *Remplacé par §15.5 et §15.14 : les voix des participants sont désormais distinguées.*
 
 ## 8. Écho : quand le micro réentend les participants
 
@@ -196,6 +198,8 @@ apparaîtrait deux fois. Trois niveaux de défense :
 
 - **Bandeau permanent** en haut de l'application : prévenir les participants avant d'enregistrer.
 - **L'audio n'est jamais stocké** : il n'existe qu'en mémoire, le temps d'être transcrit.
+  *Précisé par §15.20 : tout le son de la réunion reste en mémoire jusqu'à la réunion suivante ou
+  la fermeture de la page (filet de sécurité), toujours sans écriture sur le disque.*
 - Le glossaire est conservé dans le stockage local du navigateur, sur le poste.
 - Le **texte** est sauvegardé au fil de l'eau dans le stockage local du navigateur, sur le poste,
   pour survivre à un plantage ou une fermeture accidentelle (proposition de récupération au
@@ -244,7 +248,8 @@ Détails :
   l'analyse de téléchargements de Chrome peuvent signaler. Vérifié : Chrome exécute un `.txt`
   chargé par `<script>` en `file://`.
 - Fonctionne avec Edge et Chrome. Firefox et Safari n'ont pas l'API d'écriture dans un dossier :
-  un message invite à utiliser Edge ou Chrome.
+  un message invite à utiliser Edge ou Chrome. Firefox ne transcrit donc qu'avec un dossier dont le
+  modèle a déjà été installé depuis Edge ou Chrome (§14).
 - Test de bout en bout (`tools/test/e2e.mjs`) : installation complète dans une copie du dossier,
   rechargement, réunion simulée. Les empreintes de la révision figée ont été vérifiées contre le
   vrai serveur Hugging Face ; le test rejoue ensuite le téléchargement via un faux serveur local
@@ -259,7 +264,7 @@ Détails :
 |---|---|---|
 | Edge, Chrome (Windows) | Oui | Oui : partager l'écran entier et cocher « Partager l'audio du système », ou un onglet |
 | Chrome (macOS) | Oui | Garanti pour un onglet du navigateur (réunion web). Pour une application de bureau, dépend des versions de macOS et de Chrome |
-| Firefox | Oui | Non (Firefox ne capte pas le son d'un partage d'écran) : mode micro seul |
+| Firefox | Oui, si le modèle a été installé depuis Edge ou Chrome (§13) | Non (Firefox ne capte pas le son d'un partage d'écran) : mode micro seul |
 | Safari | Non testé | Non testé |
 
 Si une stratégie d'entreprise interdit le partage d'écran, Lowsper fonctionne en micro seul.
@@ -815,3 +820,136 @@ est retrouvée par le rattrapage (« Rattrapage : 9 s »), couverture totale, 20
    voix mélangées demanderait des modèles beaucoup plus lourds.
 4. **Compte rendu local** par un petit modèle de langage dans le navigateur : écarté pour l'instant.
 5. **Miroir de téléchargement** si Hugging Face est bloqué dans certaines entreprises.
+
+## 17. Socle vitrine : build reproductible, contrôles automatiques, données fictives
+
+Objectif : un dépôt public que l'on peut montrer tel quel, dont chaque garantie annoncée est
+vérifiée par une machine, et qui ne contient aucune donnée réelle.
+
+### 17.1 Build reproductible : le verrou des modèles
+
+**Constat.** Sur un clone neuf, `node build.mjs` échouait en une seconde : il attendait Silero VAD
+et WeSpeaker dans `tools/.cache`, mais `fetch-model.mjs` ne savait pas les télécharger. Pire, le
+build commençait par vider `app/engine` : lancé dans le dépôt, il laissait l'application sans
+détection de parole ni empreintes vocales. Par ailleurs, `fetch-model.mjs` résolvait la révision
+`main` au moment du téléchargement : deux développeurs pouvaient obtenir des fichiers différents
+(constaté : la révision de `whisper-base` avait changé, par chance avec les mêmes empreintes).
+
+| Option | Verdict |
+|---|---|
+| Documenter un téléchargement manuel de Silero et WeSpeaker | Fragile, invérifiable. Écarté. |
+| Versionner les fichiers sources dans `tools/` | 8 Mo de binaires en double dans le dépôt. Écarté. |
+| **Verrou `tools/models.lock.json`** | **Retenu** : comme `package-lock.json`, il fige pour chaque modèle la source, le commit et l'empreinte SHA-256 de chaque fichier. |
+
+- `fetch-model.mjs` télécharge la révision du verrou et refuse tout fichier dont l'empreinte
+  diffère. Changer de révision est un acte volontaire (`--update`), relu dans une pull request.
+- Silero VAD vient du dépôt officiel (commit figé, fichier identique à celui livré, vérifié par
+  empreinte) ; WeSpeaker de `onnx-community/wespeaker-voxceleb-resnet34-LM`.
+- `build.mjs` lit le catalogue dans le verrou (inutile de télécharger 1 Go pour connaître des
+  empreintes) et vérifie tous ses prérequis **avant** de modifier `app/engine`.
+- Vérifié : sur un clone neuf, `npm run fetch-all` puis `npm run build` reproduisent les neuf
+  fichiers de `app/engine` **à l'octet près**, et le manifeste à l'identique hors date de build.
+
+### 17.2 Intégration continue : ce qui tourne à chaque pull request, et ce qui reste manuel
+
+| Contrôle | En CI | Pourquoi |
+|---|---|---|
+| Lint (ESLint), formatage (Prettier) | Oui | Quelques secondes. |
+| Tests unitaires (`unit.mjs`) | Oui | 16 s, Node seul, sans modèle. |
+| Test de non-fuite réseau (`csp.mjs`) | Oui | 15 s, Chromium seul, sans modèle (§17.3). |
+| Bout en bout (`e2e.mjs`) | Non, manuel | 330 Mo de modèles à télécharger ou mettre en cache, 4 min sur la machine de développement, sensible à la vitesse de la machine (seuils de file d'attente). Sur les machines partagées de la CI, il serait lent et instable : un test qui échoue au hasard finit ignoré. |
+| Qualité (`eval.mjs`, `eval-hebdo.mjs`), endurance (`soak.mjs`) | Non, manuel | Ce sont des mesures, pas des tests : de 5 min à plus d'une heure, résultats à interpréter. |
+
+Règle (`AGENTS.md`) : l'e2e est lancé à la main avant toute pull request qui touche la capture,
+le moteur ou l'interface, et son résultat est noté dans la description.
+
+### 17.3 Test de non-fuite réseau rapide
+
+Jusqu'ici, la non-fuite n'était vérifiée qu'en fin d'e2e. `tools/test/csp.mjs` la vérifie en
+15 secondes, sans modèle :
+- **statique** : une seule politique, avant tout script ; `connect-src` égal à la liste Hugging
+  Face, ni plus ni moins ; `default-src 'none'` ; aucune origine distante ailleurs ; ni
+  `'unsafe-inline'` ni `'unsafe-eval'` ; aucune API réseau (`fetch`, `XMLHttpRequest`,
+  `WebSocket`, `sendBeacon`, `EventSource`...) dans `app/js` hors de `installer.js` ; aucune
+  ressource distante dans la page ni les styles ;
+- **dans Chromium** : la page ouverte en `file://` ne fait aucune requête ; un envoi vers un autre
+  site (`fetch` en POST, `WebSocket`, `sendBeacon`) est bloqué par la politique.
+- Vérifié qu'il échoue : avec un site supplémentaire dans `connect-src`, le test passe en échec.
+
+Analogie : l'e2e est l'essai sur route, `csp.mjs` le contrôle technique. Le second ne remplace pas
+le premier, mais il tourne à chaque modification.
+
+### 17.4 Outils de qualité, réservés aux développeurs
+
+- ESLint 9 et Prettier 3 en dépendances de développement de `tools/`, versions exactes. Rien n'est
+  ajouté à ce que télécharge l'utilisateur, hormis des fichiers de configuration dans `tools/`.
+- Réglage Prettier choisi pour coller au style existant : sur 6 782 lignes, la largeur 120 avec
+  virgules finales « es5 » en modifie 260 (4 %), contre 394 à 408 en largeur 100. Une ligne
+  reformatée pouvant devenir plusieurs, le commit compte 927 lignes ajoutées et 261 retirées. Il
+  est isolé (`style:`) et ne contient que du formatage, pour ne pas brouiller la relecture.
+- Le lint a relevé dix erreurs, toutes sans effet sur le comportement : caractères échappés
+  inutilement dans des expressions régulières, une importation et une variable inutilisées.
+
+### 17.5 Versionnage
+
+SemVer, tags `vX.Y.Z`, journal `CHANGELOG.md` au format Keep a Changelog. Première version
+taguée : **3.0.0**, cohérente avec la « version 3 » de §15 ; les versions antérieures n'ont pas de
+tag. Une version majeure signale que l'utilisateur doit agir (format de `app/models` ou de
+`app/reglages.txt`, navigateur abandonné).
+
+### 17.6 Zéro donnée réelle, y compris dans l'historique
+
+**Constat.** Le dépôt contenait le nom d'un employeur réel (README, code, tests, corpus, y compris
+prononcé dans les fichiers audio de l'entretien de test), celui d'un client et des mots déformés
+tirés de transcripts réels. Ils figuraient aussi dans l'historique Git et dans un message de commit.
+
+- Noms remplacés par des noms fictifs (« Ombrelune Industries », projet « Mira Bello »...) partout.
+- Corpus d'entretien **régénéré** avec le nom fictif (Piper, mêmes voix), et non simplement coupé.
+  Les variantes « son de visio » et « écho » sont désormais produites par un script
+  (`tools/test/corpus/make-variants.py`, graine fixe), alors qu'elles avaient été faites à la main.
+- Historique réécrit (`git filter-repo`) avec la même table de remplacement, anciens fichiers audio
+  de l'entretien retirés, ainsi que l'ancien modèle `whisper-base` versionné au tout début du
+  projet (sans risque, mais 100 Mo inutiles à chaque clone).
+- `AGENTS.md` fait de cette règle une contrainte non négociable, et le modèle de pull request la
+  rappelle.
+
+**Mesures refaites sur le corpus régénéré** (Whisper small, processeur, vocabulaire
+cybersécurité et nom de la réunion, comme la version finale de §15.15) :
+
+| Corpus | Sigles et noms bien écrits | Erreurs (micro) | Erreurs (recruteur, son de visio) | Voix trouvées |
+|---|---|---|---|---|
+| Ancien corpus (§15.15) | 13 / 35 | 6,7 % | 42 % | 1 pour 1 |
+| **Corpus régénéré** | **11 / 35** | **5,8 %** | **49 %** | **1 pour 1** |
+
+Les écarts ne viennent pas du code (inchangé) mais du son : version récente de Piper, qui ne
+redonne pas les mêmes échantillons, et variante « son de visio » désormais produite par script,
+dont les réglages exacts d'origine n'étaient pas connus. Le constat de §15.15 tient : sur un son de
+visio dégradé, Whisper small se trompe sur près d'un mot sur deux ; sur le micro, moins d'un sur
+dix. La mesure « micro sans casque » (§15.16) n'a pas pu être refaite : elle a révélé un défaut du
+moteur (§17.8).
+
+### 17.7 Règles du projet pour les agents de code
+
+`AGENTS.md` est la source de vérité des règles : contraintes, conventions, définition de
+« terminé », commandes, carte du dépôt. `CLAUDE.md` ne fait que l'importer : une seule copie à
+maintenir. Le README reste destiné aux utilisateurs.
+
+### 17.8 Défaut découvert : contexte et budget de jetons dépassent la fenêtre de Whisper
+
+En refaisant la mesure « micro sans casque » sur le corpus régénéré, le moteur a échoué
+(« failed to call OrtRun », erreur de dimension dans le décodeur).
+
+**Mécanisme (vérifié dans le code et la configuration du modèle, pas encore reproduit isolément).**
+Whisper ne traite que **448 jetons** au total (`max_target_positions`), contexte compris. Or
+Lowsper peut donner jusqu'à 204 jetons de contexte (glossaire, vocabulaire métier, nom de la
+réunion) et autorise jusqu'à `11 × durée + 24` jetons générés : dès 20 s de bloc, la somme peut
+dépasser 448. Cela n'arrive que si la génération s'allonge (parole dense, écho, boucle), d'où sa
+rareté.
+
+**Conséquence dans l'application.** Le passage est relancé trois fois sur un moteur neuf, avec la
+même entrée, donc trois fois en échec, puis signalé « Passage non transcrit » (§15.18). Rien n'est
+perdu en silence, mais le passage manque. C'est une cause plausible de passages manquants sur le
+terrain, non confirmée.
+
+**Suite.** Correctif à part, hors de ce lot : plafonner le budget à `448 − longueur du contexte`, et
+sur un échec, réessayer sans contexte avant d'abandonner ; test unitaire sur le calcul du budget.
