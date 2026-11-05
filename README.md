@@ -75,8 +75,10 @@ réunion qui travaille hors ligne.
 
    ![La barre réduite : durée, niveaux, pause, mini-fenêtre, réunion suivante, fin](docs/images/barre.png)
 7. En fin de réunion, cliquez sur **« Terminer »** (carré rouge). Le fichier `.md` est enregistré
-   dans vos Téléchargements. Nommez les intervenants si vous le souhaitez ; le bouton
-   **« Copier pour une IA »** copie le transcript précédé d'une consigne de compte rendu.
+   dans vos Téléchargements (ou le dossier de votre profil). Nommez les intervenants si vous le
+   souhaitez ; **« Copier pour une IA »** copie la note précédée de la consigne choisie (compte
+   rendu de réunion, synthèse d'appel, liste d'actions, ou la vôtre), à coller dans l'assistant
+   de votre choix.
 
 ![Écran de fin d'une réunion fictive : intervenants nommés, aperçu du transcript Markdown](docs/images/fin.png)
 
@@ -220,6 +222,14 @@ Le navigateur demande votre accord pour écrire dans un dossier, et ne peut le f
 clic. Sur l'écran de fin, « Enregistrer aussi dans le dossier » règle la question ; pour l'éviter,
 cliquez sur « Autoriser maintenant » sur l'écran d'accueil avant la réunion. Si le navigateur a
 effacé ses données (fréquent sur un poste d'entreprise), il faut désigner le dossier à nouveau.
+
+**Comment obtenir un compte rendu ?**
+Sur l'écran de fin, choisissez une consigne à côté de « Copier pour une IA », cliquez, puis collez
+dans l'assistant d'IA autorisé par votre entreprise. Trois consignes sont fournies (compte rendu de
+réunion, synthèse d'appel, liste d'actions) ; modifiez-les ou créez les vôtres dans les paramètres,
+section « Consignes pour l'IA », et rattachez-en une à chaque profil. Attention : coller le
+transcript dans un assistant en ligne le fait sortir de l'ordinateur ; c'est votre choix, pas celui
+de Lowsper.
 
 **Mon fichier est refusé.**
 Lowsper lit le contenu du fichier, pas son extension. Formats lus en entier : WAV, MP3, M4A/AAC,
