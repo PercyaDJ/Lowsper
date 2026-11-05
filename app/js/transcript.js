@@ -47,7 +47,7 @@
       .normalize('NFD')
       .replace(/[̀-ͯ]/g, '')
       .replace(/[’`]/g, "'")
-      .replace(/[\[\]()*]/g, ' ')
+      .replace(/[[\]()*]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -141,7 +141,7 @@
     const acronyms = new Map();
     for (const raw of String(glossary || '').split(/[,;\n]+/)) {
       const term = raw.trim();
-      const key = term.replace(/[\s.\-]/g, '').toUpperCase();
+      const key = term.replace(/[\s.-]/g, '').toUpperCase();
       if (/^[A-Z0-9]{2,8}$/.test(key) && term === term.toUpperCase()) acronyms.set(key, term);
     }
     if (!acronyms.size) return text;
@@ -156,7 +156,7 @@
         for (let k = 0; k < n * 2 - 1 && i + k < parts.length; k += 2) words.push(parts[i + k]);
         if (words.length !== n) continue;
         const cores = words.map((w) => w.replace(/[.\-,;:!?]+$/, ''));
-        const pieces = cores.flatMap((w) => w.split(/[.\-]/)).filter(Boolean);
+        const pieces = cores.flatMap((w) => w.split(/[.-]/)).filter(Boolean);
         if (pieces.length < 2 || pieces.some((p) => p.length > 3 || !/^[A-Za-z0-9]+$/.test(p))) continue;
         const key = pieces.join('').toUpperCase();
         if (!acronyms.has(key)) continue;
@@ -520,7 +520,7 @@
     /** Nomme une voix (« Intervenant 3 » -> « Julien »). Nom vide = retour au numéro. */
     nameVoice(voice, name) {
       this.meta.names = this.meta.names || {};
-      const clean = String(name || '').replace(/[*_\[\]`]/g, '').trim().slice(0, 60);
+      const clean = String(name || '').replace(/[*_[\]`]/g, '').trim().slice(0, 60);
       if (clean) this.meta.names[voice] = clean;
       else delete this.meta.names[voice];
       this.save();

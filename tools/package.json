@@ -1,18 +1,31 @@
 {
   "name": "lowsper-tools",
   "private": true,
-  "version": "1.0.0",
+  "version": "3.0.0",
   "description": "Outils de construction de Lowsper (réservés aux développeurs, inutiles pour l'utilisateur final)",
   "type": "module",
   "scripts": {
     "fetch-model": "node fetch-model.mjs",
+    "fetch-all": "node fetch-model.mjs --all",
     "build": "node build.mjs",
-    "test": "node test/unit.mjs && node test/e2e.mjs 45",
+    "lint": "cd .. && eslint -c tools/eslint.config.js app/js tools",
+    "format": "prettier --config .prettierrc.json --ignore-path .prettierignore --write ../app/js \"*.{js,mjs}\" \"test/*.mjs\"",
+    "format:check": "prettier --config .prettierrc.json --ignore-path .prettierignore --check ../app/js \"*.{js,mjs}\" \"test/*.mjs\"",
+    "test:unit": "node test/unit.mjs",
+    "test:csp": "node test/csp.mjs --browser",
+    "test:e2e": "node test/e2e.mjs 60",
+    "test": "npm run lint && npm run format:check && npm run test:unit && npm run test:csp",
     "bench": "node test/bench.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "4.3.0",
     "esbuild": "0.25.10",
     "playwright-core": "1.56.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.1",
+    "eslint": "9.39.1",
+    "globals": "16.5.0",
+    "prettier": "3.6.2"
   }
 }

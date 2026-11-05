@@ -225,7 +225,6 @@ let maxBacklog = 0;
 const downloads = [];
 page.on('download', (d) => downloads.push(d));
 let chained = false;
-let chainAt = null;
 for (let waited = 0; waited < meetingSeconds; waited += 2) {
   await page.waitForTimeout(2000);
   // Perte simulée en direct (comme un détecteur bloqué) : les blocs de 38 à 50 s sont jetés.
@@ -239,7 +238,6 @@ for (let waited = 0; waited < meetingSeconds; waited += 2) {
   }
   if (!chained && waited >= meetingSeconds / 2) {
     chained = true;
-    chainAt = await page.evaluate(() => LowsperApp.capture.now());
     await page.evaluate(() => (LowsperApp.pip ? LowsperApp.pip.document : document).getElementById('chain').click());
   }
   const backlog = await page.evaluate(() => LowsperApp.queue.length + LowsperApp.inFlight);

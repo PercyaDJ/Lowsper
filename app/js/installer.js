@@ -28,7 +28,7 @@
   /** Page ouverte depuis un zip non extrait (Windows l'ouvre alors depuis un dossier temporaire). */
   Lowsper.openedFromTemp = function () {
     const p = decodeURIComponent(location.pathname).toLowerCase();
-    return /\/(appdata\/local\/temp|temp|tmp)\//.test(p) || /\.zip[\/]/.test(p) || /\/temporary internet files\//.test(p);
+    return /\/(appdata\/local\/temp|temp|tmp)\//.test(p) || /\.zip\//.test(p) || /\/temporary internet files\//.test(p);
   };
 
   Lowsper.canInstall = function () {

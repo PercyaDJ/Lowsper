@@ -384,7 +384,7 @@
   // Retourne false si la saisie est incomplète.
   function learnFix(wrong, right) {
     wrong = String(wrong || '').trim();
-    right = String(right || '').trim().replace(/[*_`\[\]]/g, '');
+    right = String(right || '').trim().replace(/[*_`[\]]/g, '');
     if (!wrong || !right || wrong.toLowerCase() === right.toLowerCase()) return false;
     const fixes = learnedFixes().filter(([w]) => w.toLowerCase() !== wrong.toLowerCase());
     fixes.push([wrong, right]);
@@ -412,7 +412,7 @@
   function applyFix() {
     const t = app.transcript;
     const wrong = $('fix-wrong').value.trim();
-    const right = $('fix-right').value.trim().replace(/[*_`\[\]]/g, '');
+    const right = $('fix-right').value.trim().replace(/[*_`[\]]/g, '');
     if (!t || !learnFix(wrong, right)) return;
     const n = t.replaceEverywhere(wrong, right);
     app.finalMarkdown = t.toMarkdown();
