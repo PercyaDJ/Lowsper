@@ -161,6 +161,30 @@
   // Code exécuté dans le Worker (sérialisé via Function.prototype.toString)
   // ---------------------------------------------------------------------------
 
+  /**
+   * Contexte et budget de jetons d'un décodage, ajustés à la fenêtre de Whisper.
+   *
+   * Whisper ne traite que maxPositions jetons au total (448), contexte compris : préfixe
+   * (contexte, puis début, langue, tâche) plus jetons générés. Lowsper donne jusqu'à 200 jetons
+   * de contexte (glossaire, vocabulaire, nom de la réunion) et autorise environ 11 jetons par
+   * seconde de bloc : au-delà de 20 s, la somme pouvait dépasser 448 et le moteur échouait
+   * (decision.md §17.8). Quand la place manque, c'est le contexte qui raccourcit, par le début
+   * (sa fin est la plus importante, voir vocabulary.js) : le budget, lui, reste celui du bloc,
+   * sans quoi un bloc long serait pris pour une boucle et redécodé sans glossaire.
+   * Retourne { prompt, budget } ; si tout tenait déjà, rien ne change.
+   */
+  function decodePlan(prompt, seconds, maxTokens, maxPositions) {
+    const limit = maxPositions || 448;
+    const TASK = 3; // début, langue, transcription
+    const wanted = maxTokens || Math.min(440, Math.ceil(seconds * 11) + 24);
+    let kept = prompt;
+    // 1 jeton de plus annonce le contexte (« texte précédent »)
+    const room = limit - TASK - 1 - wanted;
+    if (kept.length > room) kept = room > 0 ? kept.slice(kept.length - room) : [];
+    const prefix = TASK + (kept.length ? kept.length + 1 : 0);
+    return { prompt: kept, budget: Math.max(1, Math.min(wanted, limit - prefix)) };
+  }
+
   function workerMain() {
     let asr = null;
     let queue = Promise.resolve();
@@ -448,15 +472,17 @@
       });
     }
 
-    async function decode(features, encoderOutputs, language, prompt, seconds, maxTokens, noRepeat) {
+    async function decode(features, encoderOutputs, language, fullPrompt, seconds, maxTokens, noRepeat) {
+      // Budget de jetons : large (un débit très rapide avec des chiffres dépasse 8 jetons/s),
+      // les boucles sont détectées et traitées à part. Contexte et budget tiennent toujours
+      // dans la fenêtre de Whisper (decodePlan, decision.md §17.8).
+      const config = asr.model.config || {};
+      const { prompt, budget } = decodePlan(fullPrompt, seconds, maxTokens, config.max_target_positions);
       const prefix = (prompt.length ? [ids.prev, ...prompt] : []).concat([
         ids.sot,
         ids.lang['<|' + language + '|>'],
         ids.transcribe,
       ]);
-      // Budget de jetons : large (un débit très rapide avec des chiffres dépasse 8 jetons/s),
-      // les boucles sont détectées et traitées à part.
-      const budget = maxTokens || Math.min(440, Math.ceil(seconds * 11) + 24);
       const options = {
         inputs: features,
         encoder_outputs: encoderOutputs,
@@ -562,7 +588,7 @@
 
   class Transcriber {
     constructor(assets) {
-      const code = assets.runtime + '\n;(' + workerMain.toString() + ')();';
+      const code = assets.runtime + '\n;' + decodePlan.toString() + '\n;(' + workerMain.toString() + ')();';
       this.url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
       this.worker = new Worker(this.url);
       this.pending = new Map();
@@ -614,6 +640,7 @@
    * un bloc de 18 s coûte l'encodeur + environ 6 jetons par seconde de parole (texte et horodatages).
    * Retourne la part du temps réel utilisée (1 = juste suffisant), pour `workers` moteurs.
    */
+  Lowsper.decodePlan = decodePlan;
   Lowsper.estimateLoad = function (bench, workers) {
     const block = 18;
     const ms = bench.encMs + block * 6 * bench.tokMs;

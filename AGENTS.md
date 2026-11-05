@@ -92,7 +92,7 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Test de non-fuite réseau (15 s, Chromium) | `npm run test:csp` |
 | Tout ce que lance la CI | `npm test` |
 | Bout en bout : installation, réunion, non-fuite (4 min) | `npm run test:e2e` |
-| Mesure de vitesse du moteur | `npm run bench` |
+| Mesure de vitesse du moteur (après `node build.mjs --embed whisper-small`) | `npm run bench` |
 | Qualité sur corpus réaliste | `node test/eval-hebdo.mjs whisper-small` |
 
 Chromium : si Playwright ne trouve pas son navigateur, définissez `CHROMIUM_PATH`. Les tests e2e

@@ -925,8 +925,8 @@ Les écarts ne viennent pas du code (inchangé) mais du son : version récente d
 redonne pas les mêmes échantillons, et variante « son de visio » désormais produite par script,
 dont les réglages exacts d'origine n'étaient pas connus. Le constat de §15.15 tient : sur un son de
 visio dégradé, Whisper small se trompe sur près d'un mot sur deux ; sur le micro, moins d'un sur
-dix. La mesure « micro sans casque » (§15.16) n'a pas pu être refaite : elle a révélé un défaut du
-moteur (§17.8).
+dix. La mesure « micro sans casque » (§15.16) a d'abord révélé un défaut du moteur ; elle a été
+refaite après sa correction (§17.8).
 
 ### 17.7 Règles du projet pour les agents de code
 
@@ -934,22 +934,44 @@ moteur (§17.8).
 « terminé », commandes, carte du dépôt. `CLAUDE.md` ne fait que l'importer : une seule copie à
 maintenir. Le README reste destiné aux utilisateurs.
 
-### 17.8 Défaut découvert : contexte et budget de jetons dépassent la fenêtre de Whisper
+### 17.8 Défaut corrigé (3.0.1) : contexte et texte généré dépassaient la fenêtre de Whisper
 
 En refaisant la mesure « micro sans casque » sur le corpus régénéré, le moteur a échoué
 (« failed to call OrtRun », erreur de dimension dans le décodeur).
 
-**Mécanisme (vérifié dans le code et la configuration du modèle, pas encore reproduit isolément).**
-Whisper ne traite que **448 jetons** au total (`max_target_positions`), contexte compris. Or
-Lowsper peut donner jusqu'à 204 jetons de contexte (glossaire, vocabulaire métier, nom de la
-réunion) et autorise jusqu'à `11 × durée + 24` jetons générés : dès 20 s de bloc, la somme peut
-dépasser 448. Cela n'arrive que si la génération s'allonge (parole dense, écho, boucle), d'où sa
+**Cause, confirmée par une mesure instrumentée.** Whisper ne traite que **448 jetons** au total
+(`max_target_positions`), contexte compris. Lowsper donne jusqu'à 200 jetons de contexte
+(glossaire, vocabulaire métier, nom de la réunion), plus 4 jetons de tâche, et autorise
+`11 × durée + 24` jetons générés. Sur le corpus d'entretien (contexte de 192 jetons), le seul bloc
+en échec durait 23,9 s : 196 + 288 = **484** jetons prévus. Tous les blocs réussis restaient sous
+448 (435 au plus). L'échec suppose une génération qui s'allonge (parole dense, écho), d'où sa
 rareté.
 
-**Conséquence dans l'application.** Le passage est relancé trois fois sur un moteur neuf, avec la
-même entrée, donc trois fois en échec, puis signalé « Passage non transcrit » (§15.18). Rien n'est
-perdu en silence, mais le passage manque. C'est une cause plausible de passages manquants sur le
-terrain, non confirmée.
+**Conséquence avant correctif.** Le passage était relancé trois fois sur un moteur neuf, avec la
+même entrée, donc trois fois en échec, puis signalé « Passage non transcrit » (§15.18). Cause
+plausible de passages manquants sur le terrain, non confirmée faute de journal.
 
-**Suite.** Correctif à part, hors de ce lot : plafonner le budget à `448 − longueur du contexte`, et
-sur un échec, réessayer sans contexte avant d'abandonner ; test unitaire sur le calcul du budget.
+| Option | Verdict |
+|---|---|
+| Plafonner le budget à `448 − préfixe` | Écarté : un bloc long atteindrait le plafond, serait pris pour une boucle (§15.2) et redécodé **sans glossaire**, avec perte des sigles et un décodage de plus. |
+| Réessayer sans contexte après un échec | Écarté : soigne le symptôme, coûte un décodage raté à chaque fois. |
+| **Raccourcir le contexte quand la place manque** | **Retenu** : le contexte perd son début (sa fin, la plus importante, est gardée), le budget du bloc est inchangé. Si tout tenait déjà, rien ne change. |
+
+- Fonction pure `decodePlan` (`app/js/engine.js`), partagée par la page et le Worker. La limite est
+  lue dans la configuration du modèle.
+- Test unitaire : toutes les combinaisons de durée (3 à 40 s) et de contexte (0 à 200 jetons)
+  tiennent dans 448, et le comportement est inchangé quand tout tenait.
+- Effet : sur un bloc de 24 s avec un contexte plein, le contexte garde 156 jetons sur 200.
+
+**Mesure après correctif** (entretien, micro sans casque, Whisper small, vocabulaire cybersécurité
+et nom de la réunion) : le banc va jusqu'au bout. Erreurs sur votre voix 5,8 % (autant qu'avec
+casque), aucune phrase d'écho attribuée à « Vous » (6 retirées par la voix), 12 sigles et noms bien
+écrits sur 35, une voix trouvée pour une.
+
+**Performance du direct.** Banc `npm run bench` (Whisper small, 25 s de parole, sans contexte),
+versions alternées sur la machine de développement : médiane 15,7 s avant, 16,1 s après, sur
+6 mesures chacune, avec une dispersion de 1,2 à 3,2 s à l'intérieur d'une même version. Les deux
+versions produisent un texte identique (4 transcriptions, horodatages compris), donc le même
+nombre de jetons et le même calcul : l'écart est du bruit de mesure. Le correctif n'ajoute qu'un
+calcul arithmétique par décodage. Le banc ne fonctionnait plus depuis l'installation du modèle au
+premier lancement (`bench.html` ne lisait pas `app/models/index.txt`) : réparé.
