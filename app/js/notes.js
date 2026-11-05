@@ -65,6 +65,7 @@
       links: false,
       front: { enabled: false, fields: ['date', 'duree', 'intervenants', 'source'], tags: '', extra: '' },
       folderName: '',
+      prompt: 'compte-rendu', // consigne proposée par « Copier pour une IA »
     };
   }
 
@@ -280,6 +281,101 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Consignes pour l'IA (« Copier pour une IA ») : fournies, modifiables, ou personnelles
+  // ---------------------------------------------------------------------------
+  const PROMPTS_KEY = 'lowsper.prompts';
+  const BUILTIN_PROMPTS = [
+    {
+      id: 'compte-rendu',
+      name: 'Compte rendu de réunion',
+      text:
+        "Voici le transcript automatique d'une réunion (il peut contenir des erreurs de reconnaissance). " +
+        'Rédige un compte rendu structuré en français : contexte et participants identifiables, ' +
+        'points abordés, décisions prises, actions à mener (qui, quoi, échéance), questions ouvertes. ' +
+        "N'invente rien : si un passage est incompréhensible ou ambigu, signale-le.",
+    },
+    {
+      id: 'synthese-appel',
+      name: "Synthèse d'appel",
+      text:
+        "Voici le transcript automatique d'un appel (il peut contenir des erreurs de reconnaissance). " +
+        "Rédige une synthèse courte en français, en quelques lignes : objet de l'appel, points clés, " +
+        'engagements pris de part et d’autre, prochaines étapes et leur date si elle est citée. ' +
+        "N'invente rien : si un passage est incompréhensible ou ambigu, signale-le.",
+    },
+    {
+      id: 'actions',
+      name: "Liste d'actions",
+      text:
+        "Voici le transcript automatique d'une réunion (il peut contenir des erreurs de reconnaissance). " +
+        'Extrais uniquement les actions à mener, sous forme de tableau : action, responsable, échéance, ' +
+        "phrase du transcript qui la justifie (avec son horodatage). Si le responsable ou l'échéance ne " +
+        "sont pas dits explicitement, écris « non précisé » : n'invente ni nom ni date.",
+    },
+  ];
+
+  /** Consignes enregistrées : textes modifiés des consignes fournies, et consignes personnelles. */
+  function storedPrompts() {
+    try {
+      const v = JSON.parse(ls.get(PROMPTS_KEY) || '[]');
+      return Array.isArray(v) ? v.filter((p) => p && typeof p.id === 'string' && typeof p.text === 'string') : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /** Toutes les consignes : fournies (éventuellement modifiées), puis personnelles. */
+  function prompts() {
+    const stored = storedPrompts();
+    const builtin = BUILTIN_PROMPTS.map((b) => {
+      const o = stored.find((p) => p.id === b.id);
+      return Object.assign({}, b, { builtin: true, modified: !!o && o.text !== b.text }, o ? { text: o.text } : {});
+    });
+    const own = stored
+      .filter((p) => !BUILTIN_PROMPTS.some((b) => b.id === p.id))
+      .map((p) => ({ id: p.id, name: String(p.name || 'Consigne').slice(0, 60), text: p.text, builtin: false }));
+    return [...builtin, ...own];
+  }
+
+  function savePrompt(id, patch) {
+    const stored = storedPrompts();
+    const current = prompts().find((p) => p.id === id) || { id, name: 'Consigne', text: '' };
+    const next = { id, name: current.name, text: current.text, ...patch };
+    const others = stored.filter((p) => p.id !== id);
+    ls.set(PROMPTS_KEY, JSON.stringify([...others, { id: next.id, name: next.name, text: next.text }]));
+  }
+
+  function newPrompt(name) {
+    const id = 'c' + Math.random().toString(36).slice(2, 8);
+    savePrompt(id, { name: String(name || 'Nouvelle consigne').slice(0, 60), text: BUILTIN_PROMPTS[0].text });
+    return id;
+  }
+
+  /** Rétablit le texte d'origine d'une consigne fournie, ou supprime une consigne personnelle. */
+  function removePrompt(id) {
+    ls.set(PROMPTS_KEY, JSON.stringify(storedPrompts().filter((p) => p.id !== id)));
+  }
+
+  /**
+   * Texte copié pour l'IA : la consigne (variables possibles), puis la note. {{note}} place la
+   * note à un endroit précis ; sans {{note}} ni {{transcript}}, elle est ajoutée à la fin.
+   */
+  function promptText(t, profile, promptId) {
+    const p = normalize(profile);
+    const list = prompts();
+    const prompt = list.find((x) => x.id === (promptId || p.prompt)) || list[0];
+    const n = note(t, p).content;
+    const vars = variables(t, p);
+    const text = render(
+      String(prompt.text).replace(/\{\{\s*note\s*\}\}/g, () => '\u0000NOTE\u0000'),
+      vars
+    );
+    if (text.includes('\u0000NOTE\u0000')) return text.split('\u0000NOTE\u0000').join(n);
+    if (/\{\{\s*transcript\s*\}\}/.test(prompt.text)) return text;
+    return text.replace(/\s+$/, '') + '\n\n---\n\n' + n;
+  }
+
+  // ---------------------------------------------------------------------------
   // Dossier de destination (navigateur) : désigné une fois, accès redemandé proprement
   // ---------------------------------------------------------------------------
   function idb(mode, fn) {
@@ -398,5 +494,11 @@
     access,
     writeNote,
     folders,
+    BUILTIN_PROMPTS,
+    prompts,
+    savePrompt,
+    newPrompt,
+    removePrompt,
+    promptText,
   };
 })();

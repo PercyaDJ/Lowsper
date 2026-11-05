@@ -13,6 +13,15 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [3.3.0] - 2026-11-05
+
+### Ajouté
+- Consignes pour l'IA : « Copier pour une IA » propose un compte rendu de réunion (texte
+  inchangé), une synthèse d'appel ou une liste d'actions ; consignes modifiables, personnelles,
+  à variables, rattachées à chaque profil (decision.md §21).
+- Étude d'un résumé 100 % local dans le navigateur, avec mesures et recommandation
+  (decision.md §22) ; banc reproductible `tools/test/eval-summary.mjs`. Rien n'est intégré.
+
 ## [3.2.0] - 2026-11-05
 
 ### Ajouté
@@ -97,7 +106,8 @@ antérieures n'ont pas été taguées (la numérotation reprend la « version 3 
   journal technique.
 - Réglages copiés dans le dossier (`app/reglages.txt`), restaurés après un nettoyage du navigateur.
 
-[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.2.0...HEAD
+[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.3.0...HEAD
+[3.3.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.2...v3.1.0
 [3.0.2]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.1...v3.0.2

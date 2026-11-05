@@ -525,3 +525,6 @@ input[type="number"]:focus { border-color: var(--accent); }
 .export-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0 0 12px; }
 .export-row .fine { margin: 0; }
 @media (max-width: 560px) { .field-row .profile-field { max-width: none; } }
+.ai-copy { display: inline-flex; gap: 6px; align-items: stretch; }
+.ai-copy select { max-width: 210px; }
+#ai-text { font-size: 13.5px; }

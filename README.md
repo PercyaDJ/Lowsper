@@ -75,8 +75,10 @@ réunion qui travaille hors ligne.
 
    ![La barre réduite : durée, niveaux, pause, mini-fenêtre, réunion suivante, fin](docs/images/barre.png)
 7. En fin de réunion, cliquez sur **« Terminer »** (carré rouge). Le fichier `.md` est enregistré
-   dans vos Téléchargements. Nommez les intervenants si vous le souhaitez ; le bouton
-   **« Copier pour une IA »** copie le transcript précédé d'une consigne de compte rendu.
+   dans vos Téléchargements (ou le dossier de votre profil). Nommez les intervenants si vous le
+   souhaitez ; **« Copier pour une IA »** copie la note précédée de la consigne choisie (compte
+   rendu de réunion, synthèse d'appel, liste d'actions, ou la vôtre), à coller dans l'assistant
+   de votre choix.
 
 ![Écran de fin d'une réunion fictive : intervenants nommés, aperçu du transcript Markdown](docs/images/fin.png)
 
@@ -221,6 +223,14 @@ clic. Sur l'écran de fin, « Enregistrer aussi dans le dossier » règle la que
 cliquez sur « Autoriser maintenant » sur l'écran d'accueil avant la réunion. Si le navigateur a
 effacé ses données (fréquent sur un poste d'entreprise), il faut désigner le dossier à nouveau.
 
+**Comment obtenir un compte rendu ?**
+Sur l'écran de fin, choisissez une consigne à côté de « Copier pour une IA », cliquez, puis collez
+dans l'assistant d'IA autorisé par votre entreprise. Trois consignes sont fournies (compte rendu de
+réunion, synthèse d'appel, liste d'actions) ; modifiez-les ou créez les vôtres dans les paramètres,
+section « Consignes pour l'IA », et rattachez-en une à chaque profil. Attention : coller le
+transcript dans un assistant en ligne le fait sortir de l'ordinateur ; c'est votre choix, pas celui
+de Lowsper.
+
 **Mon fichier est refusé.**
 Lowsper lit le contenu du fichier, pas son extension. Formats lus en entier : WAV, MP3, M4A/AAC,
 OGG/Opus, WebM. Un autre format (FLAC, Vorbis, WMA...) n'est accepté que jusqu'à 25 Mo, et
@@ -324,8 +334,10 @@ seul, dans un dossier Lowsper où le modèle a déjà été installé depuis Edg
 
 Évolutions prévues, dans l'ordre (détail dans les [jalons](https://github.com/PercyaDJ/Lowsper/milestones)
 et `decision.md`) :
-1. **Compte rendu** : consignes éditables pour l'IA, rattachées à un profil, et étude d'un
-   résumé 100 % local.
+1. **Résumé local, à l'étude** : un petit modèle de langage dans le navigateur, sur le processeur,
+   a été mesuré et écarté (qualité insuffisante en français, trop lent, `decision.md` §22). La
+   piste suivante, l'IA intégrée de Chrome, sera d'abord sondée en option expérimentale, sur
+   validation. D'ici là, « Copier pour une IA » et ses consignes restent la voie recommandée.
 
 Une idée, un problème ? Ouvrez une [issue](https://github.com/PercyaDJ/Lowsper/issues/new/choose),
 ou posez votre question dans les [discussions](https://github.com/PercyaDJ/Lowsper/discussions).

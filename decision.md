@@ -1165,3 +1165,95 @@ du système, que le navigateur de test ne peut pas produire. Le rangement des ac
 remplaçable pour cela ; tout le reste (accord demandé, oublié, accordé, écriture, mise à jour) est
 le code réel. **Non vérifié** : le comportement exact d'Edge et de Chrome sur la durée de l'accord
 d'une session à l'autre ; l'écran d'accueil s'adapte à ce que le navigateur répond.
+
+## 21. Consignes pour l'IA éditables (3.3.0)
+
+« Copier pour une IA » proposait une seule consigne figée (§10). Elle devient un choix :
+
+- **Trois consignes fournies** : compte rendu de réunion (texte identique à l'ancienne consigne,
+  sortie vérifiée par un test), synthèse d'appel, liste d'actions. Cette dernière demande d'écrire
+  « non précisé » plutôt qu'un responsable ou une date absents du transcript : un petit défaut
+  d'information vaut mieux qu'une invention.
+- **Modifiables** (avec « Rétablir le texte d'origine ») et **consignes personnelles** à volonté.
+  Stockées comme les autres réglages, donc copiées dans `app/reglages.txt`.
+- **Variables** des modèles de note (`{{titre}}`, `{{date}}`...) ; `{{note}}` place la note dans
+  la consigne, sinon elle est ajoutée à la fin. La note est insérée après le rendu des variables :
+  un `{{...}}` présent dans un transcript n'est jamais réinterprété.
+- **Rattachées aux profils** : chaque profil propose sa consigne, l'écran de fin permet d'en
+  choisir une autre.
+
+Lowsper n'envoie rien : la consigne et la note vont dans le presse-papiers ; les coller dans un
+assistant en ligne est un choix de l'utilisateur, rappelé dans la FAQ.
+
+## 22. Étude : un résumé 100 % local dans le navigateur ?
+
+**Question.** Lowsper peut-il produire lui-même le compte rendu, sans que rien ne quitte le poste,
+sur les postes visés (portables d'entreprise, souvent sans carte graphique dédiée, 8 à 32 Go de
+mémoire), et sans affaiblir ses principes (§1 à §3) ? Étude seulement : rien n'est intégré.
+
+### 22.1 Options examinées
+
+| Option | Où est le modèle | Ce que dit la documentation (consultée le 2026-11-05) | Compatibilité avec Lowsper |
+|---|---|---|---|
+| **A. IA intégrée de Chrome** (Summarizer API, Prompt API, Gemini Nano) | Téléchargé et géré par le navigateur, pas par la page | Summarizer stable depuis Chrome 138, Prompt API stable depuis Chrome 148 ; français pris en charge. Exige **22 Go libres**, et **une carte graphique de plus de 4 Go** ou **16 Go de mémoire et 4 cœurs**. Désactivable par la stratégie d'entreprise `GenAILocalFoundationalModelSettings`. Taille de contexte non publiée (environ 6 000 à 9 000 jetons selon des sources non officielles) | Aucune connexion de la page, politique de sécurité inchangée. **Non vérifié** : fonctionnement depuis une page `file://`. Edge : préversion seulement (Canary, Dev) |
+| **B. WebLLM** (MLC) | Téléchargé par la page | Exige WebGPU ; poids depuis Hugging Face mais bibliothèques WebAssembly depuis `raw.githubusercontent.com` ; mise en cache par Cache API, IndexedDB ou OPFS | **Écartée** : demande d'ouvrir la politique de sécurité à GitHub (§3), et repose sur des mécanismes que le mode `file://` restreint (§2). Non testée |
+| **C. transformers.js + petit modèle ONNX** (moteur déjà utilisé par Lowsper) | Téléchargé une fois depuis Hugging Face, comme Whisper | Modèles multilingues sous licence Apache 2.0 disponibles (Qwen2.5 0,5 et 1,5 milliard de paramètres, 0,5 à 1,8 Go selon la précision) ; WebAssembly limité à 4 Go de mémoire | Compatible par construction ; **mesurée ci-dessous** |
+
+Sources de l'option A : developer.chrome.com/docs/ai/summarizer-api, developer.chrome.com/docs/ai/prompt-api,
+learn.microsoft.com/microsoft-edge/web-platform/prompt-api, learn.microsoft.com/deployedge/microsoft-edge-policies/genailocalfoundationalmodelsettings.
+Option B : github.com/mlc-ai/web-llm. Option C : fiches des modèles sur huggingface.co, onnxruntime.ai/docs/tutorials/web/large-models.html.
+
+### 22.2 Mesure de l'option C
+
+Banc reproductible `tools/test/eval-summary.mjs` : Chromium, WebAssembly sur **un seul fil** comme
+Lowsper (§2), consigne « Compte rendu de réunion », transcript parfait du corpus fictif « hebdo »
+(2 min 40, 468 mots, 930 jetons, 8 répliques chiffrées et 4 actions). On vérifie 8 faits : 1 240
+tickets, 87 % pour 95 % sur les P2, l'incident du certificat VPN, et les 4 actions (qui, quoi,
+quand). Machine de développement lente (§0), sans carte graphique : WebGPU non mesurable.
+
+| Modèle et précision | Chargement | Lecture du transcript | Génération | Mémoire de pointe | Faits retrouvés | Ce que contient le texte |
+|---|---|---|---|---|---|---|
+| Qwen2.5 0,5 milliard, 8 bits | 12 s | 46 s | 3,0 jetons/s | 4,1 Go | **0 / 8** | Boucle (« de la réunion de la réunion... ») |
+| Qwen2.5 0,5 milliard, 4 bits | | | 0,78 jeton/s | 4,2 Go | | Échoue au contrôle (« L'Île-de-France est la capitale de la France ») |
+| Qwen2.5 1,5 milliard, 8 bits | 67 s | 151 s | 1,08 jeton/s | 6,5 Go | **0 / 8** | Décrit le texte au lieu de le résumer (« le texte est écrit en français »), se répète |
+
+Le banc lui-même a été contrôlé : à la question « Quelle est la capitale de la France ? », le
+modèle 8 bits répond juste. **Contrôle de la précision** (hors navigateur, Node.js, même consigne) :
+
+| Qwen2.5 0,5 milliard | Faits retrouvés | Défauts |
+|---|---|---|
+| 8 bits | 0 / 8 | boucle, comme dans le navigateur |
+| **Pleine précision** (2 Go) | **3 / 8** | « 1200 tickets » au lieu de 1 240 ; échéance inventée (« jusqu'à décembre 2023 ») ; actions écrites comme déjà faites (« Thomas a finalisé la migration ») ; un lien faux entre deux faits (« Marc a envoyé le chiffrage avant le renfort du prestataire ») |
+
+**Ce que cela dit.**
+1. Sur le processeur, en WebAssembly, les modèles qui tiennent dans la mémoire permise sont soit
+   **détruits par la quantification** (8 et 4 bits), soit **trop petits pour être fiables** (0,5
+   milliard en pleine précision invente des chiffres et des dates). Le 1,5 milliard en pleine
+   précision pèse 6,2 Go : au-delà des 4 Go de WebAssembly, impossible à faire tourner ainsi.
+2. Le coût est hors de portée sur le processeur : rapporté à une réunion d'une heure (environ
+   9 000 mots, soit environ 18 000 jetons au ratio mesuré de 2 jetons par mot), la seule lecture
+   prendrait de l'ordre de 13 min (0,5 milliard) à 43 min (1,5 milliard) sur la machine de mesure.
+   Extrapolation linéaire, **non mesurée** sur une heure ; le coût réel croît plus vite que
+   linéairement avec la longueur.
+3. Un compte rendu qui invente une date ou un chiffre est **pire que pas de compte rendu** : il
+   serait relu avec la confiance qu'inspire un outil « qui a tout entendu ».
+
+### 22.3 Recommandation
+
+**Ne pas intégrer de résumé local pour l'instant.** La voie fiable reste « Copier pour une IA »
+avec des consignes adaptées (§21), vers l'assistant que l'entreprise autorise : c'est à
+l'utilisateur, ou à sa DSI, de décider où part le transcript.
+
+**Piste à suivre : l'option A, en option expérimentale, seulement là où elle existe.** Elle est
+la seule qui n'impose ni téléchargement à Lowsper, ni changement de la politique de sécurité, et
+qui annonce le français. Mais elle exclut une partie des postes visés (matériel, disque), peut être
+désactivée par la DSI, et deux points décisifs ne sont pas vérifiés. Prochaine étape proposée, à
+valider avant tout développement : une **sonde** dans les paramètres, qui indique si l'IA intégrée
+est disponible sur ce PC, depuis une page `file://`, sans rien télécharger ; puis, sur un PC où
+elle l'est, une mesure de qualité avec le même banc et les mêmes 8 faits, transcript découpé en
+morceaux pour tenir dans le contexte.
+
+**Écartées** : WebLLM (politique de sécurité, `file://`) ; transformers.js sur le processeur
+(qualité, mémoire, durée mesurées ci-dessus). **Non mesuré** : transformers.js sur WebGPU avec un
+modèle de 1,5 à 4 milliards en 4 bits et activations 16 bits, faute de carte graphique ici ; à
+mesurer sur un PC équipé avec le même banc, si l'option A échoue.

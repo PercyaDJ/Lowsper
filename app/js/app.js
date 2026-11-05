@@ -22,12 +22,6 @@
     return el;
   };
 
-  const AI_PROMPT =
-    "Voici le transcript automatique d'une réunion (il peut contenir des erreurs de reconnaissance). " +
-    'Rédige un compte rendu structuré en français : contexte et participants identifiables, ' +
-    'points abordés, décisions prises, actions à mener (qui, quoi, échéance), questions ouvertes. ' +
-    "N'invente rien : si un passage est incompréhensible ou ambigu, signale-le.\n\n---\n\n";
-
   const app = {
     state: 'idle',
     workers: [],
@@ -822,6 +816,7 @@
     renderExport(t);
     $('next-meeting').hidden = true;
     renderVoices();
+    renderPrompts();
     renderSuspects();
     renderGaps();
     renderFinished();
@@ -1357,6 +1352,7 @@
         : '');
     $('preview').textContent = app.finalMarkdown;
     renderVoices();
+    renderPrompts();
     renderSuspects();
     renderGaps();
     renderFinished();
@@ -1647,6 +1643,35 @@
     renderProfileAccess();
   }
 
+  // --- Consignes pour l'IA : éditeur, choix par profil, choix sur l'écran de fin ---
+  function fillPromptSelect(sel, value) {
+    const list = L.Notes.prompts();
+    sel.replaceChildren(
+      ...list.map((p) => {
+        const o = document.createElement('option');
+        o.value = p.id;
+        o.textContent = p.name + (p.modified ? ' (modifiée)' : '');
+        return o;
+      })
+    );
+    sel.value = list.some((p) => p.id === value) ? value : list[0].id;
+  }
+
+  function renderPrompts() {
+    const list = L.Notes.prompts();
+    if (!list.some((p) => p.id === app.editPromptId)) app.editPromptId = list[0].id;
+    fillPromptSelect($('ai-select'), app.editPromptId);
+    const p = list.find((x) => x.id === app.editPromptId);
+    $('ai-name').value = p.name;
+    $('ai-name').disabled = p.builtin;
+    $('ai-text').value = p.text;
+    $('ai-remove').textContent = p.builtin ? 'Rétablir le texte d’origine' : 'Supprimer cette consigne';
+    $('ai-remove').disabled = p.builtin && !p.modified;
+    const prof = L.Notes.list().find((x) => x.id === app.editProfileId);
+    if (prof) fillPromptSelect($('prof-prompt'), prof.prompt);
+    if (app.transcript) fillPromptSelect($('ai-choice'), profileOf(app.transcript).prompt);
+  }
+
   // --- Profils de sortie : choix à l'accueil, éditeur dans les paramètres ---
   function updateProfile(id, patch) {
     const all = L.Notes.list().map((p) => (p.id === id ? L.Notes.normalize(Object.assign(p, patch)) : p));
@@ -1721,6 +1746,7 @@
     for (const id of ['prof-tags', 'prof-extra']) $(id).disabled = !p.front.enabled;
     $('prof-links').checked = !!p.links;
     $('prof-template').value = p.template;
+    fillPromptSelect($('prof-prompt'), p.prompt);
     renderProfileHints(p);
     renderProfileAccess();
   }
@@ -2261,6 +2287,7 @@
   // Roue crantée : panneau Paramètres, accessible à tout moment
   const openSettings = () => {
     renderProfiles();
+    renderPrompts();
     renderMemory();
     renderFixes();
     const d = $('settings');
@@ -2430,6 +2457,33 @@
     updateProfile(p.id, { front: Object.assign(p.front, { enabled: $('prof-front').checked }) });
     renderProfiles();
   });
+  $('prof-prompt').addEventListener('change', () =>
+    updateProfile(app.editProfileId, { prompt: $('prof-prompt').value })
+  );
+  $('ai-select').addEventListener('change', () => {
+    app.editPromptId = $('ai-select').value;
+    renderPrompts();
+  });
+  $('ai-new').addEventListener('click', () => {
+    app.editPromptId = L.Notes.newPrompt('Nouvelle consigne');
+    renderPrompts();
+    $('ai-name').select();
+  });
+  $('ai-remove').addEventListener('click', () => {
+    const p = L.Notes.prompts().find((x) => x.id === app.editPromptId);
+    if (!p.builtin && !confirm(`Supprimer la consigne « ${p.name} » ?`)) return;
+    L.Notes.removePrompt(p.id);
+    renderPrompts();
+  });
+  $('ai-name').addEventListener('input', () => {
+    L.Notes.savePrompt(app.editPromptId, { name: $('ai-name').value.trim() || 'Consigne' });
+    fillPromptSelect($('ai-select'), app.editPromptId);
+  });
+  $('ai-text').addEventListener('input', () => {
+    L.Notes.savePrompt(app.editPromptId, { text: $('ai-text').value });
+    const p = L.Notes.prompts().find((x) => x.id === app.editPromptId);
+    $('ai-remove').disabled = p.builtin && !p.modified;
+  });
   $('prof-links').addEventListener('change', () =>
     updateProfile(app.editProfileId, { links: $('prof-links').checked })
   );
@@ -2455,6 +2509,7 @@
     }
   }
   renderProfiles();
+  renderPrompts();
   // Import : bouton, sélection de fichiers, glisser-déposer (n'importe où dans la page)
   $('import-pick').addEventListener('click', () => $('import-input').click());
   $('import-input').addEventListener('change', () => {
@@ -2489,7 +2544,11 @@
     download(n.content, n.name);
   });
   $('copy').addEventListener('click', () => copy(app.finalMarkdown));
-  $('copy-ai').addEventListener('click', () => copy(AI_PROMPT + app.finalMarkdown));
+  // Consigne choisie (celle du profil par défaut) + note, à coller dans un assistant
+  $('copy-ai').addEventListener('click', () => {
+    const t = app.transcript;
+    if (t) copy(L.Notes.promptText(t, profileOf(t), $('ai-choice').value));
+  });
   $('again').addEventListener('click', reset);
   $('next-meeting').addEventListener('click', () => {
     reset();

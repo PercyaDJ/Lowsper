@@ -9,7 +9,8 @@
 //   4. accord du navigateur à redemander : repli sur les Téléchargements, puis bouton
 //      « Enregistrer aussi dans le dossier » ; nom déjà pris : « (2) » ;
 //   5. profil « Par défaut » : format classique, Téléchargements ;
-//   6. aucune requête réseau.
+//   6. consignes pour l'IA : celle du profil proposée, consigne modifiée copiée avec la note ;
+//   7. aucune requête réseau.
 // Prérequis : node build.mjs --embed whisper-small   (CHROMIUM_PATH si besoin)
 // Usage : node test/e2e-notes.mjs
 import { chromium } from 'playwright-core';
@@ -111,6 +112,10 @@ await page.waitForFunction(() => /Coffre-notes/.test(document.getElementById('pr
 await page.check('#prof-links');
 await page.fill('#prof-tags', 'reunion, travail');
 await page.fill('#prof-extra', 'projet: Atlas');
+await page.selectOption('#prof-prompt', 'synthese-appel');
+// Consigne fournie modifiée dans les paramètres
+await page.selectOption('#ai-select', 'actions');
+await page.fill('#ai-text', 'Liste les actions de « {{titre}} » :\n\n{{note}}');
 const example = await page.textContent('#prof-filename-example');
 await page.screenshot({ path: join(out, 'notes-parametres.png'), fullPage: true });
 await page.click('#settings-close');
@@ -153,6 +158,27 @@ check(/## Transcript\n\n\*\*\[00:00:01\] Intervenant 1 :\*\* Bonjour à tous/.te
 check(
   /Note enregistrée dans le dossier « Coffre-notes »/.test(await page.textContent('#export-info')),
   'écran de fin : emplacement de la note'
+);
+// Consigne pour l'IA : celle du profil proposée, une autre choisie, texte copié
+await page.evaluate(() => {
+  window.__copied = null;
+  navigator.clipboard.writeText = async (text) => {
+    window.__copied = text;
+  };
+});
+check((await page.inputValue('#ai-choice')) === 'synthese-appel', 'consigne du profil proposée par défaut');
+await page.click('#copy-ai');
+const call = await page.evaluate(() => window.__copied);
+check(
+  /^Voici le transcript automatique d'un appel[\s\S]*\n\n---\n\n---\ndate: 2026-03-14/.test(call || ''),
+  "texte copié : consigne de synthèse d'appel puis la note"
+);
+await page.selectOption('#ai-choice', 'actions');
+await page.click('#copy-ai');
+const actions = await page.evaluate(() => window.__copied);
+check(
+  /^Liste les actions de « Point hebdo » :\n\n---\ndate:/.test(actions || ''),
+  'consigne modifiée, variable rendue, note à la place de {{note}}'
 );
 await page.fill('#voice-list input', 'Claire');
 await page.waitForTimeout(3000);
