@@ -4,7 +4,17 @@ import js from '@eslint/js';
 import globals from 'globals';
 
 export default [
-  { ignores: ['app/engine/**', 'app/manifest.js', 'app/models/**', 'tools/node_modules/**', 'tools/.cache/**', 'tools/test/output/**', 'tools/test/audio-fixture.js'] },
+  {
+    ignores: [
+      'app/engine/**',
+      'app/manifest.js',
+      'app/models/**',
+      'tools/node_modules/**',
+      'tools/.cache/**',
+      'tools/test/output/**',
+      'tools/test/audio-fixture.js',
+    ],
+  },
   js.configs.recommended,
   {
     // Application : scripts classiques (pas de modules ES, voir decision.md §2), navigateur et Workers

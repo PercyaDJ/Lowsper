@@ -57,7 +57,7 @@ async function checkCache(id) {
 }
 const ortDist = join(here, 'node_modules', 'onnxruntime-web', 'dist');
 await access(ortDist).catch(() => {
-  throw new Error('Dépendances absentes. Lancez d\'abord : npm ci --ignore-scripts');
+  throw new Error("Dépendances absentes. Lancez d'abord : npm ci --ignore-scripts");
 });
 for (const id of ['silero-vad', 'wespeaker', ...embedIds]) await checkCache(id);
 const register = (key, payload) =>
@@ -114,12 +114,20 @@ for (const [name, bundle, wasmFile] of [
 const vadBuf = await readFile(join(cache, 'silero-vad', 'silero_vad_16k_op15.onnx'));
 const vad = await writeBinary(engineDir, 'engine', 'silero-vad', vadBuf);
 const spkTexts = {};
-for (const f of ['config.json', 'preprocessor_config.json']) spkTexts[f] = await readFile(join(cache, 'wespeaker', f), 'utf8');
+for (const f of ['config.json', 'preprocessor_config.json'])
+  spkTexts[f] = await readFile(join(cache, 'wespeaker', f), 'utf8');
 await writeFile(join(engineDir, 'wespeaker-config.js'), register('engine/wespeaker-config', JSON.stringify(spkTexts)));
 const speaker = {
   id: 'wespeaker',
   config: 'engine/wespeaker-config.js',
-  files: { 'onnx/model_quantized.onnx': await writeBinary(engineDir, 'engine', 'wespeaker', await readFile(join(cache, 'wespeaker', 'model_quantized.onnx'))) },
+  files: {
+    'onnx/model_quantized.onnx': await writeBinary(
+      engineDir,
+      'engine',
+      'wespeaker',
+      await readFile(join(cache, 'wespeaker', 'model_quantized.onnx'))
+    ),
+  },
 };
 const runtimeCode = { length: runtimes.cpu.bytes };
 const wasmBuf = { length: runtimes.cpu.wasm.reduce((n, p) => n + p.bytes, 0) };
@@ -173,19 +181,37 @@ for (const id of embedIds) {
   for (const file of model.files) {
     const buf = await readFile(join(src, file));
     if (file.endsWith('.json')) texts[file] = buf.toString('utf8');
-    else files[file] = await writeBinary(out, `models/${id}`, file.replace(/^onnx\//, '').replace(/\.onnx$/, ''), buf, 'txt');
+    else
+      files[file] = await writeBinary(
+        out,
+        `models/${id}`,
+        file.replace(/^onnx\//, '').replace(/\.onnx$/, ''),
+        buf,
+        'txt'
+      );
   }
   await writeFile(join(out, 'config.txt'), register(`models/${id}/config`, JSON.stringify(texts)));
-  installed.push({ id, label: model.label, dtype: model.dtype, device: model.device, revision: meta.revision, config: `models/${id}/config.txt`, files });
+  installed.push({
+    id,
+    label: model.label,
+    dtype: model.dtype,
+    device: model.device,
+    revision: meta.revision,
+    config: `models/${id}/config.txt`,
+    files,
+  });
   console.log(`Modèle embarqué : ${id}`);
 }
 if (installed.length) {
-  await writeFile(join(modelsDir, 'index.txt'), `${header}self.LOWSPER_INSTALLED=${JSON.stringify(installed, null, 1)};\n`);
+  await writeFile(
+    join(modelsDir, 'index.txt'),
+    `${header}self.LOWSPER_INSTALLED=${JSON.stringify(installed, null, 1)};\n`
+  );
 }
 await writeFile(
   join(modelsDir, 'LISEZMOI.txt'),
-  "Ce dossier reçoit le modèle de transcription, téléchargé par Lowsper au premier lancement.\n" +
-    "Pour équiper un autre poste sans Internet, copiez tout le dossier Lowsper (avec ce dossier rempli).\n"
+  'Ce dossier reçoit le modèle de transcription, téléchargé par Lowsper au premier lancement.\n' +
+    'Pour équiper un autre poste sans Internet, copiez tout le dossier Lowsper (avec ce dossier rempli).\n'
 );
 
 // 4. Manifeste lu par l'application au démarrage
@@ -200,9 +226,11 @@ const manifest = {
 };
 await writeFile(join(appDir, 'manifest.js'), `${header}self.LOWSPER_MANIFEST=${JSON.stringify(manifest, null, 2)};\n`);
 
-const total = async (d) => (await readdir(d, { recursive: true, withFileTypes: true }))
-  .filter((e) => e.isFile()).length;
+const total = async (d) =>
+  (await readdir(d, { recursive: true, withFileTypes: true })).filter((e) => e.isFile()).length;
 console.log(`Runtime : ${(runtimeCode.length / 1e6).toFixed(2)} Mo`);
 console.log(`WASM    : ${(wasmBuf.length / 1e6).toFixed(1)} Mo en ${wasmParts.length} morceau(x)`);
-console.log(`Catalogue : ${catalog.map((m) => `${m.id} (${(m.files.reduce((n, f) => n + f.size, 0) / 1e6).toFixed(0)} Mo)`).join(', ')}`);
-console.log(`Fichiers générés : ${await total(engineDir) + await total(modelsDir) + 1}`);
+console.log(
+  `Catalogue : ${catalog.map((m) => `${m.id} (${(m.files.reduce((n, f) => n + f.size, 0) / 1e6).toFixed(0)} Mo)`).join(', ')}`
+);
+console.log(`Fichiers générés : ${(await total(engineDir)) + (await total(modelsDir)) + 1}`);

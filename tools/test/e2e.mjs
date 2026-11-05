@@ -47,7 +47,11 @@ const browser = await chromium.launch({
 });
 // IGNORE_TLS=1 : uniquement pour un environnement de test dont le navigateur headless ne connaît
 // pas l'autorité de certification. L'intégrité reste garantie par la vérification SHA-256.
-const context = await browser.newContext({ acceptDownloads: true, viewport: { width: 900, height: 1000 }, ignoreHTTPSErrors: !!process.env.IGNORE_TLS });
+const context = await browser.newContext({
+  acceptDownloads: true,
+  viewport: { width: 900, height: 1000 },
+  ignoreHTTPSErrors: !!process.env.IGNORE_TLS,
+});
 const page = await context.newPage();
 
 const network = [];
@@ -55,7 +59,13 @@ let installing = true;
 page.on('request', (r) => {
   const u = r.url();
   if (!/^(file|blob|data):/.test(u) && !installing) network.push(u);
-  if (installing && !/^(file|blob|data):/.test(u) && !u.startsWith(hfBase || 'https://huggingface.co') && !/^https:\/\/[^/]*hf\.co\//.test(u)) network.push(u);
+  if (
+    installing &&
+    !/^(file|blob|data):/.test(u) &&
+    !u.startsWith(hfBase || 'https://huggingface.co') &&
+    !/^https:\/\/[^/]*hf\.co\//.test(u)
+  )
+    network.push(u);
 });
 
 // Faux serveur Hugging Face local : sert tools/.cache avec la même mécanique que le vrai
@@ -67,7 +77,11 @@ if (!process.env.REAL_HF) {
     const cors = { 'access-control-allow-origin': '*' };
     if (req.method === 'OPTIONS') {
       // Pré-vérification « Private Network Access » de Chrome (page publique -> 127.0.0.1)
-      res.writeHead(204, { ...cors, 'access-control-allow-private-network': 'true', 'access-control-allow-headers': '*' });
+      res.writeHead(204, {
+        ...cors,
+        'access-control-allow-private-network': 'true',
+        'access-control-allow-headers': '*',
+      });
       return res.end();
     }
     const m = req.url.match(/^\/(.+?)\/resolve\/([0-9a-f]+)\/(.+)$/);
@@ -77,7 +91,9 @@ if (!process.env.REAL_HF) {
     }
     const c = req.url.match(/^\/cdn\/(.+)$/);
     if (!c) return res.writeHead(404, cors).end();
-    const [, repo, revision, path] = Buffer.from(c[1], 'base64url').toString().match(/^\/(.+?)\/resolve\/([0-9a-f]+)\/(.+)$/);
+    const [, repo, revision, path] = Buffer.from(c[1], 'base64url')
+      .toString()
+      .match(/^\/(.+?)\/resolve\/([0-9a-f]+)\/(.+)$/);
     const entry = catalog.find((x) => x.repo === repo && x.revision === revision);
     if (!entry) return res.writeHead(404, cors).end();
     const body = await readFile(join(here, '..', '.cache', 'models', entry.id, path));
@@ -91,7 +107,9 @@ if (!process.env.REAL_HF) {
   // La copie de test autorise ce faux serveur dans la politique de sécurité
   const html = await readFile(join(site, 'Lowsper.html'), 'utf8');
   await writeFile(join(site, 'Lowsper.html'), html.replace('connect-src ', `connect-src ${hfBase} `));
-  await page.addInitScript((base) => { window.Lowsper = Object.assign(window.Lowsper || {}, { hfBase: base }); }, hfBase);
+  await page.addInitScript((base) => {
+    window.Lowsper = Object.assign(window.Lowsper || {}, { hfBase: base });
+  }, hfBase);
 } else {
   page.on('requestfinished', async (r) => {
     const sizes = await r.sizes().catch(() => null);
@@ -135,13 +153,19 @@ await page.addInitScript((NOWRITE) => {
         async createWritable() {
           const parts = [];
           return {
-            async write(t) { parts.push(t); },
+            async write(t) {
+              parts.push(t);
+            },
             // Envoi par morceaux de 2 Mo : les gros messages font tomber la liaison avec Playwright
             async close() {
-              if (window.__NOWRITE) { console.log('close ' + path + ' ' + parts.join('').length); return; }
+              if (window.__NOWRITE) {
+                console.log('close ' + path + ' ' + parts.join('').length);
+                return;
+              }
               const all = parts.join('');
               await window.__lowsperFs('write', path, all.slice(0, 2e6));
-              for (let i = 2e6; i < all.length; i += 2e6) await window.__lowsperFs('append', path, all.slice(i, i + 2e6));
+              for (let i = 2e6; i < all.length; i += 2e6)
+                await window.__lowsperFs('append', path, all.slice(i, i + 2e6));
             },
           };
         },
@@ -152,7 +176,8 @@ await page.addInitScript((NOWRITE) => {
   window.__NOWRITE = NOWRITE;
 }, !!process.env.NOWRITE);
 page.on('console', (m) => {
-  if (m.type() === 'error' || m.type() === 'warning' || process.env.NOWRITE) console.log(`[page ${m.type()}]`, m.text());
+  if (m.type() === 'error' || m.type() === 'warning' || process.env.NOWRITE)
+    console.log(`[page ${m.type()}]`, m.text());
 });
 page.on('pageerror', (e) => console.log('[pageerror]', e.message));
 page.on('crash', () => console.log('[CRASH] la page a planté'));
@@ -233,7 +258,8 @@ for (let waited = 0; waited < meetingSeconds; waited += 2) {
     await page.evaluate(() => {
       const c = LowsperApp.capture;
       const real = c.onSegment;
-      c.onSegment = (id, seg) => (seg.start >= 38 && seg.start < 50 ? (window.__dropped = (window.__dropped || 0) + 1) : real(id, seg));
+      c.onSegment = (id, seg) =>
+        seg.start >= 38 && seg.start < 50 ? (window.__dropped = (window.__dropped || 0) + 1) : real(id, seg);
     });
   }
   if (!chained && waited >= meetingSeconds / 2) {
@@ -243,13 +269,24 @@ for (let waited = 0; waited < meetingSeconds; waited += 2) {
   const backlog = await page.evaluate(() => LowsperApp.queue.length + LowsperApp.inFlight);
   maxBacklog = Math.max(maxBacklog, backlog);
 }
-const draftsDuring = await page.evaluate(() => (LowsperApp.transcript ? LowsperApp.transcript.draftCount() : 0) + LowsperApp.drafts.length);
+const draftsDuring = await page.evaluate(
+  () => (LowsperApp.transcript ? LowsperApp.transcript.draftCount() : 0) + LowsperApp.drafts.length
+);
 console.log(`Passages pris en charge par la voie rapide : ${draftsDuring}`);
 console.log(`File d'attente maximale pendant la réunion : ${maxBacklog} passage(s)`);
 // Comme un appel Teams : la mini-fenêtre s'ouvre d'elle-même au démarrage (si le navigateur le permet)
 const pipAuto = await page.evaluate(() => !!LowsperApp.pip);
-const pipSize = pipAuto ? await page.evaluate(() => [LowsperApp.pip.innerWidth, LowsperApp.pip.innerHeight, !!LowsperApp.pip.document.getElementById('stop')]) : null;
-console.log('Mini-fenêtre ouverte au démarrage : ' + (pipAuto ? `oui (${pipSize[0]} x ${pipSize[1]})` : 'non (navigateur sans mini-fenêtre)'));
+const pipSize = pipAuto
+  ? await page.evaluate(() => [
+      LowsperApp.pip.innerWidth,
+      LowsperApp.pip.innerHeight,
+      !!LowsperApp.pip.document.getElementById('stop'),
+    ])
+  : null;
+console.log(
+  'Mini-fenêtre ouverte au démarrage : ' +
+    (pipAuto ? `oui (${pipSize[0]} x ${pipSize[1]})` : 'non (navigateur sans mini-fenêtre)')
+);
 // Les boutons de la mini-fenêtre répondent (vrai clic de souris dans la mini-fenêtre)
 let pipClickOk = !pipAuto;
 if (pipAuto) {
@@ -299,9 +336,15 @@ const mdPath = join(out, download.suggestedFilename());
 await download.saveAs(mdPath);
 await page.screenshot({ path: join(out, '4-termine.png'), fullPage: true });
 const md = await readFile(mdPath, 'utf8');
-const health = await page.evaluate(() => ({ ...LowsperApp.health, failed: LowsperApp.failed.length, dropped: window.__dropped || 0 }));
+const health = await page.evaluate(() => ({
+  ...LowsperApp.health,
+  failed: LowsperApp.failed.length,
+  dropped: window.__dropped || 0,
+}));
 console.log(`Blocs jetés volontairement en direct : ${health.dropped}`);
-console.log(`Santé du moteur : ${health.retried} relance(s), ${health.restarts} redémarrage(s), ${health.failed} passage(s) abandonné(s)`);
+console.log(
+  `Santé du moteur : ${health.retried} relance(s), ${health.restarts} redémarrage(s), ${health.failed} passage(s) abandonné(s)`
+);
 // Laisse le temps à la retranscription précise des passages « rapides »
 for (let i = 0; i < 60; i++) {
   const left = await page.evaluate(() => LowsperApp.transcript.draftCount());
@@ -319,9 +362,15 @@ await page.fill('#fix-wrong', 'tickets');
 await page.fill('#fix-right', 'demandes');
 await page.click('#fix-apply');
 await page.waitForTimeout(300);
-const fixOk = await page.evaluate((had) => (!had || /demandes/.test(document.getElementById('preview').textContent)) &&
-  JSON.parse(localStorage.getItem('lowsper.fixes') || '[]').some(([w, r]) => w === 'tickets' && r === 'demandes'), hadTickets);
-const suspects = await page.evaluate(() => [...document.querySelectorAll('#fix-suspects button')].map((b) => b.textContent));
+const fixOk = await page.evaluate(
+  (had) =>
+    (!had || /demandes/.test(document.getElementById('preview').textContent)) &&
+    JSON.parse(localStorage.getItem('lowsper.fixes') || '[]').some(([w, r]) => w === 'tickets' && r === 'demandes'),
+  hadTickets
+);
+const suspects = await page.evaluate(() =>
+  [...document.querySelectorAll('#fix-suspects button')].map((b) => b.textContent)
+);
 console.log('Mots à vérifier proposés : ' + suspects.join(', '));
 await page.screenshot({ path: join(out, '4b-corriger.png'), fullPage: true });
 
@@ -334,7 +383,7 @@ await browser.close();
 const checks = [
   ['installation du modèle', served > 50e6],
   ['titre', firstMd.startsWith('# Transcript de réunion : Test automatique')],
-  ['glossaire dans l\'en-tête', md.includes('ServiceNow, P1') && firstMd.includes('ServiceNow, P1')],
+  ["glossaire dans l'en-tête", md.includes('ServiceNow, P1') && firstMd.includes('ServiceNow, P1')],
   ['horodatage', /\*\*\[00:00:\d\d\] /.test(md)],
   ['voix micro (Vous)', /\] Vous :\*\*/.test(firstMd + md)],
   ['voix participants', /\] (Participants|Intervenant \d+) :\*\*/.test(firstMd + md)],
@@ -351,9 +400,18 @@ const checks = [
   ['le moteur suit le rythme malgré la panne simulée (file <= 6)', maxBacklog <= 6],
   ['passages rapides tous retranscrits ensuite', draftsLeft === 0],
   ['corriger un mot partout, correction retenue', fixOk],
-  ['réunion suivante sans temps mort : deux fichiers, chacun horodaté depuis son début', downloads.length === 2 && firstMd !== md && /\*\*\[00:00:\d\d\] /.test(md) && /à tous/.test(firstMd)],
+  [
+    'réunion suivante sans temps mort : deux fichiers, chacun horodaté depuis son début',
+    downloads.length === 2 && firstMd !== md && /\*\*\[00:00:\d\d\] /.test(md) && /à tous/.test(firstMd),
+  ],
   ['parole perdue en direct retrouvée par le rattrapage', health.dropped === 0 || /\*\*Rattrapage\*\*/.test(md)],
-  ['panne du moteur : passage relancé, toute la parole transcrite', health.retried >= 1 && health.failed === 0 && /toute la parole détectée a été transcrite/.test(md) && /toute la parole détectée a été transcrite/.test(firstMd)],
+  [
+    'panne du moteur : passage relancé, toute la parole transcrite',
+    health.retried >= 1 &&
+      health.failed === 0 &&
+      /toute la parole détectée a été transcrite/.test(md) &&
+      /toute la parole détectée a été transcrite/.test(firstMd),
+  ],
 ];
 let ok = true;
 for (const [name, pass] of checks) {

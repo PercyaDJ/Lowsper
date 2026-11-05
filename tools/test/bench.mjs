@@ -10,7 +10,10 @@ const browser = await chromium.launch({
 const page = await browser.newPage();
 page.on('console', (m) => console.log('[page]', m.text()));
 page.on('pageerror', (e) => console.log('[pageerror]', e.message));
-page.on('request', (r) => { if (!r.url().startsWith('file:') && !r.url().startsWith('blob:') && !r.url().startsWith('data:')) console.log('[RÉSEAU]', r.url()); });
+page.on('request', (r) => {
+  if (!r.url().startsWith('file:') && !r.url().startsWith('blob:') && !r.url().startsWith('data:'))
+    console.log('[RÉSEAU]', r.url());
+});
 await page.goto(pathToFileURL(join(here, 'bench.html')).href);
 await page.evaluate(() => window.benchResult);
 await browser.close();

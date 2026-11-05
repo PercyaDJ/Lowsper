@@ -29,7 +29,8 @@ const fileUrl = (e, revision, path) =>
     : `https://huggingface.co/${e.repo}/resolve/${revision}/${path}`;
 
 async function latestRevision(e) {
-  if (e.source === 'github') throw new Error(`Mise à jour de ${e.repo} : choisir le commit à la main dans models.lock.json.`);
+  if (e.source === 'github')
+    throw new Error(`Mise à jour de ${e.repo} : choisir le commit à la main dans models.lock.json.`);
   const info = await (await fetch(`https://huggingface.co/api/models/${e.repo}/revision/main`)).json();
   return info.sha;
 }
@@ -46,11 +47,18 @@ for (const id of ids) {
   if (unlocked) {
     const model = MODELS[id];
     if (!model) {
-      console.error(`Modèle inconnu "${id}". Choix : ${[...new Set([...Object.keys(lock), ...Object.keys(MODELS)])].join(', ')}`);
+      console.error(
+        `Modèle inconnu "${id}". Choix : ${[...new Set([...Object.keys(lock), ...Object.keys(MODELS)])].join(', ')}`
+      );
       process.exit(1);
     }
     console.warn(`Attention : ${id} n'est pas verrouillé (variante de mesure), aucune empreinte attendue.`);
-    entry = { source: 'huggingface', repo: model.repo, revision: null, files: Object.fromEntries(model.files.map((f) => [f, {}])) };
+    entry = {
+      source: 'huggingface',
+      repo: model.repo,
+      revision: null,
+      files: Object.fromEntries(model.files.map((f) => [f, {}])),
+    };
   }
   const revision = unlocked || update ? await latestRevision(entry) : entry.revision;
   const outDir = join(here, '.cache', 'models', id);
@@ -71,7 +79,9 @@ for (const id of ids) {
     }
     const actual = { size: buf.length, sha256: sha256(buf) };
     if (!unlocked && !update && (actual.sha256 !== expected.sha256 || actual.size !== expected.size)) {
-      throw new Error(`Empreinte inattendue pour ${id}/${path} : fichier refusé (attendu ${expected.sha256.slice(0, 12)}, reçu ${actual.sha256.slice(0, 12)}).`);
+      throw new Error(
+        `Empreinte inattendue pour ${id}/${path} : fichier refusé (attendu ${expected.sha256.slice(0, 12)}, reçu ${actual.sha256.slice(0, 12)}).`
+      );
     }
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, buf);

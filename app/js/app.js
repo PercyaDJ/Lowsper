@@ -77,7 +77,10 @@
       $('foot-model').textContent = model.label;
       renderModelSelect(installed, model.id);
 
-      const assets = await L.loadAssets((r) => setEngine('loading', `Préparation du moteur ${Math.round(r * 100)} %`), model.id);
+      const assets = await L.loadAssets(
+        (r) => setEngine('loading', `Préparation du moteur ${Math.round(r * 100)} %`),
+        model.id
+      );
       setEngine('loading', 'Démarrage du moteur');
 
       // Analyse audio : détection de parole (Silero) et empreintes vocales (WeSpeaker)
@@ -91,7 +94,7 @@
           await app.analyzer.ready;
           if (app.voiceAnalyzer) await app.voiceAnalyzer.ready.catch(() => (app.voiceAnalyzer = null));
         } catch (e) {
-          console.warn("Analyse audio indisponible, repli sur la détection par volume", e);
+          console.warn('Analyse audio indisponible, repli sur la détection par volume', e);
           app.analyzer = null;
         }
       }
@@ -121,7 +124,8 @@
       if (known) {
         try {
           const k = JSON.parse(known);
-          $('speed-result').textContent = `Dernière mesure : charge estimée ${Math.round(k.load * 100)} % pour une réunion où l'on parle sans arrêt.`;
+          $('speed-result').textContent =
+            `Dernière mesure : charge estimée ${Math.round(k.load * 100)} % pour une réunion où l'on parle sans arrêt.`;
         } catch {}
       } else if (app.state !== 'recording') {
         speedTest(true);
@@ -130,7 +134,7 @@
       console.error(err);
       app.engineError = String(err.message || err);
       setEngine('error', 'Moteur indisponible');
-      toast('Le moteur de transcription n\'a pas pu démarrer : ' + app.engineError, 12000);
+      toast("Le moteur de transcription n'a pas pu démarrer : " + app.engineError, 12000);
     }
   }
 
@@ -302,7 +306,15 @@
     const watchdog = new Promise((_, reject) => {
       timer = setTimeout(() => reject(new Error('le moteur ne répond plus')), jobTimeout(job));
     });
-    Promise.race([w.transcribe(job.seg.audio.slice(), lang, promptFor(t, job), (job.seg.map || []).map((m) => m.at)), watchdog])
+    Promise.race([
+      w.transcribe(
+        job.seg.audio.slice(),
+        lang,
+        promptFor(t, job),
+        (job.seg.map || []).map((m) => m.at)
+      ),
+      watchdog,
+    ])
       .then(async (res) => {
         if (!fast) recordLoad(res.ms || 0, job.dur);
         if (job.redo) {
@@ -351,7 +363,11 @@
   // signalé dans le transcript ; « Réessayer » sur l'écran de fin le relance.
   function jobFailed(w, job, err) {
     console.error('Passage non transcrit, essai ' + ((job.attempts || 0) + 1), err);
-    journal('échec', { source: job.source, essai: (job.attempts || 0) + 1, erreur: String((err && err.message) || err).slice(0, 200) });
+    journal('échec', {
+      source: job.source,
+      essai: (job.attempts || 0) + 1,
+      erreur: String((err && err.message) || err).slice(0, 200),
+    });
     app.stats.failed++;
     replaceWorker(w);
     job.attempts = (job.attempts || 0) + 1;
@@ -366,7 +382,10 @@
     } else {
       app.failed.push(job);
       job.transcript.markGap(job.source, job.seg);
-      if (app.state === 'recording') notice('Un passage n’a pas pu être transcrit : il sera signalé dans le transcript, et vous pourrez le relancer à la fin.');
+      if (app.state === 'recording')
+        notice(
+          'Un passage n’a pas pu être transcrit : il sera signalé dans le transcript, et vous pourrez le relancer à la fin.'
+        );
     }
   }
 
@@ -384,13 +403,18 @@
   // Retourne false si la saisie est incomplète.
   function learnFix(wrong, right) {
     wrong = String(wrong || '').trim();
-    right = String(right || '').trim().replace(/[*_`[\]]/g, '');
+    right = String(right || '')
+      .trim()
+      .replace(/[*_`[\]]/g, '');
     if (!wrong || !right || wrong.toLowerCase() === right.toLowerCase()) return false;
     const fixes = learnedFixes().filter(([w]) => w.toLowerCase() !== wrong.toLowerCase());
     fixes.push([wrong, right]);
     store.set('lowsper.fixes', JSON.stringify(fixes.slice(-200)));
     // Le bon mot rejoint le glossaire : Whisper l'écrira directement la prochaine fois
-    const terms = $('glossary').value.split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean);
+    const terms = $('glossary')
+      .value.split(/[,;\n]+/)
+      .map((x) => x.trim())
+      .filter(Boolean);
     if (!terms.some((x) => x.toLowerCase() === right.toLowerCase())) {
       terms.push(right);
       $('glossary').value = terms.join(', ');
@@ -412,7 +436,9 @@
   function applyFix() {
     const t = app.transcript;
     const wrong = $('fix-wrong').value.trim();
-    const right = $('fix-right').value.trim().replace(/[*_`[\]]/g, '');
+    const right = $('fix-right')
+      .value.trim()
+      .replace(/[*_`[\]]/g, '');
     if (!t || !learnFix(wrong, right)) return;
     const n = t.replaceEverywhere(wrong, right);
     app.finalMarkdown = t.toMarkdown();
@@ -422,12 +448,15 @@
     $('fix-wrong').focus();
     renderSuspects();
     toast(
-      (n ? `${n} remplacement${n > 1 ? 's' : ''} dans ce transcript (retéléchargez le fichier). ` : 'Mot absent de ce transcript. ') +
-        'Correction retenue pour les prochaines réunions.',
+      (n
+        ? `${n} remplacement${n > 1 ? 's' : ''} dans ce transcript (retéléchargez le fichier). `
+        : 'Mot absent de ce transcript. ') + 'Correction retenue pour les prochaines réunions.',
       6000
     );
     // Copie dans le dossier Lowsper (clic = geste de l'utilisateur)
-    L.Settings.save({ interactive: true }).then(renderSaved).catch(() => {});
+    L.Settings.save({ interactive: true })
+      .then(renderSaved)
+      .catch(() => {});
   }
 
   // Écran de fin : noms propres probables à vérifier, un clic pré-remplit la correction
@@ -518,7 +547,8 @@
     const n = pendingCount();
     let text = '';
     if (app.state === 'recording') {
-      if (!app.engineReady && !app.engineError) text = 'Le moteur termine sa préparation, la transcription démarrera dans un instant.';
+      if (!app.engineReady && !app.engineError)
+        text = 'Le moteur termine sa préparation, la transcription démarrera dans un instant.';
       else if (n === 0) text = 'Transcription à jour.';
       else if (n === 1) text = 'Transcription en cours…';
       else text = `${n} passages en attente de transcription.`;
@@ -583,9 +613,12 @@
 
     if (!mic && !others) {
       $('start').disabled = false;
-      toast(micError && micError.name === 'NotAllowedError'
-        ? "L'accès au micro a été refusé. Autorisez-le dans la barre d'adresse puis réessayez."
-        : 'Aucune source audio disponible : ' + ((micError || othersError || {}).message || 'erreur inconnue'), 9000);
+      toast(
+        micError && micError.name === 'NotAllowedError'
+          ? "L'accès au micro a été refusé. Autorisez-le dans la barre d'adresse puis réessayez."
+          : 'Aucune source audio disponible : ' + ((micError || othersError || {}).message || 'erreur inconnue'),
+        9000
+      );
       return;
     }
 
@@ -639,7 +672,7 @@
     }
     setMeter('me', mic ? 'on' : 'off');
     setMeter('others', others ? 'on' : 'off');
-    if (!mic) notice("Micro indisponible : seule la voix des participants est transcrite.");
+    if (!mic) notice('Micro indisponible : seule la voix des participants est transcrite.');
     else if (withOthers && !others) explainOthersError(othersError);
     else if (!withOthers) notice('Seul votre micro est capté (option « participants » désactivée).');
 
@@ -712,17 +745,24 @@
       old.meta.endedAt = Date.now();
       old.meta.endAbs = cut;
       app.transcript = createTranscript('', NaN, cut);
-      for (const id of Object.keys(app.capture.sources)) if (!app.transcript.meta.sources.includes(id)) app.transcript.meta.sources.push(id);
+      for (const id of Object.keys(app.capture.sources))
+        if (!app.transcript.meta.sources.includes(id)) app.transcript.meta.sources.push(id);
       app.pausedAt = null;
       renderLive();
-      toast('Nouvelle réunion démarrée. La précédente sera enregistrée dans vos Téléchargements dès qu’elle est prête.', 6000);
+      toast(
+        'Nouvelle réunion démarrée. La précédente sera enregistrée dans vos Téléchargements dès qu’elle est prête.',
+        6000
+      );
       finalizeMeeting(old)
         .then(() => {
           // Le son brut de la réunion terminée n'est plus utile : mémoire libérée
           for (const rec of Object.values(app.recorders || {})) rec.trim(old.meta.endAbs);
           app.finished.push(old);
           download(old.toMarkdown(), old.fileName());
-          toast(`Transcript de la réunion précédente${old.meta.title ? ' « ' + old.meta.title + ' »' : ''} enregistré dans vos Téléchargements.`, 7000);
+          toast(
+            `Transcript de la réunion précédente${old.meta.title ? ' « ' + old.meta.title + ' »' : ''} enregistré dans vos Téléchargements.`,
+            7000
+          );
         })
         .catch((e) => console.error('Finalisation de la réunion précédente', e));
     } finally {
@@ -819,7 +859,8 @@
   async function finalizeMeeting(t, onStep) {
     const settled = () =>
       new Promise((resolve) => {
-        const check = () => ((pendingFor(t) === 0 && app.engineReady) || app.engineError ? resolve() : setTimeout(check, 200));
+        const check = () =>
+          (pendingFor(t) === 0 && app.engineReady) || app.engineError ? resolve() : setTimeout(check, 200);
         check();
       });
     await settled();
@@ -873,9 +914,12 @@
         if (app.state !== 'recording' || !app.capture || !app.capture.sources[id]) return;
         app.capture.detach(id);
         setMeter(id, 'off');
-        notice(id === 'others'
-          ? "Le partage audio a été arrêté : la voix des participants n'est plus captée. "
-          : "Le micro a été déconnecté : votre voix n'est plus captée. ", id);
+        notice(
+          id === 'others'
+            ? "Le partage audio a été arrêté : la voix des participants n'est plus captée. "
+            : "Le micro a été déconnecté : votre voix n'est plus captée. ",
+          id
+        );
       });
     }
   }
@@ -947,10 +991,20 @@
       app.lastHealth = now;
       const lag = Math.max(...['me', 'others'].map((id) => app.capture.lag(id)), 0);
       const vadTimeouts = Object.values(app.capture.sources).reduce((n, e) => n + (e.segmenter.vadTimeouts || 0), 0);
-      journal('santé', { retard_s: Math.round(lag), file: app.queue.length, en_cours: app.inFlight, vad_lent: vadTimeouts, ok: app.stats.ok, échecs: app.stats.failed, mémoire_mo: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1e6) : undefined });
+      journal('santé', {
+        retard_s: Math.round(lag),
+        file: app.queue.length,
+        en_cours: app.inFlight,
+        vad_lent: vadTimeouts,
+        ok: app.stats.ok,
+        échecs: app.stats.failed,
+        mémoire_mo: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1e6) : undefined,
+      });
       if (lag > 30 && !app.warnedLag) {
         app.warnedLag = true;
-        notice('PC très chargé : la détection de parole prend du retard. Rien n’est perdu : le son est gardé et sera rattrapé.');
+        notice(
+          'PC très chargé : la détection de parole prend du retard. Rien n’est perdu : le son est gardé et sera rattrapé.'
+        );
       }
     }
     for (const id of ['me', 'others']) {
@@ -1044,7 +1098,9 @@
     releaseWakeLock();
     pump();
 
-    journal('fin', { durée_min: Math.round(((app.transcript.meta.endAbs || 0) - (app.transcript.meta.offset || 0)) / 60) });
+    journal('fin', {
+      durée_min: Math.round(((app.transcript.meta.endAbs || 0) - (app.transcript.meta.offset || 0)) / 60),
+    });
     await finalizeMeeting(app.transcript, (text) => ($('finish-text').textContent = text));
     journal('couverture', app.transcript.coverageSummary());
     app.finalMarkdown = app.transcript.toMarkdown();
@@ -1055,8 +1111,12 @@
     $('done-info').textContent =
       `${minutes} min de réunion, ${paras} intervention${paras > 1 ? 's' : ''}.` +
       (cov.missing < 1 ? ' Toute la parole détectée a été transcrite.' : '') +
-      (app.transcript.meta.recovered >= 1 ? ` (dont ${Math.round(app.transcript.meta.recovered)} s rattrapées en fin de réunion).` : '') +
-      (echo ? ` ${echo} phrase${echo > 1 ? 's' : ''} du micro retirée${echo > 1 ? 's' : ''} : écho des haut-parleurs, pas votre voix.` : '') +
+      (app.transcript.meta.recovered >= 1
+        ? ` (dont ${Math.round(app.transcript.meta.recovered)} s rattrapées en fin de réunion).`
+        : '') +
+      (echo
+        ? ` ${echo} phrase${echo > 1 ? 's' : ''} du micro retirée${echo > 1 ? 's' : ''} : écho des haut-parleurs, pas votre voix.`
+        : '') +
       ' Le fichier a été enregistré dans votre dossier Téléchargements.';
     $('preview').textContent = app.finalMarkdown;
     renderVoices();
@@ -1075,7 +1135,8 @@
     if (!t || app.state !== 'done') return;
     const n = t.draftCount();
     if (n) {
-      box.textContent = `${n} passage${n > 1 ? 's ont été transcrits' : ' a été transcrit'} en mode rapide pendant la réunion pour garder le direct. ` +
+      box.textContent =
+        `${n} passage${n > 1 ? 's ont été transcrits' : ' a été transcrit'} en mode rapide pendant la réunion pour garder le direct. ` +
         'Leur version précise est en cours de calcul…';
       box.hidden = false;
       app.improvedPending = true;
@@ -1083,7 +1144,8 @@
       app.improvedPending = false;
       app.finalMarkdown = t.toMarkdown();
       $('preview').textContent = app.finalMarkdown;
-      box.textContent = 'Tous les passages ont maintenant leur version précise. Retéléchargez le fichier pour avoir la version finale.';
+      box.textContent =
+        'Tous les passages ont maintenant leur version précise. Retéléchargez le fichier pour avoir la version finale.';
       box.hidden = false;
     } else {
       box.hidden = true;
@@ -1098,7 +1160,8 @@
       const b = document.createElement('button');
       b.type = 'button';
       const d = new Date(t.meta.startedAt);
-      b.textContent = (t.meta.title || 'Réunion') + ' · ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      b.textContent =
+        (t.meta.title || 'Réunion') + ' · ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
       b.title = 'Télécharger à nouveau';
       b.addEventListener('click', () => download(t.toMarkdown(), t.fileName()));
       box.appendChild(b);
@@ -1330,11 +1393,15 @@
       const model = app.modelLabel;
       let advice;
       if (load <= 0.5) advice = 'Très confortable : la transcription suivra la réunion en direct.';
-      else if (load <= 0.9) advice = 'Correct : la transcription suit la réunion, avec un léger décalage quand ça parle beaucoup.';
-      else if (load <= 1.3) advice = "Juste : lors d'échanges très denses, la transcription prendra du retard puis le rattrapera dans les silences.";
-      else advice = app.fastWorkers.length
-        ? 'Lors des échanges denses, la voie rapide prendra le relais pour garder le direct, et les passages concernés seront retranscrits précisément ensuite.'
-        : 'Trop lent pour suivre en direct : installez Whisper base (Options, « Installer un autre modèle ») pour activer la voie rapide, ou choisissez un modèle plus rapide.';
+      else if (load <= 0.9)
+        advice = 'Correct : la transcription suit la réunion, avec un léger décalage quand ça parle beaucoup.';
+      else if (load <= 1.3)
+        advice =
+          "Juste : lors d'échanges très denses, la transcription prendra du retard puis le rattrapera dans les silences.";
+      else
+        advice = app.fastWorkers.length
+          ? 'Lors des échanges denses, la voie rapide prendra le relais pour garder le direct, et les passages concernés seront retranscrits précisément ensuite.'
+          : 'Trop lent pour suivre en direct : installez Whisper base (Options, « Installer un autre modèle ») pour activer la voie rapide, ou choisissez un modèle plus rapide.';
       out.textContent =
         `${model} : environ ${perMin} s de calcul par minute de parole continue ` +
         `(charge estimée ${Math.round(load * 100)} % avec ${n} moteur${n > 1 ? 's' : ''}` +
@@ -1378,7 +1445,11 @@
     const quiet = opts && opts.quiet;
     if (app.pip || app.state !== 'recording') return;
     if (!('documentPictureInPicture' in window)) {
-      if (!quiet) toast("Ce navigateur ne propose pas de mini-fenêtre. Astuce : réduisez la hauteur de la fenêtre de Lowsper, elle devient une simple barre.", 7000);
+      if (!quiet)
+        toast(
+          'Ce navigateur ne propose pas de mini-fenêtre. Astuce : réduisez la hauteur de la fenêtre de Lowsper, elle devient une simple barre.',
+          7000
+        );
       return;
     }
     let win;
@@ -1570,7 +1641,10 @@
       return;
     }
     // Le dossier sert aussi à conserver les réglages (sigles...) même si le navigateur les efface
-    L.Settings.setFolder(folder).then(() => L.Settings.save({ force: true })).then(renderSaved).catch(() => {});
+    L.Settings.setFolder(folder)
+      .then(() => L.Settings.save({ force: true }))
+      .then(renderSaved)
+      .catch(() => {});
     app.installing = true;
     $('install').disabled = true;
     document.querySelectorAll('input[name="model-choice"]').forEach((i) => (i.disabled = true));
@@ -1601,7 +1675,8 @@
       const nowInstalled = (self.LOWSPER_INSTALLED || []).map((m) => m.id);
       const current = store.get('lowsper.model');
       if (!current || !nowInstalled.includes(current)) {
-        const first = catalog.find((m) => nowInstalled.includes(m.id) && usable(m) && m.id !== 'whisper-base') ||
+        const first =
+          catalog.find((m) => nowInstalled.includes(m.id) && usable(m) && m.id !== 'whisper-base') ||
           catalog.find((m) => nowInstalled.includes(m.id) && usable(m));
         if (first) store.set('lowsper.model', first.id);
       }
@@ -1661,11 +1736,14 @@
     pump();
   });
   $('memory-on').addEventListener('change', (e) => {
-    if (e.target.checked && !confirm(
-      "Mémoriser les voix ?\n\nUne empreinte vocale est une donnée biométrique (RGPD). " +
-      "Ne l'activez qu'avec l'accord des personnes concernées. Les empreintes restent uniquement sur ce poste " +
-      'et sont effacées automatiquement après la durée choisie.'
-    )) {
+    if (
+      e.target.checked &&
+      !confirm(
+        'Mémoriser les voix ?\n\nUne empreinte vocale est une donnée biométrique (RGPD). ' +
+          "Ne l'activez qu'avec l'accord des personnes concernées. Les empreintes restent uniquement sur ce poste " +
+          'et sont effacées automatiquement après la durée choisie.'
+      )
+    ) {
       e.target.checked = false;
       return;
     }
@@ -1725,8 +1803,12 @@
     if (st.savedAt) {
       const d = new Date(st.savedAt);
       line.textContent =
-        'Réglages copiés dans le dossier Lowsper (' + d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) +
-        ') : ils survivent à un nettoyage du navigateur.' + (st.dirty ? ' Les dernières modifications seront copiées à la fermeture de ce panneau.' : '');
+        'Réglages copiés dans le dossier Lowsper (' +
+        d.toLocaleDateString('fr-FR') +
+        ' ' +
+        d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) +
+        ') : ils survivent à un nettoyage du navigateur.' +
+        (st.dirty ? ' Les dernières modifications seront copiées à la fermeture de ce panneau.' : '');
       $('settings-keep').hidden = true;
     } else {
       line.textContent =
@@ -1736,7 +1818,10 @@
   }
   renderSaved();
   if (L.Settings.status().restored.length) {
-    toast('Vos réglages (sigles, préférences) ont été restaurés depuis le dossier Lowsper : le navigateur les avait effacés.', 7000);
+    toast(
+      'Vos réglages (sigles, préférences) ont été restaurés depuis le dossier Lowsper : le navigateur les avait effacés.',
+      7000
+    );
   }
   $('settings-open').addEventListener('click', openSettings);
   // Bandeau d'avertissement : fermé pour cette session, il revient à chaque ouverture de Lowsper

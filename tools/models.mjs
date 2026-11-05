@@ -20,10 +20,7 @@ function def(id, repo, label, dtype, description = '', recommended = false, devi
     recommended,
     device,
     dtype,
-    files: [
-      ...JSON_FILES,
-      ...Object.entries(dtype).map(([part, q]) => `onnx/${part}${SUFFIX[q]}.onnx`),
-    ],
+    files: [...JSON_FILES, ...Object.entries(dtype).map(([part, q]) => `onnx/${part}${SUFFIX[q]}.onnx`)],
   };
 }
 
@@ -31,23 +28,69 @@ function def(id, repo, label, dtype, description = '', recommended = false, devi
 // dans l'application ; les autres restent ici pour pouvoir refaire la comparaison (test/eval.mjs).
 export const MODELS = Object.fromEntries(
   [
-    def('whisper-small', 'onnx-community/whisper-small', 'Whisper small', { encoder_model: 'q8', decoder_model_merged: 'q8' },
-      'Précis en français, retrouve bien les sigles grâce au glossaire. Pour un PC portable récent.', true),
-    def('whisper-small-gpu', 'onnx-community/whisper-small', 'Whisper small (carte graphique)', { encoder_model: 'q4', decoder_model_merged: 'q4' },
-      'Même modèle que Whisper small, calculé par la carte graphique : bien plus rapide si le PC en a une correcte.', false, 'webgpu'),
-    def('whisper-small-gpu-cpu', 'onnx-community/whisper-small', 'Whisper small 4 bits (mesure)', { encoder_model: 'q4', decoder_model_merged: 'q4' }),
+    def(
+      'whisper-small',
+      'onnx-community/whisper-small',
+      'Whisper small',
+      { encoder_model: 'q8', decoder_model_merged: 'q8' },
+      'Précis en français, retrouve bien les sigles grâce au glossaire. Pour un PC portable récent.',
+      true
+    ),
+    def(
+      'whisper-small-gpu',
+      'onnx-community/whisper-small',
+      'Whisper small (carte graphique)',
+      { encoder_model: 'q4', decoder_model_merged: 'q4' },
+      'Même modèle que Whisper small, calculé par la carte graphique : bien plus rapide si le PC en a une correcte.',
+      false,
+      'webgpu'
+    ),
+    def('whisper-small-gpu-cpu', 'onnx-community/whisper-small', 'Whisper small 4 bits (mesure)', {
+      encoder_model: 'q4',
+      decoder_model_merged: 'q4',
+    }),
     // Variantes de mesure (précision des calculs sur processeur)
-    def('whisper-small-f32dec', 'onnx-community/whisper-small', 'Whisper small (décodeur fp32)', { encoder_model: 'q8', decoder_model_merged: 'fp32' }),
-    def('whisper-small-f32', 'onnx-community/whisper-small', 'Whisper small (fp32)', { encoder_model: 'fp32', decoder_model_merged: 'fp32' }),
-    def('whisper-base-f32', 'onnx-community/whisper-base', 'Whisper base (fp32)', { encoder_model: 'fp32', decoder_model_merged: 'fp32' }),
-    def('whisper-base', 'onnx-community/whisper-base', 'Whisper base', { encoder_model: 'q8', decoder_model_merged: 'q8' },
-      'Environ 3 fois plus rapide mais nettement moins précis. Pour un PC ancien ou très chargé.'),
-    def('whisper-small-q4', 'onnx-community/whisper-small', 'Whisper small (4 bits)', { encoder_model: 'q8', decoder_model_merged: 'q4' }),
-    def('whisper-small-fr', 'onnx-community/whisper-small-cv11-french-ONNX', 'Whisper small français', { encoder_model: 'q8', decoder_model_merged: 'q4' }),
-    def('whisper-turbo', 'onnx-community/whisper-large-v3-turbo', 'Whisper large-v3 turbo', { encoder_model: 'q4', decoder_model_merged: 'q4' },
-      'Le plus précis (noms propres, sigles, voix difficiles). Utilise la carte graphique : réservé aux PC compatibles.', false, 'webgpu'),
+    def('whisper-small-f32dec', 'onnx-community/whisper-small', 'Whisper small (décodeur fp32)', {
+      encoder_model: 'q8',
+      decoder_model_merged: 'fp32',
+    }),
+    def('whisper-small-f32', 'onnx-community/whisper-small', 'Whisper small (fp32)', {
+      encoder_model: 'fp32',
+      decoder_model_merged: 'fp32',
+    }),
+    def('whisper-base-f32', 'onnx-community/whisper-base', 'Whisper base (fp32)', {
+      encoder_model: 'fp32',
+      decoder_model_merged: 'fp32',
+    }),
+    def(
+      'whisper-base',
+      'onnx-community/whisper-base',
+      'Whisper base',
+      { encoder_model: 'q8', decoder_model_merged: 'q8' },
+      'Environ 3 fois plus rapide mais nettement moins précis. Pour un PC ancien ou très chargé.'
+    ),
+    def('whisper-small-q4', 'onnx-community/whisper-small', 'Whisper small (4 bits)', {
+      encoder_model: 'q8',
+      decoder_model_merged: 'q4',
+    }),
+    def('whisper-small-fr', 'onnx-community/whisper-small-cv11-french-ONNX', 'Whisper small français', {
+      encoder_model: 'q8',
+      decoder_model_merged: 'q4',
+    }),
+    def(
+      'whisper-turbo',
+      'onnx-community/whisper-large-v3-turbo',
+      'Whisper large-v3 turbo',
+      { encoder_model: 'q4', decoder_model_merged: 'q4' },
+      'Le plus précis (noms propres, sigles, voix difficiles). Utilise la carte graphique : réservé aux PC compatibles.',
+      false,
+      'webgpu'
+    ),
     // Variante processeur, uniquement pour les mesures de qualité (trop lente en usage réel)
-    def('whisper-turbo-cpu', 'onnx-community/whisper-large-v3-turbo', 'Whisper large-v3 turbo (processeur)', { encoder_model: 'q4', decoder_model_merged: 'q4' }),
+    def('whisper-turbo-cpu', 'onnx-community/whisper-large-v3-turbo', 'Whisper large-v3 turbo (processeur)', {
+      encoder_model: 'q4',
+      decoder_model_merged: 'q4',
+    }),
   ].map((m) => [m.id, m])
 );
 

@@ -56,11 +56,19 @@ window.runEval = async (modelId, glossary) => {
 );
 
 const norm = (t) =>
-  t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’]/g, "'")
-    .replace(/[^a-z0-9' ]+/g, ' ').replace(/'/g, "' ").split(/\s+/).filter(Boolean);
+  t
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[’]/g, "'")
+    .replace(/[^a-z0-9' ]+/g, ' ')
+    .replace(/'/g, "' ")
+    .split(/\s+/)
+    .filter(Boolean);
 
 function wer(ref, hyp) {
-  const r = norm(ref), h = norm(hyp);
+  const r = norm(ref),
+    h = norm(hyp);
   const d = Array.from({ length: r.length + 1 }, (_, i) => [i]);
   for (let j = 1; j <= h.length; j++) d[0][j] = j;
   for (let i = 1; i <= r.length; i++)
@@ -72,7 +80,8 @@ function wer(ref, hyp) {
 // Un sigle est « retrouvé » s'il apparaît écrit tel quel (majuscules, éventuellement avec points)
 function acronyms(ref, hyp) {
   const list = corpus.glossary.split(',').map((s) => s.trim());
-  let total = 0, found = 0;
+  let total = 0,
+    found = 0;
   const missed = [];
   const h = hyp.replace(/\b([A-Z])\.(?=[A-Z]\.?)/g, '$1').replace(/\b([A-Z])\.\s/g, '$1 ');
   for (const a of list) {
