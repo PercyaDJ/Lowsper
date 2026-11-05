@@ -105,6 +105,8 @@ cliquez sur **« Transcrire un fichier »**, ou glissez un ou plusieurs fichiers
 - Le fichier est lu par morceaux depuis son emplacement, jamais copié ni envoyé ; le son décodé
   n'est jamais écrit sur le disque.
 
+![Transcription de deux fichiers fictifs : avancement, file d'attente, annulation](docs/images/import.png)
+
 Déploiement sur un parc (DSI, RSSI) : voir [docs/deploiement.md](docs/deploiement.md).
 
 ## À quoi ressemble le transcript

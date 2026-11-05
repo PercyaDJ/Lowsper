@@ -465,6 +465,7 @@ body.mini:not(.expanded) .rec-core:has(.notice:not([hidden])) #pip-more { color:
 .import-list li .st { color: var(--muted); white-space: nowrap; }
 .import-list li.current { outline: 1.5px solid var(--accent); }
 .import-list li.error .st { color: var(--rec); }
+#view-import .row { margin-top: 16px; }
 @media (max-width: 560px) { .settings-body { padding: 0 14px 14px; } .settings-head { padding: 12px 14px; } }
 
 /* Croix du bandeau d'avertissement */
