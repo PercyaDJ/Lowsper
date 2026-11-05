@@ -118,6 +118,10 @@
           </div>
           <span class="fine">Un dossier synchronisé en ligne (stockage en ligne, synchronisation de votre base de notes) fera quitter la note de cet ordinateur.</span>
         </div>
+        <label class="field inline">
+          <span>Consigne proposée par « Copier pour une IA »</span>
+          <select id="prof-prompt"></select>
+        </label>
         <label class="check">
           <input type="checkbox" id="prof-classic">
           <span>Format classique de Lowsper (sans modèle ni propriétés)</span>
@@ -161,6 +165,26 @@
             <dl id="prof-vars"></dl>
           </details>
         </div>
+      </section>
+      <section aria-labelledby="ai-title">
+        <h3 id="ai-title">Consignes pour l'IA</h3>
+        <p class="fine">Texte placé devant la note par « Copier pour une IA », pour demander un compte rendu à l'assistant de votre choix. Variables possibles, comme dans les modèles de note ; <code>{{note}}</code> place la note ailleurs qu'à la fin.</p>
+        <div class="row prof-row">
+          <label class="field inline compact">
+            <span>Consigne à modifier</span>
+            <select id="ai-select"></select>
+          </label>
+          <button class="btn small" id="ai-new" type="button">Nouvelle consigne</button>
+          <button class="btn ghost small" id="ai-remove" type="button"></button>
+        </div>
+        <label class="field inline">
+          <span>Nom</span>
+          <input id="ai-name" type="text" maxlength="60" autocomplete="off">
+        </label>
+        <label class="field inline">
+          <span>Texte de la consigne</span>
+          <textarea id="ai-text" rows="5"></textarea>
+        </label>
       </section>
       <section>
         <h3>Modèle</h3>
@@ -400,7 +424,10 @@
       <div class="row">
         <button class="btn primary" id="download">Télécharger le fichier .md</button>
         <button class="btn" id="copy">Copier</button>
-        <button class="btn" id="copy-ai" title="Copie le transcript précédé d'une consigne pour obtenir un compte rendu">Copier pour une IA</button>
+        <span class="ai-copy">
+          <select id="ai-choice" aria-label="Consigne pour l'IA"></select>
+          <button class="btn" id="copy-ai" title="Copie la note précédée de la consigne choisie, à coller dans l'assistant de votre choix">Copier pour une IA</button>
+        </span>
       </div>
       <div class="finished" id="finished" hidden>
         <span class="fine">Réunions précédentes de cette session (déjà dans vos Téléchargements) :</span>

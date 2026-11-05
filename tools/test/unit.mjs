@@ -1019,6 +1019,49 @@ await test('notes : profils conservés, réglages abîmés ou anciens complété
   store.delete('lowsper.profile');
 });
 
+// --- Consignes pour l'IA ---
+await test('consignes : « Compte rendu de réunion » identique à l’ancien bouton « Copier pour une IA »', () => {
+  store.delete('lowsper.prompts');
+  const t = sampleMeeting();
+  const p = L.Notes.list()[0];
+  const before =
+    "Voici le transcript automatique d'une réunion (il peut contenir des erreurs de reconnaissance). " +
+    'Rédige un compte rendu structuré en français : contexte et participants identifiables, ' +
+    'points abordés, décisions prises, actions à mener (qui, quoi, échéance), questions ouvertes. ' +
+    "N'invente rien : si un passage est incompréhensible ou ambigu, signale-le.\n\n---\n\n";
+  assert.equal(L.Notes.promptText(t, p), before + t.toMarkdown());
+  assert.equal(L.Notes.prompts().length, 3);
+});
+
+await test('consignes : modifiables, rétablissables, personnelles, variables et place de la note', () => {
+  store.delete('lowsper.prompts');
+  const t = sampleMeeting();
+  const p = L.Notes.newProfile('Travail', []);
+  L.Notes.savePrompt('actions', { text: 'Actions de « {{titre}} » :\n{{note}}\nFin.' });
+  const list = L.Notes.prompts();
+  assert.ok(list.find((x) => x.id === 'actions').modified);
+  const out = L.Notes.promptText(t, p, 'actions');
+  assert.ok(out.startsWith('Actions de « Revue « budget » : T3 » :\n---\n'), 'variable rendue, note à sa place');
+  assert.ok(out.endsWith('Le budget tient.\n\nFin.'));
+  assert.ok(!out.includes('{{'), 'aucune variable de la note réinterprétée');
+  L.Notes.removePrompt('actions');
+  assert.ok(!L.Notes.prompts().find((x) => x.id === 'actions').modified, 'texte d’origine rétabli');
+  const id = L.Notes.newPrompt('Pour le client');
+  L.Notes.savePrompt(id, { text: 'Résume pour un client : {{transcript}}' });
+  const own = L.Notes.promptText(t, Object.assign(p, { prompt: id }));
+  assert.match(own, /^Résume pour un client : \*\*\[00:00:01\] Vous :\*\* Bonjour à tous\./);
+  assert.ok(!own.includes('---\n\n'), '{{transcript}} présent : la note n’est pas ajoutée en plus');
+  L.Notes.removePrompt(id);
+  assert.equal(L.Notes.prompts().length, 3);
+  // Consigne disparue : repli sur la première
+  assert.ok(
+    L.Notes.promptText(t, Object.assign(p, { prompt: id })).startsWith("Voici le transcript automatique d'une réunion")
+  );
+  store.set('lowsper.prompts', 'abîmé');
+  assert.equal(L.Notes.prompts().length, 3);
+  store.delete('lowsper.prompts');
+});
+
 if (failed) {
   console.log(`\n${failed} test(s) en échec`);
   process.exit(1);
