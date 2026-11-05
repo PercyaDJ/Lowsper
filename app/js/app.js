@@ -445,8 +445,7 @@
       .replace(/[*_`[\]]/g, '');
     if (!t || !learnFix(wrong, right)) return;
     const n = t.replaceEverywhere(wrong, right);
-    app.finalMarkdown = t.toMarkdown();
-    $('preview').textContent = app.finalMarkdown;
+    refreshNote(t);
     $('fix-wrong').value = '';
     $('fix-right').value = '';
     $('fix-wrong').focus();
@@ -696,14 +695,14 @@
       model: app.modelLabel,
       sources: [],
       offset: offset || 0,
+      profile: L.Notes.current().id, // profil de sortie choisi à l'accueil
     });
     L.Transcript.current = t; // seule la réunion en cours est sauvegardée pour la récupération
     t.onChange(renderLive);
     t.onChange(renderDrafts);
     t.onChange(() => {
       if (app.state !== 'done' || !app.gapsShown || t !== app.transcript) return;
-      app.finalMarkdown = t.toMarkdown();
-      $('preview').textContent = app.finalMarkdown;
+      refreshNote(t);
       renderGaps();
     });
     // Micro = une seule personne (vous) : votre voix sert à reconnaître l'écho des haut-parleurs
@@ -742,6 +741,7 @@
       sources: ['others'],
       offset: 0,
       file: { name: file.name, size: file.size, modifiedAt: file.lastModified || null, recordedAt: null, duration: 0 },
+      profile: L.Notes.current().id,
     });
     t.othersBusy = [];
     if (app.voiceAnalyzer && $('distinguish').checked) {
@@ -787,7 +787,7 @@
         const t = await transcribeFile(item, people, title, app.importAbort.signal);
         item.status = 'terminé';
         done.push(t);
-        download(t.toMarkdown(), t.fileName());
+        await exportNote(t);
       } catch (e) {
         item.status = e && e.code === 'ABORT' ? 'annulé' : 'échec';
         item.error = (e && e.message) || String(e);
@@ -808,7 +808,7 @@
     app.finished = done;
     app.transcript = t;
     L.Transcript.current = t;
-    app.finalMarkdown = t.toMarkdown();
+    app.finalMarkdown = noteOf(t).content;
     const paras = t.paragraphs().length;
     const cov = t.coverageSummary();
     $('done-info').textContent =
@@ -817,9 +817,9 @@
       (cov.missing < 1 ? ' Toute la parole détectée a été transcrite.' : '') +
       (failures.length
         ? ` ${failures.length} fichier${failures.length > 1 ? 's' : ''} non transcrit${failures.length > 1 ? 's' : ''} : ${failures.map((i) => `${i.file.name} (${i.error})`).join(' ; ')}`
-        : '') +
-      ' Le fichier a été enregistré dans votre dossier Téléchargements.';
+        : '');
     $('preview').textContent = app.finalMarkdown;
+    renderExport(t);
     $('next-meeting').hidden = true;
     renderVoices();
     renderSuspects();
@@ -984,19 +984,19 @@
         if (!app.transcript.meta.sources.includes(id)) app.transcript.meta.sources.push(id);
       app.pausedAt = null;
       renderLive();
-      toast(
-        'Nouvelle réunion démarrée. La précédente sera enregistrée dans vos Téléchargements dès qu’elle est prête.',
-        6000
-      );
+      toast('Nouvelle réunion démarrée. La note de la précédente sera enregistrée dès qu’elle est prête.', 6000);
       finalizeMeeting(old)
         .then(() => {
           // Le son brut de la réunion terminée n'est plus utile : mémoire libérée
           for (const rec of Object.values(app.recorders || {})) rec.trim(old.meta.endAbs);
           app.finished.push(old);
-          download(old.toMarkdown(), old.fileName());
-          toast(
-            `Transcript de la réunion précédente${old.meta.title ? ' « ' + old.meta.title + ' »' : ''} enregistré dans vos Téléchargements.`,
-            7000
+          return exportNote(old).then((ex) =>
+            toast(
+              `Note de la réunion précédente${old.meta.title ? ' « ' + old.meta.title + ' »' : ''} enregistrée ${
+                ex.where === 'dossier' ? `dans « ${ex.folder} »` : 'dans vos Téléchargements'
+              }.`,
+              7000
+            )
           );
         })
         .catch((e) => console.error('Finalisation de la réunion précédente', e));
@@ -1341,7 +1341,7 @@
     });
     await finalizeMeeting(app.transcript, (text) => ($('finish-text').textContent = text));
     journal('couverture', app.transcript.coverageSummary());
-    app.finalMarkdown = app.transcript.toMarkdown();
+    app.finalMarkdown = noteOf(app.transcript).content;
     const paras = app.transcript.paragraphs().length;
     const minutes = Math.max(1, Math.round((app.transcript.meta.endedAt - app.transcript.meta.startedAt) / 60000));
     const echo = app.transcript.meta.echoRemoved || 0;
@@ -1354,8 +1354,7 @@
         : '') +
       (echo
         ? ` ${echo} phrase${echo > 1 ? 's' : ''} du micro retirée${echo > 1 ? 's' : ''} : écho des haut-parleurs, pas votre voix.`
-        : '') +
-      ' Le fichier a été enregistré dans votre dossier Téléchargements.';
+        : '');
     $('preview').textContent = app.finalMarkdown;
     renderVoices();
     renderSuspects();
@@ -1363,7 +1362,9 @@
     renderFinished();
     setState('done');
     renderDrafts();
-    download(app.finalMarkdown, app.transcript.fileName());
+    const ended = app.transcript;
+    await exportNote(ended);
+    if (app.transcript === ended) renderExport(ended);
   }
 
   // Écran de fin : suivi de la retranscription des passages « rapides »
@@ -1380,10 +1381,11 @@
       app.improvedPending = true;
     } else if (app.improvedPending) {
       app.improvedPending = false;
-      app.finalMarkdown = t.toMarkdown();
-      $('preview').textContent = app.finalMarkdown;
+      refreshNote(t);
       box.textContent =
-        'Tous les passages ont maintenant leur version précise. Retéléchargez le fichier pour avoir la version finale.';
+        t.export && t.export.where === 'dossier'
+          ? 'Tous les passages ont maintenant leur version précise : la note du dossier est mise à jour.'
+          : 'Tous les passages ont maintenant leur version précise. Retéléchargez le fichier pour avoir la version finale.';
       box.hidden = false;
     } else {
       box.hidden = true;
@@ -1401,7 +1403,10 @@
       b.textContent =
         (t.meta.title || 'Réunion') + ' · ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
       b.title = 'Télécharger à nouveau';
-      b.addEventListener('click', () => download(t.toMarkdown(), t.fileName()));
+      b.addEventListener('click', () => {
+        const n = noteOf(t);
+        download(n.content, n.name);
+      });
       box.appendChild(b);
     }
     $('finished').hidden = !app.finished.length;
@@ -1465,8 +1470,7 @@
       input.value = (t.meta.names && t.meta.names[v.voice]) || '';
       input.addEventListener('input', () => {
         t.nameVoice(v.voice, input.value);
-        app.finalMarkdown = t.toMarkdown();
-        $('preview').textContent = app.finalMarkdown;
+        refreshNote(t);
       });
       // Mémoire des voix : on retient l'empreinte quand la saisie est validée
       input.addEventListener('change', () => {
@@ -1537,6 +1541,249 @@
     updateQueue();
   }
 
+  // ---------------------------------------------------------------------------
+  // Note de la réunion : profil de sortie, dossier de destination, mises à jour (notes.js)
+  // ---------------------------------------------------------------------------
+  const profileOf = (t) => L.Notes.list().find((p) => p.id === t.meta.profile) || L.Notes.current();
+  const noteOf = (t) => L.Notes.note(t, profileOf(t));
+
+  /**
+   * Enregistre la note d'un transcript : dans le dossier du profil si l'accès est accordé, sinon
+   * dans les Téléchargements. options.interactive : appelé depuis un clic (l'accès peut être
+   * redemandé). options.update : mise à jour d'une note déjà écrite dans le dossier (jamais de
+   * nouveau téléchargement).
+   */
+  async function exportNote(t, options) {
+    const o = options || {};
+    const profile = profileOf(t);
+    const n = L.Notes.note(t, profile);
+    const ex = (t.export = t.export || {});
+    ex.profile = profile.name;
+    let acc = { state: 'aucun' };
+    try {
+      acc = await L.Notes.access(profile, !!o.interactive);
+    } catch (e) {
+      console.warn('Accès au dossier de notes', e);
+    }
+    if (acc.state === 'accorde') {
+      try {
+        ex.savedAs = await L.Notes.writeNote(acc.dir, n.name, n.content, ex.where === 'dossier' ? ex.savedAs : null);
+        Object.assign(ex, { where: 'dossier', folder: profile.folderName, at: Date.now(), error: null, pending: null });
+        journal('note', { où: 'dossier', profil: profile.format });
+        return ex;
+      } catch (e) {
+        ex.error = (e && e.message) || String(e);
+        journal('note-erreur', { erreur: ex.error.slice(0, 200) });
+      }
+    }
+    if (o.update) return ex;
+    if (o.interactive && ex.where === 'telechargements') return ex; // pas de second téléchargement
+    download(n.content, n.name);
+    Object.assign(ex, { where: 'telechargements', savedAs: n.name, at: Date.now(), pending: acc.state });
+    journal('note', { où: 'téléchargements', accès: acc.state });
+    return ex;
+  }
+
+  // Après la réunion, chaque correction (voix nommée, mot corrigé, passage retranscrit) réécrit
+  // la note du dossier, quelques secondes après la dernière modification.
+  function refreshNote(t) {
+    if (!t) return;
+    app.finalMarkdown = noteOf(t).content;
+    $('preview').textContent = app.finalMarkdown;
+    if (!t.export || t.export.where !== 'dossier') return;
+    clearTimeout(t.export.timer);
+    t.export.timer = setTimeout(async () => {
+      await exportNote(t, { update: true });
+      if (t === app.transcript) renderExport(t);
+    }, 1500);
+  }
+
+  /** Ligne de l'écran de fin : où est la note, et comment l'enregistrer dans le dossier. */
+  function renderExport(t) {
+    const ex = (t && t.export) || {};
+    const box = $('export-info');
+    const btn = $('export-folder');
+    const hm = (ms) =>
+      new Date(ms).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const profile = profileOf(t);
+    btn.hidden = true;
+    if (ex.where === 'dossier') {
+      box.textContent = `Note enregistrée dans le dossier « ${ex.folder} » (profil « ${ex.profile} ») : ${ex.savedAs}. Elle est mise à jour à chaque modification ci-dessous (dernière : ${hm(ex.at)}).`;
+    } else if (ex.where === 'telechargements') {
+      box.textContent = `Note enregistrée dans vos Téléchargements : ${ex.savedAs}.`;
+      if (ex.pending === 'a-demander' || ex.pending === 'oublie') {
+        btn.textContent =
+          ex.pending === 'oublie'
+            ? `Désigner à nouveau le dossier « ${profile.folderName} » et y enregistrer la note`
+            : `Enregistrer aussi dans le dossier « ${profile.folderName} »`;
+        btn.hidden = false;
+        box.textContent +=
+          ex.pending === 'oublie'
+            ? ` Le navigateur a oublié l'accès au dossier du profil « ${profile.name} » (données de navigation effacées ?).`
+            : ` Le navigateur demande votre accord pour écrire dans le dossier du profil « ${profile.name} ».`;
+      }
+    } else box.textContent = '';
+    if (ex.error) box.textContent += ` Écriture dans le dossier impossible : ${ex.error}`;
+    box.hidden = !box.textContent;
+  }
+
+  async function saveToFolder() {
+    const t = app.transcript;
+    if (!t) return;
+    const profile = profileOf(t);
+    try {
+      if (t.export && t.export.pending === 'oublie') {
+        const name = await L.Notes.pickFolder(profile.id);
+        if (!name) return;
+        updateProfile(profile.id, { folderName: name });
+      }
+      const ex = await exportNote(t, { interactive: true });
+      if (ex.where !== 'dossier')
+        toast("L'accès au dossier n'a pas été accordé : la note reste dans vos Téléchargements.", 6000);
+    } catch (e) {
+      toast("Impossible d'enregistrer dans ce dossier : " + e.message, 8000);
+    }
+    renderExport(t);
+    renderProfileAccess();
+  }
+
+  // --- Profils de sortie : choix à l'accueil, éditeur dans les paramètres ---
+  function updateProfile(id, patch) {
+    const all = L.Notes.list().map((p) => (p.id === id ? L.Notes.normalize(Object.assign(p, patch)) : p));
+    L.Notes.saveAll(all);
+    return all.find((p) => p.id === id);
+  }
+
+  function fillSelect(sel, profiles, value) {
+    sel.replaceChildren(
+      ...profiles.map((p) => {
+        const o = document.createElement('option');
+        o.value = p.id;
+        o.textContent = p.name + (p.folderName ? ` (dossier « ${p.folderName} »)` : '');
+        return o;
+      })
+    );
+    sel.value = value;
+  }
+
+  // Exemple de nom de fichier, sur une réunion fictive
+  function sampleTranscript() {
+    const t = new L.Transcript({
+      title: 'Point hebdo',
+      startedAt: Date.now() - 3600000,
+      endedAt: Date.now(),
+      sources: ['me', 'others'],
+      model: app.modelLabel,
+    });
+    return t;
+  }
+
+  function renderProfiles() {
+    const profiles = L.Notes.list();
+    const current = L.Notes.current();
+    fillSelect($('profile'), profiles, current.id);
+    $('profile-field').hidden = profiles.length < 2;
+    if (!profiles.some((p) => p.id === app.editProfileId)) app.editProfileId = current.id;
+    fillSelect($('prof-select'), profiles, app.editProfileId);
+    const p = profiles.find((x) => x.id === app.editProfileId);
+    $('prof-delete').disabled = p.id === L.Notes.DEFAULT_ID;
+    $('prof-name').value = p.name;
+    $('prof-folder').textContent = p.folderName ? `Dossier « ${p.folderName} »` : 'Vos Téléchargements';
+    $('prof-folder-clear').hidden = !p.folderName;
+    $('prof-classic').checked = p.format === 'classique';
+    $('prof-custom').hidden = p.format === 'classique';
+    $('prof-filename').value = p.fileName;
+    $('prof-front').checked = !!p.front.enabled;
+    const box = $('prof-front-fields');
+    box.replaceChildren(
+      ...L.Notes.FRONT_FIELDS.map(([key, label]) => {
+        const l = document.createElement('label');
+        l.className = 'check';
+        const c = document.createElement('input');
+        c.type = 'checkbox';
+        c.checked = p.front.fields.includes(key);
+        c.disabled = !p.front.enabled;
+        c.addEventListener('change', () => {
+          const q = L.Notes.list().find((x) => x.id === app.editProfileId);
+          const fields = new Set(q.front.fields);
+          if (c.checked) fields.add(key);
+          else fields.delete(key);
+          updateProfile(q.id, { front: Object.assign(q.front, { fields: [...fields] }) });
+        });
+        const sp = document.createElement('span');
+        sp.textContent = label;
+        l.append(c, sp);
+        return l;
+      })
+    );
+    $('prof-tags').value = p.front.tags;
+    $('prof-extra').value = p.front.extra;
+    for (const id of ['prof-tags', 'prof-extra']) $(id).disabled = !p.front.enabled;
+    $('prof-links').checked = !!p.links;
+    $('prof-template').value = p.template;
+    renderProfileHints(p);
+    renderProfileAccess();
+  }
+
+  function renderProfileHints(p) {
+    const warn = [];
+    const unknown = [...L.Notes.unknownVariables(p.template), ...L.Notes.unknownVariables(p.fileName)];
+    if (unknown.length)
+      warn.push(`Variable inconnue, laissée telle quelle : ${unknown.map((v) => `{{${v}}}`).join(', ')}.`);
+    const bad = L.Notes.badExtraLines(p.front.extra);
+    if (bad.length) warn.push(`Champ libre ignoré (il faut « clé: valeur ») : ${bad.join(' ; ')}.`);
+    $('prof-warn').textContent = warn.join(' ');
+    $('prof-filename-example').textContent =
+      p.format === 'classique' ? '' : 'Exemple : ' + L.Notes.note(sampleTranscript(), p).name;
+  }
+
+  // Champs texte de l'éditeur : enregistrés à chaque frappe
+  function bindProfileField(id, apply) {
+    $(id).addEventListener('input', () => {
+      const p = L.Notes.list().find((x) => x.id === app.editProfileId);
+      const q = updateProfile(p.id, apply(p, $(id)));
+      renderProfileHints(q);
+      if (id === 'prof-name') {
+        fillSelect($('prof-select'), L.Notes.list(), q.id);
+        fillSelect($('profile'), L.Notes.list(), L.Notes.current().id);
+      }
+    });
+  }
+
+  /** Accueil : le dossier du profil choisi demande-t-il un clic avant la réunion ? */
+  async function renderProfileAccess() {
+    const p = L.Notes.current();
+    let acc = { state: 'aucun' };
+    try {
+      acc = await L.Notes.access(p, false);
+    } catch {}
+    const box = $('profile-access');
+    app.profileAccess = acc.state;
+    if (acc.state === 'a-demander') {
+      $('profile-access-text').textContent =
+        `Les notes du profil « ${p.name} » vont dans le dossier « ${p.folderName} » : le navigateur demande votre accord.`;
+      $('profile-allow').textContent = 'Autoriser maintenant';
+    } else if (acc.state === 'oublie') {
+      $('profile-access-text').textContent =
+        `Le navigateur a oublié le dossier « ${p.folderName} » du profil « ${p.name} » (données de navigation effacées ?). En attendant, les notes vont dans vos Téléchargements.`;
+      $('profile-allow').textContent = 'Désigner à nouveau le dossier';
+    }
+    box.hidden = !(acc.state === 'a-demander' || acc.state === 'oublie');
+  }
+
+  async function allowProfileFolder() {
+    const p = L.Notes.current();
+    try {
+      if (app.profileAccess === 'oublie') {
+        const name = await L.Notes.pickFolder(p.id);
+        if (name) updateProfile(p.id, { folderName: name });
+      } else await L.Notes.access(p, true);
+    } catch (e) {
+      toast("Impossible d'utiliser ce dossier : " + e.message, 8000);
+    }
+    renderProfiles();
+  }
+
   function download(text, name) {
     const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown;charset=utf-8' }));
     const a = document.createElement('a');
@@ -1605,7 +1852,8 @@
     $('recover').hidden = false;
     $('recover-download').addEventListener('click', () => {
       saved.meta.endedAt = saved.meta.startedAt + Math.round((last ? last.end : 0) * 1000);
-      download(saved.toMarkdown(), saved.fileName());
+      const n = noteOf(saved);
+      download(n.content, n.name);
     });
     $('recover-dismiss').addEventListener('click', () => {
       L.Transcript.clearSaved();
@@ -2012,6 +2260,7 @@
   });
   // Roue crantée : panneau Paramètres, accessible à tout moment
   const openSettings = () => {
+    renderProfiles();
     renderMemory();
     renderFixes();
     const d = $('settings');
@@ -2126,6 +2375,86 @@
   });
   renderFixes();
   $('start').addEventListener('click', start);
+  // Profils de sortie
+  $('export-folder').addEventListener('click', saveToFolder);
+  $('profile').addEventListener('change', () => {
+    L.Notes.select($('profile').value);
+    renderProfileAccess();
+  });
+  $('profile-allow').addEventListener('click', allowProfileFolder);
+  $('prof-select').addEventListener('change', () => {
+    app.editProfileId = $('prof-select').value;
+    renderProfiles();
+  });
+  $('prof-new').addEventListener('click', () => {
+    const p = L.Notes.newProfile('Nouveau profil', L.Notes.list());
+    L.Notes.saveAll([...L.Notes.list(), p]);
+    app.editProfileId = p.id;
+    renderProfiles();
+    $('prof-name').select();
+  });
+  $('prof-delete').addEventListener('click', async () => {
+    const p = L.Notes.list().find((x) => x.id === app.editProfileId);
+    if (
+      !p ||
+      p.id === L.Notes.DEFAULT_ID ||
+      !confirm(`Supprimer le profil « ${p.name} » ? Les notes déjà enregistrées restent dans leur dossier.`)
+    )
+      return;
+    await L.Notes.forgetFolder(p.id);
+    L.Notes.saveAll(L.Notes.list().filter((x) => x.id !== p.id));
+    if (L.Notes.current().id === p.id) L.Notes.select(L.Notes.DEFAULT_ID);
+    app.editProfileId = L.Notes.DEFAULT_ID;
+    renderProfiles();
+  });
+  $('prof-folder-pick').addEventListener('click', async () => {
+    try {
+      const name = await L.Notes.pickFolder(app.editProfileId);
+      if (name) updateProfile(app.editProfileId, { folderName: name });
+    } catch (e) {
+      toast("Impossible d'utiliser ce dossier : " + e.message, 8000);
+    }
+    renderProfiles();
+  });
+  $('prof-folder-clear').addEventListener('click', async () => {
+    await L.Notes.forgetFolder(app.editProfileId);
+    updateProfile(app.editProfileId, { folderName: '' });
+    renderProfiles();
+  });
+  $('prof-classic').addEventListener('change', () => {
+    updateProfile(app.editProfileId, { format: $('prof-classic').checked ? 'classique' : 'modele' });
+    renderProfiles();
+  });
+  $('prof-front').addEventListener('change', () => {
+    const p = L.Notes.list().find((x) => x.id === app.editProfileId);
+    updateProfile(p.id, { front: Object.assign(p.front, { enabled: $('prof-front').checked }) });
+    renderProfiles();
+  });
+  $('prof-links').addEventListener('change', () =>
+    updateProfile(app.editProfileId, { links: $('prof-links').checked })
+  );
+  bindProfileField('prof-name', (p, el) => ({ name: el.value.trim() || 'Profil' }));
+  bindProfileField('prof-filename', (p, el) => ({ fileName: el.value }));
+  bindProfileField('prof-template', (p, el) => ({ template: el.value }));
+  bindProfileField('prof-tags', (p, el) => ({ front: Object.assign(p.front, { tags: el.value }) }));
+  bindProfileField('prof-extra', (p, el) => ({ front: Object.assign(p.front, { extra: el.value }) }));
+  $('prof-template-reset').addEventListener('click', () => {
+    updateProfile(app.editProfileId, { template: L.Notes.DEFAULT_TEMPLATE, fileName: L.Notes.DEFAULT_FILENAME });
+    renderProfiles();
+  });
+  {
+    const dl = $('prof-vars');
+    for (const [name, desc] of L.Notes.VARIABLES) {
+      const dt = document.createElement('dt');
+      const code = document.createElement('code');
+      code.textContent = `{{${name}}}`;
+      dt.appendChild(code);
+      const dd = document.createElement('dd');
+      dd.textContent = desc;
+      dl.append(dt, dd);
+    }
+  }
+  renderProfiles();
   // Import : bouton, sélection de fichiers, glisser-déposer (n'importe où dans la page)
   $('import-pick').addEventListener('click', () => $('import-input').click());
   $('import-input').addEventListener('change', () => {
@@ -2155,7 +2484,10 @@
   $('stop').addEventListener('click', stop);
   $('stop-main').addEventListener('click', stop);
   $('chain').addEventListener('click', chainNext);
-  $('download').addEventListener('click', () => download(app.finalMarkdown, app.transcript.fileName()));
+  $('download').addEventListener('click', () => {
+    const n = noteOf(app.transcript);
+    download(n.content, n.name);
+  });
   $('copy').addEventListener('click', () => copy(app.finalMarkdown));
   $('copy-ai').addEventListener('click', () => copy(AI_PROMPT + app.finalMarkdown));
   $('again').addEventListener('click', reset);

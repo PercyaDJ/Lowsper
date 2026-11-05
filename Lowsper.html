@@ -94,6 +94,73 @@
         <p class="fine saved-line" id="settings-saved"></p>
         <button class="btn ghost small" id="settings-keep" hidden>Conserver mes réglages dans le dossier Lowsper</button>
       </section>
+      <section aria-labelledby="prof-title">
+        <h3 id="prof-title">Profils de sortie</h3>
+        <p class="fine">Où et sous quelle forme arrive la note de chaque réunion, par exemple directement dans votre base de notes. Le profil se choisit sur l'écran d'accueil.</p>
+        <div class="row prof-row">
+          <label class="field inline compact">
+            <span>Profil à modifier</span>
+            <select id="prof-select"></select>
+          </label>
+          <button class="btn small" id="prof-new" type="button">Nouveau profil</button>
+          <button class="btn ghost small" id="prof-delete" type="button">Supprimer ce profil</button>
+        </div>
+        <label class="field inline">
+          <span>Nom du profil</span>
+          <input id="prof-name" type="text" maxlength="40" autocomplete="off">
+        </label>
+        <div class="field inline">
+          <span id="prof-folder-label">Dossier de destination</span>
+          <div class="row prof-row" role="group" aria-labelledby="prof-folder-label">
+            <span class="prof-folder" id="prof-folder"></span>
+            <button class="btn small" id="prof-folder-pick" type="button">Choisir le dossier</button>
+            <button class="btn ghost small" id="prof-folder-clear" type="button">Revenir aux Téléchargements</button>
+          </div>
+        </div>
+        <label class="check">
+          <input type="checkbox" id="prof-classic">
+          <span>Format classique de Lowsper (sans modèle ni propriétés)</span>
+        </label>
+        <div id="prof-custom">
+          <label class="field inline">
+            <span>Nom du fichier <em>(variables possibles, ex. {{date}} {{titre}})</em></span>
+            <input id="prof-filename" type="text" maxlength="160" spellcheck="false" autocomplete="off">
+          </label>
+          <p class="fine" id="prof-filename-example"></p>
+          <fieldset class="prof-front">
+            <legend>Propriétés en tête de note (front matter)</legend>
+            <label class="check">
+              <input type="checkbox" id="prof-front">
+              <span>Ajouter des propriétés</span>
+            </label>
+            <div class="prof-fields" id="prof-front-fields"></div>
+            <label class="field inline">
+              <span>Étiquettes, séparées par des virgules</span>
+              <input id="prof-tags" type="text" maxlength="200" spellcheck="false" autocomplete="off">
+            </label>
+            <label class="field inline">
+              <span>Champs libres, un par ligne <em>(clé: valeur ; variables possibles)</em></span>
+              <textarea id="prof-extra" rows="2" spellcheck="false"></textarea>
+            </label>
+          </fieldset>
+          <label class="check">
+            <input type="checkbox" id="prof-links">
+            <span>Écrire les intervenants nommés en liens <code>[[Nom]]</code></span>
+          </label>
+          <label class="field inline">
+            <span>Modèle de note</span>
+            <textarea id="prof-template" rows="7" spellcheck="false"></textarea>
+          </label>
+          <p class="fine prof-warn" id="prof-warn" role="status"></p>
+          <div class="row prof-row">
+            <button class="btn ghost small" id="prof-template-reset" type="button">Rétablir le modèle par défaut</button>
+          </div>
+          <details class="prof-vars">
+            <summary>Variables disponibles</summary>
+            <dl id="prof-vars"></dl>
+          </details>
+        </div>
+      </section>
       <section>
         <h3>Modèle</h3>
         <p class="fine" id="model-current"></p>
@@ -200,7 +267,15 @@
           <span>Personnes</span>
           <input id="people" type="number" min="2" max="30" step="1" inputmode="numeric" placeholder="Auto" title="Nombre de personnes, vous compris (2 pour un tête-à-tête). Facultatif : aide Lowsper à distinguer les intervenants.">
         </label>
+        <label class="field profile-field" id="profile-field" hidden>
+          <span>Profil</span>
+          <select id="profile" title="Où et sous quelle forme arrive la note (paramètres, « Profils de sortie »)"></select>
+        </label>
       </div>
+      <p class="fine profile-access" id="profile-access" hidden>
+        <span id="profile-access-text"></span>
+        <button class="btn small" id="profile-allow" type="button"></button>
+      </p>
 
       <button class="btn primary big" id="start">
         <span class="rec-dot"></span> Démarrer l'enregistrement
@@ -317,6 +392,10 @@
     <section class="card view" id="view-done" hidden>
       <h2>Transcript prêt</h2>
       <p class="lead" id="done-info"></p>
+      <div class="export-row">
+        <p class="fine" id="export-info" role="status" hidden></p>
+        <button class="btn small" id="export-folder" type="button" hidden></button>
+      </div>
       <div class="row">
         <button class="btn primary" id="download">Télécharger le fichier .md</button>
         <button class="btn" id="copy">Copier</button>
@@ -375,6 +454,7 @@
   <script src="app/js/audiofile.js"></script>
   <script src="app/js/vocabulary.js"></script>
   <script src="app/js/transcript.js"></script>
+  <script src="app/js/notes.js"></script>
   <script src="app/js/app.js"></script>
 </body>
 </html>

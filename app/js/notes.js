@@ -306,8 +306,15 @@
   }
 
   const folderKey = (id) => 'dossier-notes:' + id;
-  const getFolder = (id) => idb('readonly', (s) => s.get(folderKey(id)));
-  const forgetFolder = (id) => idb('readwrite', (s) => s.delete(folderKey(id)));
+  // Rangement des accès aux dossiers : IndexedDB (seul endroit où le navigateur les accepte).
+  // Remplaçable par les tests, qui ne peuvent pas fabriquer un vrai accès à un dossier.
+  const folders = {
+    get: (id) => idb('readonly', (s) => s.get(folderKey(id))),
+    put: (id, dir) => idb('readwrite', (s) => s.put(dir, folderKey(id))),
+    delete: (id) => idb('readwrite', (s) => s.delete(folderKey(id))),
+  };
+  const getFolder = (id) => folders.get(id);
+  const forgetFolder = (id) => folders.delete(id);
 
   /** Demande le dossier (depuis un clic). Retourne son nom, ou null si l'utilisateur renonce. */
   async function pickFolder(id) {
@@ -318,7 +325,7 @@
       if (e && e.name === 'AbortError') return null;
       throw e;
     }
-    await idb('readwrite', (s) => s.put(dir, folderKey(id)));
+    await folders.put(id, dir);
     return dir.name;
   }
 
@@ -390,5 +397,6 @@
     forgetFolder,
     access,
     writeNote,
+    folders,
   };
 })();
