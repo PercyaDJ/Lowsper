@@ -10,11 +10,15 @@
 // Usage :
 //   node build.mjs                      moteur + catalogue (le modèle sera téléchargé au 1er lancement)
 //   node build.mjs --embed whisper-small  idem, avec un modèle déjà installé (version hors ligne / tests)
+//
+// Prérequis : node fetch-model.mjs silero-vad && node fetch-model.mjs wespeaker (et chaque modèle
+// passé à --embed). Révisions et empreintes viennent de models.lock.json : le build est reproductible.
 import { build } from 'esbuild';
-import { mkdir, readFile, rm, writeFile, readdir } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile, readdir, access } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MODELS, DEFAULT_MODEL } from './models.mjs';
+import { MODELS } from './models.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const appDir = join(here, '..', 'app');
@@ -31,10 +35,31 @@ const embedIds = args[0] === '--embed' ? args.slice(1) : [];
 const CATALOG = ['whisper-small', 'whisper-small-gpu', 'whisper-turbo', 'whisper-base'];
 
 const header = '/* Fichier généré par tools/build.mjs : ne pas modifier à la main. */\n';
-const readMeta = async (id) =>
-  JSON.parse(await readFile(join(here, '.cache', 'models', id, 'meta.json'), 'utf8').catch(() => {
-    throw new Error(`Métadonnées absentes pour ${id}. Lancez d'abord : node fetch-model.mjs ${id}`);
-  }));
+const lock = JSON.parse(await readFile(join(here, 'models.lock.json'), 'utf8'));
+const readMeta = async (id) => {
+  if (!lock[id]) throw new Error(`${id} absent de models.lock.json.`);
+  return lock[id];
+};
+const cache = join(here, '.cache', 'models');
+
+// Toutes les vérifications ont lieu AVANT de vider app/engine : un build qui échoue ne doit
+// jamais laisser l'application amputée.
+async function checkCache(id) {
+  const entry = await readMeta(id);
+  for (const [path, f] of Object.entries(entry.files)) {
+    const file = join(cache, id, f.as || path);
+    const buf = await readFile(file).catch(() => null);
+    if (!buf) throw new Error(`${id} : ${f.as || path} absent du cache. Lancez d'abord : node fetch-model.mjs ${id}`);
+    if (createHash('sha256').update(buf).digest('hex') !== f.sha256) {
+      throw new Error(`${id} : ${f.as || path} ne correspond pas au verrou. Relancez : node fetch-model.mjs ${id}`);
+    }
+  }
+}
+const ortDist = join(here, 'node_modules', 'onnxruntime-web', 'dist');
+await access(ortDist).catch(() => {
+  throw new Error('Dépendances absentes. Lancez d\'abord : npm ci --ignore-scripts');
+});
+for (const id of ['silero-vad', 'wespeaker', ...embedIds]) await checkCache(id);
 const register = (key, payload) =>
   `${header}(self.LOWSPER_ASSETS=self.LOWSPER_ASSETS||{})[${JSON.stringify(key)}]=${payload};\n`;
 
@@ -54,7 +79,6 @@ async function writeBinary(dir, relDir, baseName, buf, ext = 'js') {
 //    - « webgpu » : WebAssembly + accélération par la carte graphique (27 Mo).
 await rm(engineDir, { recursive: true, force: true });
 await mkdir(engineDir, { recursive: true });
-const ortDist = join(here, 'node_modules', 'onnxruntime-web', 'dist');
 const runtimes = {};
 for (const [name, bundle, wasmFile] of [
   ['cpu', 'ort.wasm.bundle.min.mjs', 'ort-wasm-simd-threaded.wasm'],
@@ -87,10 +111,7 @@ for (const [name, bundle, wasmFile] of [
 // Petits modèles d'analyse audio, livrés avec l'application (pas de téléchargement)
 //   - Silero VAD : détection de parole (MIT)
 //   - WeSpeaker ResNet34 : empreinte vocale pour distinguer les intervenants (CC BY 4.0)
-const cache = join(here, '.cache', 'models');
-const vadBuf = await readFile(join(cache, 'silero-vad', 'silero_vad_16k_op15.onnx')).catch(() => {
-  throw new Error("Silero VAD absent. Lancez : node fetch-model.mjs silero-vad");
-});
+const vadBuf = await readFile(join(cache, 'silero-vad', 'silero_vad_16k_op15.onnx'));
 const vad = await writeBinary(engineDir, 'engine', 'silero-vad', vadBuf);
 const spkTexts = {};
 for (const f of ['config.json', 'preprocessor_config.json']) spkTexts[f] = await readFile(join(cache, 'wespeaker', f), 'utf8');
@@ -132,7 +153,7 @@ for (const id of CATALOG) {
     repo: model.repo,
     revision: meta.revision,
     dtype: model.dtype,
-    files: model.files.map((path) => ({ path, ...meta.files[path] })),
+    files: model.files.map((path) => ({ path, size: meta.files[path].size, sha256: meta.files[path].sha256 })),
   });
 }
 
