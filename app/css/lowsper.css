@@ -506,3 +506,22 @@ input[type="number"]:focus { border-color: var(--accent); }
 .finished { margin: 12px 0 0; display: grid; gap: 6px; }
 .finished .fine { margin: 0; }
 .finished button { font: inherit; font-size: 12.5px; padding: 3px 10px; border: 1px solid var(--border); border-radius: 99px; background: var(--surface); color: var(--text); cursor: pointer; }
+
+/* Profils de sortie : choix à l'accueil, éditeur dans les paramètres, état sur l'écran de fin */
+.field-row .profile-field { flex: 0 0 auto; max-width: 220px; }
+.profile-field select { width: 100%; }
+.profile-access { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: -6px 0 14px; }
+.prof-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 10px; }
+.prof-folder { font-size: 14px; color: var(--text); margin-right: auto; }
+.prof-front { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: grid; gap: 10px; margin: 0; }
+.prof-front legend { padding: 0 4px; font-size: 14px; color: var(--muted); }
+.prof-fields { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+#prof-template, #prof-extra, #prof-filename { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; }
+.prof-warn:empty { display: none; }
+.prof-warn { color: var(--warn-ink); }
+.prof-vars summary { cursor: pointer; font-size: 13.5px; color: var(--muted); }
+.prof-vars dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 8px 0 0; font-size: 13px; }
+.prof-vars dd { margin: 0; color: var(--muted); }
+.export-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0 0 12px; }
+.export-row .fine { margin: 0; }
+@media (max-width: 560px) { .field-row .profile-field { max-width: none; } }

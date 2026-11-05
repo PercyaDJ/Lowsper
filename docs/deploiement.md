@@ -78,9 +78,10 @@ le son d'un partage d'écran).
 | Donnée | Où | Durée de vie |
 |---|---|---|
 | Audio de la réunion | Mémoire de l'onglet uniquement | Effacé en quittant la page ou à la réunion suivante |
-| Transcript (`.md`) | Dossier Téléchargements | Géré par l'utilisateur |
+| Transcript (`.md`) | Dossier Téléchargements, ou dossier choisi par l'utilisateur pour un profil de sortie (base de notes) | Géré par l'utilisateur |
+| Accès au dossier d'un profil | Stockage du navigateur (accord donné par l'utilisateur) | Jusqu'au nettoyage du navigateur |
 | Copie de secours du transcript en cours | Stockage local du navigateur | Effacée à la réunion suivante |
-| Réglages (glossaire, vocabulaire, préférences) | Stockage du navigateur et `app/reglages.txt` | Jusqu'à modification |
+| Réglages (glossaire, vocabulaire, préférences, profils de sortie) | Stockage du navigateur et `app/reglages.txt` | Jusqu'à modification |
 | Empreintes vocales (facultatif, désactivé par défaut) | Stockage du navigateur | Effacement automatique après 1, 3 ou 6 mois, ou à la demande |
 | Journal technique (facultatif) | Téléchargé à la demande | Ne contient aucun texte de réunion |
 

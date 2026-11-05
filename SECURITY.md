@@ -23,9 +23,15 @@ Seule la dernière version publiée (voir `CHANGELOG.md`) reçoit des correctifs
 - **Un poste compromis.** Un logiciel malveillant sur l'ordinateur, une extension de navigateur
   malveillante ou un administrateur du poste peuvent lire l'écran, le micro, la mémoire et les
   fichiers. Lowsper n'y peut rien.
-- **Les fichiers produits.** Le transcript téléchargé, la copie des réglages (`app/reglages.txt`)
+- **Les fichiers produits.** Le transcript téléchargé ou écrit dans le dossier d'un profil de
+  sortie (choisi par l'utilisateur, par exemple une base de notes synchronisée par un autre
+  outil), la copie des réglages (`app/reglages.txt`)
   et le journal technique sont des fichiers ordinaires, non chiffrés. Leur protection relève du
   poste (chiffrement du disque, droits d'accès).
+- **La synchronisation du dossier de notes.** Si le dossier d'un profil de sortie est synchronisé
+  par un autre outil (stockage en ligne, synchronisation d'une base de notes), la note quitte le
+  poste par cet outil. Lowsper ne fait qu'écrire un fichier local ; choisir un dossier synchronisé
+  est une décision de l'utilisateur.
 - **Le stockage du navigateur.** La sauvegarde de secours du transcript et les empreintes vocales
   mémorisées y sont lisibles par toute personne ayant accès à la session.
 - **Ce que l'utilisateur fait du texte.** Le bouton « Copier pour une IA » met le transcript dans
