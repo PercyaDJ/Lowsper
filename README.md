@@ -130,6 +130,8 @@ sortie »**, puis choisissez le profil sur l'écran d'accueil avant la réunion.
 - Le profil **« Par défaut »** garde le format classique de Lowsper, dans les Téléchargements :
   rien ne change pour qui ne configure rien.
 
+![Éditeur de profils dans les paramètres : nom, dossier, nom de fichier, propriétés, étiquettes](docs/images/profils.png)
+
 Attention : si ce dossier est synchronisé par un autre outil (stockage en ligne, synchronisation
 de votre base de notes), la note quittera l'ordinateur par cet outil. Pour des réunions
 confidentielles, choisissez un dossier qui reste sur le poste.
