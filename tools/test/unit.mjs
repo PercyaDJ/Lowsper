@@ -24,6 +24,7 @@ sandbox.window = sandbox;
 sandbox.self = sandbox;
 vm.createContext(sandbox);
 for (const f of [
+  'browser.js',
   'engine.js',
   'capture.js',
   'audiofile.js',
@@ -1149,6 +1150,49 @@ await test('IA intégrée : sonde (absente, états, erreur, délai) et essai', a
   await A.trial('prompt', { scope: lm });
   assert.equal(sys, A.SYSTEM);
   assert.ok(msg.startsWith(A.CONSIGNE + '\n\n---\n\n**[00:00:02] Claire'));
+});
+
+await test('navigateur : Brave, Edge, Chrome, Firefox reconnus ; message adapté', async () => {
+  const B = L.Browser;
+  const chromeUA =
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36';
+  // Brave envoie la même identification que Chrome
+  assert.equal(B.name({ userAgent: chromeUA, brave: {} }), 'Brave');
+  assert.equal(B.name({ userAgent: chromeUA }), 'Chromium');
+  assert.equal(
+    B.name({ userAgent: chromeUA, userAgentData: { brands: [{ brand: 'Google Chrome' }] } }),
+    'Google Chrome'
+  );
+  assert.equal(B.name({ userAgent: chromeUA + ' Edg/157.0.0.0' }), 'Microsoft Edge');
+  assert.equal(
+    B.name({ userAgent: 'Mozilla/5.0 (Windows NT 10.0; rv:140.0) Gecko/20100101 Firefox/140.0' }),
+    'Firefox'
+  );
+  assert.equal(B.name({}), 'inconnu');
+  assert.match(
+    B.folderMessage('model', { userAgent: chromeUA, brave: {} }),
+    /brave:\/\/flags.*File System Access.*Microsoft Edge/
+  );
+  assert.match(B.folderMessage('notes', { userAgent: chromeUA, brave: {} }), /brave:\/\/flags.*Téléchargements/);
+  assert.match(B.folderMessage('model', { userAgent: 'Firefox/140.0' }), /micro seul/);
+  assert.match(B.folderMessage('model', { userAgent: 'x' }), /Microsoft Edge ou Google Chrome/);
+  assert.equal(B.canWriteFolder({ showDirectoryPicker() {} }), true);
+  assert.equal(B.canWriteFolder({}), false);
+  // Rapport de la sonde : le navigateur détecté est écrit en plus de l'identification
+  const r = L.LocalAI.report({ probe: [], browser: 'Brave', userAgent: chromeUA, protocol: 'file:', secure: true });
+  assert.match(r, /Navigateur détecté : Brave\nIdentification : Mozilla/);
+});
+
+await test('notes : dossier impossible dans ce navigateur, message clair', async () => {
+  const saved = sandbox.showDirectoryPicker;
+  delete sandbox.showDirectoryPicker;
+  sandbox.navigator = { userAgent: 'Chrome/157.0', brave: {} };
+  await assert.rejects(
+    L.Notes.pickFolder('defaut'),
+    (e) => e.code === 'unsupported' && /brave:\/\/flags/.test(e.message)
+  );
+  delete sandbox.navigator;
+  if (saved) sandbox.showDirectoryPicker = saved;
 });
 
 if (failed) {

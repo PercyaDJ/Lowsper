@@ -1713,7 +1713,7 @@
       if (ex.where !== 'dossier')
         toast("L'accès au dossier n'a pas été accordé : la note reste dans vos Téléchargements.", 6000);
     } catch (e) {
-      toast("Impossible d'enregistrer dans ce dossier : " + e.message, 8000);
+      toast(e.code === 'unsupported' ? e.message : "Impossible d'enregistrer dans ce dossier : " + e.message, 8000);
     }
     renderExport(t);
     renderProfileAccess();
@@ -1883,7 +1883,7 @@
         if (name) updateProfile(p.id, { folderName: name });
       } else await L.Notes.access(p, true);
     } catch (e) {
-      toast("Impossible d'utiliser ce dossier : " + e.message, 8000);
+      toast(e.code === 'unsupported' ? e.message : "Impossible d'utiliser ce dossier : " + e.message, 8000);
     }
     renderProfiles();
   }
@@ -2220,8 +2220,7 @@
     const err = $('install-error');
     err.hidden = true;
     if (!L.canInstall()) {
-      err.textContent =
-        "Ce navigateur ne permet pas d'enregistrer le modèle dans un dossier. Ouvrez Lowsper.html avec Microsoft Edge ou Google Chrome.";
+      err.textContent = L.Browser.folderMessage('model');
       err.hidden = false;
       return;
     }
@@ -2520,7 +2519,7 @@
       const name = await L.Notes.pickFolder(app.editProfileId);
       if (name) updateProfile(app.editProfileId, { folderName: name });
     } catch (e) {
-      toast("Impossible d'utiliser ce dossier : " + e.message, 8000);
+      toast(e.code === 'unsupported' ? e.message : "Impossible d'utiliser ce dossier : " + e.message, 8000);
     }
     renderProfiles();
   });
@@ -2577,6 +2576,7 @@
     return L.LocalAI.report({
       probe: lai.states,
       trials: lai.trials,
+      browser: L.Browser.name(),
       userAgent: navigator.userAgent,
       protocol: location.protocol,
       secure: window.isSecureContext,

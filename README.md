@@ -326,6 +326,17 @@ Microsoft Edge ou Google Chrome récents. Firefox ne sait pas installer le modè
 l'accès aux dossiers) et ne capte pas le son d'un partage d'écran : il ne fonctionne qu'en micro
 seul, dans un dossier Lowsper où le modèle a déjà été installé depuis Edge ou Chrome.
 
+**J'utilise Brave : « Ce navigateur ne permet pas d'enregistrer le modèle ».**
+Brave bloque par défaut l'écriture dans un dossier, dont Lowsper a besoin pour installer le
+modèle et pour écrire les notes d'un profil. Deux solutions :
+1. l'autoriser : ouvrez `brave://flags`, cherchez « File System Access », choisissez « Enabled »,
+   puis relancez Brave ;
+2. ou installer le modèle une fois avec Microsoft Edge (clic droit sur `Lowsper.html`, « Ouvrir
+   avec »), puis revenir dans Brave : le modèle est déjà dans le dossier. Sans la première
+   solution, les notes vont alors dans les Téléchargements.
+
+Lowsper reconnaît Brave et affiche ces explications au bon moment.
+
 ## Limites connues
 
 - **Son de visio dégradé** : sur le son compressé d'une visio, Whisper small se trompe nettement
@@ -335,7 +346,8 @@ seul, dans un dossier Lowsper où le modèle a déjà été installé depuis Edg
 - **Voix proches** : deux personnes à la voix proche peuvent partager un numéro d'intervenant.
 - **Mesures** : vitesses mesurées sur une machine de développement lente, qualité mesurée sur des
   voix de synthèse. Le test de vitesse intégré (paramètres) donne la réalité de votre PC.
-- **Navigateurs** : Edge et Chrome. Firefox seulement en micro seul, avec un modèle déjà installé.
+- **Navigateurs** : Edge et Chrome. Brave après un réglage (voir la FAQ). Firefox seulement en
+  micro seul, avec un modèle déjà installé.
 - **Fichiers importés** : les formats sans lecteur dédié (FLAC, Vorbis...) sont limités à 25 Mo.
   Les horodatages d'un MP3 ou d'un AAC peuvent être décalés de quelques centièmes de seconde
   (délai propre à ces formats).

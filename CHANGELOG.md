@@ -13,6 +13,16 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [3.4.1] - 2026-11-05
+
+### Corrigé
+- Brave : au lieu de « utilisez Edge ou Chrome », Lowsper explique comment autoriser l'écriture
+  dans un dossier (`brave://flags`, « File System Access ») ou installer le modèle avec Edge.
+  Même chose pour Firefox, et pour le choix du dossier d'un profil, qui affichait une erreur
+  technique.
+- Rapport de la sonde d'IA intégrée : il indique le navigateur réellement utilisé (Brave
+  s'identifie comme Chrome).
+
 ## [3.4.0] - 2026-11-05
 
 ### Ajouté
@@ -118,7 +128,8 @@ antérieures n'ont pas été taguées (la numérotation reprend la « version 3 
   journal technique.
 - Réglages copiés dans le dossier (`app/reglages.txt`), restaurés après un nettoyage du navigateur.
 
-[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.3.0...HEAD
+[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.4.1...HEAD
+[3.4.1]: https://github.com/PercyaDJ/Lowsper/compare/v3.4.0...v3.4.1
 [3.4.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.3.0...v3.4.0
 [3.3.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.1.0...v3.2.0
