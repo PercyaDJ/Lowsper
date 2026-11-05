@@ -65,6 +65,15 @@ flowchart LR
    rattraper la parole qui aurait échappé au direct, les voix sont regroupées, l'écho retiré, et la
    couverture calculée.
 
+## Fichiers importés
+
+Un enregistrement fait ailleurs suit la même chaîne, à partir du découpage :
+`audiofile.js` lit le conteneur (WAV, MP3, AAC, M4A, Ogg, WebM), confie les trames au décodeur du
+navigateur (WebCodecs) par petits lots et livre du son 16 kHz mono au découpage, comme le ferait
+un micro. Le décodage s'interrompt dès que la file de transcription s'allonge : la mémoire reste
+bornée, même pour plusieurs heures. La détection de parole n'y a pas de délai, la voie rapide et
+le rattrapage ne servent pas (decision.md §19).
+
 ## Ce qui touche au disque et au réseau
 
 | Module | Disque | Réseau |
@@ -82,6 +91,7 @@ vérifie à chaque pull request.
 | Je veux... | Fichier |
 |---|---|
 | Changer le découpage de la parole, la capture | `app/js/capture.js` |
+| Lire un nouveau format de fichier | `app/js/audiofile.js` |
 | Changer le décodage Whisper, le contexte, les relances internes | `app/js/engine.js` |
 | Changer la file, les moteurs, l'interface | `app/js/app.js`, `Lowsper.html`, `app/css/lowsper.css` |
 | Changer le Markdown, les filtres, les sigles | `app/js/transcript.js` |
@@ -95,6 +105,8 @@ vérifie à chaque pull request.
 |---|---|---|
 | `tools/test/unit.mjs` | Découpage, assemblage, filtres, voix, couverture, budget de jetons (Node seul) | 16 s |
 | `tools/test/csp.mjs` | Non-fuite réseau : politique, code, navigateur | 15 s |
+| `tools/test/import.mjs` | Décodage des fichiers importés, 7 formats ; `--long` : 3 h et mémoire | 10 s, 10 min |
+| `tools/test/e2e-import.mjs` | Import dans la vraie page : file, en-tête, voix, échec, annulation | 3 min |
 | `tools/test/release.mjs` | Contenu et reproductibilité du paquet de distribution | 1 s |
 | `tools/test/e2e.mjs` | Installation, réunion simulée, panne de moteur, enchaînement, non-fuite | 4 min |
 | `tools/test/eval*.mjs`, `soak.mjs`, `bench.mjs` | Mesures : qualité, endurance, vitesse | 5 min à 1 h |

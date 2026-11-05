@@ -95,12 +95,15 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Test de non-fuite réseau (15 s, Chromium) | `npm run test:csp` |
 | Tout ce que lance la CI | `npm test` |
 | Bout en bout : installation, réunion, non-fuite (4 min) | `npm run test:e2e` |
+| Décodage des fichiers importés, 7 formats (10 s, Chrome) ; `--long` : 3 h, mémoire | `npm run test:import` |
+| Bout en bout de l'import de fichiers (après `--embed`, 3 min) | `npm run test:e2e-import` |
 | Mesure de vitesse du moteur (après `node build.mjs --embed whisper-small`) | `npm run bench` |
 | Paquet de distribution `tools/dist/Lowsper-X.Y.Z.zip` (et son test) | `npm run release`, `npm run test:release` |
 | Captures d'écran de la documentation (après `--embed`, 5 min) | `node test/screenshots.mjs` |
 | Qualité sur corpus réaliste | `node test/eval-hebdo.mjs whisper-small` |
 
-Chromium : si Playwright ne trouve pas son navigateur, définissez `CHROMIUM_PATH`. Les tests e2e
+Chromium : si Playwright ne trouve pas son navigateur, définissez `CHROMIUM_PATH`. Le test de
+décodage a besoin d'un navigateur qui lit l'AAC et le MP3 (Google Chrome en CI). Les tests e2e
 utilisent les modèles de `tools/.cache` (environ 330 Mo) et un faux serveur Hugging Face local.
 
 Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis relire et commiter
@@ -114,6 +117,7 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/js/engine.js` | Chargement des fichiers embarqués, moteur Whisper dans un Worker (glossaire, langue, reprise, boucles) |
 | `app/js/analyzer.js` | Détection de parole (Silero) et empreintes vocales (WeSpeaker), dans des Workers |
 | `app/js/capture.js` | Micro et partage d'écran, rééchantillonnage 16 kHz, découpage en blocs, son gardé en mémoire |
+| `app/js/audiofile.js` | Fichiers importés : lecteurs de conteneur (WAV, MP3, AAC, M4A, Ogg, WebM), décodage WebCodecs en flux |
 | `app/js/speakers.js` | Distinction, regroupement et mémoire des voix ; voix du micro (anti-écho) |
 | `app/js/transcript.js` | Assemblage, sigles, filtres, couverture, Markdown, sauvegarde de secours |
 | `app/js/vocabulary.js` | Vocabulaires métier et contexte donné à Whisper |

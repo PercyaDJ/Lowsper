@@ -21,7 +21,7 @@ const sandbox = {
 sandbox.window = sandbox;
 sandbox.self = sandbox;
 vm.createContext(sandbox);
-for (const f of ['engine.js', 'capture.js', 'vocabulary.js', 'transcript.js', 'speakers.js']) {
+for (const f of ['engine.js', 'capture.js', 'audiofile.js', 'vocabulary.js', 'transcript.js', 'speakers.js']) {
   vm.runInContext(await readFile(join(appJs, f), 'utf8'), sandbox, { filename: f });
 }
 const L = sandbox.Lowsper;
@@ -794,6 +794,88 @@ await test('moteur : contexte et jetons générés tiennent toujours dans la fen
   // Budget imposé (test de vitesse, passages courts) : respecté, et plafonné si besoin
   assert.equal(plan(ids(200), 1, 4, 448).budget, 4);
   assert.ok(plan([], 60, 0, 448).budget <= 445);
+});
+
+// --- Import de fichiers audio : lecteurs de conteneur (sans navigateur) ---
+const fixtures = join(here, 'fixtures', 'import');
+const bufferSource = (buf) => ({
+  size: buf.length,
+  read: async (o, n) => new Uint8Array(buf.buffer, buf.byteOffset + o, Math.max(0, Math.min(n, buf.length - o))),
+});
+async function packetsOf(info) {
+  const all = [];
+  for await (const g of info.packets(0)) all.push(...g.packets);
+  return all;
+}
+
+await test('import : chaque format est reconnu par son contenu, pas par son extension', async () => {
+  const expected = {
+    'extrait.wav': 'wav',
+    'extrait.mp3': 'mp3',
+    'extrait.aac': 'adts',
+    'extrait.m4a': 'mp4',
+    'extrait.ogg': 'ogg',
+    'extrait.webm': 'webm',
+    'extrait.flac': 'flac',
+  };
+  for (const [f, fmt] of Object.entries(expected)) {
+    const head = new Uint8Array((await readFile(join(fixtures, f))).subarray(0, 64));
+    assert.equal(L.AudioFile.detect(head), fmt, f);
+  }
+  assert.equal(L.AudioFile.detect(new Uint8Array([1, 2, 3, 4])), 'inconnu');
+});
+
+await test('import : trames et durée retrouvées dans chaque conteneur (20 s de parole)', async () => {
+  const cases = {
+    'extrait.mp3': { codec: 'mp3', rate: 44100 },
+    'extrait.aac': { codec: 'mp4a.40.2', rate: 44100 },
+    'extrait.m4a': { codec: 'mp4a.40.2', rate: 44100, description: true },
+    'extrait.ogg': { codec: 'opus', rate: 48000, description: true },
+    'extrait.webm': { codec: 'opus', rate: 48000, description: true },
+  };
+  for (const [f, c] of Object.entries(cases)) {
+    const info = await L.AudioFile.open(bufferSource(await readFile(join(fixtures, f))));
+    assert.equal(info.codec, c.codec, f);
+    assert.equal(info.sampleRate, c.rate, f);
+    assert.equal(info.channels, 2, f);
+    if (c.description) assert.ok(info.description && info.description.length >= 2, f + ' : configuration du décodeur');
+    const pk = await packetsOf(info);
+    assert.ok(pk.length > 100, f + ' : ' + pk.length + ' trames');
+    // La dernière trame commence peu avant la fin : rien n'a été sauté
+    const last = pk[pk.length - 1].timestamp / 1e6;
+    assert.ok(last > 19.5 && last < 20.3, `${f} : dernière trame à ${last.toFixed(2)} s`);
+    for (let i = 1; i < pk.length; i++) assert.ok(pk[i].timestamp > pk[i - 1].timestamp, f + ' : ordre');
+    if (info.duration != null) assert.ok(Math.abs(info.duration - 20) < 0.6, `${f} : durée ${info.duration}`);
+  }
+});
+
+await test("import : date d'enregistrement lue dans le M4A, WAV lu sans décodeur", async () => {
+  const m4a = await L.AudioFile.open(bufferSource(await readFile(join(fixtures, 'extrait.m4a'))));
+  assert.equal(new Date(m4a.recordedAt).toISOString(), '2026-03-14T09:30:00.000Z');
+  const wav = await L.AudioFile.open(bufferSource(await readFile(join(fixtures, 'extrait.wav'))));
+  assert.ok(wav.pcm);
+  assert.equal(wav.sampleRate, 16000);
+  assert.ok(Math.abs(wav.duration - 20) < 0.01);
+  // PCM 24 bits stéréo -> mono : moyenne des deux canaux
+  const b = new Uint8Array([0xff, 0xff, 0x3f, 0x00, 0x00, 0xc0]); // +0,5 et -0,5
+  const mono = L.AudioFile.pcmToMono(b, { channels: 2, bits: 24, float: false });
+  assert.ok(Math.abs(mono[0]) < 1e-6);
+});
+
+await test('import : formats sans lecteur dédié confiés au navigateur, fichiers abîmés lus au mieux', async () => {
+  const flac = await L.AudioFile.open(bufferSource(await readFile(join(fixtures, 'extrait.flac'))));
+  assert.ok(flac.fallback);
+  // MP3 coupé au milieu et précédé d'octets parasites : les trames intactes restent lisibles
+  const mp3 = await readFile(join(fixtures, 'extrait.mp3'));
+  const damaged = Buffer.concat([Buffer.from('parasite'), mp3.subarray(0, Math.floor(mp3.length / 2))]);
+  damaged[0] = 0xff; // faux début de synchronisation
+  const info = await L.AudioFile.open(bufferSource(damaged));
+  const pk = await packetsOf(info);
+  const last = pk[pk.length - 1].timestamp / 1e6;
+  assert.ok(last > 9 && last < 10.5, `moitié du fichier lue (${last.toFixed(1)} s)`);
+  // Durée d'un paquet Opus d'après son octet TOC : 20 ms (config 31 = CELT 20 ms)
+  assert.equal(L.AudioFile.opusSamples(new Uint8Array([31 << 3])), 960);
+  await assert.rejects(L.AudioFile.open(bufferSource(Buffer.from('RIFF\0\0\0\0WAVEdata\0\0\0\0'))), /incomplet/);
 });
 
 if (failed) {

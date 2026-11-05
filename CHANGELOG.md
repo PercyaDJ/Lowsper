@@ -13,6 +13,18 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [3.1.0] - 2026-11-05
+
+### Ajouté
+- Import de fichiers audio : bouton « Transcrire un fichier » et glisser-déposer, plusieurs
+  fichiers traités en file, WAV, MP3, M4A/AAC, OGG/Opus et WebM, de quelques secondes à plusieurs
+  heures, avec le même moteur que le direct (détection de parole, intervenants, glossaire,
+  corrections). Mémoire bornée, avancement et temps restant, annulation (decision.md §19).
+- En-tête des transcripts importés : source « fichier », date d'enregistrement quand le fichier la
+  contient, sinon date du fichier présentée comme telle, durée, date d'import.
+- Tests : lecteurs de conteneur (unitaires), décodage dans le navigateur (en CI), import de bout
+  en bout et décodage de fichiers de 3 h (manuels).
+
 ## [3.0.2] - 2026-11-05
 
 ### Ajouté
@@ -72,7 +84,8 @@ antérieures n'ont pas été taguées (la numérotation reprend la « version 3 
   journal technique.
 - Réglages copiés dans le dossier (`app/reglages.txt`), restaurés après un nettoyage du navigateur.
 
-[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.2...HEAD
+[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.2...v3.1.0
 [3.0.2]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/PercyaDJ/Lowsper/releases/tag/v3.0.0

@@ -28,6 +28,8 @@ Ce que Lowsper fait :
 - **glossaire** et **vocabulaires métier** pour bien écrire vos sigles et noms propres, corrections
   de mots retenues d'une réunion à l'autre ;
 - **mini-fenêtre** toujours visible pendant la visio, **réunions enchaînées** sans temps mort ;
+- **import de fichiers audio** (dictaphone, téléphone, enregistrement fait ailleurs), même de
+  plusieurs heures, avec le même moteur que le direct ;
 - **rien n'est perdu en silence** : passage en échec relancé, parole manquée rattrapée en fin de
   réunion, couverture indiquée en tête du transcript.
 
@@ -86,6 +88,24 @@ Conseils :
   haut-parleurs.
 - Gardez l'onglet Lowsper ouvert pendant la réunion (il peut être en arrière-plan).
 - Si le navigateur se ferme pendant une réunion, le texte déjà transcrit est proposé au lancement suivant.
+
+### Transcrire un enregistrement fait ailleurs
+
+Un dictaphone, un téléphone, une réunion enregistrée par un autre outil : sur l'écran d'accueil,
+cliquez sur **« Transcrire un fichier »**, ou glissez un ou plusieurs fichiers dans la page.
+
+- Formats : **WAV, MP3, M4A/AAC, OGG/Opus, WebM**, de quelques secondes à plusieurs heures. Les
+  autres formats que le navigateur sait lire (FLAC par exemple) sont acceptés jusqu'à 25 Mo.
+- Même chaîne que le direct : détection de parole, intervenants distingués, glossaire,
+  vocabulaires et corrections retenues. Le champ « Personnes » indique le nombre de voix de
+  l'enregistrement ; le nom de la réunion vaut pour un fichier seul.
+- Une barre indique l'avancement et le temps restant estimé ; « Annuler » arrête proprement.
+  Chaque transcript arrive dans vos Téléchargements dès que son fichier est terminé, daté du jour
+  de l'enregistrement quand le fichier le précise.
+- Le fichier est lu par morceaux depuis son emplacement, jamais copié ni envoyé ; le son décodé
+  n'est jamais écrit sur le disque.
+
+![Transcription de deux fichiers fictifs : avancement, file d'attente, annulation](docs/images/import.png)
 
 Déploiement sur un parc (DSI, RSSI) : voir [docs/deploiement.md](docs/deploiement.md).
 
@@ -148,6 +168,19 @@ reconnu » : le mot est corrigé partout, et Lowsper retient la correction pour 
 suivantes. La liste « À vérifier » propose les noms propres douteux : un clic suffit pour commencer.
 Si vous connaissez déjà les déformations, entrez-les à l'avance dans les paramètres (« Mots que
 Whisper déforme », ex. `Kalmar` → `CALMAR`).
+
+**J'ai enregistré une réunion avec mon téléphone. Combien de temps pour la transcrire ?**
+Lire le fichier est rapide, même pour plusieurs heures : sur notre machine de test, lente, 3 h se
+lisent en 20 à 30 s (MP3, M4A) et en moins de 2 min (OGG). C'est la transcription qui prend le
+temps : le même calcul qu'en direct, avec le renfort de moteurs de votre réglage de puissance,
+puisque le PC n'est pas occupé par une visio. La barre d'avancement affiche une estimation après quelques
+secondes ; le test de vitesse des paramètres donne un ordre de grandeur pour votre PC.
+
+**Mon fichier est refusé.**
+Lowsper lit le contenu du fichier, pas son extension. Formats lus en entier : WAV, MP3, M4A/AAC,
+OGG/Opus, WebM. Un autre format (FLAC, Vorbis, WMA...) n'est accepté que jusqu'à 25 Mo, et
+seulement si le navigateur sait le lire : convertissez-le en MP3 ou M4A, ou découpez-le. Un
+fichier abîmé (enregistrement interrompu) est lu jusqu'à l'endroit où il est intact.
 
 **J'enchaîne plusieurs réunions.**
 Bouton « Réunion suivante » (icône lecture-fin, aussi dans la mini-fenêtre) : la réunion en cours
@@ -235,16 +268,17 @@ seul, dans un dossier Lowsper où le modèle a déjà été installé depuis Edg
 - **Mesures** : vitesses mesurées sur une machine de développement lente, qualité mesurée sur des
   voix de synthèse. Le test de vitesse intégré (paramètres) donne la réalité de votre PC.
 - **Navigateurs** : Edge et Chrome. Firefox seulement en micro seul, avec un modèle déjà installé.
+- **Fichiers importés** : les formats sans lecteur dédié (FLAC, Vorbis...) sont limités à 25 Mo.
+  Les horodatages d'un MP3 ou d'un AAC peuvent être décalés de quelques centièmes de seconde
+  (délai propre à ces formats).
 
 ## Feuille de route
 
 Évolutions prévues, dans l'ordre (détail dans les [jalons](https://github.com/PercyaDJ/Lowsper/milestones)
 et `decision.md`) :
-1. **Import de fichiers audio** : transcrire un enregistrement fait ailleurs (dictaphone,
-   téléphone) avec le même moteur.
-2. **Export Markdown et profils** : la note arrive directement dans votre base de notes (type
+1. **Export Markdown et profils** : la note arrive directement dans votre base de notes (type
    Obsidian), avec des profils séparés (personnel, travail) et des modèles de note.
-3. **Compte rendu** : consignes éditables pour l'IA, et étude d'un résumé 100 % local.
+2. **Compte rendu** : consignes éditables pour l'IA, et étude d'un résumé 100 % local.
 
 Une idée, un problème ? Ouvrez une [issue](https://github.com/PercyaDJ/Lowsper/issues/new/choose),
 ou posez votre question dans les [discussions](https://github.com/PercyaDJ/Lowsper/discussions).
