@@ -528,3 +528,12 @@ input[type="number"]:focus { border-color: var(--accent); }
 .ai-copy { display: inline-flex; gap: 6px; align-items: stretch; }
 .ai-copy select { max-width: 210px; }
 #ai-text { font-size: 13.5px; }
+
+/* IA intégrée du navigateur (sonde, expérimental) */
+.lai-row { margin-top: 10px; }
+.lai-states { list-style: none; padding: 0; margin: 12px 0 0; font-size: 13.5px; }
+.lai-states li { padding: 4px 0 4px 18px; position: relative; }
+.lai-states li::before { content: ''; position: absolute; left: 2px; top: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.lai-states li.ok::before { background: var(--ok); }
+#lai-progress { width: 100%; margin-top: 10px; }
+.lai-out { white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow: auto; margin: 12px 0 0; padding: 10px 12px; font-size: 12.5px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; }

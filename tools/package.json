@@ -1,7 +1,7 @@
 {
   "name": "lowsper-tools",
   "private": true,
-  "version": "3.3.0",
+  "version": "3.4.0",
   "description": "Outils de construction de Lowsper (réservés aux développeurs, inutiles pour l'utilisateur final)",
   "type": "module",
   "scripts": {
@@ -18,7 +18,8 @@
     "test:e2e-import": "node test/e2e-import.mjs",
     "test:e2e-notes": "node test/e2e-notes.mjs",
     "test:release": "node test/release.mjs",
-    "test": "npm run lint && npm run format:check && npm run test:unit && npm run test:release && npm run test:csp && npm run test:import",
+    "test:localai": "node test/localai.mjs",
+    "test": "npm run lint && npm run format:check && npm run test:unit && npm run test:release && npm run test:csp && npm run test:localai && npm run test:import",
     "bench": "node test/bench.mjs",
     "release": "node release.mjs"
   },

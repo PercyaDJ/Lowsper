@@ -18,6 +18,7 @@ import { chromium } from 'playwright-core';
 import { build } from 'esbuild';
 import http from 'node:http';
 import { execFileSync } from 'node:child_process';
+import vm from 'node:vm';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -33,38 +34,24 @@ const dtype = (process.argv.find((a) => a.startsWith('--dtype=')) || '--dtype=q8
 // --sanity : simple question, pour vérifier le banc avant de juger la qualité
 const sanity = process.argv.includes('--sanity');
 
+// Exemple fictif, consigne et faits : ceux de la sonde de l'application (app/js/localai.js)
+const sandbox = { setTimeout, clearTimeout };
+sandbox.window = sandbox;
+vm.createContext(sandbox);
+vm.runInContext(await readFile(join(tools, '..', 'app', 'js', 'localai.js'), 'utf8'), sandbox);
+const { CONSIGNE: consigne, FACTS, sampleTranscript } = sandbox.Lowsper.LocalAI;
+
 // Transcript au format Lowsper, d'après la vérité terrain d'un corpus fictif
 const fmt = (s) => new Date(Math.round(s) * 1000).toISOString().slice(11, 19);
 async function transcriptOf(name) {
   const truth = JSON.parse(await readFile(join(here, 'corpus', `${name}.truth.json`), 'utf8'));
   return truth.map((l) => `**[${fmt(l.start)}] ${l.channel === 'me' ? 'Vous' : l.who} :** ${l.ref}`).join('\n\n');
 }
-let transcript = await transcriptOf('hebdo');
+let transcript = sampleTranscript();
 if (long) {
   const other = await transcriptOf('entretien');
   transcript = [transcript, other, transcript, other, transcript].join('\n\n');
 }
-const consigne =
-  "Voici le transcript automatique d'une réunion (il peut contenir des erreurs de reconnaissance). " +
-  'Rédige un compte rendu structuré en français : contexte et participants identifiables, ' +
-  'points abordés, décisions prises, actions à mener (qui, quoi, échéance), questions ouvertes. ' +
-  "N'invente rien : si un passage est incompréhensible ou ambigu, signale-le.";
-
-// Faits du corpus « hebdo » qu'un bon compte rendu doit contenir (expressions régulières)
-const FACTS = [
-  ['1 240 tickets', /1\s?240|mille deux cent quarante/i],
-  ['SLA des P2 à 87 % pour 95 %', /87/],
-  ['incident du certificat de la passerelle VPN', /certificat/i],
-  ['Karim régularise le changement en CAB', /Karim[^.\n]*(CAB|régularis)|(CAB|régularis)[^.\n]*Karim/i],
-  [
-    'Thomas et Élodie : migration mardi et mercredi',
-    /(Thomas|[ÉE]lodie)[^\n]*(mardi|mercredi)|(mardi|mercredi)[^\n]*(Thomas|[ÉE]lodie)/i,
-  ],
-  ['Marc envoie le chiffrage avant mercredi', /Marc[^.\n]*chiffrage|chiffrage[^.\n]*Marc/i],
-  ['COPIL de jeudi', /COPIL[^.\n]*jeudi|jeudi[^.\n]*COPIL/i],
-  ['Sophie relance le prestataire (renfort)', /Sophie[^.\n]*(prestataire|renfort)|(prestataire|renfort)[^.\n]*Sophie/i],
-];
-
 // Bibliothèque transformers.js (module) pour la page de test
 await build({
   entryPoints: [join(tools, 'node_modules', '@huggingface', 'transformers', 'dist', 'transformers.web.js')],
@@ -179,7 +166,7 @@ clearInterval(timer);
 await browser.close();
 server.close();
 
-const found = FACTS.filter(([, re]) => re.test(r.text)).map(([name]) => name);
+const found = [...sandbox.Lowsper.LocalAI.checkFacts(r.text).found];
 const report = {
   modele: modelName,
   precision: dtype,
