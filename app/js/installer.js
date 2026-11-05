@@ -28,7 +28,7 @@
   /** Page ouverte depuis un zip non extrait (Windows l'ouvre alors depuis un dossier temporaire). */
   Lowsper.openedFromTemp = function () {
     const p = decodeURIComponent(location.pathname).toLowerCase();
-    return /\/(appdata\/local\/temp|temp|tmp)\//.test(p) || /\.zip[\/]/.test(p) || /\/temporary internet files\//.test(p);
+    return /\/(appdata\/local\/temp|temp|tmp)\//.test(p) || /\.zip\//.test(p) || /\/temporary internet files\//.test(p);
   };
 
   Lowsper.canInstall = function () {
@@ -55,7 +55,7 @@
     return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
   }
 
-  const header = '/* Fichier écrit par l\'installateur de Lowsper : ne pas modifier. */\n';
+  const header = "/* Fichier écrit par l'installateur de Lowsper : ne pas modifier. */\n";
   const register = (key, payload) =>
     `${header}(self.LOWSPER_ASSETS=self.LOWSPER_ASSETS||{})[${JSON.stringify(key)}]=${payload};\n`;
 
@@ -107,7 +107,7 @@
     } catch {
       throw installError(
         'WRONG_FOLDER',
-        "Ce dossier ne contient pas Lowsper.html. Choisissez le dossier Lowsper lui-même (celui où se trouve Lowsper.html)."
+        'Ce dossier ne contient pas Lowsper.html. Choisissez le dossier Lowsper lui-même (celui où se trouve Lowsper.html).'
       );
     }
     // Vérifie que c'est bien le dossier de CETTE page (et pas une autre copie de Lowsper) :
@@ -138,7 +138,7 @@
     if (!same) {
       throw installError(
         'OTHER_COPY',
-        "Ce dossier est une autre copie de Lowsper que celle ouverte dans cette page. " +
+        'Ce dossier est une autre copie de Lowsper que celle ouverte dans cette page. ' +
           `Choisissez le dossier qui contient la page actuellement ouverte : ${Lowsper.pageFolder()}`
       );
     }
@@ -161,10 +161,15 @@
 
     for (const f of entry.files) {
       const url = `${Lowsper.hfBase || 'https://huggingface.co'}/${entry.repo}/resolve/${entry.revision}/${f.path}`;
-      const bytes = await download(url, f.size, (n) => {
-        done += n;
-        if (onProgress) onProgress({ ratio: done / total, done, total, file: f.path });
-      }, signal);
+      const bytes = await download(
+        url,
+        f.size,
+        (n) => {
+          done += n;
+          if (onProgress) onProgress({ ratio: done / total, done, total, file: f.path });
+        },
+        signal
+      );
       if ((await sha256(bytes)) !== f.sha256) {
         throw installError('CHECKSUM', `Fichier altéré ou inattendu : ${f.path}. Installation annulée.`);
       }
@@ -195,11 +200,7 @@
       config: `models/${entry.id}/config.txt`,
       files,
     });
-    await writeText(
-      modelsDir,
-      'index.txt',
-      `${header}self.LOWSPER_INSTALLED=${JSON.stringify(installed, null, 1)};\n`
-    );
+    await writeText(modelsDir, 'index.txt', `${header}self.LOWSPER_INSTALLED=${JSON.stringify(installed, null, 1)};\n`);
     self.LOWSPER_INSTALLED = installed;
     return installed[installed.length - 1];
   };

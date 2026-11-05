@@ -118,7 +118,11 @@
         }
         let voice = prev;
         let best = 0;
-        for (const [v, o] of cover) if (o > best) { best = o; voice = v; }
+        for (const [v, o] of cover)
+          if (o > best) {
+            best = o;
+            voice = v;
+          }
         // Mémorise les fenêtres de la phrase, pour la réattribuer après le regroupement final
         const key = this.covers.length;
         this.covers.push(items.length ? items : this.covers[key - 1] || []);
@@ -220,7 +224,8 @@
 
       // 2. arbre UPGMA complet, avec historique des fusions
       const D = new Float64Array(n * n);
-      for (let i = 0; i < n; i++) for (let j = i; j < n; j++) D[i * n + j] = D[j * n + i] = dotv(segs[i].sum, segs[j].sum);
+      for (let i = 0; i < n; i++)
+        for (let j = i; j < n; j++) D[i * n + j] = D[j * n + i] = dotv(segs[i].sum, segs[j].sum);
       const W = Float64Array.from(segs, (g) => g.w);
       const alive = new Uint8Array(n).fill(1);
       const sim = (i, j) => D[i * n + j] / (W[i] * W[j]);
@@ -332,7 +337,8 @@
         lab = byK.get(ks[0] || 1) || new Int32Array(n);
       } else {
         const dist = new Float32Array(n * n);
-        for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) dist[i * n + j] = dist[j * n + i] = 1 - dotv(unit[i], unit[j]);
+        for (let i = 0; i < n; i++)
+          for (let j = i + 1; j < n; j++) dist[i * n + j] = dist[j * n + i] = 1 - dotv(unit[i], unit[j]);
         const silhouette = (labs, k) => {
           const acc = new Float64Array(k);
           const wts = new Float64Array(k);
@@ -434,7 +440,11 @@
         for (const [idx, o] of cover) votes.set(itemGroup[idx], (votes.get(itemGroup[idx]) || 0) + o);
         let bestG = null;
         let bestO = 0;
-        for (const [g, o] of votes) if (o > bestO) { bestO = o; bestG = g; }
+        for (const [g, o] of votes)
+          if (o > bestO) {
+            bestO = o;
+            bestG = g;
+          }
         if (bestG != null) map.set(key, bestG);
       });
       return map;

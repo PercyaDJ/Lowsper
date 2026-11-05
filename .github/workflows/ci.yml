@@ -1,0 +1,42 @@
+# Contrôles automatiques de chaque pull request et de main.
+# Les tests de bout en bout (e2e, eval, soak) restent manuels : ils demandent 330 Mo à 1 Go de
+# modèles et plusieurs minutes de calcul (voir decision.md §17.2).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Lint, tests unitaires, non-fuite réseau
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: tools
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tools/package-lock.json
+      - name: Dépendances de développement
+        run: npm ci --ignore-scripts
+      - name: Lint
+        run: npm run lint
+      - name: Formatage
+        run: npm run format:check
+      - name: Tests unitaires
+        run: npm run test:unit
+      - name: Navigateur pour le test de non-fuite
+        run: npx playwright-core install --with-deps chromium
+      - name: Test de non-fuite réseau
+        run: npm run test:csp

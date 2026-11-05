@@ -37,7 +37,9 @@
   ];
   // Mots courants souvent écrits avec une majuscule après une virgule (pas des noms propres)
   const COMMON = new Set(
-    "donc c'est et mais alors voilà oui non ok okay bon bah ben ah oh après moi toi lui je tu il elle on nous vous ils elles ça ca pour parce enfin puis ensuite sinon bref quand comme est-ce est d'accord merci bonjour salut exactement effectivement tout tous très".split(' ')
+    "donc c'est et mais alors voilà oui non ok okay bon bah ben ah oh après moi toi lui je tu il elle on nous vous ils elles ça ca pour parce enfin puis ensuite sinon bref quand comme est-ce est d'accord merci bonjour salut exactement effectivement tout tous très".split(
+      ' '
+    )
   );
   const HALLUCINATION_ONLY = [/^merci\.?$/, /^thank you\.?$/, /^bye\.?$/, /^au revoir\.?$/];
 
@@ -47,7 +49,7 @@
       .normalize('NFD')
       .replace(/[̀-ͯ]/g, '')
       .replace(/[’`]/g, "'")
-      .replace(/[\[\]()*]/g, ' ')
+      .replace(/[[\]()*]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -108,7 +110,10 @@
         if (key[j] === key[i] && key[j + 1] === key[i + 1]) pos.push(j);
       }
       if (pos.length >= 5) {
-        const kept = tokens.slice(0, pos[1]).join(' ').replace(/[,;:]+$/, '');
+        const kept = tokens
+          .slice(0, pos[1])
+          .join(' ')
+          .replace(/[,;:]+$/, '');
         return /[.!?…]$/.test(kept) ? kept : kept + '…';
       }
     }
@@ -141,7 +146,7 @@
     const acronyms = new Map();
     for (const raw of String(glossary || '').split(/[,;\n]+/)) {
       const term = raw.trim();
-      const key = term.replace(/[\s.\-]/g, '').toUpperCase();
+      const key = term.replace(/[\s.-]/g, '').toUpperCase();
       if (/^[A-Z0-9]{2,8}$/.test(key) && term === term.toUpperCase()) acronyms.set(key, term);
     }
     if (!acronyms.size) return text;
@@ -156,7 +161,7 @@
         for (let k = 0; k < n * 2 - 1 && i + k < parts.length; k += 2) words.push(parts[i + k]);
         if (words.length !== n) continue;
         const cores = words.map((w) => w.replace(/[.\-,;:!?]+$/, ''));
-        const pieces = cores.flatMap((w) => w.split(/[.\-]/)).filter(Boolean);
+        const pieces = cores.flatMap((w) => w.split(/[.-]/)).filter(Boolean);
         if (pieces.length < 2 || pieces.some((p) => p.length > 3 || !/^[A-Za-z0-9]+$/.test(p))) continue;
         const key = pieces.join('').toUpperCase();
         if (!acronyms.has(key)) continue;
@@ -188,11 +193,17 @@
       .map((t) => t.trim())
       .filter((t) => t.length >= 3);
     if (!terms.length) return text;
-    const fold = (x) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const fold = (x) =>
+      x
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
     let out = text.normalize('NFC');
     if (fold(out).length !== out.length) return text; // caractères exotiques : on ne touche à rien
     for (const term of terms) {
-      const pattern = fold(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+      const pattern = fold(term)
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        .replace(/\s+/g, '\\s+');
       const re = new RegExp('(^|[^\\p{L}\\p{N}])(' + pattern + ')(?=$|[^\\p{L}\\p{N}])', 'giu');
       const folded = fold(out);
       // fold() conserve les longueurs (une lettre accentuée = une lettre), on remplace par positions
@@ -267,9 +278,7 @@
      * voices : identifiant de voix par phrase (source « Participants »), voir speakers.js
      */
     addSegment(source, seg, result, voices, opts) {
-      const chunks = result.chunks && result.chunks.length
-        ? result.chunks
-        : [{ from: 0, to: null, text: result.text }];
+      const chunks = result.chunks && result.chunks.length ? result.chunks : [{ from: 0, to: null, text: result.text }];
       chunks.forEach((c, i) => {
         const glossary = this.fullGlossary();
         const raw = collapseRepeats(String(c.text || '').trim());
@@ -289,7 +298,8 @@
         if (opts && opts.block != null) line.block = opts.block;
         if (opts && opts.draft) line.draft = true;
         // Empreinte vocale de la phrase du micro : en mémoire seulement (non enregistrée)
-        if (opts && opts.embs && opts.embs[i]) Object.defineProperty(line, 'emb', { value: opts.embs[i], enumerable: false });
+        if (opts && opts.embs && opts.embs[i])
+          Object.defineProperty(line, 'emb', { value: opts.embs[i], enumerable: false });
         this.lines.push(line);
       });
       this.lines.sort((a, b) => a.start - b.start);
@@ -316,7 +326,8 @@
       const c = this.coverage();
       c[source] = c[source] || { speech: 0, done: 0 };
       c[source].done += seg.speech || seg.end - seg.start;
-      if (this.meta.gaps) this.meta.gaps = this.meta.gaps.filter((g) => !(g.source === source && g.start === seg.start));
+      if (this.meta.gaps)
+        this.meta.gaps = this.meta.gaps.filter((g) => !(g.source === source && g.start === seg.start));
       this.save();
     }
 
@@ -359,7 +370,10 @@
      */
     suspectWords(max = 12) {
       const known = new Set(
-        this.fullGlossary().split(/[,;\n]+/).flatMap((t) => t.trim().toLowerCase().split(/\s+/)).filter(Boolean)
+        this.fullGlossary()
+          .split(/[,;\n]+/)
+          .flatMap((t) => t.trim().toLowerCase().split(/\s+/))
+          .filter(Boolean)
       );
       const count = new Map();
       for (const l of this.lines) {
@@ -367,13 +381,16 @@
         for (let i = 1; i < words.length; i++) {
           if (/[.!?…:]$/.test(words[i - 1])) continue; // début de phrase
           const w = words[i].replace(/^[«"'(]+|[»"'),.;:!?…]+$/g, '');
-          if (!/^\p{Lu}[\p{L}\p{N}'-]{2,}$/u.test(w) || /^\p{Lu}+$/u.test(w) && w.length <= 3) continue;
+          if (!/^\p{Lu}[\p{L}\p{N}'-]{2,}$/u.test(w) || (/^\p{Lu}+$/u.test(w) && w.length <= 3)) continue;
           if (known.has(w.toLowerCase()) || COMMON.has(w.toLowerCase())) continue;
           count.set(w, (count.get(w) || 0) + 1);
         }
       }
       // Les déformations sont rares (1 à 3 fois) ; un nom bien reconnu revient souvent
-      return [...count].sort((a, b) => a[1] - b[1]).slice(0, max).map(([w]) => w);
+      return [...count]
+        .sort((a, b) => a[1] - b[1])
+        .slice(0, max)
+        .map(([w]) => w);
     }
 
     /** Glossaire personnel complété par les vocabulaires métier cochés. */
@@ -513,14 +530,23 @@
         const lines = this.lines.filter((l) => l.voice === voice);
         const seconds = lines.reduce((n, l) => n + Math.max(0, l.end - l.start), 0);
         const sample = lines.find((l) => l.text.split(' ').length >= 5) || lines[0];
-        return { voice, label: 'Intervenant ' + (i + 1), seconds, sample: sample ? sample.text : '', at: lines[0].start };
+        return {
+          voice,
+          label: 'Intervenant ' + (i + 1),
+          seconds,
+          sample: sample ? sample.text : '',
+          at: lines[0].start,
+        };
       });
     }
 
     /** Nomme une voix (« Intervenant 3 » -> « Julien »). Nom vide = retour au numéro. */
     nameVoice(voice, name) {
       this.meta.names = this.meta.names || {};
-      const clean = String(name || '').replace(/[*_\[\]`]/g, '').trim().slice(0, 60);
+      const clean = String(name || '')
+        .replace(/[*_[\]`]/g, '')
+        .trim()
+        .slice(0, 60);
       if (clean) this.meta.names[voice] = clean;
       else delete this.meta.names[voice];
       this.save();
@@ -608,9 +634,17 @@
             : `- **Couverture** : ${Math.round(cov.ratio * 100)} % de la parole détectée transcrite ; ${fmtDur(cov.missing)} de parole n'ont pas pu l'être (passages signalés ci-dessous)`
         );
       }
-      if (m.recovered >= 1) out.push(`- **Rattrapage** : ${fmtDur(m.recovered)} de parole manquée en direct, retrouvée et transcrite en fin de réunion`);
-      if (m.glossary) out.push(`- **Vocabulaire de référence** (sigles et noms propres attendus) : ${m.glossary.replace(/\s+/g, ' ')}`);
-      const vocab = (m.vocab || []).map((id) => Lowsper.Vocabulary && Lowsper.Vocabulary.PRESETS[id] && Lowsper.Vocabulary.PRESETS[id].label).filter(Boolean);
+      if (m.recovered >= 1)
+        out.push(
+          `- **Rattrapage** : ${fmtDur(m.recovered)} de parole manquée en direct, retrouvée et transcrite en fin de réunion`
+        );
+      if (m.glossary)
+        out.push(
+          `- **Vocabulaire de référence** (sigles et noms propres attendus) : ${m.glossary.replace(/\s+/g, ' ')}`
+        );
+      const vocab = (m.vocab || [])
+        .map((id) => Lowsper.Vocabulary && Lowsper.Vocabulary.PRESETS[id] && Lowsper.Vocabulary.PRESETS[id].label)
+        .filter(Boolean);
       if (vocab.length) out.push(`- **Domaine** : ${vocab.join(', ').toLowerCase()}`);
       out.push('');
       out.push(
@@ -622,7 +656,7 @@
                 ? '(certaines nommées à la main après la réunion, les autres numérotées « Intervenant n ») : '
                 : '(« Intervenant 1, 2... », noms réels inconnus, ils peuvent souvent se déduire des échanges) : ') +
               'deux personnes à la voix proche peuvent partager un numéro, et une même personne peut en recevoir deux. ' +
-              "Les phrases trop courtes pour identifier la voix sont notées « Participant ». "
+              'Les phrases trop courtes pour identifier la voix sont notées « Participant ». '
             : "« Participants » regroupe toutes les autres voix entendues via l'audio de la réunion, sans distinction de personne. ") +
           'Les horodatages [hh:mm:ss] sont relatifs au début de l’enregistrement.'
       );
@@ -640,7 +674,9 @@
         if (e.pause) {
           out.push(`_[${fmt(e.pause.from)} à ${fmt(e.pause.to)}] Enregistrement en pause._`);
         } else if (e.gap) {
-          out.push(`_[${fmt(e.gap.start)} à ${fmt(e.gap.end)}] Passage non transcrit (${SPEAKERS[e.gap.source] || e.gap.source}) : le moteur a échoué sur ce passage._`);
+          out.push(
+            `_[${fmt(e.gap.start)} à ${fmt(e.gap.end)}] Passage non transcrit (${SPEAKERS[e.gap.source] || e.gap.source}) : le moteur a échoué sur ce passage._`
+          );
         } else {
           out.push(`**[${fmt(e.p.start)}] ${this.speakerName(e.p)} :** ${e.p.text}`);
         }

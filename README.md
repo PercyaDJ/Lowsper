@@ -1,5 +1,7 @@
 # Lowsper
 
+[![CI](https://github.com/PercyaDJ/Lowsper/actions/workflows/ci.yml/badge.svg)](https://github.com/PercyaDJ/Lowsper/actions/workflows/ci.yml)
+
 **Transcription de réunions 100 % locale, dans le navigateur.** Lowsper capte votre micro et le
 son de la réunion (Teams, Zoom, Meet...), transcrit en direct avec Whisper, et vous donne à la fin
 un transcript Markdown horodaté, prêt à être confié à une IA pour rédiger le compte rendu.
@@ -7,7 +9,7 @@ un transcript Markdown horodaté, prêt à être confié à une IA pour rédiger
 - Aucune installation de logiciel, aucun exécutable, aucun script : un fichier HTML à ouvrir.
 - Le modèle de reconnaissance vocale est téléchargé **une seule fois**, au premier lancement, et
   rangé dans le dossier Lowsper. Ensuite, tout fonctionne hors ligne.
-- Ni le son ni le texte ne quittent l'ordinateur (bloqué techniquement, voir `decision.md`).
+- Ni le son ni le texte ne quittent l'ordinateur (bloqué techniquement, voir `SECURITY.md`).
 - Un **glossaire** de vos sigles (RSSI, COMEX, KPI...) améliore nettement leur reconnaissance.
 - Les **intervenants** sont distingués automatiquement (Intervenant 1, 2, 3...) et peuvent être
   renommés à la fin de la réunion.
@@ -178,7 +180,9 @@ pertes) et effacé en quittant la page. Seul le texte du transcript en cours est
 récupération en cas de plantage), et effacé à la réunion suivante.
 
 **Quel navigateur ?**
-Microsoft Edge ou Google Chrome récents. Firefox fonctionne en micro seul.
+Microsoft Edge ou Google Chrome récents. Firefox ne sait pas installer le modèle (il n'a pas
+l'accès aux dossiers) et ne capte pas le son d'un partage d'écran : il ne fonctionne qu'en micro
+seul, dans un dossier Lowsper où le modèle a déjà été installé depuis Edge ou Chrome.
 
 ## Pour les développeurs
 
@@ -186,13 +190,12 @@ Microsoft Edge ou Google Chrome récents. Firefox fonctionne en micro seul.
 
 ```bash
 cd tools
-npm install --ignore-scripts
+npm ci --ignore-scripts
 node node_modules/esbuild/install.js
-node fetch-model.mjs whisper-small   # télécharge le modèle et note révision + empreintes
-node fetch-model.mjs whisper-base
-node build.mjs                       # moteur + catalogue des modèles téléchargeables
-node test/unit.mjs                   # tests unitaires (découpage, sigles, anti-écho, Markdown)
-node test/e2e.mjs 60                 # installation + réunion simulée (corpus hebdo) dans Chromium
+npm run fetch-all                    # modèles à la révision figée de models.lock.json, empreintes vérifiées
+npm run build                        # moteur + catalogue, identique à l'octet près au dépôt
+npm test                             # lint, formatage, tests unitaires, test de non-fuite réseau (comme la CI)
+npm run test:e2e                     # installation + réunion simulée (corpus hebdo) dans Chromium, 4 min
 node test/eval-hebdo.mjs whisper-small # réunion réaliste : phrases perdues, sigles, intervenants
 node test/eval-hebdo.mjs whisper-small --corpus=entretien --vocab=cyber --title
                                      # entretien en tête-à-tête, son de visio, vocabulaire cyber
@@ -200,8 +203,12 @@ node build.mjs --embed whisper-small whisper-base && node test/eval.mjs whisper-
                                      # comparaison des modèles sur le corpus avec sigles
 ```
 
+Si Playwright ne trouve pas son navigateur, indiquez-le : `CHROMIUM_PATH=/chemin/vers/chrome`.
 `node build.mjs --embed whisper-small` produit aussi une version avec le modèle pré-installé,
 pour une distribution sans aucun accès à Internet.
+
+Règles du projet (contraintes, conventions, commandes) : `AGENTS.md`. Contribuer :
+`CONTRIBUTING.md`. Sécurité et modèle de menace : `SECURITY.md`. Évolutions : `CHANGELOG.md`.
 
 Structure :
 
@@ -219,8 +226,10 @@ app/js/transcript.js  assemblage, sigles, anti-écho, filtres, Markdown, sauvega
 app/js/app.js         contrôleur de l'interface
 app/engine/           runtime transformers.js + ONNX Runtime (généré)
 app/models/           modèle(s) installé(s) au premier lancement (non versionné)
-tools/                construction et tests (inutile pour l'utilisateur final)
+tools/                construction, verrou des modèles et tests (inutile pour l'utilisateur final)
 decision.md           décisions techniques et arbitrages
+AGENTS.md             règles du projet pour les contributeurs et les agents de code
+SECURITY.md           modèle de menace, signalement des failles
 ```
 
 ## Licences
@@ -228,3 +237,6 @@ decision.md           décisions techniques et arbitrages
 - Code Lowsper : MIT.
 - Modèle Whisper (OpenAI) : MIT. Conversions ONNX : `onnx-community/whisper-small`, `onnx-community/whisper-base`.
 - transformers.js (Hugging Face) : Apache 2.0. ONNX Runtime Web (Microsoft) : MIT.
+- Silero VAD (détection de parole) : MIT. WeSpeaker ResNet34 (empreintes vocales,
+  `onnx-community/wespeaker-voxceleb-resnet34-LM`) : CC BY 4.0.
+- Textes complets : `app/engine/THIRD_PARTY_LICENSES.txt`.

@@ -33,11 +33,26 @@ opts.echo = process.argv.includes('--echo');
 const pcm = {};
 // --teams : son des participants dégradé façon visio (compression Opus 12 kb/s, bande 200-3800 Hz, bruit rose)
 const variant = process.argv.includes('--teams') || name === 'entretien' ? '-teams' : '';
-for (const ch of ['me', 'others']) pcm[ch] = (await readFile(join(here, 'corpus', `${name}-${ch}${ch === 'others' ? variant : opts.echo ? '-echo' : ''}.wav`))).subarray(44).toString('base64');
+for (const ch of ['me', 'others'])
+  pcm[ch] = (
+    await readFile(join(here, 'corpus', `${name}-${ch}${ch === 'others' ? variant : opts.echo ? '-echo' : ''}.wav`))
+  )
+    .subarray(44)
+    .toString('base64');
 await writeFile(join(out, 'hebdo-pcm.js'), `window.HEBDO=${JSON.stringify(pcm)};`);
 
-const scripts = ['manifest.js', 'models/index.txt', 'js/engine.js', 'js/analyzer.js', 'js/capture.js', 'js/transcript.js', 'js/speakers.js', 'js/vocabulary.js']
-  .map((s) => `<script src="../../../app/${s}"></script>`).join('\n');
+const scripts = [
+  'manifest.js',
+  'models/index.txt',
+  'js/engine.js',
+  'js/analyzer.js',
+  'js/capture.js',
+  'js/transcript.js',
+  'js/speakers.js',
+  'js/vocabulary.js',
+]
+  .map((s) => `<script src="../../../app/${s}"></script>`)
+  .join('\n');
 await writeFile(
   join(out, 'eval-hebdo.html'),
   `<!doctype html><meta charset="utf-8"><title>eval hebdo</title>
@@ -101,23 +116,37 @@ window.runHebdo = async (modelId, glossary, opts) => {
 </script>`
 );
 
-const norm = (t) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’]/g, "'")
-  .replace(/[^a-z0-9' ]+/g, ' ').replace(/'/g, "' ").split(/\s+/).filter(Boolean);
+const norm = (t) =>
+  t
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[’]/g, "'")
+    .replace(/[^a-z0-9' ]+/g, ' ')
+    .replace(/'/g, "' ")
+    .split(/\s+/)
+    .filter(Boolean);
 
 function coverage(refWords, hypWords) {
   const bag = new Map();
   for (const w of hypWords) bag.set(w, (bag.get(w) || 0) + 1);
   let hit = 0;
-  for (const w of refWords) if (bag.get(w)) { hit++; bag.set(w, bag.get(w) - 1); }
+  for (const w of refWords)
+    if (bag.get(w)) {
+      hit++;
+      bag.set(w, bag.get(w) - 1);
+    }
   return hit / refWords.length;
 }
 
 function wer(ref, hyp) {
-  const r = norm(ref), h = norm(hyp);
+  const r = norm(ref),
+    h = norm(hyp);
   let prev = Array.from({ length: h.length + 1 }, (_, j) => j);
   for (let i = 1; i <= r.length; i++) {
     const cur = [i];
-    for (let j = 1; j <= h.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (r[i - 1] === h[j - 1] ? 0 : 1));
+    for (let j = 1; j <= h.length; j++)
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (r[i - 1] === h[j - 1] ? 0 : 1));
     prev = cur;
   }
   return prev[h.length] / r.length;
@@ -125,14 +154,27 @@ function wer(ref, hyp) {
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
-  args: device === 'webgpu' ? ['--enable-unsafe-webgpu', '--enable-features=Vulkan', '--use-angle=swiftshader', '--use-webgpu-adapter=swiftshader'] : [],
+  args:
+    device === 'webgpu'
+      ? [
+          '--enable-unsafe-webgpu',
+          '--enable-features=Vulkan',
+          '--use-angle=swiftshader',
+          '--use-webgpu-adapter=swiftshader',
+        ]
+      : [],
 });
 const page = await browser.newPage();
 page.on('pageerror', (e) => console.log('[pageerror]', e.message));
-page.on('console', (m) => { if (m.type() === 'error') console.log('[console]', m.text()); });
+page.on('console', (m) => {
+  if (m.type() === 'error') console.log('[console]', m.text());
+});
 await page.goto(pathToFileURL(join(out, 'eval-hebdo.html')).href);
 const t0 = Date.now();
-const res = await page.evaluate(([m, g, o]) => window.runHebdo(m, g, o), [modelId, useGlossary ? corpus.glossary : '', opts]);
+const res = await page.evaluate(
+  ([m, g, o]) => window.runHebdo(m, g, o),
+  [modelId, useGlossary ? corpus.glossary : '', opts]
+);
 await browser.close();
 
 // Couverture par réplique
@@ -144,10 +186,25 @@ for (const t of truth) {
   sumCov += cov;
   if (cov < 0.7) missed.push(`${t.who} [${t.start}s] ${(cov * 100).toFixed(0)} % : ${t.ref.slice(0, 70)}`);
 }
-const report = { corpus: name, echo_micro: opts.echo, modele: modelId, glossaire: useGlossary, vocabulaire: opts.vocab.join(',') || 'aucun', titre: !!opts.title, contexte: opts.context, vad: opts.energy ? 'volume' : 'silero' };
+const report = {
+  corpus: name,
+  echo_micro: opts.echo,
+  modele: modelId,
+  glossaire: useGlossary,
+  vocabulaire: opts.vocab.join(',') || 'aucun',
+  titre: !!opts.title,
+  contexte: opts.context,
+  vad: opts.energy ? 'volume' : 'silero',
+};
 for (const ch of ['me', 'others']) {
-  const ref = truth.filter((t) => t.channel === ch).map((t) => t.ref).join(' ');
-  const hyp = res.lines.filter((l) => l.source === ch).map((l) => l.text).join(' ');
+  const ref = truth
+    .filter((t) => t.channel === ch)
+    .map((t) => t.ref)
+    .join(' ');
+  const hyp = res.lines
+    .filter((l) => l.source === ch)
+    .map((l) => l.text)
+    .join(' ');
   report[`wer_${ch}`] = (wer(ref, hyp) * 100).toFixed(1) + ' %';
 }
 report.couverture = ((sumCov / truth.length) * 100).toFixed(1) + ' %';
@@ -155,20 +212,22 @@ report.repliques_mal_captees = missed.length + ' / ' + truth.length;
 const terms = corpus.terms || corpus.glossary.split(',').map((s) => s.trim());
 const allRef = truth.map((t) => t.ref).join(' ');
 const allHyp = res.lines.map((l) => l.text).join(' ');
-let tTotal = 0, tFound = 0;
+let tTotal = 0,
+  tFound = 0;
 const tMissed = [];
 for (const term of terms) {
   const re = new RegExp('(^|[^\\p{L}])' + term.replace(/ /g, '\\s?') + '(?![\\p{L}])', 'gu');
   const n = (allRef.match(re) || []).length;
   const m = Math.min(n, (allHyp.match(re) || []).length);
-  tTotal += n; tFound += m;
+  tTotal += n;
+  tFound += m;
   if (m < n) tMissed.push(term);
 }
 report.sigles_noms = `${tFound}/${tTotal}`;
 report.blocs = res.blocks.length;
 report.blocs_tronques = res.blocks.filter((b) => b.capped).length;
 report.calcul = (res.ms / 1000).toFixed(1) + ' s';
-report.audio = (truth[truth.length - 1].end).toFixed(0) + ' s';
+report.audio = truth[truth.length - 1].end.toFixed(0) + ' s';
 if (res.lines.some((l) => l.speaker)) {
   // Justesse des intervenants : pour chaque étiquette, l'intervenant réel majoritaire
   const byLabel = new Map();
@@ -180,18 +239,23 @@ if (res.lines.some((l) => l.speaker)) {
     m.set(t.who, (m.get(t.who) || 0) + l.text.length);
     byLabel.set(l.speaker, m);
   }
-  let ok = 0, all = 0;
+  let ok = 0,
+    all = 0;
   for (const m of byLabel.values()) {
     const vals = [...m.values()];
     ok += Math.max(...vals);
     all += vals.reduce((a, b) => a + b, 0);
   }
-  report.intervenants_detectes = byLabel.size + ' (réels : ' + new Set(truth.filter((t) => t.channel === 'others').map((t) => t.who)).size + ')';
+  report.intervenants_detectes =
+    byLabel.size + ' (réels : ' + new Set(truth.filter((t) => t.channel === 'others').map((t) => t.who)).size + ')';
   report.purete_intervenants = ((ok / all) * 100).toFixed(0) + ' %';
 }
 {
   // Écho : phrases attribuées à « Vous » alors que seul le participant parlait à ce moment-là
-  const inside = (who, a, b) => truth.some((t) => (who === 'me' ? t.channel === 'me' : t.channel === 'others') && a < t.end + 0.3 && b > t.start - 0.3);
+  const inside = (who, a, b) =>
+    truth.some(
+      (t) => (who === 'me' ? t.channel === 'me' : t.channel === 'others') && a < t.end + 0.3 && b > t.start - 0.3
+    );
   const meLines = res.lines.filter((l) => l.source === 'me');
   const echo = meLines.filter((l) => !inside('me', l.start, l.end) && inside('others', l.start, l.end));
   report.echo_attribue_a_vous = echo.length + ' phrase(s) sur ' + meLines.length;
@@ -199,7 +263,9 @@ if (res.lines.some((l) => l.speaker)) {
   if (opts.echo || process.argv.includes('--mic-sims')) {
     for (const m of res.micSims) {
       const own = inside('me', m.at, m.to);
-      console.log(`  micro ${m.at.toFixed(1)}s ${own ? 'VOUS ' : 'ÉCHO '} sim=${m.sim == null ? '-' : m.sim.toFixed(2)} ${m.text.slice(0, 60)}`);
+      console.log(
+        `  micro ${m.at.toFixed(1)}s ${own ? 'VOUS ' : 'ÉCHO '} sim=${m.sim == null ? '-' : m.sim.toFixed(2)} ${m.text.slice(0, 60)}`
+      );
     }
     for (const l of echo) console.log('  écho restant : ' + l.text.slice(0, 80));
   }
@@ -207,8 +273,16 @@ if (res.lines.some((l) => l.speaker)) {
 console.log(JSON.stringify(report, null, 1));
 console.log('Termes manqués : ' + tMissed.join(', '));
 console.log('Répliques mal captées :\n  ' + missed.join('\n  '));
-console.log('Blocs : ' + res.blocks.map((b) => `${b.ch}:${b.dur}s/${(b.ms / 1000).toFixed(1)}s${b.capped ? ' TRONQUÉ' : ''}${b.retried ? ' relu' : ''}`).join('  '));
+console.log(
+  'Blocs : ' +
+    res.blocks
+      .map(
+        (b) => `${b.ch}:${b.dur}s/${(b.ms / 1000).toFixed(1)}s${b.capped ? ' TRONQUÉ' : ''}${b.retried ? ' relu' : ''}`
+      )
+      .join('  ')
+);
 await writeFile(join(out, `${name}-embeddings${variant}.json`), JSON.stringify(res.items));
-if (res.micDebug) await writeFile(join(out, `${name}-micro${opts.echo ? '-echo' : ''}.json`), JSON.stringify(res.micDebug));
+if (res.micDebug)
+  await writeFile(join(out, `${name}-micro${opts.echo ? '-echo' : ''}.json`), JSON.stringify(res.micDebug));
 await writeFile(join(out, `${name}-${modelId}${device ? '-' + device : ''}.md`), res.markdown);
 console.log(`(durée totale du banc ${((Date.now() - t0) / 1000).toFixed(0)} s)`);

@@ -338,7 +338,8 @@
 
     push(samples) {
       const data = new Int16Array(samples.length);
-      for (let i = 0; i < samples.length; i++) data[i] = Math.max(-32768, Math.min(32767, Math.round(samples[i] * 32767)));
+      for (let i = 0; i < samples.length; i++)
+        data[i] = Math.max(-32768, Math.min(32767, Math.round(samples[i] * 32767)));
       this.parts.push({ t: this.t, data });
       this.t += samples.length / RATE;
     }

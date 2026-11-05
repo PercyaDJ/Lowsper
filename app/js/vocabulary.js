@@ -46,13 +46,16 @@
         'Microsoft 365, Teams, SharePoint, Outlook, Azure, AWS, Kubernetes, Docker, ServiceNow, ITSM, ITIL, ' +
         'GLPI, SLA, API, CI/CD, DevOps, ERP, SAP, CRM, Salesforce, Power BI, Linux, Windows Server, VMware, ' +
         'datacenter, SaaS, backlog, sprint, ticket, incident, MCO',
-      fixes: [[/\bShare[\s-]?point\b/gi, 'SharePoint'], [/\bService[\s-]?now\b/gi, 'ServiceNow']],
+      fixes: [
+        [/\bShare[\s-]?point\b/gi, 'SharePoint'],
+        [/\bService[\s-]?now\b/gi, 'ServiceNow'],
+      ],
     },
     projet: {
       label: 'Gestion de projet',
       terms:
         'COPIL, COMEX, CODIR, KPI, ROI, RACI, PMO, MOA, MOE, recette, jalon, livrable, roadmap, ' +
-        'planning, Agile, Scrum, go/no-go, RETEX, budget, arbitrage, RAO, appel d\'offres, TMA',
+        "planning, Agile, Scrum, go/no-go, RETEX, budget, arbitrage, RAO, appel d'offres, TMA",
       fixes: [],
     },
   };
@@ -81,7 +84,10 @@
   // Expression d'un mot ou groupe de mots entier, sans tenir compte de la casse ni des accents
   // proches (« mira bello », « Mira Bello »).
   function wordPattern(wrong) {
-    const esc = String(wrong).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '[\\s-]+');
+    const esc = String(wrong)
+      .trim()
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/\s+/g, '[\\s-]+');
     return new RegExp('(^|[^\\p{L}\\p{N}])(' + esc + ')(?![\\p{L}\\p{N}])', 'giu');
   }
 
@@ -116,8 +122,18 @@
    */
   function prompt({ title, glossary, context }) {
     const parts = [];
-    if (title) parts.push(String(title).trim().replace(/[.!?]*$/, '.'));
-    if (glossary) parts.push(String(glossary).trim().replace(/[.,;]*$/, '.'));
+    if (title)
+      parts.push(
+        String(title)
+          .trim()
+          .replace(/[.!?]*$/, '.')
+      );
+    if (glossary)
+      parts.push(
+        String(glossary)
+          .trim()
+          .replace(/[.,;]*$/, '.')
+      );
     if (context) parts.push(String(context).trim());
     return parts.join(' ');
   }

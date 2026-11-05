@@ -7,7 +7,8 @@
  *    externe à charger), qui exécutent Whisper sur le processeur via WebAssembly.
  *
  * Aucune requête réseau n'est faite. La politique de sécurité (CSP) de Lowsper.html
- * l'interdit de toute façon : connect-src n'autorise ni http ni https.
+ * l'interdit de toute façon : connect-src n'autorise que Hugging Face, pour l'installation
+ * du modèle (installer.js), et rien d'autre.
  */
 (function () {
   'use strict';
@@ -79,7 +80,9 @@
       const model = installed.find((m) => m.id === modelId) || installed[0];
       if (!model) throw new Error('Aucun modèle installé.');
       const device = model.device === 'webgpu' ? 'webgpu' : 'wasm';
-      const runtimes = manifest.runtimes || { cpu: { src: manifest.runtime.src, bytes: manifest.runtime.bytes, wasm: manifest.wasm } };
+      const runtimes = manifest.runtimes || {
+        cpu: { src: manifest.runtime.src, bytes: manifest.runtime.bytes, wasm: manifest.wasm },
+      };
       const needed = device === 'webgpu' ? [runtimes.cpu, runtimes.webgpu] : [runtimes.cpu];
 
       const sum = (parts) => parts.reduce((n, p) => n + p.bytes, 0);
@@ -118,7 +121,8 @@
           await loadScript(manifest.speaker.config);
           const sTexts = takeAsset(manifest.speaker.config);
           const sFiles = {};
-          for (const [name, parts] of Object.entries(manifest.speaker.files)) sFiles[name] = await loadBinary(parts, tick);
+          for (const [name, parts] of Object.entries(manifest.speaker.files))
+            sFiles[name] = await loadBinary(parts, tick);
           speaker = { texts: sTexts, files: sFiles };
         }
         analysis = { runtime: cpu.code, wasm: cpu.wasm, vad, speaker };
@@ -143,7 +147,11 @@
       const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
       if (!adapter) return null;
       const info = adapter.info || {};
-      return { vendor: info.vendor || '', description: info.description || info.architecture || '', f16: adapter.features.has('shader-f16') };
+      return {
+        vendor: info.vendor || '',
+        description: info.description || info.architecture || '',
+        f16: adapter.features.has('shader-f16'),
+      };
     } catch {
       return null;
     }
@@ -279,7 +287,12 @@
     // Détecte une boucle de répétition (« je ne sais pas si... » x 10) : peu de groupes de
     // 4 mots distincts, ou une même phrase répétée au moins 3 fois.
     function isLoop(chunks) {
-      const words = chunks.map((c) => c.text).join(' ').toLowerCase().split(/\s+/).filter(Boolean);
+      const words = chunks
+        .map((c) => c.text)
+        .join(' ')
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean);
       if (words.length >= 12) {
         // Paraphrases en boucle (« je ne sais pas... je ne sais plus... ») : peu de paires de mots distinctes
         const pairs = new Set();
@@ -293,7 +306,10 @@
       }
       const seen = new Map();
       for (const c of chunks) {
-        const k = c.text.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, '').trim();
+        const k = c.text
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N} ]/gu, '')
+          .trim();
         if (k.length < 8) continue;
         seen.set(k, (seen.get(k) || 0) + 1);
         if (seen.get(k) >= 3) return true;
@@ -344,7 +360,9 @@
       if (q === 'loop' && depth === 0 && seconds >= 6 && !msg.noSplit) {
         // Découpe aux frontières des prises de parole qui composent le bloc (un passage
         // incompréhensible ne contamine plus les autres), sinon dans le creux le plus calme.
-        let cuts = (msg.pieces || []).map((t) => Math.round(t * 16000)).filter((c) => c > 16000 && c < audio.length - 16000);
+        let cuts = (msg.pieces || [])
+          .map((t) => Math.round(t * 16000))
+          .filter((c) => c > 16000 && c < audio.length - 16000);
         if (!cuts.length) cuts = [quietestPoint(audio, 0.35, 0.65)];
         const bounds = [0, ...cuts, audio.length];
         chunks = [];
@@ -353,7 +371,8 @@
           const part = await transcribeAudio(audio.subarray(bounds[i], bounds[i + 1]), msg, 1);
           const offset = bounds[i] / 16000;
           if (part.quality === 'loop') anyLoop = true;
-          for (const c of part.chunks) chunks.push({ from: c.from + offset, to: c.to == null ? null : c.to + offset, text: c.text });
+          for (const c of part.chunks)
+            chunks.push({ from: c.from + offset, to: c.to == null ? null : c.to + offset, text: c.text });
         }
         q = anyLoop ? 'loop' : 'ok';
         retried = true;
@@ -370,12 +389,20 @@
         if (hasSpeech(rest, audio)) {
           const more = await transcribeAudio(rest, Object.assign({}, msg, { pieces: [] }), depth + 1);
           const offset = start / 16000;
-          for (const c of more.chunks) chunks.push({ from: c.from + offset, to: c.to == null ? null : c.to + offset, text: c.text });
+          for (const c of more.chunks)
+            chunks.push({ from: c.from + offset, to: c.to == null ? null : c.to + offset, text: c.text });
           if (more.quality === 'loop') q = 'loop';
           retried = true;
         }
       }
-      return { text: chunks.map((c) => c.text).join(' '), chunks, language, retried, capped: !!chunks.capped, quality: q };
+      return {
+        text: chunks.map((c) => c.text).join(' '),
+        chunks,
+        language,
+        retried,
+        capped: !!chunks.capped,
+        quality: q,
+      };
     }
 
     // Y a-t-il au moins ~0,8 s de signal comparable à la parole du bloc dans ce reste ?
@@ -411,7 +438,10 @@
     function dropRepeats(chunks) {
       const seen = new Set();
       return chunks.filter((c) => {
-        const k = c.text.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, '').trim();
+        const k = c.text
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N} ]/gu, '')
+          .trim();
         if (seen.has(k)) return false;
         seen.add(k);
         return true;
@@ -508,7 +538,16 @@
             self.postMessage({ id: msg.id, ok: true });
           } else if (msg.type === 'transcribe') {
             const r = await transcribe(msg);
-            self.postMessage({ id: msg.id, ok: true, text: r.text, chunks: r.chunks, language: r.language, capped: r.capped, retried: r.retried, ms: r.ms });
+            self.postMessage({
+              id: msg.id,
+              ok: true,
+              text: r.text,
+              chunks: r.chunks,
+              language: r.language,
+              capped: r.capped,
+              retried: r.retried,
+              ms: r.ms,
+            });
           }
         } catch (err) {
           self.postMessage({ id: msg.id, ok: false, error: String((err && err.stack) || err) });

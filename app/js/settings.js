@@ -119,8 +119,10 @@
     const f = await app.getFileHandle(FILE, { create: true });
     const w = await f.createWritable();
     await w.write(
-      "/* Réglages de Lowsper (sigles, vocabulaire, préférences). Fichier écrit par Lowsper : ne pas modifier. */\n" +
-        'self.LOWSPER_SETTINGS=' + JSON.stringify(payload) + ';\n'
+      '/* Réglages de Lowsper (sigles, vocabulaire, préférences). Fichier écrit par Lowsper : ne pas modifier. */\n' +
+        'self.LOWSPER_SETTINGS=' +
+        JSON.stringify(payload) +
+        ';\n'
     );
     await w.close();
     lastWritten = JSON.stringify(data);
