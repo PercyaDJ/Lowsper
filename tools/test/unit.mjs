@@ -1195,6 +1195,46 @@ await test('notes : dossier impossible dans ce navigateur, message clair', async
   if (saved) sandbox.showDirectoryPicker = saved;
 });
 
+await test('thème : suit le système, choix clair ou sombre gardé, retour à automatique', async () => {
+  const code = await readFile(join(appJs, 'theme.js'), 'utf8');
+  const make = (dark) => {
+    const st = new Map();
+    const box = {
+      localStorage: {
+        getItem: (k) => (st.has(k) ? st.get(k) : null),
+        setItem: (k, v) => st.set(k, String(v)),
+        removeItem: (k) => st.delete(k),
+      },
+      matchMedia: () => ({ matches: dark }),
+      document: { documentElement: { dataset: {} } },
+    };
+    box.window = box;
+    vm.createContext(box);
+    vm.runInContext(code, box);
+    return { T: box.Lowsper.Theme, el: box.document.documentElement, st };
+  };
+  // Système sombre, aucun choix : sombre, sans attribut (la feuille de style suit le système)
+  let { T, el, st } = make(true);
+  assert.equal(T.stored(), 'auto');
+  assert.equal(T.effective(), 'dark');
+  assert.equal(el.dataset.theme, undefined);
+  // Bascule : clair imposé et mémorisé
+  assert.equal(T.toggle(), 'light');
+  assert.equal(el.dataset.theme, 'light');
+  assert.equal(st.get(T.KEY), 'light');
+  // Nouvelle bascule : retour au thème du système, donc « automatique »
+  assert.equal(T.toggle(), 'dark');
+  assert.equal(el.dataset.theme, undefined);
+  assert.equal(st.has(T.KEY), false);
+  // Système clair, choix sombre retrouvé au lancement
+  ({ T, el, st } = make(false));
+  T.set('dark');
+  assert.equal(el.dataset.theme, 'dark');
+  T.set('n importe quoi');
+  assert.equal(T.stored(), 'auto');
+  assert.equal(T.effective(), 'light');
+});
+
 if (failed) {
   console.log(`\n${failed} test(s) en échec`);
   process.exit(1);

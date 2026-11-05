@@ -26,7 +26,10 @@ Une modification qui affaiblit l'une d'elles est refusée, quelle qu'en soit la 
 3. **L'audio n'est jamais écrit sur le disque.** En mémoire seulement, effacé en quittant la page.
    Vaut aussi pour les fichiers importés : lus, traités, libérés.
 4. **Navigateurs cibles** : Edge et Chrome récents. Firefox en mode dégradé, documenté.
-5. **Français** pour l'interface et la documentation. Ton clair et sobre, sans émoji.
+5. **Langues** : documentation en français (résumé en anglais dans `README.en.md`). Interface
+   en français et en anglais, selon la langue du navigateur (décision du mainteneur,
+   `docs/refonte.md` §1) ; jusqu'à la livraison du lot R2, elle reste en français. Ton clair et
+   sobre, sans émoji.
 6. **Licence MIT** conservée. Toute dépendance nouvelle : licence vérifiée, ajoutée à
    `app/engine/THIRD_PARTY_LICENSES.txt` (via `tools/build.mjs`) et au README.
 7. **Aucune dépendance chargée depuis un CDN.** Tout ce qui s'exécute est dans le dossier.
@@ -117,6 +120,7 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | Chemin | Rôle |
 |---|---|
 | `Lowsper.html` | Page à ouvrir : interface et politique de sécurité (CSP) |
+| `app/js/theme.js` | Thème clair ou sombre (système par défaut, choix mémorisé), chargé dans `<head>` |
 | `app/js/browser.js` | Reconnaissance du navigateur (Brave, Edge, Chrome, Firefox) et messages quand l'écriture dans un dossier est impossible |
 | `app/js/engine.js` | Chargement des fichiers embarqués, moteur Whisper dans un Worker (glossaire, langue, reprise, boucles) |
 | `app/js/analyzer.js` | Détection de parole (Silero) et empreintes vocales (WeSpeaker), dans des Workers |
@@ -135,7 +139,7 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/models/` | Modèles installés chez l'utilisateur (non versionnés) |
 | `tools/build.mjs`, `fetch-model.mjs`, `models.mjs`, `models.lock.json` | Construction et verrou des modèles |
 | `tools/test/` | Tests unitaires, non-fuite, e2e, bancs de mesure ; `corpus/` : corpus synthétiques et leurs générateurs |
-| `docs/` | Architecture, guide de déploiement (DSI, RSSI), spécifications de la refonte (`refonte.md`), captures d'écran (`docs/images`, régénérées par `tools/test/screenshots.mjs`) |
+| `docs/` | Architecture, guide de déploiement (DSI, RSSI), spécifications de la refonte (`refonte.md`) et plan des lots (`lots.md`), captures d'écran (`docs/images`, régénérées par `tools/test/screenshots.mjs`) |
 | `tools/release.mjs` | Paquet de distribution, joint aux releases par `.github/workflows/release.yml` |
 | `README.en.md` | Résumé en anglais du README |
 | `CODE_OF_CONDUCT.md` | Code de conduite (Contributor Covenant 2.1, traduction officielle) |

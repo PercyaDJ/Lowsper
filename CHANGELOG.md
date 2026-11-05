@@ -13,7 +13,19 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [3.5.0] - 2026-11-05
+
+### Modifié
+- Nouveau style, début de la refonte (lot R1) :
+  - couleurs neutres teintées de vert, thème sombre gris sapin ;
+  - police du système, boutons arrondis, interrupteurs, réglages en listes groupées ;
+  - logo vert sauge (decision.md §24).
+
+### Ajouté
+- Thème clair ou sombre : il suit le système, se bascule d'un clic dans l'en-tête et se règle dans « Affichage ».
+
 ### Documentation
+- Plan des lots de la refonte et texte d'ouverture de chaque session (`docs/lots.md`).
 - Spécifications de la refonte de l'interface (`docs/refonte.md`) : style, parcours, langues,
   réglages, consigne de compte rendu réécrite, points à mesurer avant développement.
 
@@ -132,7 +144,8 @@ antérieures n'ont pas été taguées (la numérotation reprend la « version 3 
   journal technique.
 - Réglages copiés dans le dossier (`app/reglages.txt`), restaurés après un nettoyage du navigateur.
 
-[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.4.1...HEAD
+[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.5.0...HEAD
+[3.5.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.4.1...v3.5.0
 [3.4.1]: https://github.com/PercyaDJ/Lowsper/compare/v3.4.0...v3.4.1
 [3.4.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.3.0...v3.4.0
 [3.3.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.2.0...v3.3.0

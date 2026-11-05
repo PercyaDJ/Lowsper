@@ -321,6 +321,10 @@ sur le disque : il est seulement gardé en mémoire pendant la réunion (filet d
 pertes) et effacé en quittant la page. Seul le texte du transcript en cours est sauvegardé dans le navigateur (pour la
 récupération en cas de plantage), et effacé à la réunion suivante.
 
+**Comment passer en thème clair ou sombre ?**
+Lowsper suit le thème de votre système. Le bouton lune (ou soleil) en haut à droite bascule
+d'un clic ; « Paramètres », « Affichage » permet de revenir au choix automatique.
+
 **Quel navigateur ?**
 Microsoft Edge ou Google Chrome récents. Firefox ne sait pas installer le modèle (il n'a pas
 l'accès aux dossiers) et ne capte pas le son d'un partage d'écran : il ne fonctionne qu'en micro
@@ -361,7 +365,8 @@ Lowsper reconnaît Brave et affiche ces explications au bon moment.
 et `decision.md`) :
 1. **Refonte de l'interface** : style unique et épuré, pensé pour les débutants, interface en
    anglais et en français, installation guidée selon la puissance du PC, mini-fenêtre réduite au
-   strict nécessaire. Spécifications : [docs/refonte.md](docs/refonte.md).
+   strict nécessaire. Spécifications : [docs/refonte.md](docs/refonte.md), plan des lots : [docs/lots.md](docs/lots.md).
+   Premier lot livré (3.5.0) : nouvelles couleurs, thème clair ou sombre.
 2. **Langues parlées multiples et vocabulaires métier élargis**, après mesure de la qualité.
 3. **Mémoire des voix plus fiable** d'une visio à l'autre, après mesure.
 4. **Résumé local** : la piste de l'IA intégrée du navigateur reste à l'étude (`decision.md`

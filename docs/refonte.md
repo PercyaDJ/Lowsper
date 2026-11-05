@@ -26,21 +26,20 @@ Chaque point indique :
 4. **Les contraintes du projet ne bougent pas** : `file://`, aucun CDN, aucune donnée qui quitte
    le poste, accessibilité au clavier, aucune régression de performance en direct.
 
-## 1. Langue de l'interface : anglais par défaut, français disponible
+## 1. Langue de l'interface et thème : ceux du système
 
-- **Besoin** : un projet ouvert à tous. L'interface doit être compréhensible par un public
-  international, y compris par un francophone peu à l'aise en anglais.
-- **Attendu** :
-  - toutes les chaînes de l'interface sortent du code et passent dans un catalogue par langue
-    (`en`, `fr`) ;
-  - anglais par défaut. Le choix se fait sur l'écran de bienvenue et dans les réglages, puis
-    il est mémorisé ;
-  - un anglais simple : phrases courtes, aucun terme technique.
-- **Point de règle à trancher** : `AGENTS.md` impose aujourd'hui le français pour l'interface
-  (contrainte n° 5). Le lot devra modifier cette règle, par décision écrite du mainteneur :
-  interface bilingue, anglais par défaut, documentation en français avec résumé anglais.
-- **Proposition à valider** : si le navigateur est réglé en français, ouvrir en français, sinon
-  en anglais. Le mainteneur a demandé l'anglais par défaut : à confirmer.
+**Décidé par le mainteneur (5 novembre 2026).**
+- **Langue** :
+  - l'interface s'ouvre en français si le navigateur est en français, en anglais sinon ;
+  - elle se change sur l'écran de bienvenue et dans les réglages, et ce choix est mémorisé ;
+  - toutes les chaînes passent dans un catalogue par langue (`en`, `fr`), écrites en anglais
+    simple : phrases courtes, aucun terme technique.
+- **Thème** : clair ou sombre comme le système, avec une bascule (bouton de l'en-tête et réglage
+  « Affichage »). Livré au lot R1.
+- **Couleurs** : des neutres légèrement teintés de vert, clairs ou très sombres (gris sapin), sans
+  couleur vive. Les valeurs sont dans `app/css/lowsper.css` et leurs contrastes dans
+  `decision.md` §24. Livré au lot R1.
+- **Règle du projet** : la contrainte n° 5 d'`AGENTS.md` est mise à jour en conséquence.
 
 ## 2. Premier lancement : détection de l'ordinateur et du dossier
 
@@ -258,15 +257,7 @@ Chaque ligne affiche cette explication en une phrase, avec un exemple.
 - **À vérifier** : aucune mesure n'existe encore sur ce point. Première étape : construire le
   corpus de test et mesurer l'existant (`speakers.js`).
 
-## 10. Ordre de mise en œuvre proposé
+## 10. Ordre de mise en œuvre
 
-1. Catalogue de langues et passage de l'interface en anglais et en français (point 1).
-2. Nouveau style et composants communs : boutons, listes, menus, interrupteurs, fenêtres.
-3. Écrans, dans l'ordre du parcours : bienvenue (2), accueil (3), mini-fenêtre (4), réunion (5),
-   fin (6), réglages (8).
-4. Consignes réécrites (7).
-5. Langues multiples (8.1) et vocabulaires (8.4), après mesure.
-6. Empreintes vocales (9), après mesure.
-
-Chaque étape fera l'objet d'un lot, avec captures avant et après, tests de bout en bout mis à
-jour et mesure de la charge du moteur avant et après.
+Le découpage en lots, leur état et le texte à donner pour ouvrir chaque session sont dans
+[lots.md](lots.md).
