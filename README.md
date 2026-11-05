@@ -1,32 +1,60 @@
 # Lowsper
 
 [![CI](https://github.com/PercyaDJ/Lowsper/actions/workflows/ci.yml/badge.svg)](https://github.com/PercyaDJ/Lowsper/actions/workflows/ci.yml)
+[![Licence MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
+[![Dernière version](https://img.shields.io/github/v/release/PercyaDJ/Lowsper?label=version)](https://github.com/PercyaDJ/Lowsper/releases/latest)
 
-**Transcription de réunions 100 % locale, dans le navigateur.** Lowsper capte votre micro et le
-son de la réunion (Teams, Zoom, Meet...), transcrit en direct avec Whisper, et vous donne à la fin
-un transcript Markdown horodaté, prêt à être confié à une IA pour rédiger le compte rendu.
+**Transcription de réunions 100 % locale, dans le navigateur, sans rien installer.**
+Lowsper capte votre micro et le son de la réunion (Teams, Zoom, Meet...), transcrit en direct avec
+Whisper, distingue les intervenants, et vous donne à la fin un transcript Markdown horodaté, prêt à
+être confié à une IA pour rédiger le compte rendu. Ni le son ni le texte ne quittent l'ordinateur.
 
-- Aucune installation de logiciel, aucun exécutable, aucun script : un fichier HTML à ouvrir.
-- Le modèle de reconnaissance vocale est téléchargé **une seule fois**, au premier lancement, et
-  rangé dans le dossier Lowsper. Ensuite, tout fonctionne hors ligne.
-- Ni le son ni le texte ne quittent l'ordinateur (bloqué techniquement, voir `SECURITY.md`).
-- Un **glossaire** de vos sigles (RSSI, COMEX, KPI...) améliore nettement leur reconnaissance.
-- Les **intervenants** sont distingués automatiquement (Intervenant 1, 2, 3...) et peuvent être
-  renommés à la fin de la réunion.
-- Une **mini-fenêtre** toujours visible permet de piloter l'enregistrement pendant la visio.
-- Le transcript est prêt une vingtaine de secondes après la fin de la réunion.
+*English summary: [README.en.md](README.en.md).*
 
-## Utilisation
+![Lowsper pendant une réunion fictive : transcript en direct, niveaux du micro et des participants](docs/images/enregistrement.png)
 
-1. **Téléchargez** le dossier (bouton vert « Code » puis « Download ZIP » sur GitHub) et
-   **dézippez-le** où vous voulez (Documents, Bureau...).
+## Pour qui, pour quoi
+
+- **Vous prenez des notes en réunion** et préférez écouter : Lowsper écrit, vous gardez le fil.
+- **Vous travaillez sur un poste d'entreprise** où l'on ne peut rien installer : Lowsper est un
+  simple fichier HTML ouvert dans Edge ou Chrome, sans exécutable, sans droits d'administrateur.
+- **Vos réunions sont confidentielles** : tout est calculé sur le poste. La page interdit
+  techniquement toute connexion, sauf le téléchargement initial du modèle (voir
+  [SECURITY.md](SECURITY.md)).
+
+Ce que Lowsper fait :
+- transcription **en direct** du micro (« Vous ») et du son partagé de la visio (« Participants ») ;
+- **intervenants distingués** automatiquement (Intervenant 1, 2, 3...), renommables à la fin ;
+- **glossaire** et **vocabulaires métier** pour bien écrire vos sigles et noms propres, corrections
+  de mots retenues d'une réunion à l'autre ;
+- **mini-fenêtre** toujours visible pendant la visio, **réunions enchaînées** sans temps mort ;
+- **rien n'est perdu en silence** : passage en échec relancé, parole manquée rattrapée en fin de
+  réunion, couverture indiquée en tête du transcript.
+
+## Pourquoi Lowsper plutôt qu'un autre outil
+
+| | Services de transcription en ligne | Applications de dictée locales | **Lowsper** |
+|---|---|---|---|
+| Où part le son | Sur les serveurs du service | Reste sur le poste | **Reste sur le poste** |
+| Installation | Compte, parfois extension ou application | Exécutable à installer | **Aucune : un fichier HTML** |
+| Son de la visio (les autres participants) | Oui, souvent via un robot invité | Généralement micro seul | **Oui, via le partage d'écran** |
+| Intervenants, horodatage, Markdown | Variable | Rarement | **Oui** |
+| Poste d'entreprise verrouillé | Souvent bloqué par la politique de sécurité | Souvent bloqué (exécutable) | **Fonctionne dans Edge ou Chrome** |
+
+Lowsper n'est pas un outil de dictée (il n'écrit pas dans vos applications) : c'est un greffier de
+réunion qui travaille hors ligne.
+
+## Installation et utilisation
+
+1. **Téléchargez** la dernière version : page [Releases](https://github.com/PercyaDJ/Lowsper/releases/latest),
+   fichier `Lowsper-X.Y.Z.zip` (environ 23 Mo ; son empreinte SHA-256 est publiée à côté).
+   **Dézippez-le** où vous voulez (clic droit, « Extraire tout »), par exemple dans Documents.
 2. **Double-cliquez sur `Lowsper.html`**. Il s'ouvre dans votre navigateur (Edge ou Chrome).
    Si un autre navigateur s'ouvre : clic droit sur le fichier, « Ouvrir avec », Microsoft Edge.
 3. **Premier lancement uniquement** : cochez le ou les modèles voulus (Whisper small est coché par
-   défaut), cliquez sur « Installer », sélectionnez le
-   **dossier Lowsper** (celui qui contient `Lowsper.html`) et acceptez que Lowsper y enregistre
-   des fichiers. Le téléchargement (environ 250 Mo) prend une à quelques minutes, la page
-   redémarre toute seule à la fin.
+   défaut), cliquez sur « Installer », sélectionnez le **dossier Lowsper** (celui qui contient
+   `Lowsper.html`) et acceptez que Lowsper y enregistre des fichiers. Le téléchargement (environ
+   250 Mo) prend une à quelques minutes, la page redémarre toute seule à la fin.
 4. Dans les **paramètres** (roue crantée en haut à droite), cochez votre **vocabulaire métier**
    (cybersécurité, informatique, gestion de projet) et remplissez une fois pour toutes le champ
    **« Sigles et noms propres »** avec le vocabulaire de vos réunions (ex. `Ombrelune, projet Atlas,
@@ -39,10 +67,18 @@ un transcript Markdown horodaté, prêt à être confié à une IA pour rédiger
      réunion) et **cochez « Partager l'audio »**. Seul le son est utilisé, rien n'est filmé ;
    - autorisez le **micro**.
    Lowsper se réduit aussitôt en **mini-fenêtre** : une barre d'une ligne toujours visible (durée,
-   niveaux, pause, fin), comme un appel Teams réduit. La flèche affiche la dernière phrase.
+   niveaux, pause, fin), comme un appel réduit. La flèche affiche la dernière phrase.
+
+   ![La barre réduite : durée, niveaux, pause, mini-fenêtre, réunion suivante, fin](docs/images/barre.png)
 7. En fin de réunion, cliquez sur **« Terminer »** (carré rouge). Le fichier `.md` est enregistré
-   dans vos Téléchargements. Le bouton **« Copier pour une IA »** copie le transcript précédé
-   d'une consigne de compte rendu.
+   dans vos Téléchargements. Nommez les intervenants si vous le souhaitez ; le bouton
+   **« Copier pour une IA »** copie le transcript précédé d'une consigne de compte rendu.
+
+![Écran de fin d'une réunion fictive : intervenants nommés, aperçu du transcript Markdown](docs/images/fin.png)
+
+*Captures faites sur une réunion entièrement fictive (voix de synthèse), sur la machine de
+développement, lente : l'indicateur « Charge du moteur » y dépasse 100 %. Elles se régénèrent avec
+`node tools/test/screenshots.mjs`.*
 
 Conseils :
 - Un **casque** donne un meilleur résultat (le micro ne réentend pas les participants). Sans
@@ -51,24 +87,29 @@ Conseils :
 - Gardez l'onglet Lowsper ouvert pendant la réunion (il peut être en arrière-plan).
 - Si le navigateur se ferme pendant une réunion, le texte déjà transcrit est proposé au lancement suivant.
 
+Déploiement sur un parc (DSI, RSSI) : voir [docs/deploiement.md](docs/deploiement.md).
+
 ## À quoi ressemble le transcript
 
 ```markdown
-# Transcript de réunion : Point hebdo projet
+# Transcript de réunion : Point hebdo du centre de service
 
-- **Date** : lundi 5 octobre 2026
-- **Horaires** : 17:00 à 18:01 (61 min)
+- **Date** : jeudi 5 novembre 2026
+- **Horaires** : 09:04 à 09:05 (2 min)
 - **Sources** : micro (« Vous »), audio partagé (« Participants »)
+- **Participants** : 6 personnes (vous compris)
 - **Langue** : français
-- **Transcription** : Whisper base, exécuté localement par Lowsper (hors ligne)
+- **Transcription** : Whisper small, exécuté localement par Lowsper (hors ligne)
+- **Couverture** : toute la parole détectée a été transcrite
+- **Vocabulaire de référence** (sigles et noms propres attendus) : RSSI, SLA, ITSM, ServiceNow, ...
 
 > Transcription automatique : elle peut contenir des erreurs de reconnaissance. [...]
 
 ## Transcript
 
-**[00:00:04] Vous :** Bonjour à tous, on commence par le point budget ?
+**[00:00:01] Claire :** Bonjour à tous, on démarre l'hebdo du centre de service. [...]
 
-**[00:00:09] Participants :** Oui, alors on a validé l'enveloppe pour le trimestre prochain.
+**[00:00:15] Julien :** Cette semaine, on a reçu 1240 tickets dans ServiceNow. [...]
 ```
 
 ## Questions fréquentes
@@ -184,6 +225,30 @@ Microsoft Edge ou Google Chrome récents. Firefox ne sait pas installer le modè
 l'accès aux dossiers) et ne capte pas le son d'un partage d'écran : il ne fonctionne qu'en micro
 seul, dans un dossier Lowsper où le modèle a déjà été installé depuis Edge ou Chrome.
 
+## Limites connues
+
+- **Son de visio dégradé** : sur le son compressé d'une visio, Whisper small se trompe nettement
+  plus que sur le micro (mesures dans `decision.md` §15.15 et §17.6). Un modèle plus gros
+  (large-v3 turbo) aide, mais demande une carte graphique.
+- **Paroles simultanées** : une seule voix est retenue pendant un chevauchement.
+- **Voix proches** : deux personnes à la voix proche peuvent partager un numéro d'intervenant.
+- **Mesures** : vitesses mesurées sur une machine de développement lente, qualité mesurée sur des
+  voix de synthèse. Le test de vitesse intégré (paramètres) donne la réalité de votre PC.
+- **Navigateurs** : Edge et Chrome. Firefox seulement en micro seul, avec un modèle déjà installé.
+
+## Feuille de route
+
+Évolutions prévues, dans l'ordre (détail dans les [jalons](https://github.com/PercyaDJ/Lowsper/milestones)
+et `decision.md`) :
+1. **Import de fichiers audio** : transcrire un enregistrement fait ailleurs (dictaphone,
+   téléphone) avec le même moteur.
+2. **Export Markdown et profils** : la note arrive directement dans votre base de notes (type
+   Obsidian), avec des profils séparés (personnel, travail) et des modèles de note.
+3. **Compte rendu** : consignes éditables pour l'IA, et étude d'un résumé 100 % local.
+
+Une idée, un problème ? Ouvrez une [issue](https://github.com/PercyaDJ/Lowsper/issues/new/choose),
+ou posez votre question dans les [discussions](https://github.com/PercyaDJ/Lowsper/discussions).
+
 ## Pour les développeurs
 
 `app/engine` et `app/manifest.js` sont générés. Pour les reconstruire (Node.js 20 ou plus) :
@@ -194,7 +259,8 @@ npm ci --ignore-scripts
 node node_modules/esbuild/install.js
 npm run fetch-all                    # modèles à la révision figée de models.lock.json, empreintes vérifiées
 npm run build                        # moteur + catalogue, identique à l'octet près au dépôt
-npm test                             # lint, formatage, tests unitaires, test de non-fuite réseau (comme la CI)
+npm test                             # lint, formatage, tests unitaires, paquet, non-fuite réseau (comme la CI)
+npm run release                      # paquet de distribution tools/dist/Lowsper-X.Y.Z.zip + empreinte
 npm run test:e2e                     # installation + réunion simulée (corpus hebdo) dans Chromium, 4 min
 node test/eval-hebdo.mjs whisper-small # réunion réaliste : phrases perdues, sigles, intervenants
 node test/eval-hebdo.mjs whisper-small --corpus=entretien --vocab=cyber --title
@@ -207,8 +273,12 @@ Si Playwright ne trouve pas son navigateur, indiquez-le : `CHROMIUM_PATH=/chemin
 `node build.mjs --embed whisper-small` produit aussi une version avec le modèle pré-installé,
 pour une distribution sans aucun accès à Internet.
 
-Règles du projet (contraintes, conventions, commandes) : `AGENTS.md`. Contribuer :
-`CONTRIBUTING.md`. Sécurité et modèle de menace : `SECURITY.md`. Évolutions : `CHANGELOG.md`.
+Pour aller plus loin :
+- [docs/architecture.md](docs/architecture.md) : le trajet du son, du micro au Markdown, module par module ;
+- [AGENTS.md](AGENTS.md) : règles du projet (contraintes, conventions, commandes) ;
+- [CONTRIBUTING.md](CONTRIBUTING.md) : proposer une modification ;
+- [SECURITY.md](SECURITY.md) : modèle de menace et signalement des failles ;
+- [CHANGELOG.md](CHANGELOG.md) : évolutions ; [decision.md](decision.md) : décisions et mesures.
 
 Structure :
 
@@ -227,6 +297,7 @@ app/js/app.js         contrôleur de l'interface
 app/engine/           runtime transformers.js + ONNX Runtime (généré)
 app/models/           modèle(s) installé(s) au premier lancement (non versionné)
 tools/                construction, verrou des modèles et tests (inutile pour l'utilisateur final)
+docs/                 architecture, guide de déploiement, captures d'écran
 decision.md           décisions techniques et arbitrages
 AGENTS.md             règles du projet pour les contributeurs et les agents de code
 SECURITY.md           modèle de menace, signalement des failles
