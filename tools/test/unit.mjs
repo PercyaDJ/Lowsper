@@ -21,7 +21,7 @@ const sandbox = {
 sandbox.window = sandbox;
 sandbox.self = sandbox;
 vm.createContext(sandbox);
-for (const f of ['capture.js', 'vocabulary.js', 'transcript.js', 'speakers.js']) {
+for (const f of ['engine.js', 'capture.js', 'vocabulary.js', 'transcript.js', 'speakers.js']) {
   vm.runInContext(await readFile(join(appJs, f), 'utf8'), sandbox, { filename: f });
 }
 const L = sandbox.Lowsper;
@@ -768,6 +768,32 @@ await test('filet de sécurité : le son brut est gardé et la parole jamais tra
     false
   );
   assert.ok(rec.read(26, 27).length === sr);
+});
+
+await test('moteur : contexte et jetons générés tiennent toujours dans la fenêtre de Whisper (448)', () => {
+  const plan = L.decodePlan;
+  const ids = (n) => Array.from({ length: n }, (_, i) => i + 1);
+  // Cas qui faisait échouer le moteur : contexte plein (200 jetons) et bloc de 24 s
+  for (const seconds of [3, 10, 18, 20, 24, 28.5, 30, 40]) {
+    for (const n of [0, 20, 120, 200]) {
+      const p = plan(ids(n), seconds, 0, 448);
+      const prefix = (p.prompt.length ? p.prompt.length + 1 : 0) + 3;
+      assert.ok(prefix + p.budget <= 448, `${seconds} s, contexte ${n} : ${prefix} + ${p.budget} > 448`);
+      assert.ok(p.budget >= 1);
+    }
+  }
+  // Rien ne change quand tout tient déjà : même contexte, même budget qu'avant le correctif
+  const short = plan(ids(120), 10, 0, 448);
+  assert.equal(short.prompt.length, 120);
+  assert.equal(short.budget, Math.ceil(10 * 11) + 24);
+  // Sinon le budget est gardé, et c'est le contexte qui raccourcit, par le début (la fin compte le plus)
+  const long = plan(ids(200), 24, 0, 448);
+  assert.equal(long.budget, Math.ceil(24 * 11) + 24);
+  assert.equal(long.prompt.length, 448 - 4 - long.budget);
+  assert.equal(long.prompt[long.prompt.length - 1], 200, 'la fin du contexte est gardée');
+  // Budget imposé (test de vitesse, passages courts) : respecté, et plafonné si besoin
+  assert.equal(plan(ids(200), 1, 4, 448).budget, 4);
+  assert.ok(plan([], 60, 0, 448).budget <= 445);
 });
 
 if (failed) {
