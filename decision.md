@@ -1320,3 +1320,23 @@ commerce sur un PC qui remplit les conditions matérielles ; c'est l'objet de la
 **Suite.** Selon les rapports obtenus sur de vrais PC : si les faits sont retrouvés sans
 invention, proposer un « Résumé sur ce PC » à côté de « Copier pour une IA », toujours en option,
 dans un lot à valider ; sinon, en rester à « Copier pour une IA » et le noter ici.
+
+### 23.1 Premier rapport réel, et Brave (3.4.1)
+
+**Rapport d'un PC fixe sous Windows**, page en `file://`, contexte sécurisé : identification
+« Chrome/157 », `Summarizer` et `LanguageModel` répondent tous deux `unavailable`. Le navigateur
+réel n'est pas certain : l'utilisateur se servait aussi de Brave, qui s'identifie exactement comme
+Chrome. Un `unavailable` dans Brave ne dirait rien de Chrome. Le rapport indique donc désormais le
+**navigateur détecté** (`navigator.brave` pour Brave, `navigator.userAgentData.brands` pour Edge,
+Chrome et Opera). Ni le matériel ni la raison du refus ne sont connus : l'interface ne renvoie
+pas de cause. À refaire dans Chrome ou Edge ; la page `chrome://on-device-internals`, que la
+documentation de Chrome cite à propos du modèle, peut aider à comprendre le refus (non vérifié).
+
+**Brave.** Il désactive par défaut l'écriture dans un dossier choisi (`showDirectoryPicker`),
+d'après la documentation de Chrome et les tickets publics de Brave ; un réglage de `brave://flags` la rétablit
+(nom exact non vérifié ici, d'où la consigne « cherchez « File System Access » »). Lowsper
+reconnaissait seulement « ce navigateur ne permet pas », et conseillait Edge ou Chrome : juste
+pour Firefox, inutilement radical pour Brave. Désormais `app/js/browser.js` reconnaît Brave et
+Firefox et donne la marche à suivre, à l'installation comme au choix du dossier d'un profil (qui
+affichait jusque-là l'erreur technique du navigateur). Brave n'est pas ajouté aux navigateurs
+cibles : il n'est pas testé en CI.

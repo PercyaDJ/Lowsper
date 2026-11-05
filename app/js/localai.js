@@ -239,9 +239,10 @@
   }
 
   /** Rapport en texte brut, à copier : ne contient que l'exemple fictif et l'état du navigateur. */
-  function report({ probe: states = [], trials = {}, userAgent = '', protocol = '', secure = null }) {
+  function report({ probe: states = [], trials = {}, browser = '', userAgent = '', protocol = '', secure = null }) {
     const lines = ["Sonde de l'IA intégrée du navigateur (Lowsper)", ''];
-    lines.push(`Navigateur : ${userAgent}`);
+    if (browser) lines.push(`Navigateur détecté : ${browser}`);
+    lines.push(`Identification : ${userAgent}`);
     lines.push(
       `Page : ${protocol}${secure === null ? '' : secure ? ', contexte sécurisé' : ', contexte non sécurisé'}`
     );

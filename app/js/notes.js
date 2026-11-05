@@ -415,6 +415,11 @@
   /** Demande le dossier (depuis un clic). Retourne son nom, ou null si l'utilisateur renonce. */
   async function pickFolder(id) {
     let dir;
+    if (typeof root.showDirectoryPicker !== 'function') {
+      const e = new Error(Lowsper.Browser ? Lowsper.Browser.folderMessage('notes') : 'dossier non pris en charge');
+      e.code = 'unsupported';
+      throw e;
+    }
     try {
       dir = await root.showDirectoryPicker({ id: 'lowsper-notes', mode: 'readwrite' });
     } catch (e) {
