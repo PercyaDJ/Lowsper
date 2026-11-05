@@ -33,7 +33,7 @@ export default [
   {
     // Les tests de bout en bout contiennent du code exécuté dans la page (page.evaluate)
     files: ['tools/test/**/*.mjs'],
-    languageOptions: { globals: { ...globals.browser, Lowsper: 'readonly', LowsperApp: 'readonly' } },
+    languageOptions: { globals: { ...globals.browser, Lowsper: 'readonly', LowsperApp: 'readonly', decodeFile: 'readonly' } },
   },
   {
     rules: {
