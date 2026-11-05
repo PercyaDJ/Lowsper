@@ -23,6 +23,7 @@ Les détails techniques et les mesures sont dans `decision.md`.
 - `node build.mjs` fonctionne sur un clone neuf : Silero VAD et WeSpeaker se téléchargent avec
   `fetch-model.mjs`, et le build vérifie tout avant de toucher à `app/engine`.
 - `fetch-model.mjs` télécharge la révision figée, et non la dernière version publiée.
+- Banc de vitesse (`npm run bench`) de nouveau utilisable : il lit le modèle installé.
 - Documentation alignée sur le code : Firefox, WebGPU, distinction des intervenants, son gardé en
   mémoire.
 

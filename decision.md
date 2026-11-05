@@ -967,3 +967,11 @@ plausible de passages manquants sur le terrain, non confirmée faute de journal.
 et nom de la réunion) : le banc va jusqu'au bout. Erreurs sur votre voix 5,8 % (autant qu'avec
 casque), aucune phrase d'écho attribuée à « Vous » (6 retirées par la voix), 12 sigles et noms bien
 écrits sur 35, une voix trouvée pour une.
+
+**Performance du direct.** Banc `npm run bench` (Whisper small, 25 s de parole, sans contexte),
+versions alternées sur la machine de développement : médiane 15,7 s avant, 16,1 s après, sur
+6 mesures chacune, avec une dispersion de 1,2 à 3,2 s à l'intérieur d'une même version. Les deux
+versions produisent un texte identique (4 transcriptions, horodatages compris), donc le même
+nombre de jetons et le même calcul : l'écart est du bruit de mesure. Le correctif n'ajoute qu'un
+calcul arithmétique par décodage. Le banc ne fonctionnait plus depuis l'installation du modèle au
+premier lancement (`bench.html` ne lisait pas `app/models/index.txt`) : réparé.

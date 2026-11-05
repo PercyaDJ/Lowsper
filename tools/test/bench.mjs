@@ -1,4 +1,5 @@
 // Mesure la vitesse du moteur dans Chromium, page ouverte en file:// (comme un utilisateur).
+// Prérequis : node build.mjs --embed whisper-small (modèle installé dans app/models).
 import { chromium } from 'playwright-core';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
