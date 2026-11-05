@@ -6,7 +6,7 @@
 //     entier ; la mémoire de la page doit rester bornée (mesure du lot 1, decision.md §19).
 // Usage : node test/import.mjs [--long]   (CHROMIUM_PATH si besoin)
 import { chromium } from 'playwright-core';
-import { execFileSync, execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -121,10 +121,30 @@ const m4a = await page.evaluate(() => decodeFile(3, false));
 check(m4a.meta.recordedAt === Date.UTC(2026, 2, 14, 9, 30), "date d'enregistrement du M4A transmise");
 
 if (process.argv.includes('--long')) {
-  const rss = () =>
-    Number(
-      execSync("ps -eo rss,args | grep -- '--type=renderer' | grep -v grep | awk '{s+=$1} END {print s}'").toString()
-    ) / 1024;
+  // Mémoire des seuls processus de rendu lancés par CE test (descendants de ce processus Node) :
+  // une première version additionnait tous les Chromium de la machine, et comptait donc la mémoire
+  // d'un autre test lancé en parallèle (decision.md §19).
+  const rootPid = process.pid;
+  const rss = () => {
+    const rows = execFileSync('ps', ['-eo', 'pid=,ppid=,rss=,args='], { encoding: 'utf8' })
+      .trim()
+      .split('\n')
+      .map((l) => l.trim().split(/\s+/))
+      .map(([pid, ppid, kb, ...args]) => ({ pid: +pid, ppid: +ppid, kb: +kb, args: args.join(' ') }));
+    const mine = new Set([rootPid]);
+    for (let grew = true; grew; ) {
+      grew = false;
+      for (const r of rows) {
+        if (!mine.has(r.pid) && mine.has(r.ppid)) {
+          mine.add(r.pid);
+          grew = true;
+        }
+      }
+    }
+    return (
+      rows.filter((r) => mine.has(r.pid) && r.args.includes('--type=renderer')).reduce((n, r) => n + r.kb, 0) / 1024
+    );
+  };
   const src = join(fixtures, 'extrait.wav');
   for (const [ext, codec] of [
     ['mp3', ['-c:a', 'libmp3lame', '-b:a', '64k']],

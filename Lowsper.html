@@ -206,6 +206,16 @@
         <span class="rec-dot"></span> Démarrer l'enregistrement
       </button>
 
+      <!-- Enregistrement fait ailleurs (dictaphone, téléphone) : même moteur que le direct -->
+      <div class="import-zone" id="import-zone">
+        <button class="btn" id="import-pick" type="button">
+          <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8m0 0L5 7m3 3 3-3M3 12.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Transcrire un fichier
+        </button>
+        <span class="fine" id="import-hint">ou glissez ici un ou plusieurs enregistrements (WAV, MP3, M4A, AAC, OGG, WebM). Le fichier est lu sur ce poste, jamais copié ni envoyé.</span>
+        <input type="file" id="import-input" multiple accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.opus,.webm,.flac" hidden>
+      </div>
+
 
       <p class="fine settings-hint">Langue, sigles, modèle, puissance : <button class="linkish" id="settings-open-2" type="button">paramètres</button> (roue crantée en haut à droite).</p>
 
@@ -281,6 +291,21 @@
       </div>
     </section>
 
+    <!-- Transcription de fichiers importés -->
+    <section class="card view" id="view-import" hidden aria-labelledby="import-title">
+      <h2 id="import-title">Transcription de fichiers</h2>
+      <p class="lead" id="import-current"></p>
+      <div class="progress">
+        <div class="progress-bar" id="import-progress" role="progressbar" aria-labelledby="import-current" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="import-bar"></i></div>
+        <p class="progress-text" id="import-text" aria-live="polite">Préparation…</p>
+      </div>
+      <ol class="import-list" id="import-list"></ol>
+      <div class="row">
+        <button class="btn danger" id="import-cancel" type="button">Annuler</button>
+      </div>
+      <p class="fine">Chaque transcript est enregistré dans vos Téléchargements dès que son fichier est terminé. Le son n'est jamais écrit sur le disque : il est lu par morceaux depuis votre fichier, puis oublié.</p>
+    </section>
+
     <!-- Finalisation -->
     <section class="card view center" id="view-finish" hidden>
       <div class="spinner"></div>
@@ -347,6 +372,7 @@
   <script src="app/js/installer.js"></script>
   <script src="app/js/settings.js"></script>
   <script src="app/js/capture.js"></script>
+  <script src="app/js/audiofile.js"></script>
   <script src="app/js/vocabulary.js"></script>
   <script src="app/js/transcript.js"></script>
   <script src="app/js/app.js"></script>

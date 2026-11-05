@@ -620,10 +620,33 @@
       const out = [];
       out.push(`# Transcript de réunion${m.title ? ' : ' + m.title : ''}`);
       out.push('');
-      out.push(`- **Date** : ${date}`);
-      out.push(`- **Horaires** : ${hm(start)} à ${hm(end)} (${durationMin} min)`);
-      out.push(`- **Sources** : ${sources || 'aucune'}`);
-      if (m.people) out.push(`- **Participants** : ${m.people} personnes (vous compris)`);
+      if (m.file) {
+        // Enregistrement importé : on ne dit que ce que le fichier permet de savoir
+        const day = (ms) =>
+          new Date(ms).toLocaleString('fr-FR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+        out.push(`- **Source** : fichier « ${m.file.name} »`);
+        if (m.file.recordedAt)
+          out.push(`- **Enregistré le** : ${day(m.file.recordedAt)} (date inscrite dans le fichier)`);
+        else if (m.file.modifiedAt)
+          out.push(
+            `- **Date du fichier** : ${day(m.file.modifiedAt)} (dernière modification, pas forcément le jour de l'enregistrement)`
+          );
+        out.push(`- **Durée** : ${fmtDur(m.file.duration || 0)}`);
+        out.push(`- **Importé le** : ${day(m.startedAt)}`);
+        if (m.people) out.push(`- **Participants** : ${m.people} personnes`);
+      } else {
+        out.push(`- **Date** : ${date}`);
+        out.push(`- **Horaires** : ${hm(start)} à ${hm(end)} (${durationMin} min)`);
+        out.push(`- **Sources** : ${sources || 'aucune'}`);
+        if (m.people) out.push(`- **Participants** : ${m.people} personnes (vous compris)`);
+      }
       out.push(`- **Langue** : ${langs[m.language] || m.language}`);
       out.push(`- **Transcription** : ${m.model || 'Whisper'}, exécuté localement par Lowsper (hors ligne)`);
       const cov = this.coverageSummary();
@@ -649,15 +672,19 @@
       out.push('');
       out.push(
         '> Transcription automatique : elle peut contenir des erreurs de reconnaissance. ' +
-          '« Vous » désigne la personne qui enregistre (micro). ' +
+          (m.file ? '' : '« Vous » désigne la personne qui enregistre (micro). ') +
           (this.hasVoices()
-            ? "Les autres intervenants sont les voix distinctes détectées automatiquement dans l'audio de la réunion " +
+            ? (m.file
+                ? "Les intervenants sont les voix distinctes détectées automatiquement dans l'enregistrement "
+                : "Les autres intervenants sont les voix distinctes détectées automatiquement dans l'audio de la réunion ") +
               (this.meta.names && Object.keys(this.meta.names).length
                 ? '(certaines nommées à la main après la réunion, les autres numérotées « Intervenant n ») : '
                 : '(« Intervenant 1, 2... », noms réels inconnus, ils peuvent souvent se déduire des échanges) : ') +
               'deux personnes à la voix proche peuvent partager un numéro, et une même personne peut en recevoir deux. ' +
               'Les phrases trop courtes pour identifier la voix sont notées « Participant ». '
-            : "« Participants » regroupe toutes les autres voix entendues via l'audio de la réunion, sans distinction de personne. ") +
+            : m.file
+              ? "« Participants » regroupe toutes les voix de l'enregistrement, sans distinction de personne. "
+              : "« Participants » regroupe toutes les autres voix entendues via l'audio de la réunion, sans distinction de personne. ") +
           'Les horodatages [hh:mm:ss] sont relatifs au début de l’enregistrement.'
       );
       out.push('');
@@ -686,7 +713,8 @@
     }
 
     fileName() {
-      const d = new Date(this.meta.startedAt);
+      // Enregistrement importé : daté du jour de l'enregistrement quand le fichier le dit
+      const d = new Date((this.meta.file && this.meta.file.recordedAt) || this.meta.startedAt);
       const pad = (n) => String(n).padStart(2, '0');
       const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}h${pad(d.getMinutes())}`;
       const slug = normalizeText(this.meta.title || '')

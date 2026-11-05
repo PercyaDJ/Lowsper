@@ -82,6 +82,9 @@
       this.onBlock = onBlock;
       this.vad = (options && options.vad) || null;
       this.emitEarly = (options && options.emitEarly) || null;
+      // Délai accordé au détecteur de parole (s). En direct, il ne doit jamais bloquer la capture ;
+      // pour un fichier (null), rien ne presse : on l'attend toujours, aucune parole n'est jugée au volume.
+      this.vadTimeout = options && 'vadTimeout' in options ? options.vadTimeout : VAD.vadTimeout;
       this.t = 0; // temps (s) du prochain échantillon reçu, depuis le début de la session
       this.pending = new Float32Array(0);
       this.noise = -60; // plancher de bruit estimé (dBFS)
@@ -112,10 +115,12 @@
         try {
           // Le détecteur ne doit jamais bloquer la capture : sans réponse rapide (PC surchargé),
           // ce morceau est découpé au seuil de volume et la suite continue.
-          probs = await Promise.race([
-            this.vad.run(buf.subarray(0, n)),
-            new Promise((r) => setTimeout(() => r('timeout'), VAD.vadTimeout * 1000)),
-          ]);
+          probs = await (this.vadTimeout == null
+            ? this.vad.run(buf.subarray(0, n))
+            : Promise.race([
+                this.vad.run(buf.subarray(0, n)),
+                new Promise((r) => setTimeout(() => r('timeout'), this.vadTimeout * 1000)),
+              ]));
           if (probs === 'timeout') {
             probs = null;
             this.vadTimeouts = (this.vadTimeouts || 0) + 1;

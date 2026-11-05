@@ -453,6 +453,18 @@ body.mini:not(.expanded) .rec-core:has(.notice:not([hidden])) #pip-more { color:
 .settings-body .fine { margin: 0; }
 .settings-body #add-model { justify-self: start; }
 .settings-hint { margin: 12px 0 0; }
+
+/* Import de fichiers : bouton, zone de dépôt, liste et avancement */
+.import-zone { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; padding: 12px;
+  border: 1.5px dashed var(--border); border-radius: 12px; }
+.import-zone .fine { flex: 1 1 260px; margin: 0; }
+.view.dragging .import-zone { border-color: var(--accent); background: var(--surface-2); }
+.import-list { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 6px; font-size: 14px; }
+.import-list li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 10px; border-radius: 8px;
+  background: var(--surface-2); }
+.import-list li .st { color: var(--muted); white-space: nowrap; }
+.import-list li.current { outline: 1.5px solid var(--accent); }
+.import-list li.error .st { color: var(--rec); }
 @media (max-width: 560px) { .settings-body { padding: 0 14px 14px; } .settings-head { padding: 12px 14px; } }
 
 /* Croix du bandeau d'avertissement */

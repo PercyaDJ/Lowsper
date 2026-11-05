@@ -254,7 +254,9 @@
     const backlog = app.queue.length;
     // Combien de moteurs principaux ont le droit de travailler en ce moment
     // Réunion terminée : le PC est libéré, la fin du transcript peut utiliser le renfort
-    const allowed = backlog >= 2 || app.state === 'finishing' ? app.limits.boost : app.limits.normal;
+    // Import d'un fichier : pas de réunion en cours, le PC peut aussi utiliser le renfort
+    const allowed =
+      backlog >= 2 || app.state === 'finishing' || app.state === 'importing' ? app.limits.boost : app.limits.normal;
     if (backlog >= 2) ensureWorkers(app.limits.boost);
     let busy = app.workers.filter((w) => !w.idle).length;
 
@@ -268,6 +270,8 @@
     for (const w of app.fastWorkers) {
       if (!w.idle || w.broken || !app.queue.length) continue;
       const oldest = app.queue[0];
+      // Un fichier n'a pas de « direct » à tenir : la voie rapide ne ferait que doubler le travail
+      if (oldest.transcript && oldest.transcript.meta.file) break;
       if (Date.now() - oldest.queuedAt < FAST_AFTER) break;
       run(w, app.queue.shift(), true);
     }
@@ -716,6 +720,237 @@
     return t;
   }
 
+  // ---------------------------------------------------------------------------
+  // Import de fichiers audio (dictaphone, téléphone, enregistrement fait ailleurs)
+  //
+  // Même chaîne que le direct : découpage par la détection de parole, file de transcription,
+  // moteurs, distinction des voix, glossaire et corrections. Différences : la détection de parole
+  // n'a pas de délai (rien ne presse, rien n'est sauté), la voie rapide est inutile, et le décodage
+  // attend que la file se vide (mémoire bornée, même pour plusieurs heures).
+  // ---------------------------------------------------------------------------
+  const FILE_AHEAD = 6; // passages d'avance au plus dans la file pendant un import
+
+  function createFileTranscript(file, people, title) {
+    const t = new L.Transcript({
+      title: title || file.name.replace(/\.[^.]+$/, ''),
+      startedAt: Date.now(),
+      language: $('language').value,
+      glossary: $('glossary').value.trim(),
+      vocab: selectedVocab(),
+      fixes: learnedFixes(),
+      model: app.modelLabel,
+      sources: ['others'],
+      offset: 0,
+      file: { name: file.name, size: file.size, modifiedAt: file.lastModified || null, recordedAt: null, duration: 0 },
+    });
+    t.othersBusy = [];
+    if (app.voiceAnalyzer && $('distinguish').checked) {
+      t.tracker = new L.SpeakerTracker(app.voiceAnalyzer);
+      // Dans un enregistrement, toutes les personnes sont « de l'autre côté » : pas de « vous » au micro
+      if (people >= 1) {
+        t.tracker.expected = Math.min(30, people);
+        t.meta.people = people;
+      }
+    }
+    return t;
+  }
+
+  async function importFiles(list) {
+    const files = [...list].filter((f) => f && f.size > 0);
+    if (!files.length || (app.state !== 'idle' && app.state !== 'done')) return;
+    if (app.engineError && !app.engineReady) {
+      toast('Le moteur de transcription est indisponible : ' + app.engineError, 8000);
+      return;
+    }
+    if (app.state === 'done') reset();
+    L.Transcript.clearSaved();
+    $('recover').hidden = true;
+    const people = parseInt($('people').value, 10);
+    // Le nom de réunion saisi ne vaut que pour un fichier seul ; sinon, chacun garde le sien
+    const title = files.length === 1 ? $('title').value.trim() : '';
+    app.imports = files.map((file) => ({ file, status: 'en attente' }));
+    app.importAbort = new AbortController();
+    app.finished = [];
+    app.failed = [];
+    setState('importing');
+    requestWakeLock();
+    renderImport();
+    const done = [];
+    for (const item of app.imports) {
+      if (app.importAbort.signal.aborted) {
+        item.status = 'annulé';
+        continue;
+      }
+      item.status = 'en cours';
+      renderImport();
+      try {
+        const t = await transcribeFile(item, people, title, app.importAbort.signal);
+        item.status = 'terminé';
+        done.push(t);
+        download(t.toMarkdown(), t.fileName());
+      } catch (e) {
+        item.status = e && e.code === 'ABORT' ? 'annulé' : 'échec';
+        item.error = (e && e.message) || String(e);
+        journal('import-échec', { format: item.meta && item.meta.format, erreur: item.error.slice(0, 200) });
+      }
+      renderImport();
+    }
+    releaseWakeLock();
+    const failures = app.imports.filter((i) => i.status === 'échec');
+    if (!done.length) {
+      setState('idle');
+      if (failures.length) toast(failures.map((i) => `${i.file.name} : ${i.error}`).join('\n'), 12000);
+      else toast('Transcription annulée.', 4000);
+      return;
+    }
+    // Écran de fin : le dernier fichier transcrit ; les autres restent téléchargeables
+    const t = done.pop();
+    app.finished = done;
+    app.transcript = t;
+    L.Transcript.current = t;
+    app.finalMarkdown = t.toMarkdown();
+    const paras = t.paragraphs().length;
+    const cov = t.coverageSummary();
+    $('done-info').textContent =
+      `Fichier « ${t.meta.file.name} » : ${L.formatTime(t.meta.file.duration)} d'enregistrement, ` +
+      `${paras} intervention${paras > 1 ? 's' : ''}.` +
+      (cov.missing < 1 ? ' Toute la parole détectée a été transcrite.' : '') +
+      (failures.length
+        ? ` ${failures.length} fichier${failures.length > 1 ? 's' : ''} non transcrit${failures.length > 1 ? 's' : ''} : ${failures.map((i) => `${i.file.name} (${i.error})`).join(' ; ')}`
+        : '') +
+      ' Le fichier a été enregistré dans votre dossier Téléchargements.';
+    $('preview').textContent = app.finalMarkdown;
+    $('next-meeting').hidden = true;
+    renderVoices();
+    renderSuspects();
+    renderGaps();
+    renderFinished();
+    setState('done');
+  }
+
+  async function transcribeFile(item, people, title, signal) {
+    const t = createFileTranscript(item.file, people, title);
+    app.transcript = t;
+    L.Transcript.current = t;
+    item.t = t;
+    item.startedAt = Date.now();
+    item.decoded = 0; // secondes de son décodées
+    item.ratio = 0; // part du fichier lue
+    const analyzer = app.analyzer;
+    const VAD_ID = 'fichier';
+    if (analyzer) await analyzer.reset(VAD_ID).catch(() => {});
+    const segmenter = new L.Segmenter(
+      (seg) => {
+        seg.id = ++app.blockSeq;
+        seg.abs = L.speechIntervals ? L.speechIntervals(seg) : [];
+        app.queue.push({ source: 'others', seg, transcript: t, queuedAt: Date.now() });
+        t.markQueued('others', seg);
+        pump();
+      },
+      { vad: analyzer ? { run: (samples) => analyzer.vad(VAD_ID, samples) } : null, vadTimeout: null }
+    );
+    const tick = setInterval(() => renderImportProgress(item), 500);
+    try {
+      for await (const chunk of L.AudioFile.decode(item.file, {
+        signal,
+        onInfo: (meta) => {
+          item.meta = meta;
+          if (meta.recordedAt) t.meta.file.recordedAt = meta.recordedAt;
+          journal('import', {
+            format: meta.format,
+            méthode: meta.method,
+            durée_min: meta.duration ? Math.round(meta.duration / 60) : null,
+          });
+        },
+        onProgress: (r) => (item.ratio = r),
+      })) {
+        await segmenter.push(chunk, false);
+        item.decoded += chunk.length / L.AUDIO_RATE;
+        // Mémoire bornée : le décodage attend que la transcription rattrape son retard
+        while (pendingFor(t) > FILE_AHEAD && !signal.aborted) await new Promise((r) => setTimeout(r, 200));
+        if (signal.aborted) throw Object.assign(new Error('Transcription du fichier annulée.'), { code: 'ABORT' });
+      }
+      await segmenter.flush();
+      t.meta.file.duration = item.decoded;
+      t.meta.endedAt = Date.now();
+      item.ratio = 1;
+      // Fin de la transcription, annulable à tout moment (la finalisation n'attend plus rien ensuite)
+      await new Promise((resolve, reject) => {
+        const wait = () => {
+          if (signal.aborted) reject(Object.assign(new Error('Transcription du fichier annulée.'), { code: 'ABORT' }));
+          else if (pendingFor(t) === 0) resolve();
+          else setTimeout(wait, 200);
+        };
+        wait();
+      });
+      await finalizeMeeting(t, (text) => (item.step = text));
+      if (signal.aborted) throw Object.assign(new Error('Transcription du fichier annulée.'), { code: 'ABORT' });
+      return t;
+    } catch (e) {
+      // Annulation ou échec : les passages en attente de ce fichier sont retirés de la file
+      app.queue = app.queue.filter((j) => j.transcript !== t);
+      throw e;
+    } finally {
+      clearInterval(tick);
+    }
+  }
+
+  // Avancement : la part du fichier déjà transcrite (tout ce qui précède le plus ancien passage
+  // encore en attente), et une estimation du temps restant d'après le rythme observé.
+  function renderImportProgress(item) {
+    if (app.state !== 'importing' || !item.t) return;
+    const t = item.t;
+    let frontier = item.decoded;
+    for (const j of [...app.queue, ...app.running]) if (j.transcript === t) frontier = Math.min(frontier, j.seg.start);
+    const total =
+      item.meta && item.meta.duration
+        ? Math.max(item.meta.duration, item.decoded)
+        : item.ratio > 0.02
+          ? item.decoded / item.ratio
+          : 0;
+    const ratio = total ? Math.min(1, frontier / total) : 0;
+    const pct = Math.round(ratio * 100);
+    $('import-bar').style.width = pct + '%';
+    $('import-progress').setAttribute('aria-valuenow', String(pct));
+    const elapsed = (Date.now() - item.startedAt) / 1000;
+    let text = item.step && item.ratio >= 1 && pendingFor(t) === 0 ? item.step : `${pct} % transcrit`;
+    if (total) text += ` (${L.formatTime(frontier)} sur ${L.formatTime(total)})`;
+    if (ratio > 0.03 && elapsed > 20 && ratio < 1) {
+      const left = (elapsed / ratio) * (1 - ratio);
+      text += ` · environ ${left < 90 ? Math.round(left) + ' s' : Math.round(left / 60) + ' min'} restantes`;
+    }
+    $('import-text').textContent = text;
+  }
+
+  function renderImport() {
+    const list = app.imports || [];
+    const i = list.findIndex((x) => x.status === 'en cours');
+    const current = i >= 0 ? list[i] : null;
+    $('import-current').textContent = current
+      ? `${current.file.name}${list.length > 1 ? ` (fichier ${i + 1} sur ${list.length})` : ''}`
+      : '';
+    if (current) {
+      $('import-bar').style.width = '0%';
+      $('import-progress').setAttribute('aria-valuenow', '0');
+      $('import-text').textContent = 'Lecture du fichier…';
+    }
+    const box = $('import-list');
+    box.replaceChildren();
+    for (const x of list) {
+      const li = document.createElement('li');
+      if (x === current) li.className = 'current';
+      if (x.status === 'échec') li.className = 'error';
+      const name = document.createElement('span');
+      name.textContent = x.file.name;
+      const st = document.createElement('span');
+      st.className = 'st';
+      st.textContent = x.status === 'échec' ? 'échec : ' + x.error : x.status;
+      li.append(name, st);
+      box.appendChild(li);
+    }
+    $('import-list').hidden = list.length < 2 && !list.some((x) => x.status === 'échec');
+  }
+
   // Temps de la réunion en cours (la capture continue d'une réunion à l'autre quand on enchaîne)
   function meetingNow() {
     return app.capture ? app.capture.now() - ((app.transcript && app.transcript.meta.offset) || 0) : 0;
@@ -866,16 +1101,19 @@
     await settled();
     // Rattrapage : la parole présente dans le son reçu mais jamais transcrite (détection en retard,
     // moteur en panne, PC saturé...) est retrouvée et transcrite maintenant.
-    try {
-      if (onStep) onStep('Vérification : aucune parole oubliée…');
-      const n = await sweepMeeting(t);
-      if (n) {
-        if (onStep) onStep(`Rattrapage de ${n} passage${n > 1 ? 's' : ''} oublié${n > 1 ? 's' : ''}…`);
-        await settled();
+    // Fichier importé : la détection de parole n'a pas de délai, rien n'a pu échapper en route
+    if (!t.meta.file) {
+      try {
+        if (onStep) onStep('Vérification : aucune parole oubliée…');
+        const n = await sweepMeeting(t);
+        if (n) {
+          if (onStep) onStep(`Rattrapage de ${n} passage${n > 1 ? 's' : ''} oublié${n > 1 ? 's' : ''}…`);
+          await settled();
+        }
+      } catch (e) {
+        console.warn('Rattrapage impossible', e);
+        journal('rattrapage-erreur', { erreur: String(e.message || e).slice(0, 200) });
       }
-    } catch (e) {
-      console.warn('Rattrapage impossible', e);
-      journal('rattrapage-erreur', { erreur: String(e.message || e).slice(0, 200) });
     }
     if (t.tracker) {
       if (onStep) onStep('Identification des intervenants…');
@@ -1272,6 +1510,7 @@
     $('timer').textContent = '00:00:00';
     $('last-line').textContent = '';
     app.improvedPending = false;
+    $('next-meeting').hidden = false;
     setState('idle');
   }
 
@@ -1292,6 +1531,7 @@
     $('view-install').hidden = state !== 'install';
     $('view-idle').hidden = state !== 'idle';
     $('view-rec').hidden = state !== 'recording';
+    $('view-import').hidden = state !== 'importing';
     $('view-finish').hidden = state !== 'finishing';
     $('view-done').hidden = state !== 'done';
     updateQueue();
@@ -1347,7 +1587,7 @@
   });
 
   window.addEventListener('beforeunload', (e) => {
-    if (app.state === 'recording' || app.state === 'finishing' || app.installing) {
+    if (app.state === 'recording' || app.state === 'finishing' || app.state === 'importing' || app.installing) {
       e.preventDefault();
       e.returnValue = '';
     }
@@ -1886,6 +2126,31 @@
   });
   renderFixes();
   $('start').addEventListener('click', start);
+  // Import : bouton, sélection de fichiers, glisser-déposer (n'importe où dans la page)
+  $('import-pick').addEventListener('click', () => $('import-input').click());
+  $('import-input').addEventListener('change', () => {
+    const files = [...$('import-input').files];
+    $('import-input').value = '';
+    importFiles(files);
+  });
+  $('import-cancel').addEventListener('click', () => {
+    if (app.importAbort) app.importAbort.abort();
+    $('import-text').textContent = 'Annulation…';
+  });
+  const canDrop = () => app.state === 'idle' || app.state === 'done';
+  document.addEventListener('dragover', (e) => {
+    // Sans cela, le navigateur ouvrirait le fichier déposé à la place de Lowsper
+    e.preventDefault();
+    if (canDrop()) $('view-idle').classList.add('dragging');
+  });
+  document.addEventListener('dragleave', (e) => {
+    if (!e.relatedTarget) $('view-idle').classList.remove('dragging');
+  });
+  document.addEventListener('drop', (e) => {
+    e.preventDefault();
+    $('view-idle').classList.remove('dragging');
+    if (canDrop() && e.dataTransfer && e.dataTransfer.files.length) importFiles(e.dataTransfer.files);
+  });
   $('pause').addEventListener('click', togglePause);
   $('stop').addEventListener('click', stop);
   $('stop-main').addEventListener('click', stop);
