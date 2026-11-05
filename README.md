@@ -334,8 +334,10 @@ seul, dans un dossier Lowsper où le modèle a déjà été installé depuis Edg
 
 Évolutions prévues, dans l'ordre (détail dans les [jalons](https://github.com/PercyaDJ/Lowsper/milestones)
 et `decision.md`) :
-1. **Compte rendu** : consignes éditables pour l'IA, rattachées à un profil, et étude d'un
-   résumé 100 % local.
+1. **Résumé local, à l'étude** : un petit modèle de langage dans le navigateur, sur le processeur,
+   a été mesuré et écarté (qualité insuffisante en français, trop lent, `decision.md` §22). La
+   piste suivante, l'IA intégrée de Chrome, sera d'abord sondée en option expérimentale, sur
+   validation. D'ici là, « Copier pour une IA » et ses consignes restent la voie recommandée.
 
 Une idée, un problème ? Ouvrez une [issue](https://github.com/PercyaDJ/Lowsper/issues/new/choose),
 ou posez votre question dans les [discussions](https://github.com/PercyaDJ/Lowsper/discussions).
