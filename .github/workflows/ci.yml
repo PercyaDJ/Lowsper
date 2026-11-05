@@ -42,3 +42,7 @@ jobs:
         run: npx playwright-core install --with-deps chromium
       - name: Test de non-fuite réseau
         run: npm run test:csp
+      # Décodage des fichiers importés : Google Chrome, préinstallé sur les machines de GitHub,
+      # lit les formats brevetés (AAC, MP3), comme Edge et Chrome chez l'utilisateur
+      - name: Décodage des fichiers audio importés
+        run: CHROMIUM_PATH="$(command -v google-chrome)" npm run test:import

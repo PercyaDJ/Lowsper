@@ -2,7 +2,8 @@
 //
 // Rejoue le corpus synthétique « hebdo » (voix de synthèse, noms inventés) dans la vraie page,
 // avec le vrai moteur, puis capture l'accueil, l'enregistrement, la barre réduite et l'écran de fin
-// (thèmes clair et sombre), à double résolution. Aucune donnée réelle ne peut y apparaître.
+// (thèmes clair et sombre) et l'import d'un fichier, à double résolution. Aucune donnée réelle
+// ne peut y apparaître.
 //
 // Prérequis : node build.mjs --embed whisper-small   (CHROMIUM_PATH si besoin)
 // Usage : node test/screenshots.mjs
@@ -97,6 +98,21 @@ await page.screenshot({ path: join(out, 'fin.png'), fullPage: true });
 await page.emulateMedia({ colorScheme: 'dark' });
 await page.waitForTimeout(300);
 await page.screenshot({ path: join(out, 'fin-sombre.png'), fullPage: true });
+await page.emulateMedia({ colorScheme: 'light' });
+
+// Import d'enregistrements faits ailleurs : écran d'avancement
+await page.click('#again');
+await page.waitForSelector('#view-idle:not([hidden])');
+const fixtures = join(here, 'fixtures', 'import');
+await page.setInputFiles('#import-input', [join(fixtures, 'extrait.m4a'), join(fixtures, 'extrait.ogg')]);
+await page.waitForSelector('#view-import:not([hidden])');
+await page.waitForFunction(() => /restantes|%/.test(document.getElementById('import-text').textContent), null, {
+  timeout: 60000,
+});
+await page.waitForTimeout(1500);
+await page.screenshot({ path: join(out, 'import.png') });
+await page.click('#import-cancel');
+await page.waitForSelector('#view-idle:not([hidden])', { timeout: 120000 });
 await browser.close();
 
 if (network.length) {

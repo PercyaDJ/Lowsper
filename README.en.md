@@ -25,6 +25,9 @@ The interface and the full documentation are in French: see [README.md](README.m
 - **Built for meetings, not dictation.** Two sources (you and the other participants), speaker
   separation, custom glossary and domain vocabularies, a small always-on-top window, back-to-back
   meetings, and a safety net that never silently drops speech.
+- **Recordings too.** Drop a WAV, MP3, M4A/AAC, OGG/Opus or WebM file (even several hours long)
+  and it goes through the same engine. Files are read in small pieces with bounded memory and are
+  never copied or uploaded.
 
 ## Quick start
 

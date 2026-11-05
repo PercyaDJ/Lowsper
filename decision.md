@@ -1029,3 +1029,79 @@ audio, et des fichiers qui ne parlent qu'aux développeurs.
 - **Code de conduite** : traduction française officielle du Contributor Covenant 2.1, sans
   modification hormis le canal de signalement (signalement privé du dépôt, en attendant une
   adresse dédiée).
+
+## 19. Import de fichiers audio (3.1.0)
+
+Objectif : transcrire un enregistrement fait sans PC (dictaphone, téléphone, autre outil) avec
+exactement le même moteur que le direct, y compris pour des fichiers de plusieurs heures.
+
+### 19.1 Le vrai problème : décoder des heures de son sans saturer la mémoire
+
+Mesures dans Chromium, même politique de sécurité que Lowsper, fichiers synthétiques d'une heure
+(corpus « hebdo » répété) :
+
+| Option | Mesure | Verdict |
+|---|---|---|
+| A. Décodage complet par le navigateur (`decodeAudioData`) | Tous les formats lus. 1 h : 12 à 21 s, **+2,2 à 3,4 Go** de mémoire (MP3 2,6 Go, M4A 3,4 Go, Ogg Opus 2,2 Go) | Écarté pour les longs fichiers : 3 h feraient tomber l'onglet. Gardé en repli pour les fichiers courts. |
+| B. Lecture accélérée par un élément `<audio>`, son capté au passage | Demande d'ouvrir `media-src blob:`. Avec `ScriptProcessor`, sur 60 s : 55 s captées à ×3, 20,7 s à ×8, 10,2 s à ×16, **sans aucune erreur signalée**. L'essai avec `AudioWorklet` n'a pas abouti (bloqué, arrêté au bout de 15 min) : non mesuré | Écarté : dépend du temps réel de la machine, et perd du son en silence, contraire au principe de §15.18. |
+| C. **WebCodecs + lecteurs de conteneur écrits dans Lowsper** | Prototype M4A, 1 h : **10,8 s, +90 Mo**, 3 600,0 s décodées, son exact | **Retenu** (validé par l'utilisateur). |
+| C'. WebCodecs + bibliothèques de lecture (mp4box.js...) | Non mesuré | Écarté : dépendances à auditer et à embarquer, pour des formats dont la lecture tient en quelques centaines de lignes. |
+
+Analogie : plutôt que de faire recopier tout un livre par le navigateur avant de le lire (A), ou
+de l'écouter lu à toute vitesse en espérant ne rien manquer (B), Lowsper tourne les pages lui-même
+et les fait lire une par une (C).
+
+### 19.2 Ce qui a été construit
+
+- `app/js/audiofile.js` : reconnaissance du format par le contenu (l'extension peut mentir) et
+  lecteurs sans dépendance pour WAV (lu directement), MP3, AAC brut (ADTS), M4A/MP4, Ogg Opus et
+  WebM Opus. Les trames sont confiées par petits lots au décodeur WebCodecs du navigateur ; la
+  sortie est convertie en 16 kHz mono au fil de l'eau. Octets parasites en tête et fichiers coupés
+  sont lus au mieux, jusqu'à l'endroit intact.
+- **Repli** : les autres formats que le navigateur sait lire (FLAC, Vorbis, WMA selon le
+  navigateur) passent par le décodage complet, limité à 25 Mo, avec un message clair au-delà.
+- **Même chaîne que le direct** : découpage par la détection de parole Silero, file de
+  transcription, moteurs, distinction des voix, glossaire, vocabulaires, corrections apprises.
+  Différences assumées, et pourquoi :
+  - la détection de parole n'a **pas de délai** : rien ne presse, donc aucun morceau n'est jugé
+    au simple volume ;
+  - **pas de voie rapide** (§15.12) : elle ne sert qu'à tenir le direct ;
+  - **pas de rattrapage** de fin (§15.20), décision validée par l'utilisateur : sans délai de
+    détection, rien ne peut échapper en route, et garder tout le son coûterait 115 Mo par heure ;
+  - **renfort de moteurs** autorisé : aucune visio n'occupe le PC.
+- **Mémoire bornée** : le décodage attend dès que 6 passages sont en file (contre-pression).
+- **Politique de sécurité inchangée** : aucune requête, aucun `media-src`.
+- **En-tête du transcript** : « Source : fichier », date d'enregistrement quand le fichier la
+  contient (MP4, WebM), sinon « date du fichier » présentée comme telle (dernière modification,
+  pas forcément le jour de l'enregistrement), durée, date d'import. Pas de « Vous » : dans un
+  enregistrement, toutes les voix sont « de l'autre côté ». Le nom du transcript est daté du jour
+  de l'enregistrement quand il est connu.
+- **Interface** : bouton « Transcrire un fichier » et glisser-déposer n'importe où dans la page,
+  sélection multiple traitée en file, barre d'avancement (part transcrite, temps restant estimé
+  d'après le rythme observé), annulation propre (file vidée, rien de téléchargé).
+
+### 19.3 Mesures du résultat
+
+| Mesure | Résultat |
+|---|---|
+| Décodage de 3 h (fichier synthétique) | MP3 30 s, +50 Mo ; M4A 22 s, +18 Mo ; Ogg Opus 104 s, +1 Mo (mémoire des seuls processus du test) |
+| Exactitude, 7 formats de 20 s | Durées à 0,06 s près ; enveloppe sonore identique au WAV de référence à 97,8 % ou plus |
+| Délai propre aux codecs | MP3 50 ms, AAC 20 ms, Opus et WAV 0 : décalage des horodatages, négligeable à la seconde |
+| Bout en bout (M4A, MP3, fichier invalide, annulation) | 14 vérifications sur 14, 2 min 28 s ; aucune requête réseau |
+
+**Deux pièges de mesure, corrigés en route.**
+1. Le premier test de 3 h annonçait +1 359 Mo pour l'Ogg. Cause : la mesure additionnait la
+   mémoire de **tous** les Chromium de la machine, dont celle d'un autre test lancé en parallèle,
+   avec Whisper chargé. Le même fichier, seul, restait sous 124 Mo, et trois fichiers de 3 h
+   enchaînés dans la même page sous 145 Mo. La mesure ne compte plus que les processus du test.
+2. La première comparaison d'enveloppes donnait 78 % pour le MP3 : c'était le délai d'amorçage du
+   codec (50 ms), pas une perte. Le test cherche désormais le meilleur alignement et le mesure.
+
+### 19.4 Limites connues
+
+- Non mesuré : la transcription complète d'un fichier de plusieurs heures (seul le décodage l'a
+  été) ; sa durée dépend du PC, comme en direct.
+- Formats non pris en charge en flux : Vorbis, FLAC, ALAC, WebM à blocs groupés (« lacing »),
+  entrées MP4 QuickTime anciennes (non vérifiées) : repli limité à 25 Mo.
+- Firefox : la disponibilité de WebCodecs pour l'audio n'a pas été vérifiée ; Lowsper y reste
+  en mode dégradé (§14).
