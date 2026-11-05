@@ -1,7 +1,7 @@
 {
   "name": "lowsper-tools",
   "private": true,
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Outils de construction de Lowsper (réservés aux développeurs, inutiles pour l'utilisateur final)",
   "type": "module",
   "scripts": {

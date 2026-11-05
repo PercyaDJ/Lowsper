@@ -13,6 +13,18 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [3.0.2] - 2026-11-05
+
+### Ajouté
+- Paquet de distribution `Lowsper-X.Y.Z.zip` joint à chaque release, avec son empreinte SHA-256 :
+  seulement la page et ses fichiers, reproductible à l'identique (decision.md §18.1).
+- Documentation : `README.en.md` (résumé en anglais), `docs/architecture.md`, `docs/deploiement.md`
+  (guide DSI et RSSI), `CODE_OF_CONDUCT.md`, captures d'écran sur une réunion fictive.
+
+### Modifié
+- README réorganisé pour un premier visiteur : pour qui, comparatif, installation depuis la
+  release, limites connues, feuille de route.
+
 ## [3.0.1] - 2026-11-05
 
 ### Corrigé
@@ -60,6 +72,7 @@ antérieures n'ont pas été taguées (la numérotation reprend la « version 3 
   journal technique.
 - Réglages copiés dans le dossier (`app/reglages.txt`), restaurés après un nettoyage du navigateur.
 
-[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.1...HEAD
+[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.2...HEAD
+[3.0.2]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/PercyaDJ/Lowsper/releases/tag/v3.0.0
