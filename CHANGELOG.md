@@ -13,6 +13,19 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [3.0.1] - 2026-11-05
+
+### Corrigé
+- Moteur : un passage long et dense, avec un glossaire ou un vocabulaire métier bien rempli, pouvait
+  faire échouer Whisper (contexte et texte généré au-delà de sa fenêtre de 448 jetons) ; il était
+  alors signalé « Passage non transcrit ». Le contexte est désormais raccourci quand la place manque
+  (decision.md §17.8).
+- `node build.mjs` fonctionne sur un clone neuf : Silero VAD et WeSpeaker se téléchargent avec
+  `fetch-model.mjs`, et le build vérifie tout avant de toucher à `app/engine`.
+- `fetch-model.mjs` télécharge la révision figée, et non la dernière version publiée.
+- Documentation alignée sur le code : Firefox, WebGPU, distinction des intervenants, son gardé en
+  mémoire.
+
 ### Ajouté
 - Intégration continue : lint, formatage, tests unitaires et test de non-fuite réseau à chaque
   pull request.
@@ -27,13 +40,6 @@ Les détails techniques et les mesures sont dans `decision.md`.
 ### Modifié
 - Exemples de l'interface, de la documentation et des tests : noms entièrement fictifs.
 - Corpus d'entretien régénéré avec un employeur fictif ; mesures de §15.15 refaites (decision.md §17.6).
-
-### Corrigé
-- `node build.mjs` fonctionne sur un clone neuf : Silero VAD et WeSpeaker se téléchargent avec
-  `fetch-model.mjs`, et le build vérifie tout avant de toucher à `app/engine`.
-- `fetch-model.mjs` télécharge la révision figée, et non la dernière version publiée.
-- Documentation alignée sur le code : Firefox, WebGPU, distinction des intervenants, son gardé en
-  mémoire.
 
 ## [3.0.0] - 2026-10-19
 
@@ -53,5 +59,6 @@ antérieures n'ont pas été taguées (la numérotation reprend la « version 3 
   journal technique.
 - Réglages copiés dans le dossier (`app/reglages.txt`), restaurés après un nettoyage du navigateur.
 
-[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.0...HEAD
+[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.1...HEAD
+[3.0.1]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/PercyaDJ/Lowsper/releases/tag/v3.0.0
