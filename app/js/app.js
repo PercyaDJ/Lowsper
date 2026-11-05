@@ -335,9 +335,19 @@
             console.warn('Empreinte du micro impossible pour ce passage', e);
           }
         }
-        t.addSegment(job.source, job.seg, res, voices, { block: job.seg.id, draft: fast, embs });
+        t.addSegment(job.source, job.seg, res, voices, {
+          block: job.seg.id,
+          draft: fast,
+          embs,
+        });
         if (tracker) regroupLive(t, tracker);
-        if (fast) app.drafts.push({ source: job.source, seg: { ...job.seg, audio: null }, transcript: t, keepDraft });
+        if (fast)
+          app.drafts.push({
+            source: job.source,
+            seg: { ...job.seg, audio: null },
+            transcript: t,
+            keepDraft,
+          });
       })
       .then(() => {
         if (job.redo) return;
@@ -372,7 +382,12 @@
     app.health.retried++;
     if (job.redo) {
       // Retranscription d'un passage « rapide » : la version rapide reste en place
-      if (job.attempts < 3) app.drafts.push({ ...job, seg: { ...job.seg, audio: null }, keepDraft: job.seg.audio });
+      if (job.attempts < 3)
+        app.drafts.push({
+          ...job,
+          seg: { ...job.seg, audio: null },
+          keepDraft: job.seg.audio,
+        });
       return;
     }
     if (job.attempts < 3) {
@@ -500,7 +515,10 @@
 
   // Contexte donné à Whisper : nom de la réunion, vocabulaires métier et glossaire (vocabulary.js)
   function promptFor(t, job) {
-    return L.Vocabulary.prompt({ title: t.meta.title, glossary: t.fullGlossary() });
+    return L.Vocabulary.prompt({
+      title: t.meta.title,
+      glossary: t.fullGlossary(),
+    });
   }
 
   // Regroupement des voix en cours de réunion (toutes les 45 s environ) : l'affichage en
@@ -640,7 +658,11 @@
         t.markQueued(source, seg);
         pump();
       },
-      { analyzer: app.analyzer, emitEarly: engineIdle, recorders: (app.recorders = {}) }
+      {
+        analyzer: app.analyzer,
+        emitEarly: engineIdle,
+        recorders: (app.recorders = {}),
+      }
     );
     await app.capture.init();
     if (mic) attachSource('me', mic);
@@ -734,7 +756,13 @@
       model: app.modelLabel,
       sources: ['others'],
       offset: 0,
-      file: { name: file.name, size: file.size, modifiedAt: file.lastModified || null, recordedAt: null, duration: 0 },
+      file: {
+        name: file.name,
+        size: file.size,
+        modifiedAt: file.lastModified || null,
+        recordedAt: null,
+        duration: 0,
+      },
       profile: L.Notes.current().id,
     });
     t.othersBusy = [];
@@ -785,7 +813,10 @@
       } catch (e) {
         item.status = e && e.code === 'ABORT' ? 'annulé' : 'échec';
         item.error = (e && e.message) || String(e);
-        journal('import-échec', { format: item.meta && item.meta.format, erreur: item.error.slice(0, 200) });
+        journal('import-échec', {
+          format: item.meta && item.meta.format,
+          erreur: item.error.slice(0, 200),
+        });
       }
       renderImport();
     }
@@ -838,11 +869,19 @@
       (seg) => {
         seg.id = ++app.blockSeq;
         seg.abs = L.speechIntervals ? L.speechIntervals(seg) : [];
-        app.queue.push({ source: 'others', seg, transcript: t, queuedAt: Date.now() });
+        app.queue.push({
+          source: 'others',
+          seg,
+          transcript: t,
+          queuedAt: Date.now(),
+        });
         t.markQueued('others', seg);
         pump();
       },
-      { vad: analyzer ? { run: (samples) => analyzer.vad(VAD_ID, samples) } : null, vadTimeout: null }
+      {
+        vad: analyzer ? { run: (samples) => analyzer.vad(VAD_ID, samples) } : null,
+        vadTimeout: null,
+      }
     );
     const tick = setInterval(() => renderImportProgress(item), 500);
     try {
@@ -863,7 +902,10 @@
         item.decoded += chunk.length / L.AUDIO_RATE;
         // Mémoire bornée : le décodage attend que la transcription rattrape son retard
         while (pendingFor(t) > FILE_AHEAD && !signal.aborted) await new Promise((r) => setTimeout(r, 200));
-        if (signal.aborted) throw Object.assign(new Error('Transcription du fichier annulée.'), { code: 'ABORT' });
+        if (signal.aborted)
+          throw Object.assign(new Error('Transcription du fichier annulée.'), {
+            code: 'ABORT',
+          });
       }
       await segmenter.flush();
       t.meta.file.duration = item.decoded;
@@ -872,14 +914,22 @@
       // Fin de la transcription, annulable à tout moment (la finalisation n'attend plus rien ensuite)
       await new Promise((resolve, reject) => {
         const wait = () => {
-          if (signal.aborted) reject(Object.assign(new Error('Transcription du fichier annulée.'), { code: 'ABORT' }));
+          if (signal.aborted)
+            reject(
+              Object.assign(new Error('Transcription du fichier annulée.'), {
+                code: 'ABORT',
+              })
+            );
           else if (pendingFor(t) === 0) resolve();
           else setTimeout(wait, 200);
         };
         wait();
       });
       await finalizeMeeting(t, (text) => (item.step = text));
-      if (signal.aborted) throw Object.assign(new Error('Transcription du fichier annulée.'), { code: 'ABORT' });
+      if (signal.aborted)
+        throw Object.assign(new Error('Transcription du fichier annulée.'), {
+          code: 'ABORT',
+        });
       return t;
     } catch (e) {
       // Annulation ou échec : les passages en attente de ce fichier sont retirés de la file
@@ -1056,7 +1106,13 @@
           map,
           abs: block.parts.map((p) => [p.from, p.to]),
         };
-        app.queue.push({ source, seg, transcript: t, queuedAt: Date.now(), sweep: true });
+        app.queue.push({
+          source,
+          seg,
+          transcript: t,
+          queuedAt: Date.now(),
+          sweep: true,
+        });
         t.markQueued(source, seg);
         t.meta.recovered = (t.meta.recovered || 0) + seg.speech;
         added++;
@@ -1070,7 +1126,10 @@
       }
       flush();
     }
-    journal('rattrapage', { passages: added, secondes: Math.round(t.meta.recovered || 0) });
+    journal('rattrapage', {
+      passages: added,
+      secondes: Math.round(t.meta.recovered || 0),
+    });
     pump();
     return added;
   }
@@ -1107,7 +1166,9 @@
         }
       } catch (e) {
         console.warn('Rattrapage impossible', e);
-        journal('rattrapage-erreur', { erreur: String(e.message || e).slice(0, 200) });
+        journal('rattrapage-erreur', {
+          erreur: String(e.message || e).slice(0, 200),
+        });
       }
     }
     if (t.tracker) {
@@ -1564,7 +1625,13 @@
     if (acc.state === 'accorde') {
       try {
         ex.savedAs = await L.Notes.writeNote(acc.dir, n.name, n.content, ex.where === 'dossier' ? ex.savedAs : null);
-        Object.assign(ex, { where: 'dossier', folder: profile.folderName, at: Date.now(), error: null, pending: null });
+        Object.assign(ex, {
+          where: 'dossier',
+          folder: profile.folderName,
+          at: Date.now(),
+          error: null,
+          pending: null,
+        });
         journal('note', { où: 'dossier', profil: profile.format });
         return ex;
       } catch (e) {
@@ -1575,7 +1642,12 @@
     if (o.update) return ex;
     if (o.interactive && ex.where === 'telechargements') return ex; // pas de second téléchargement
     download(n.content, n.name);
-    Object.assign(ex, { where: 'telechargements', savedAs: n.name, at: Date.now(), pending: acc.state });
+    Object.assign(ex, {
+      where: 'telechargements',
+      savedAs: n.name,
+      at: Date.now(),
+      pending: acc.state,
+    });
     journal('note', { où: 'téléchargements', accès: acc.state });
     return ex;
   }
@@ -1600,7 +1672,11 @@
     const box = $('export-info');
     const btn = $('export-folder');
     const hm = (ms) =>
-      new Date(ms).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      new Date(ms).toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
     const profile = profileOf(t);
     btn.hidden = true;
     if (ex.where === 'dossier') {
@@ -1733,7 +1809,9 @@
           const fields = new Set(q.front.fields);
           if (c.checked) fields.add(key);
           else fields.delete(key);
-          updateProfile(q.id, { front: Object.assign(q.front, { fields: [...fields] }) });
+          updateProfile(q.id, {
+            front: Object.assign(q.front, { fields: [...fields] }),
+          });
         });
         const sp = document.createElement('span');
         sp.textContent = label;
@@ -1970,7 +2048,10 @@
     try {
       // Taille d'un appel Teams réduit : une barre, la dernière phrase en dessous
       // Une seule ligne, comme un appel Teams réduit (la flèche déplie la dernière phrase)
-      win = await window.documentPictureInPicture.requestWindow({ width: 300, height: 48 });
+      win = await window.documentPictureInPicture.requestWindow({
+        width: 300,
+        height: 48,
+      });
     } catch (e) {
       if (!quiet) toast("La mini-fenêtre n'a pas pu s'ouvrir : " + e.message, 6000);
       return;
@@ -2449,12 +2530,16 @@
     renderProfiles();
   });
   $('prof-classic').addEventListener('change', () => {
-    updateProfile(app.editProfileId, { format: $('prof-classic').checked ? 'classique' : 'modele' });
+    updateProfile(app.editProfileId, {
+      format: $('prof-classic').checked ? 'classique' : 'modele',
+    });
     renderProfiles();
   });
   $('prof-front').addEventListener('change', () => {
     const p = L.Notes.list().find((x) => x.id === app.editProfileId);
-    updateProfile(p.id, { front: Object.assign(p.front, { enabled: $('prof-front').checked }) });
+    updateProfile(p.id, {
+      front: Object.assign(p.front, { enabled: $('prof-front').checked }),
+    });
     renderProfiles();
   });
   $('prof-prompt').addEventListener('change', () =>
@@ -2476,7 +2561,9 @@
     renderPrompts();
   });
   $('ai-name').addEventListener('input', () => {
-    L.Notes.savePrompt(app.editPromptId, { name: $('ai-name').value.trim() || 'Consigne' });
+    L.Notes.savePrompt(app.editPromptId, {
+      name: $('ai-name').value.trim() || 'Consigne',
+    });
     fillPromptSelect($('ai-select'), app.editPromptId);
   });
   $('ai-text').addEventListener('input', () => {
@@ -2484,16 +2571,111 @@
     const p = L.Notes.prompts().find((x) => x.id === app.editPromptId);
     $('ai-remove').disabled = p.builtin && !p.modified;
   });
+  // --- IA intégrée du navigateur : sonde et essai sur une réunion fictive (decision.md §23) ---
+  const lai = { states: [], trials: {}, abort: null };
+  function laiReport() {
+    return L.LocalAI.report({
+      probe: lai.states,
+      trials: lai.trials,
+      userAgent: navigator.userAgent,
+      protocol: location.protocol,
+      secure: window.isSecureContext,
+    });
+  }
+  function renderLocalAI(busy) {
+    const ul = $('lai-states');
+    ul.textContent = '';
+    for (const s of lai.states) {
+      const li = document.createElement('li');
+      const b = document.createElement('strong');
+      b.textContent = s.name + ' : ';
+      li.appendChild(b);
+      const explain = L.LocalAI.STATES[s.state] || `réponse inattendue du navigateur (« ${s.state} »)`;
+      li.appendChild(document.createTextNode(explain + (s.detail ? ` (${s.detail})` : '')));
+      li.className = L.LocalAI.usable(s.state) ? 'ok' : 'ko';
+      ul.appendChild(li);
+    }
+    const any = lai.states.some((s) => L.LocalAI.usable(s.state));
+    $('lai-probe').disabled = !!busy;
+    $('lai-trial').hidden = !any;
+    $('lai-trial').disabled = !!busy;
+    $('lai-stop').hidden = !busy;
+    $('lai-copy').hidden = !lai.states.length || !!busy;
+    const results = Object.keys(lai.trials).length;
+    $('lai-out').hidden = !results;
+    if (results) $('lai-out').textContent = laiReport().split('\n').slice(2).join('\n');
+  }
+  $('lai-probe').addEventListener('click', async () => {
+    $('lai-status').textContent = 'Vérification…';
+    lai.trials = {};
+    renderLocalAI(true);
+    lai.states = await L.LocalAI.probe();
+    const any = lai.states.some((s) => L.LocalAI.usable(s.state));
+    $('lai-status').textContent = any
+      ? 'Le navigateur déclare pouvoir travailler en français sur ce PC. L’essai dira ce que vaut le résultat.'
+      : 'L’IA intégrée n’est pas utilisable ici. « Copier pour une IA » reste disponible.';
+    renderLocalAI(false);
+  });
+  $('lai-trial').addEventListener('click', async () => {
+    const todo = lai.states.filter((s) => L.LocalAI.usable(s.state));
+    if (
+      todo.some((s) => s.state !== 'available') &&
+      !confirm(
+        'Le navigateur doit d’abord télécharger son modèle de langage. Ce téléchargement est fait par le navigateur, pas par Lowsper, et demande au moins 22 Go d’espace libre (documentation de Chrome). Continuer ?'
+      )
+    )
+      return;
+    lai.abort = new AbortController();
+    lai.trials = {};
+    renderLocalAI(true);
+    for (const s of todo) {
+      if (lai.abort.signal.aborted) break;
+      $('lai-status').textContent = `${s.name} : rédaction du compte rendu de la réunion fictive…`;
+      try {
+        lai.trials[s.id] = await L.LocalAI.trial(s.id, {
+          signal: lai.abort.signal,
+          onProgress: (f) => {
+            $('lai-progress').hidden = f >= 1;
+            $('lai-progress').value = f;
+            $('lai-status').textContent = `Téléchargement du modèle par le navigateur : ${Math.round(f * 100)} %`;
+          },
+        });
+      } catch (e) {
+        lai.trials[s.id] = {
+          error: (e && (e.name ? e.name + ' : ' : '') + e.message) || String(e),
+        };
+      }
+      $('lai-progress').hidden = true;
+      renderLocalAI(true);
+    }
+    const aborted = lai.abort.signal.aborted;
+    lai.abort = null;
+    $('lai-status').textContent = aborted
+      ? 'Essai arrêté.'
+      : 'Essai terminé. « Copier le rapport » ne contient que la réunion fictive et l’état du navigateur.';
+    renderLocalAI(false);
+  });
+  $('lai-stop').addEventListener('click', () => lai.abort && lai.abort.abort());
+  $('lai-copy').addEventListener('click', () => copy(laiReport()));
   $('prof-links').addEventListener('change', () =>
     updateProfile(app.editProfileId, { links: $('prof-links').checked })
   );
-  bindProfileField('prof-name', (p, el) => ({ name: el.value.trim() || 'Profil' }));
+  bindProfileField('prof-name', (p, el) => ({
+    name: el.value.trim() || 'Profil',
+  }));
   bindProfileField('prof-filename', (p, el) => ({ fileName: el.value }));
   bindProfileField('prof-template', (p, el) => ({ template: el.value }));
-  bindProfileField('prof-tags', (p, el) => ({ front: Object.assign(p.front, { tags: el.value }) }));
-  bindProfileField('prof-extra', (p, el) => ({ front: Object.assign(p.front, { extra: el.value }) }));
+  bindProfileField('prof-tags', (p, el) => ({
+    front: Object.assign(p.front, { tags: el.value }),
+  }));
+  bindProfileField('prof-extra', (p, el) => ({
+    front: Object.assign(p.front, { extra: el.value }),
+  }));
   $('prof-template-reset').addEventListener('click', () => {
-    updateProfile(app.editProfileId, { template: L.Notes.DEFAULT_TEMPLATE, fileName: L.Notes.DEFAULT_FILENAME });
+    updateProfile(app.editProfileId, {
+      template: L.Notes.DEFAULT_TEMPLATE,
+      fileName: L.Notes.DEFAULT_FILENAME,
+    });
     renderProfiles();
   });
   {

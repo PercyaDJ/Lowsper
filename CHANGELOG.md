@@ -13,6 +13,18 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [3.4.0] - 2026-11-05
+
+### Ajouté
+- Sonde de l'IA intégrée du navigateur (expérimental), dans les paramètres : indique si Chrome ou
+  Edge peut rédiger des résumés en français sur ce PC, sans rien télécharger ; essai facultatif
+  sur une réunion fictive, faits retrouvés comptés, rapport à copier. Aucun vrai transcript n'est
+  lu (decision.md §23).
+
+### Modifié
+- Le banc `tools/test/eval-summary.mjs` lit son exemple, sa consigne et ses faits dans
+  `app/js/localai.js`.
+
 ## [3.3.0] - 2026-11-05
 
 ### Ajouté
@@ -107,6 +119,7 @@ antérieures n'ont pas été taguées (la numérotation reprend la « version 3 
 - Réglages copiés dans le dossier (`app/reglages.txt`), restaurés après un nettoyage du navigateur.
 
 [Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.3.0...HEAD
+[3.4.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.3.0...v3.4.0
 [3.3.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.0.2...v3.1.0

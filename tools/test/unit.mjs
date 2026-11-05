@@ -12,6 +12,8 @@ const appJs = join(here, '..', '..', 'app', 'js');
 const store = new Map();
 const sandbox = {
   console,
+  setTimeout,
+  clearTimeout,
   localStorage: {
     getItem: (k) => (store.has(k) ? store.get(k) : null),
     setItem: (k, v) => store.set(k, String(v)),
@@ -29,6 +31,7 @@ for (const f of [
   'transcript.js',
   'speakers.js',
   'notes.js',
+  'localai.js',
 ]) {
   vm.runInContext(await readFile(join(appJs, f), 'utf8'), sandbox, { filename: f });
 }
@@ -1060,6 +1063,92 @@ await test('consignes : modifiables, rétablissables, personnelles, variables et
   store.set('lowsper.prompts', 'abîmé');
   assert.equal(L.Notes.prompts().length, 3);
   store.delete('lowsper.prompts');
+});
+
+await test('IA intégrée : exemple fictif identique au corpus, faits et rapport', async () => {
+  const A = L.LocalAI;
+  const truth = JSON.parse(await readFile(join(here, 'corpus', 'hebdo.truth.json'), 'utf8'));
+  assert.deepEqual(
+    [...A.SAMPLE].map((x) => [...x]),
+    truth.map((l) => [l.start, l.channel === 'me' ? 'Vous' : l.who, l.ref])
+  );
+  const tr = A.sampleTranscript();
+  assert.match(tr, /^\*\*\[00:00:02\] Claire :\*\* Bonjour/);
+  // Critères des faits : un compte rendu complet les retrouve tous ; un texte vide, aucun
+  const full =
+    '1 240 tickets. SLA P2 à 87 %. Certificat VPN expiré.\nKarim régularise en CAB.\n' +
+    'Thomas et Élodie migrent mardi.\nMarc envoie le chiffrage.\nCOPIL jeudi.\nSophie relance le prestataire.';
+  assert.equal(A.checkFacts(full).found.length, A.FACTS.length);
+  assert.equal(A.checkFacts('').found.length, 0);
+  const r = A.report({
+    probe: [{ id: 'summarizer', name: 'Résumé', state: 'available', detail: '' }],
+    trials: {
+      summarizer: {
+        text: 'Karim passe en CAB.',
+        createMs: 1500,
+        runMs: 2500,
+        facts: A.checkFacts('Karim passe en CAB.'),
+      },
+    },
+    userAgent: 'UA',
+    protocol: 'file:',
+    secure: true,
+  });
+  assert.match(r, /Résumé : available/);
+  assert.match(r, /Faits retrouvés : 1\/8/);
+  assert.match(r, /Préparation : 1\.5 s ; rédaction : 2\.5 s/);
+});
+
+await test('IA intégrée : sonde (absente, états, erreur, délai) et essai', async () => {
+  const A = L.LocalAI;
+  assert.deepEqual(
+    [...(await A.probe({}))].map((s) => s.state),
+    ['absent', 'absent']
+  );
+  const seen = [];
+  const scope = {
+    Summarizer: {
+      availability: async (o) => (seen.push(o), 'downloadable'),
+      create: async (o) => {
+        o.monitor({ addEventListener: (n, f) => f({ loaded: 0.5 }) });
+        return {
+          summarize: async (t) => 'Sophie relance le prestataire. ' + t.length,
+          destroy() {
+            this.done = true;
+          },
+        };
+      },
+    },
+    LanguageModel: {
+      availability: async () => {
+        throw new TypeError('bloqué');
+      },
+    },
+  };
+  const st = await A.probe(scope);
+  assert.equal(st[0].state, 'downloadable');
+  assert.deepEqual([...seen[0].expectedInputLanguages], ['fr']);
+  assert.equal(seen[0].outputLanguage, 'fr');
+  assert.equal(st[1].state, 'error');
+  assert.match(st[1].detail, /TypeError : bloqué/);
+  assert.equal(A.usable('downloadable') && A.usable('available') && !A.usable('unavailable'), true);
+  const slow = await A.probe({ Summarizer: { availability: () => new Promise(() => {}) } }, 20);
+  assert.equal(slow[0].state, 'timeout');
+  const progress = [];
+  const t = await A.trial('summarizer', { scope, onProgress: (f) => progress.push(f) });
+  assert.deepEqual(progress, [0.5]);
+  assert.match(t.text, /^Sophie relance le prestataire/);
+  assert.deepEqual([...t.facts.found], ['Sophie relance le prestataire (renfort)']);
+  // Prompt API : consigne système, consigne et transcript dans le message
+  let sys, msg;
+  const lm = {
+    LanguageModel: {
+      create: async (o) => ((sys = o.initialPrompts[0].content), { prompt: async (m) => ((msg = m), 'ok') }),
+    },
+  };
+  await A.trial('prompt', { scope: lm });
+  assert.equal(sys, A.SYSTEM);
+  assert.ok(msg.startsWith(A.CONSIGNE + '\n\n---\n\n**[00:00:02] Claire'));
 });
 
 if (failed) {

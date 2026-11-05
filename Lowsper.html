@@ -186,6 +186,20 @@
           <textarea id="ai-text" rows="5"></textarea>
         </label>
       </section>
+      <section aria-labelledby="lai-title">
+        <h3 id="lai-title">IA intégrée du navigateur (expérimental)</h3>
+        <p class="fine">Chrome et Edge récents peuvent embarquer un petit modèle de langage qui rédige des résumés sur le PC, sans service en ligne, si le matériel le permet. La vérification ne télécharge rien et ne lit aucun de vos transcripts ; l'essai porte sur une réunion fictive.</p>
+        <div class="row lai-row">
+          <button class="btn small" id="lai-probe" type="button">Vérifier ce PC</button>
+          <button class="btn small" id="lai-trial" type="button" hidden>Essayer sur une réunion fictive</button>
+          <button class="btn ghost small" id="lai-stop" type="button" hidden>Arrêter</button>
+          <button class="btn ghost small" id="lai-copy" type="button" hidden>Copier le rapport</button>
+        </div>
+        <ul class="lai-states" id="lai-states" aria-live="polite"></ul>
+        <progress id="lai-progress" max="1" value="0" hidden aria-label="Téléchargement du modèle par le navigateur"></progress>
+        <p class="fine" id="lai-status" aria-live="polite"></p>
+        <pre class="lai-out" id="lai-out" tabindex="0" hidden></pre>
+      </section>
       <section>
         <h3>Modèle</h3>
         <p class="fine" id="model-current"></p>
@@ -483,6 +497,7 @@
   <script src="app/js/vocabulary.js"></script>
   <script src="app/js/transcript.js"></script>
   <script src="app/js/notes.js"></script>
+  <script src="app/js/localai.js"></script>
   <script src="app/js/app.js"></script>
 </body>
 </html>

@@ -102,6 +102,7 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Paquet de distribution `tools/dist/Lowsper-X.Y.Z.zip` (et son test) | `npm run release`, `npm run test:release` |
 | Captures d'écran de la documentation (après `--embed`, 5 min) | `node test/screenshots.mjs` |
 | Qualité sur corpus réaliste | `node test/eval-hebdo.mjs whisper-small` |
+| Sonde de l'IA intégrée, page en `file://`, fausse IA (20 s, Chromium) | `npm run test:localai` |
 | Étude du résumé local (modèles dans `.cache/llm`, decision.md §22) | `node test/eval-summary.mjs <modèle> [--dtype=q8\|q4] [--sanity] [--long]` |
 
 Chromium : si Playwright ne trouve pas son navigateur, définissez `CHROMIUM_PATH`. Le test de
@@ -123,6 +124,7 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/js/speakers.js` | Distinction, regroupement et mémoire des voix ; voix du micro (anti-écho) |
 | `app/js/transcript.js` | Assemblage, sigles, filtres, couverture, Markdown, sauvegarde de secours |
 | `app/js/notes.js` | Profils de sortie : modèle de note, nom de fichier, front matter, liens, dossier de destination |
+| `app/js/localai.js` | Sonde de l'IA intégrée du navigateur (expérimental) : disponibilité, essai sur une réunion fictive, rapport |
 | `app/js/vocabulary.js` | Vocabulaires métier et contexte donné à Whisper |
 | `app/js/installer.js` | Téléchargement vérifié du modèle : seul code réseau de l'application |
 | `app/js/settings.js` | Copie des réglages dans `app/reglages.txt` |
