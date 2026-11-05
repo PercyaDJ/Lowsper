@@ -509,11 +509,13 @@
     }
 
     /** Nom affiché : « Vous », « Intervenant n » (ordre d'apparition) ou « Participant(s) ». */
-    speakerName(item) {
+    /** Nom affiché d'un intervenant. links : un nom donné à la main devient un lien [[Nom]]. */
+    speakerName(item, links) {
       if (item.source !== 'others') return SPEAKERS[item.source] || item.source;
       if (item.voice == null) return this.hasVoices() ? 'Participant' : SPEAKERS.others;
       const named = this.meta.names && this.meta.names[item.voice];
-      if (named) return named;
+      // Caractères qui casseraient un lien de note ([[...]], |, #, ^) retirés du nom
+      if (named) return links ? `[[${named.replace(/[[\]|#^]/g, '').trim()}]]` : named;
       return 'Intervenant ' + (this.voiceOrder().indexOf(item.voice) + 1);
     }
 
@@ -600,7 +602,13 @@
       return items;
     }
 
-    toMarkdown() {
+    /**
+     * Le transcript en morceaux, pour les modèles de note (notes.js) : titre, lignes d'en-tête,
+     * avertissement, corps horodaté. options.links : intervenants nommés écrits en liens [[Nom]].
+     * toMarkdown() les assemble dans le format classique de Lowsper.
+     */
+    parts(options) {
+      const links = !!(options && options.links);
       const m = this.meta;
       const start = new Date(m.startedAt);
       const end = m.endedAt ? new Date(m.endedAt) : new Date();
@@ -618,8 +626,7 @@
         .join(', ');
 
       const out = [];
-      out.push(`# Transcript de réunion${m.title ? ' : ' + m.title : ''}`);
-      out.push('');
+      const title = `# Transcript de réunion${m.title ? ' : ' + m.title : ''}`;
       if (m.file) {
         // Enregistrement importé : on ne dit que ce que le fichier permet de savoir
         const day = (ms) =>
@@ -669,27 +676,23 @@
         .map((id) => Lowsper.Vocabulary && Lowsper.Vocabulary.PRESETS[id] && Lowsper.Vocabulary.PRESETS[id].label)
         .filter(Boolean);
       if (vocab.length) out.push(`- **Domaine** : ${vocab.join(', ').toLowerCase()}`);
-      out.push('');
-      out.push(
+      const header = out.splice(0);
+      const notice =
         '> Transcription automatique : elle peut contenir des erreurs de reconnaissance. ' +
-          (m.file ? '' : '« Vous » désigne la personne qui enregistre (micro). ') +
-          (this.hasVoices()
-            ? (m.file
-                ? "Les intervenants sont les voix distinctes détectées automatiquement dans l'enregistrement "
-                : "Les autres intervenants sont les voix distinctes détectées automatiquement dans l'audio de la réunion ") +
-              (this.meta.names && Object.keys(this.meta.names).length
-                ? '(certaines nommées à la main après la réunion, les autres numérotées « Intervenant n ») : '
-                : '(« Intervenant 1, 2... », noms réels inconnus, ils peuvent souvent se déduire des échanges) : ') +
-              'deux personnes à la voix proche peuvent partager un numéro, et une même personne peut en recevoir deux. ' +
-              'Les phrases trop courtes pour identifier la voix sont notées « Participant ». '
-            : m.file
-              ? "« Participants » regroupe toutes les voix de l'enregistrement, sans distinction de personne. "
-              : "« Participants » regroupe toutes les autres voix entendues via l'audio de la réunion, sans distinction de personne. ") +
-          'Les horodatages [hh:mm:ss] sont relatifs au début de l’enregistrement.'
-      );
-      out.push('');
-      out.push('## Transcript');
-      out.push('');
+        (m.file ? '' : '« Vous » désigne la personne qui enregistre (micro). ') +
+        (this.hasVoices()
+          ? (m.file
+              ? "Les intervenants sont les voix distinctes détectées automatiquement dans l'enregistrement "
+              : "Les autres intervenants sont les voix distinctes détectées automatiquement dans l'audio de la réunion ") +
+            (this.meta.names && Object.keys(this.meta.names).length
+              ? '(certaines nommées à la main après la réunion, les autres numérotées « Intervenant n ») : '
+              : '(« Intervenant 1, 2... », noms réels inconnus, ils peuvent souvent se déduire des échanges) : ') +
+            'deux personnes à la voix proche peuvent partager un numéro, et une même personne peut en recevoir deux. ' +
+            'Les phrases trop courtes pour identifier la voix sont notées « Participant ». '
+          : m.file
+            ? "« Participants » regroupe toutes les voix de l'enregistrement, sans distinction de personne. "
+            : "« Participants » regroupe toutes les autres voix entendues via l'audio de la réunion, sans distinction de personne. ") +
+        'Les horodatages [hh:mm:ss] sont relatifs au début de l’enregistrement.';
 
       const events = this.paragraphs().map((p) => ({ t: p.start, p }));
       for (const pause of m.pauses) events.push({ t: pause.from, pause });
@@ -705,11 +708,27 @@
             `_[${fmt(e.gap.start)} à ${fmt(e.gap.end)}] Passage non transcrit (${SPEAKERS[e.gap.source] || e.gap.source}) : le moteur a échoué sur ce passage._`
           );
         } else {
-          out.push(`**[${fmt(e.p.start)}] ${this.speakerName(e.p)} :** ${e.p.text}`);
+          out.push(`**[${fmt(e.p.start)}] ${this.speakerName(e.p, links)} :** ${e.p.text}`);
         }
         out.push('');
       }
-      return out.join('\n').trim() + '\n';
+      return { title, header, notice, body: out.join('\n').trim() };
+    }
+
+    /** Format classique de Lowsper (profil « Par défaut »). */
+    toMarkdown() {
+      const p = this.parts();
+      return [p.title, '', ...p.header, '', p.notice, '', '## Transcript', '', p.body].join('\n').trim() + '\n';
+    }
+
+    /** Intervenants dans leur ordre d'apparition (« Vous », noms donnés, « Intervenant n »). */
+    speakerNames(links) {
+      const names = [];
+      for (const p of this.paragraphs()) {
+        const n = this.speakerName(p, links);
+        if (!names.includes(n)) names.push(n);
+      }
+      return names;
     }
 
     fileName() {

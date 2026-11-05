@@ -21,7 +21,15 @@ const sandbox = {
 sandbox.window = sandbox;
 sandbox.self = sandbox;
 vm.createContext(sandbox);
-for (const f of ['engine.js', 'capture.js', 'audiofile.js', 'vocabulary.js', 'transcript.js', 'speakers.js']) {
+for (const f of [
+  'engine.js',
+  'capture.js',
+  'audiofile.js',
+  'vocabulary.js',
+  'transcript.js',
+  'speakers.js',
+  'notes.js',
+]) {
   vm.runInContext(await readFile(join(appJs, f), 'utf8'), sandbox, { filename: f });
 }
 const L = sandbox.Lowsper;
@@ -876,6 +884,139 @@ await test('import : formats sans lecteur dédié confiés au navigateur, fichie
   // Durée d'un paquet Opus d'après son octet TOC : 20 ms (config 31 = CELT 20 ms)
   assert.equal(L.AudioFile.opusSamples(new Uint8Array([31 << 3])), 960);
   await assert.rejects(L.AudioFile.open(bufferSource(Buffer.from('RIFF\0\0\0\0WAVEdata\0\0\0\0'))), /incomplet/);
+});
+
+// --- Profils de sortie et notes Markdown ---
+function sampleMeeting() {
+  const t = new L.Transcript({
+    title: 'Revue « budget » : T3',
+    startedAt: new Date(2026, 9, 5, 17, 0).getTime(),
+    endedAt: new Date(2026, 9, 5, 18, 1).getTime(),
+    sources: ['me', 'others'],
+    model: 'Whisper small',
+  });
+  t.addSegment('me', { start: 0, end: 30, speech: 30 }, { chunks: [{ from: 1, to: 4, text: 'Bonjour à tous.' }] });
+  t.addSegment(
+    'others',
+    { start: 5, end: 40, speech: 30 },
+    {
+      chunks: [
+        { from: 0, to: 4, text: 'Bonjour.' },
+        { from: 10, to: 14, text: 'Le budget tient.' },
+      ],
+    },
+    [
+      { voice: 1, key: 'a' },
+      { voice: 2, key: 'b' },
+    ]
+  );
+  t.nameVoice(2, 'Claire [Finance]');
+  return t;
+}
+
+await test('notes : le profil « Par défaut » garde exactement le format classique', () => {
+  store.delete('lowsper.profiles');
+  const t = sampleMeeting();
+  const profiles = L.Notes.list();
+  assert.equal(profiles.length, 1);
+  assert.equal(profiles[0].format, 'classique');
+  const n = L.Notes.note(t, profiles[0]);
+  assert.equal(n.content, t.toMarkdown());
+  assert.equal(n.name, t.fileName());
+});
+
+await test('notes : modèle à variables, variable inconnue laissée visible', () => {
+  const t = sampleMeeting();
+  const p = Object.assign(L.Notes.newProfile('Travail', []), {
+    template: '# {{ titre }}\n{{date}} {{heure_debut}} ({{duree}})\n{{intervenants}}\n{{inconnue}}\n\n{{transcript}}',
+  });
+  const n = L.Notes.note(t, p);
+  assert.match(n.content, /^---\n/);
+  assert.match(
+    n.content,
+    /# Revue « budget » : T3\n2026-10-05 17:00 \(61 min\)\nVous, Intervenant 1, Claire Finance\n\{\{inconnue\}\}/
+  );
+  // Les crochets d'un nom saisi sont déjà retirés au renommage (nameVoice)
+  assert.match(n.content, /\*\*\[00:00:15\] Claire Finance :\*\* Le budget tient\./);
+  assert.deepEqual([...L.Notes.unknownVariables(p.template)], ['inconnue']);
+});
+
+await test('notes : intervenants nommés en liens [[Nom]], voix non nommées en texte', () => {
+  const t = sampleMeeting();
+  const p = Object.assign(L.Notes.newProfile('Notes', []), { links: true });
+  const n = L.Notes.note(t, p);
+  assert.match(n.content, /\*\*\[00:00:15\] \[\[Claire Finance\]\] :\*\*/);
+  assert.match(n.content, /\*\*\[00:00:05\] Intervenant 1 :\*\*/, 'les voix non nommées restent du texte');
+  assert.match(n.content, /intervenants:\n {2}- "Vous"\n {2}- "Intervenant 1"\n {2}- "\[\[Claire Finance\]\]"/);
+});
+
+await test('notes : noms de fichier valides sous Windows', () => {
+  const s = L.Notes.safeFileName;
+  assert.equal(s('Revue: budget/2026 <final>?'), 'Revue- budget-2026 final.md');
+  assert.equal(s('con'), '_con.md');
+  assert.equal(s('COM1.notes'), '_COM1.notes.md');
+  assert.equal(s('Réunion...  '), 'Réunion.md');
+  assert.equal(s('a\tb\nc'), 'a b c.md');
+  assert.equal(s(''), 'reunion.md');
+  assert.equal(s('note.md'), 'note.md');
+  assert.ok(s('x'.repeat(300)).length <= 123);
+  const t = sampleMeeting();
+  const p = L.Notes.newProfile('Travail', []);
+  assert.equal(L.Notes.note(t, p).name, '2026-10-05 Revue « budget » - T3.md');
+});
+
+await test('notes : front matter YAML échappé, étiquettes et champs libres', () => {
+  const t = sampleMeeting();
+  const p = L.Notes.newProfile('Travail', []);
+  p.front = {
+    enabled: true,
+    fields: ['date', 'duree', 'source', 'modele'],
+    tags: '#réunion, point hebdo',
+    extra: 'projet: Atlas "v2"\ndate: écrasée ?\nligne sans deux-points\nlien: {{titre}}',
+  };
+  const fm = L.Notes.frontMatter(p.front, L.Notes.variables(t, p));
+  assert.equal(
+    fm,
+    '---\ndate: 2026-10-05\nduree: 61\nsource: "réunion en direct"\nmodele: "Whisper small"\ntags:\n  - "réunion"\n  - "point-hebdo"\nprojet: "Atlas \\"v2\\""\nlien: "Revue « budget » : T3"\n---\n'
+  );
+  assert.deepEqual([...L.Notes.badExtraLines(p.front.extra)], ['ligne sans deux-points']);
+  p.front.enabled = false;
+  assert.ok(!L.Notes.note(t, p).content.startsWith('---'));
+});
+
+await test("notes : enregistrement importé daté du jour de l'enregistrement", () => {
+  const t = new L.Transcript({
+    startedAt: new Date(2026, 10, 5, 10, 0).getTime(),
+    sources: ['others'],
+    file: { name: 'memo.m4a', recordedAt: new Date(2026, 2, 14, 9, 30).getTime(), duration: 600 },
+  });
+  t.addSegment('others', { start: 0, end: 30, speech: 30 }, { chunks: [{ from: 1, to: 4, text: 'Mémo.' }] });
+  const p = L.Notes.newProfile('Personnel', []);
+  const v = L.Notes.variables(t, p);
+  assert.equal(v.date, '2026-03-14');
+  assert.equal(v.titre, 'memo');
+  assert.equal(v.duree, '10 min');
+  assert.equal(v.source, 'fichier « memo.m4a »');
+  assert.equal(L.Notes.note(t, p).name, '2026-03-14 memo.md');
+});
+
+await test('notes : profils conservés, réglages abîmés ou anciens complétés', () => {
+  store.set('lowsper.profiles', '{pas du json');
+  assert.equal(L.Notes.list()[0].id, 'defaut');
+  const travail = L.Notes.newProfile('Travail', L.Notes.list());
+  L.Notes.saveAll([...L.Notes.list(), travail]);
+  L.Notes.select(travail.id);
+  assert.equal(L.Notes.current().name, 'Travail');
+  // Profil écrit par une version future ou incomplète : complété sans erreur
+  store.set('lowsper.profiles', JSON.stringify([{ id: 'x', name: 'Ancien', format: 'modele' }]));
+  const all = L.Notes.list();
+  assert.equal(all[0].id, 'defaut', 'le profil par défaut est toujours présent');
+  assert.equal(all[1].template, L.Notes.DEFAULT_TEMPLATE);
+  assert.ok(Array.isArray(all[1].front.fields));
+  L.Notes.select('inexistant');
+  assert.equal(L.Notes.current().id, 'defaut');
+  store.delete('lowsper.profiles');
+  store.delete('lowsper.profile');
 });
 
 if (failed) {
