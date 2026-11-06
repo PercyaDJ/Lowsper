@@ -1751,9 +1751,16 @@ gestionnaire de fenêtres, sans l'émulation de taille de Playwright :
   contrôle d'état affiché.
 - Charge du moteur (`npm run bench`) : voir le tableau ci-dessous.
 
-| Passage de 25 s, Whisper small | Avant | Après |
+| Passage de 25 s, Whisper small | Avant | Après (deux mesures) |
 |---|---|---|
-| Durée (RTF) | 13 883 ms (0,555) | voir ci-dessous |
+| Durée (RTF) | 13 883 ms (0,555) | 14 332 ms (0,573) ; 14 354 ms (0,574) |
+
+  Écart de 3 %, attribué au bruit de la machine : le banc ne charge que `engine.js`, que ce lot ne
+  modifie pas, et ce même moteur a déjà donné de 14 172 à 14 456 ms aux lots R2 et R3. Le travail
+  ajouté au direct est l'affichage (contrôle d'état), hors du moteur.
+- **Capture `enregistrement.png`** : elle montre « 36 s de retard », mesuré au moment de la
+  capture sur cette machine lente (un seul moteur, charge au-dessus de 100 %). C'est le
+  comportement voulu : le retard réel est affiché.
 
 **Limites.**
 - Tailles de la mini-fenêtre non mesurées dans Chrome et Edge sous Windows et macOS.
