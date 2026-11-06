@@ -13,6 +13,21 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+### Sécurité
+- Correction d'un blocage de la page (ReDoS) : une correction de mot mêlant espaces et tirets
+  (« a - - - - b »), saisie à la main ou venue d'un fichier de réglages importé, pouvait figer
+  Lowsper plusieurs secondes, voire indéfiniment, sur un texte contenant une longue suite de
+  tirets. Signalé par l'analyse Semgrep de Lysbor, mesuré, corrigé et couvert par un test
+  (decision.md §33). Les corrections habituelles fonctionnent comme avant.
+- Résultats Lysbor traités : deux messages de console à format constant ; trois faux positifs
+  justifiés et marqués dans le code (icône intégrée à la page, expression du glossaire mesurée
+  sans risque).
+
+### Modifié
+- Actions GitHub des workflows passées sur Node.js 24 (`actions/checkout` v7.0.1,
+  `actions/setup-node` v7.1.0), toujours figées sur leur empreinte : Node.js 20 est déprécié sur
+  les machines de GitHub.
+
 ## [4.0.0] - 2026-11-06
 
 Refonte de l'interface (lots R1 à R7). Version majeure : les notes vont désormais dans le dossier

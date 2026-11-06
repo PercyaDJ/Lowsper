@@ -2092,3 +2092,53 @@ généré : son code tiers est suivi par l'inventaire des dépendances, pas par 
   tant que le mainteneur n'a pas lancé le workflow une fois.
 - Le moteur empaqueté (`app/engine`) est suivi à travers `tools/package-lock.json` ; une
   modification à la main du fichier généré (interdite par `AGENTS.md`) échapperait à l'inventaire.
+
+## 33. Résultats Lysbor du 6 novembre 2026 : un vrai ReDoS, quatre corrections mineures ou faux positifs
+
+**Contexte.** Premier envoi de l'agent Lysbor (§32) : 5 résultats Semgrep ouverts (3 moyens,
+2 faibles), aucun résultat Trivy. Consigne de Lysbor : corriger la cause, n'exclure qu'un faux
+positif avéré, avec sa raison. Au §32, les cinq avaient été jugés faux positifs à la lecture ; la
+mesure en a démenti un.
+
+**`detect-non-literal-regexp`, `app/js/vocabulary.js` : vrai défaut, corrigé.**
+- Cause : dans `wordPattern`, chaque suite d'espaces du mot à corriger devenait `[\s-]+`, et les
+  tirets restaient littéraux. Un mot comme « a - - - - b » donnait `a[\s-]+-[\s-]+-...b` : des
+  groupes collés à des tirets qu'ils peuvent eux-mêmes absorber. Sur un texte qui contient une
+  longue suite « - - - », le moteur essaie un nombre polynomial de découpages.
+- Mesure (Node.js 22, `replaceWord`, texte « a » suivi de n fois « - ») : mot avec 2 tirets,
+  n = 200, 400, 800 : 3,7, 20, 174 ms ; mot avec 4 tirets, n = 200 : 8,4 s ; au-delà, arrêté au
+  bout de 120 s sans résultat. Le mot vient de l'utilisateur (« Corrections automatiques ») ou
+  d'un fichier de réglages importé : un fichier piégé pouvait figer la page, y compris pendant
+  une réunion.
+- Correction : toute suite d'espaces et de tirets qui contient une espace devient un seul
+  séparateur `[\s-]+`. Un séparateur n'est donc jamais collé à un tiret littéral, il est borné par
+  des lettres. Mêmes saisies : moins de 1 ms jusqu'à n = 800 et 6 tirets.
+- Comportement gardé : espace du mot = espace ou tiret dans le texte (« mira bello » trouve
+  « Mira-Bello »), tiret du mot littéral (« Jean-Pierre » ne trouve pas « Jean Pierre »), mot
+  entier. Seul changement : un mot où espaces et tirets se touchent (« a - b ») accepte désormais
+  n'importe quelle suite d'espaces et de tirets à cet endroit, y compris une simple espace.
+- Test unitaire : correspondances ci-dessus et saisie piégée (5 000 répétitions, moins de
+  500 ms). Lancé sur l'ancien code, il bloque (arrêté au bout de 60 s) ; il passe sur le nouveau.
+- L'expression reste construite à partir de la saisie, échappée et bornée : la règle continue de
+  la signaler, une exclusion `nosemgrep` motivée est posée sur cette ligne.
+
+**`detect-non-literal-regexp`, `app/js/transcript.js` (`fixCase`) : faux positif, mesuré.**
+Le terme est échappé, et ses espaces deviennent `\s+`, qui ne peut pas absorber un tiret : pas
+d'ambiguïté. Mesure avec les mêmes saisies piégées : moins de 1,5 ms jusqu'à n = 800, et 22 ms
+pour un million de caractères avec cinq termes hostiles. Exclusion `nosemgrep` motivée.
+
+**`unsafe-formatstring`, `app/js/app.js` et `app/js/capture.js` : corrigés.** Les deux messages
+de console concaténaient une valeur dans la chaîne de format. Ils utilisent maintenant une chaîne
+constante (`%d`, `%s`) ; le message affiché est identique.
+
+**`missing-integrity`, `Lowsper.html` : faux positif.** La ligne visée est l'icône de la page,
+une URI `data:` écrite dans le HTML : rien n'est téléchargé, l'attribut `integrity` n'a pas
+d'objet. Exclusion `nosemgrep` motivée, en commentaire HTML (syntaxe vérifiée avec Semgrep
+1.177.0 sur une copie de la page).
+
+**Leçon.** Un faux positif « évident à la lecture » se mesure avant d'être exclu : la relecture
+du §32 avait manqué les tirets collés aux séparateurs.
+
+**Après correction.** Semgrep 1.177.0 relancé sur le dépôt avec la configuration du workflow :
+voir le compte rendu de la pull request. Lysbor reçoit le nouveau rapport au prochain passage du
+workflow (il se déclenche à la fusion, les workflows ayant changé).
