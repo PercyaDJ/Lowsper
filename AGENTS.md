@@ -111,6 +111,8 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Paquet de distribution `tools/dist/Lowsper-X.Y.Z.zip` (et son test) | `npm run release`, `npm run test:release` |
 | Captures d'écran de la documentation (après `--embed`, 5 min) | `node test/screenshots.mjs` |
 | Qualité sur corpus réaliste | `node test/eval-hebdo.mjs whisper-small` |
+| Qualité par langue parlée, corpus synthétique (après `corpus/make-langs.py` et `--embed`) | `node test/eval-langs.mjs whisper-small [langues...]` |
+| Effet de plusieurs vocabulaires métier cochés (après `corpus/make-langs.py vocab` et `--embed`) | `node test/eval-vocab.mjs whisper-small [domaines...]` |
 | Sonde de l'IA intégrée, page en `file://`, fausse IA (20 s, Chromium) | `npm run test:localai` |
 | Interface en français et en anglais : catalogue, page, bascule (5 s, Chromium) | `npm run test:i18n` |
 | Écran de bienvenue : matériel simulé, recommandation, installation simulée (10 s, Chromium) | `npm run test:welcome` |
@@ -150,7 +152,9 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/js/transcript.js` | Assemblage, sigles, filtres, couverture, Markdown, sauvegarde de secours |
 | `app/js/notes.js` | Emplacements (profils de sortie) : modèle de note, nom de fichier, front matter, liens, dossier de destination (par défaut `Notes/<emplacement>` du dossier Lowsper, `decision.md` §30) ; consignes pour l'IA (textes fournis dans `i18n.js`, anciens textes reconnus pour la rétrocompatibilité, `decision.md` §29) |
 | `app/js/localai.js` | Sonde de l'IA intégrée du navigateur (expérimental) : disponibilité, essai sur une réunion fictive, rapport |
-| `app/js/vocabulary.js` | Vocabulaires métier et contexte donné à Whisper |
+| `app/js/languages.js` | Langues parlées proposées (qualité mesurée), lecture de l'ancien réglage `lowsper.language`, nom des langues dans la note (`decision.md` §34) |
+| `app/js/vocabularies.js` | Données des vocabulaires métier, par domaine et par langue parlée ; format dans `CONTRIBUTING.md` |
+| `app/js/vocabulary.js` | Vocabulaires métier : corrections connues, glossaire complet, termes alternés pour le contexte donné à Whisper (`decision.md` §35) |
 | `app/js/installer.js` | Téléchargement vérifié du modèle : seul code réseau de l'application |
 | `app/js/settings.js` | Copie des réglages dans `app/reglages.txt` ; export et import d'un fichier de réglages (sans empreintes vocales) |
 | `app/js/app.js` | Contrôleur de l'interface, file de transcription, cycle de la réunion, écran de fin (texte lisible, renommage des voix sur les répliques) |

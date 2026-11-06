@@ -215,7 +215,11 @@
       let last = 0;
       for (const m of folded.matchAll(re)) {
         const start = m.index + m[1].length;
-        result += out.slice(last, start) + term;
+        // Terme écrit en minuscules (« planning ») trouvé avec une majuscule initiale : c'est un
+        // début de phrase, la majuscule reste (« Planning »)
+        const found = out.slice(start, start + m[2].length);
+        const keepCap = term[0] !== term[0].toUpperCase() && found[0] !== found[0].toLowerCase();
+        result += out.slice(last, start) + (keepCap ? term[0].toUpperCase() + term.slice(1) : term);
         last = start + m[2].length;
       }
       out = result + out.slice(last);
@@ -298,7 +302,9 @@
       chunks.forEach((c, i) => {
         const glossary = this.fullGlossary();
         const raw = collapseRepeats(String(c.text || '').trim());
-        const fixed = Lowsper.Vocabulary ? Lowsper.Vocabulary.fix(raw, this.meta.vocab, this.meta.fixes) : raw;
+        const fixed = Lowsper.Vocabulary
+          ? Lowsper.Vocabulary.fix(raw, this.meta.vocab, this.meta.fixes, this.spokenLanguages())
+          : raw;
         const text = fixCase(fixAcronyms(fixed, glossary), glossary);
         if (!text || isHallucination(text, seg.speech, glossary)) return;
         // Whisper qui récite le nom de la réunion (donné en contexte)
@@ -409,14 +415,31 @@
         .map(([w]) => w);
     }
 
-    /** Glossaire personnel complété par les vocabulaires métier cochés. */
+    /** Langues parlées de la réunion (liste de codes), même pour une session d'avant la 4.1. */
+    spokenLanguages() {
+      return Lowsper.Languages ? Lowsper.Languages.normalize(this.meta.language) : ['fr'];
+    }
+
+    /**
+     * Glossaire personnel complété par les vocabulaires métier cochés, dans les langues parlées :
+     * sert aux corrections après la transcription (casse, sigles, hallucinations).
+     */
     fullGlossary() {
       const m = this.meta;
       if (!Lowsper.Vocabulary || !m.vocab || !m.vocab.length) return m.glossary || '';
-      if (!this._glossary || this._glossary.key !== m.glossary + '|' + m.vocab) {
-        this._glossary = { key: m.glossary + '|' + m.vocab, text: Lowsper.Vocabulary.merge(m.glossary, m.vocab) };
+      const langs = this.spokenLanguages();
+      const key = m.glossary + '|' + m.vocab + '|' + langs;
+      if (!this._glossary || this._glossary.key !== key) {
+        this._glossary = { key, text: Lowsper.Vocabulary.merge(m.glossary, m.vocab, langs) };
       }
       return this._glossary.text;
+    }
+
+    /** Termes des vocabulaires cochés pour le contexte de Whisper, dans une langue parlée. */
+    promptVocab(lang) {
+      const m = this.meta;
+      if (!Lowsper.Vocabulary || !m.vocab || !m.vocab.length) return '';
+      return Lowsper.Vocabulary.alternate(m.vocab, lang, m.glossary);
     }
 
     /**
@@ -639,7 +662,8 @@
         year: 'numeric',
       });
       const hm = (d) => d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
-      const spoken = ['fr', 'en', 'auto'].includes(m.language) ? tl('note.langs.' + m.language) : m.language;
+      // Langues parlées : « fr », « en », « auto » (sessions d'avant la 4.1) ou liste de codes
+      const spoken = Lowsper.Languages ? Lowsper.Languages.noteLabel(m.language, lang, 'note.langs.') : m.language;
       const sources = m.sources.map((s) => (s === 'me' ? tl('note.srcMe') : tl('note.srcOthers'))).join(', ');
 
       const out = [];

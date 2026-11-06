@@ -119,13 +119,15 @@
     b.type = 'button';
     b.className = 'set-row choice';
     b.dataset.value = it.value;
-    if (it.lang) b.lang = it.lang;
     if (it.disabled) b.disabled = true;
     const text = doc.createElement('span');
     text.className = 'set-text';
     const label = doc.createElement('span');
     label.className = 'set-label';
     label.textContent = it.label;
+    // Nom écrit dans sa propre langue (« Español ») : la langue est celle du nom seul, pas du
+    // sous-libellé, traduit dans la langue de l'interface (lecteurs d'écran)
+    if (it.lang) label.lang = it.lang;
     text.appendChild(label);
     if (it.sub) {
       const sub = doc.createElement('span');
@@ -184,7 +186,7 @@
     };
   }
 
-  /** Choix multiple. options : [{ value, label, sub? }], values : valeurs cochées. */
+  /** Choix multiple. options : [{ value, label, sub?, lang? }], values : valeurs cochées. */
   function checklist(box, { options, values, onToggle }) {
     const doc = box.ownerDocument;
     const focused = box.contains(doc.activeElement) ? doc.activeElement.dataset.value : null;

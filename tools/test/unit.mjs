@@ -33,6 +33,8 @@ for (const f of [
   'engine.js',
   'capture.js',
   'audiofile.js',
+  'languages.js',
+  'vocabularies.js',
   'vocabulary.js',
   'transcript.js',
   'speakers.js',
@@ -485,6 +487,132 @@ await test('correction d’un mot : pas de ReDoS, mêmes correspondances (decisi
   V.replaceWord(text, 'a' + ' -'.repeat(6) + ' b', 'X');
   L.fixCase('aaa' + ' -'.repeat(5000) + ' ccc', 'aaa' + ' -'.repeat(6) + ' bbb');
   assert.ok(Date.now() - t0 < 500, `${Date.now() - t0} ms`);
+});
+
+await test('langues parlées : l’ancien réglage est converti sans perte (rétrocompatibilité)', () => {
+  const Lg = L.Languages;
+  const from = (o) => Lg.read((k) => (k in o ? o[k] : null));
+  // Réglages des versions 4.0 et précédentes (« lowsper.language »), y compris dans app/reglages.txt
+  assert.deepEqual([...from({ 'lowsper.language': 'fr' })], ['fr']);
+  assert.deepEqual([...from({ 'lowsper.language': 'en' })], ['en']);
+  assert.deepEqual([...from({ 'lowsper.language': 'auto' })], ['fr', 'en']);
+  assert.deepEqual([...from({})], ['fr'], 'rien de réglé : français, comme avant');
+  // Le nouveau réglage l'emporte ; codes inconnus ignorés, ordre du catalogue
+  assert.deepEqual([...from({ 'lowsper.language': 'fr', 'lowsper.languages': 'en,fr' })], ['fr', 'en']);
+  assert.deepEqual([...from({ 'lowsper.language': 'en', 'lowsper.languages': 'xx,' })], ['en'], 'liste illisible');
+  // Le moteur reçoit un code, ou la liste où reconnaître la langue de chaque passage
+  assert.equal(Lg.forEngine(['fr']), 'fr');
+  assert.deepEqual([...Lg.forEngine(['fr', 'en'])], ['fr', 'en']);
+  assert.deepEqual([...Lg.forEngine('auto')], ['fr', 'en'], 'session interrompue d’une version 4.0');
+  assert.equal(Lg.forEngine(undefined), 'fr');
+  // Écriture : jamais de liste vide
+  const saved = new Map();
+  Lg.write((k, v) => saved.set(k, v), []);
+  assert.equal(saved.size, 0);
+  Lg.write((k, v) => saved.set(k, v), ['en', 'fr', 'en']);
+  assert.equal(saved.get('lowsper.languages'), 'fr,en');
+});
+
+await test('langues parlées : la note garde exactement son texte pour les anciens réglages', () => {
+  const lines = (language, lang) => {
+    const t = new L.Transcript({
+      title: 'Point',
+      startedAt: Date.parse('2026-03-02T09:00:00'),
+      language,
+      noteLang: lang,
+    });
+    t.meta.endedAt = t.meta.startedAt + 600000;
+    return t
+      .toMarkdown()
+      .split('\n')
+      .find((l) => /\*\*Lang/.test(l));
+  };
+  assert.equal(lines('fr', 'fr'), '- **Langue** : français');
+  assert.equal(lines('auto', 'fr'), '- **Langue** : français et anglais (détection automatique)');
+  assert.equal(lines(['fr'], 'fr'), '- **Langue** : français');
+  assert.equal(lines(['fr', 'en'], 'fr'), '- **Langue** : français et anglais (détection automatique)');
+  assert.equal(lines(['en'], 'en'), '- **Language**: English');
+  assert.equal(lines(['fr', 'en'], 'en'), '- **Language**: French and English (automatic detection)');
+  // Défaut de la 4.0.0 : la langue n'était plus lue (« undefined ») ; le moteur transcrivait en français
+  assert.equal(lines(undefined, 'fr'), '- **Langue** : français');
+});
+
+await test('vocabulaires : les trois listes d’origine sont inchangées en français, chaque liste a ses deux langues', () => {
+  const V = L.Vocabulary;
+  // Listes de la version 4.0, dans le même ordre (réglages et réunions déjà faits)
+  assert.equal(V.PRESETS.projet.terms.split(', ')[0], 'COPIL');
+  assert.equal(V.merge('', ['projet']).split(', ').length, 23);
+  assert.equal(V.merge('', ['cyber']).split(', ').length, 49);
+  assert.equal(V.merge('', ['it']).split(', ').length, 31);
+  const ids = Object.keys(L.VOCABULARIES);
+  assert.equal(ids.length, 12);
+  for (const id of ids) {
+    assert.match(id, /^[a-z]+$/, 'identifiant gardé dans les réglages : court, sans accent');
+    for (const lang of ['fr', 'en']) {
+      const terms = V.terms(id, lang);
+      assert.ok(terms.length >= 20, `${id} ${lang} : ${terms.length} termes`);
+      assert.equal(new Set(terms.map((x) => x.toLowerCase())).size, terms.length, `${id} ${lang} : doublon`);
+      for (const term of terms) assert.ok(term.trim() === term && term && !/[,;\n]/.test(term), `${id} : « ${term} »`);
+    }
+    assert.ok(L.i18n.CATALOGS.fr['vocab.' + id] && L.i18n.CATALOGS.en['vocab.' + id], 'nom dans les deux langues');
+  }
+  // Langue sans liste : aucun terme (pas de termes français dans une réunion en japonais)
+  assert.deepEqual([...V.terms('sante', 'ja')], []);
+  assert.equal(V.merge('Atlas', ['sante'], ['ja']), 'Atlas');
+  // Glossaire complet : vocabulaires dans chaque langue parlée, puis glossaire personnel
+  const g = V.merge('Atlas', ['projet'], ['fr', 'en']).split(', ');
+  assert.ok(g.includes('COPIL') && g.includes('steering committee') && g.at(-1) === 'Atlas');
+});
+
+await test('vocabulaires : plusieurs listes alternées, chacune garde ses meilleurs termes à la fin du contexte', () => {
+  const V = L.Vocabulary;
+  const alt = V.alternate(['sante', 'juridique', 'finance'], 'fr', 'RGPD').split(', ');
+  // Fin du contexte (gardée par le moteur) : le premier terme de chaque liste
+  assert.deepEqual(alt.slice(-3), ['EBITDA', 'CNIL', 'CHU'], 'RGPD, déjà dans le glossaire personnel, est omis');
+  assert.ok(!alt.includes('RGPD'));
+  // Une seule liste : ses premiers termes en dernier
+  assert.equal(V.alternate(['projet'], 'fr', '').split(', ').at(-1), 'COPIL');
+  assert.equal(V.alternate([], 'fr', ''), '');
+  // Ordre du contexte : vocabulaires, nom de la réunion, glossaire personnel ; sans vocabulaire,
+  // le même qu'avant la version 4.1
+  assert.equal(
+    V.prompt({ vocab: 'KPI, COPIL', title: 'Point hebdo', glossary: 'Atlas' }),
+    'KPI, COPIL. Point hebdo. Atlas.'
+  );
+  assert.equal(V.prompt({ title: 'Point hebdo', glossary: 'Atlas' }), 'Point hebdo. Atlas.');
+  // Transcript : contexte dans la langue du passage
+  const t = new L.Transcript({ glossary: 'Atlas', vocab: ['projet'], language: ['fr', 'en'] });
+  assert.equal(t.promptVocab('fr').split(', ').at(-1), 'COPIL');
+  assert.equal(t.promptVocab('en').split(', ').at(-1), 'KPI');
+  assert.equal(t.promptVocab('es'), '');
+});
+
+await test('vocabulaires : expressions construites depuis les listes, saisies piégées (decision.md §33)', () => {
+  // Tous les termes de toutes les listes passent par la correction de casse (fixCase)
+  const all = Object.keys(L.VOCABULARIES)
+    .flatMap((id) => ['fr', 'en'].flatMap((lang) => L.Vocabulary.terms(id, lang)))
+    .join(', ');
+  const traps = [
+    'a' + ' -'.repeat(5000) + ' b',
+    ' '.repeat(20000) + 'x',
+    'pass' + '-the'.repeat(4000),
+    'P&'.repeat(5000),
+    "d'".repeat(5000) + 'avoir',
+    'ISO ' + '9'.repeat(20000),
+  ];
+  const t0 = Date.now();
+  for (const text of traps) L.fixCase(text, all);
+  assert.ok(Date.now() - t0 < 2000, `${Date.now() - t0} ms pour ${traps.length} textes piégés`);
+  // Les caractères spéciaux des termes sont littéraux
+  assert.equal(L.fixCase('le p&l du mois', 'P&L'), 'le P&L du mois');
+  assert.equal(L.fixCase('la ci/cd tourne', 'CI/CD'), 'la CI/CD tourne');
+  assert.equal(L.fixCase('cixcd', 'CI.CD'), 'cixcd', 'point littéral');
+});
+
+await test('correction de casse : un terme en minuscules garde la majuscule d’un début de phrase', () => {
+  assert.equal(L.fixCase('Planning validé. Le planning bouge.', 'planning'), 'Planning validé. Le planning bouge.');
+  assert.equal(L.fixCase('copil demain', 'COPIL'), 'COPIL demain');
+  assert.equal(L.fixCase('Elodie arrive', 'Élodie'), 'Élodie arrive');
 });
 
 await test('entretien : vocabulaire cybersécurité, déformations connues corrigées', () => {
@@ -1466,6 +1594,8 @@ await test('langue : chaque clé utilisée dans le code et la page existe dans l
   for (const a of L.LocalAI.APIS) used.add('lai.api.' + a.id);
   for (const id of Object.keys(L.Vocabulary.PRESETS)) used.add('vocab.' + id);
   for (const l of ['fr', 'en', 'auto']) used.add('note.langs.' + l).add('note.varLangs.' + l);
+  used.add('note.langs.many').add('note.varLangs.many');
+  for (const l of L.Languages.CODES) used.add('lang.' + l).add('lang.native.' + l);
   for (const area of ['notes', 'model'])
     for (const b of ['brave', 'firefox', 'other']) used.add(`browser.${area}.${b}`);
   assert.ok(used.size > 400, `${used.size} clés trouvées seulement`);

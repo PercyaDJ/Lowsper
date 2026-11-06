@@ -258,10 +258,10 @@
     </div>
 
     <div class="set-page" id="page-language" hidden>
-      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 id="t-language" data-i18n="set.language">Langue parlée</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 id="t-language" data-i18n="set.language">Langues parlées</h2><span class="head-side" aria-hidden="true"></span></div>
       <div class="settings-body">
-        <div class="group choice-list" id="language" aria-labelledby="t-language"></div>
-        <p class="set-foot" data-i18n="page.languageFoot">Choisissez « Français et anglais » si les deux langues se mélangent : Lowsper reconnaît celle de chaque passage.</p>
+        <div class="group choice-list" id="language" role="group" aria-labelledby="t-language"></div>
+        <p class="set-foot" data-i18n="page.languageFoot">Cochez chaque langue parlée dans vos réunions : Lowsper reconnaît celle de chaque passage. Une seule langue cochée donne le résultat le plus sûr.</p>
       </div>
     </div>
 
@@ -794,6 +794,8 @@
   <script src="app/js/settings.js"></script>
   <script src="app/js/capture.js"></script>
   <script src="app/js/audiofile.js"></script>
+  <script src="app/js/languages.js"></script>
+  <script src="app/js/vocabularies.js"></script>
   <script src="app/js/vocabulary.js"></script>
   <script src="app/js/transcript.js"></script>
   <script src="app/js/notes.js"></script>

@@ -9,7 +9,8 @@ les personnes comme pour les agents de code.
    disque**. Une proposition qui affaiblit l'un de ces principes ne sera pas retenue.
 2. **Aucune donnée réelle** : pas de transcript, d'enregistrement, ni de nom de personne ou
    d'entreprise réels, nulle part (code, tests, issues, captures).
-3. Interface et documentation **en français**, ton clair et sobre.
+3. Interface **en français et en anglais**, documentation **en français** (sauf les deux pages
+   d'accueil, `README.md` en anglais et `README.fr.md`), ton clair et sobre.
 
 ## Par où commencer
 
@@ -42,6 +43,59 @@ En participant, vous acceptez le [code de conduite](CODE_OF_CONDUCT.md).
    « Non publié »), `decision.md` (tout choix technique non trivial) et `AGENTS.md` (si une règle
    ou une commande change).
 6. Remplissez le modèle de pull request.
+
+## Proposer un vocabulaire métier
+
+Les vocabulaires métier (« Paramètres › Transcription › Vocabulaire métier ») sont des listes de
+termes donnés à Whisper avant chaque passage : il a plus de chances de les écrire juste. Ils sont
+tous dans un seul fichier de données, `app/js/vocabularies.js`. On peut y ajouter un domaine, ou
+une langue à un domaine existant, sans toucher au reste du code.
+
+**Format.** Un domaine est une entrée de `Lowsper.VOCABULARIES` ; ses termes sont rangés par
+langue parlée, avec le code à deux lettres de Whisper (`fr`, `en`, `es`, `de`...), un terme par
+ligne :
+
+```js
+logistique: {
+  fr: [
+    'WMS',
+    'TMS',
+    'EDI',
+    'quai de chargement',
+  ],
+  en: [
+    'WMS',
+    'TMS',
+    'EDI',
+    'loading dock',
+  ],
+},
+```
+
+**Règles.**
+- **Identifiant** court, en minuscules, sans accent ni espace (`logistique`). Il est gardé dans
+  les réglages des utilisateurs : il ne change plus une fois publié.
+- **Nom affiché** dans le catalogue `app/js/i18n.js`, clé `vocab.<identifiant>`, en français et en
+  anglais (un test vérifie qu'il ne manque pas).
+- **Du plus utile au moins utile.** Le contexte de Whisper est court (200 jetons, environ quarante
+  sigles). Quand plusieurs listes sont cochées, chacune garde ses premiers termes : mettez en tête
+  les sigles et le jargon que Whisper écrit mal, en fin de liste les termes plus courants
+  (`decision.md` §35).
+- **Seulement des termes génériques du domaine** : sigles, jargon, noms de lois, de normes ou
+  d'organismes publics. **Jamais** de nom d'entreprise, de marque, de produit ou de personne
+  (règle n° 9 d'`AGENTS.md`).
+- **Inutile** d'ajouter un mot courant que Whisper écrit déjà bien (« budget », « réunion ») : il
+  prend de la place sans rien apporter. Pas de virgule ni de point-virgule dans un terme.
+- **Une langue parlée** ne reçoit que les termes de sa liste : une liste française n'est jamais
+  donnée pour un passage en anglais. Une langue sans liste n'a que les mots à reconnaître de
+  l'utilisateur.
+- Les corrections automatiques d'un vocabulaire (« l'NSI » devient « l'ANSSI », dans
+  `app/js/vocabulary.js`) ne s'ajoutent que pour une déformation **réellement observée**, sans
+  autre sens possible dans une réunion du domaine.
+
+**Vérifier.** `npm run test:unit` contrôle le format (identifiant, doublons, nom dans les deux
+langues) et que les termes ne ralentissent pas la correction du texte. Pour mesurer l'effet d'une
+liste sur la reconnaissance, voir `tools/test/eval-vocab.mjs`.
 
 ## Signaler une faille
 

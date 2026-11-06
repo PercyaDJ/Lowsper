@@ -116,26 +116,39 @@ await test('sous-écran : titre, choix au clavier, Échap revient puis ferme', a
   await page.keyboard.press('Enter');
   assert.equal(await page.isVisible('#page-language'), true);
   assert.equal(await page.isHidden('#set-main'), true);
-  assert.equal(await page.evaluate(() => document.activeElement.textContent), 'Langue parlée');
-  const options = await page.$$eval('#language [role="radio"]', (b) =>
-    b.map((x) => [x.querySelector('.set-label').textContent, x.getAttribute('aria-checked')])
+  assert.equal(await page.evaluate(() => document.activeElement.textContent), 'Langues parlées');
+  // Liste à cocher (lot R8) : chaque langue dans sa propre langue, traduite dessous si besoin
+  const options = await page.$$eval('#language [role="checkbox"]', (b) =>
+    b.map((x) => [
+      x.querySelector('.set-label').textContent,
+      x.getAttribute('aria-checked'),
+      x.querySelector('.set-label').lang,
+    ])
   );
-  assert.deepEqual(options, [
-    ['Français', 'true'],
-    ['Anglais', 'false'],
-    ['Français et anglais (détection automatique)', 'false'],
+  assert.deepEqual(options.slice(0, 2), [
+    ['Français', 'true', 'fr'],
+    ['English', 'false', 'en'],
   ]);
+  assert.equal(await page.textContent('#language [data-value="en"] .set-sub'), 'Anglais');
+  assert.equal(await page.$('#language [data-value="fr"] .set-sub'), null, 'pas de doublon « Français / Français »');
   await page.keyboard.press('Tab');
-  assert.equal(await page.evaluate(() => document.activeElement.dataset.value), 'fr', 'focus sur le choix actuel');
-  await page.keyboard.press('ArrowDown');
-  await page.keyboard.press('ArrowDown');
-  assert.equal(await page.getAttribute('#language [data-value="auto"]', 'aria-checked'), 'true');
-  assert.equal(await page.evaluate(() => localStorage.getItem('lowsper.language')), 'auto');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.value), 'fr');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Space');
+  assert.equal(await page.getAttribute('#language [data-value="en"]', 'aria-checked'), 'true');
+  assert.equal(await page.evaluate(() => localStorage.getItem('lowsper.languages')), 'fr,en');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.value), 'en', 'le focus reste sur la case');
+  // La dernière langue cochée ne se décoche pas
+  await page.click('#language [data-value="en"]');
+  await page.click('#language [data-value="fr"]');
+  assert.equal(await page.getAttribute('#language [data-value="fr"]', 'aria-checked'), 'true');
+  assert.equal(await page.evaluate(() => localStorage.getItem('lowsper.languages')), 'fr');
+  await page.click('#language [data-value="en"]');
   await page.keyboard.press('Escape');
   assert.equal(await page.isVisible('#settings'), true, 'la fenêtre reste ouverte');
   assert.equal(await page.isVisible('#set-main'), true);
   assert.equal(await active(), 'language', 'focus revenu sur la ligne');
-  assert.equal(await page.textContent('#v-language'), 'Français et anglais (détection automatique)');
+  assert.equal(await page.textContent('#v-language'), 'Français, Anglais');
   await page.keyboard.press('Escape');
   assert.equal(await page.isHidden('#settings'), true);
   // Liste redessinée par son propre choix (thème) : le focus reste sur le choix actuel

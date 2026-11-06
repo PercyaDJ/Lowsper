@@ -194,7 +194,7 @@
     // Valeurs dans la langue de la note (celle de l'interface au début de la réunion)
     const lang = t.noteLang ? t.noteLang() : 'fr';
     const tl = (key, v) => Lowsper.t(key, v, lang);
-    const spoken = ['fr', 'en', 'auto'].includes(m.language) ? tl('note.varLangs.' + m.language) : m.language;
+    const spoken = Lowsper.Languages ? Lowsper.Languages.noteLabel(m.language, lang, 'note.varLangs.') : m.language;
     return {
       titre: m.title || (m.file ? m.file.name.replace(/\.[^.]+$/, '') : tl('note.defaultTitle')),
       date: `${when.getFullYear()}-${pad(when.getMonth() + 1)}-${pad(when.getDate())}`,

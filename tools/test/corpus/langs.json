@@ -1,0 +1,163 @@
+{
+  "about": "Corpus synthétique multilingue (lot R8, decision.md §34) : la même réunion fictive de dix phrases, sans nom réel, traduite dans les douze langues de la maquette « Langues parlées ». Chaque phrase est lue par une voix de synthèse Piper (make-langs.py), en alternant les voix quand la langue en a deux. Les nombres sont écrits en lettres ou évités, pour ne pas compter comme une erreur « 12 % » au lieu de « douze pour cent ».",
+  "voices": {
+    "fr": ["fr_FR-siwis-medium", "fr_FR-tom-medium"],
+    "en": ["en_US-lessac-medium", "en_GB-alan-medium"],
+    "es": ["es_ES-davefx-medium", "es_MX-claude-high"],
+    "de": ["de_DE-thorsten-medium", "de_DE-kerstin-low"],
+    "it": ["it_IT-paola-medium", "it_IT-riccardo-x_low"],
+    "pt": ["pt_BR-faber-medium", "pt_BR-cadu-medium"],
+    "nl": ["nl_NL-pim-medium", "nl_NL-ronnie-medium"],
+    "ar": ["ar_JO-kareem-medium"],
+    "zh": ["zh_CN-huayan-medium", "zh_CN-chaowen-medium"],
+    "ja": ["ja_JP-hi_fi_captain-medium"],
+    "ko": ["ko_KR-kss-medium"],
+    "hi": ["hi_IN-pratham-medium", "hi_IN-priyamvada-medium"]
+  },
+  "lines": {
+    "fr": [
+      "Bonjour à tous, commençons par la revue du budget du prochain trimestre.",
+      "L'équipe a terminé la première version du rapport jeudi dernier.",
+      "Nous devons encore confirmer la date de livraison avec le fournisseur.",
+      "Les ventes ont nettement augmenté par rapport à l'année dernière.",
+      "Pourriez-vous m'envoyer le planning mis à jour avant vendredi soir ?",
+      "La formation des nouveaux salariés aura lieu le mois prochain.",
+      "Je pense que nous devrions reporter la décision jusqu'à avoir plus de données.",
+      "Le client a demandé une démonstration du nouveau produit.",
+      "Retrouvons-nous mardi matin pour faire le point sur l'avancement.",
+      "Merci à tous, je partagerai le compte rendu de cette réunion par courriel."
+    ],
+    "en": [
+      "Good morning everyone, let's start with the budget review for the next quarter.",
+      "The team finished the first version of the report last Thursday.",
+      "We still need to confirm the delivery date with the supplier.",
+      "Sales increased significantly compared to last year.",
+      "Could you send me the updated schedule before Friday evening?",
+      "The training session for new employees will take place next month.",
+      "I think we should postpone the decision until we have more data.",
+      "The customer asked for a demonstration of the new product.",
+      "Let's meet again on Tuesday morning to review the progress.",
+      "Thank you all, I will share the minutes of this meeting by email."
+    ],
+    "es": [
+      "Buenos días a todos, empecemos con la revisión del presupuesto del próximo trimestre.",
+      "El equipo terminó la primera versión del informe el jueves pasado.",
+      "Todavía tenemos que confirmar la fecha de entrega con el proveedor.",
+      "Las ventas aumentaron claramente en comparación con el año pasado.",
+      "¿Podrías enviarme el calendario actualizado antes del viernes por la tarde?",
+      "La formación para los nuevos empleados tendrá lugar el mes que viene.",
+      "Creo que deberíamos aplazar la decisión hasta tener más datos.",
+      "El cliente pidió una demostración del nuevo producto.",
+      "Volvamos a reunirnos el martes por la mañana para revisar el avance.",
+      "Gracias a todos, compartiré el acta de esta reunión por correo electrónico."
+    ],
+    "de": [
+      "Guten Morgen zusammen, beginnen wir mit der Budgetprüfung für das nächste Quartal.",
+      "Das Team hat die erste Version des Berichts letzten Donnerstag fertiggestellt.",
+      "Wir müssen den Liefertermin noch mit dem Lieferanten bestätigen.",
+      "Der Umsatz ist im Vergleich zum Vorjahr deutlich gestiegen.",
+      "Könnten Sie mir den aktualisierten Zeitplan vor Freitagabend schicken?",
+      "Die Schulung für die neuen Mitarbeiter findet nächsten Monat statt.",
+      "Ich denke, wir sollten die Entscheidung verschieben, bis wir mehr Daten haben.",
+      "Der Kunde hat um eine Vorführung des neuen Produkts gebeten.",
+      "Treffen wir uns am Dienstagmorgen wieder, um den Fortschritt zu besprechen.",
+      "Vielen Dank an alle, ich schicke das Protokoll dieser Besprechung per E-Mail."
+    ],
+    "it": [
+      "Buongiorno a tutti, iniziamo con la revisione del budget del prossimo trimestre.",
+      "Il team ha terminato la prima versione del rapporto giovedì scorso.",
+      "Dobbiamo ancora confermare la data di consegna con il fornitore.",
+      "Le vendite sono aumentate nettamente rispetto all'anno scorso.",
+      "Potresti mandarmi il calendario aggiornato prima di venerdì sera?",
+      "La formazione per i nuovi dipendenti si terrà il mese prossimo.",
+      "Penso che dovremmo rimandare la decisione finché non avremo più dati.",
+      "Il cliente ha chiesto una dimostrazione del nuovo prodotto.",
+      "Rivediamoci martedì mattina per fare il punto sui progressi.",
+      "Grazie a tutti, condividerò il verbale di questa riunione via email."
+    ],
+    "pt": [
+      "Bom dia a todos, vamos começar pela revisão do orçamento do próximo trimestre.",
+      "A equipe terminou a primeira versão do relatório na quinta-feira passada.",
+      "Ainda precisamos confirmar a data de entrega com o fornecedor.",
+      "As vendas aumentaram bastante em comparação com o ano passado.",
+      "Você poderia me enviar o cronograma atualizado antes de sexta-feira à noite?",
+      "O treinamento dos novos funcionários será no próximo mês.",
+      "Acho que deveríamos adiar a decisão até termos mais dados.",
+      "O cliente pediu uma demonstração do novo produto.",
+      "Vamos nos reunir de novo na terça-feira de manhã para revisar o andamento.",
+      "Obrigado a todos, vou compartilhar a ata desta reunião por e-mail."
+    ],
+    "nl": [
+      "Goedemorgen allemaal, laten we beginnen met de begrotingsbespreking voor het volgende kwartaal.",
+      "Het team heeft vorige donderdag de eerste versie van het rapport afgerond.",
+      "We moeten de leverdatum nog bevestigen met de leverancier.",
+      "De verkoop is duidelijk gestegen ten opzichte van vorig jaar.",
+      "Kun je mij het bijgewerkte schema voor vrijdagavond sturen?",
+      "De training voor nieuwe medewerkers vindt volgende maand plaats.",
+      "Ik denk dat we het besluit moeten uitstellen tot we meer gegevens hebben.",
+      "De klant vroeg om een demonstratie van het nieuwe product.",
+      "Laten we dinsdagochtend weer afspreken om de voortgang te bespreken.",
+      "Bedankt allemaal, ik deel het verslag van deze vergadering per e-mail."
+    ],
+    "ar": [
+      "صباح الخير جميعا، لنبدأ بمراجعة ميزانية الربع القادم.",
+      "أنهى الفريق النسخة الأولى من التقرير يوم الخميس الماضي.",
+      "ما زلنا بحاجة إلى تأكيد موعد التسليم مع المورد.",
+      "ارتفعت المبيعات بشكل واضح مقارنة بالعام الماضي.",
+      "هل يمكنك أن ترسل لي الجدول المحدث قبل مساء الجمعة؟",
+      "سيقام التدريب للموظفين الجدد في الشهر القادم.",
+      "أعتقد أنه يجب علينا تأجيل القرار حتى تتوفر لدينا بيانات أكثر.",
+      "طلب العميل عرضا توضيحيا للمنتج الجديد.",
+      "لنلتق مجددا صباح الثلاثاء لمراجعة التقدم.",
+      "شكرا لكم جميعا، سأرسل محضر هذا الاجتماع بالبريد الإلكتروني."
+    ],
+    "zh": [
+      "大家早上好，我们先来审查下个季度的预算。",
+      "团队上周四完成了报告的第一版。",
+      "我们还需要和供应商确认交货日期。",
+      "与去年相比，销售额明显增长了。",
+      "你能在周五晚上之前把更新后的日程表发给我吗？",
+      "新员工的培训将在下个月举行。",
+      "我认为我们应该推迟决定，等到有更多数据再说。",
+      "客户要求对新产品进行演示。",
+      "我们周二上午再开会，看看进展情况。",
+      "谢谢大家，我会通过电子邮件分享这次会议的纪要。"
+    ],
+    "ja": [
+      "皆さん、おはようございます。まず来期の予算の見直しから始めましょう。",
+      "チームは先週の木曜日に報告書の初版を完成させました。",
+      "納期についてはまだ仕入れ先に確認する必要があります。",
+      "売上は昨年と比べて大きく伸びました。",
+      "金曜日の夜までに更新したスケジュールを送っていただけますか。",
+      "新入社員の研修は来月行われます。",
+      "もっとデータが集まるまで、決定は延期したほうがいいと思います。",
+      "お客様から新製品のデモを依頼されました。",
+      "火曜日の朝にもう一度集まって、進捗を確認しましょう。",
+      "皆さん、ありがとうございました。議事録はメールで共有します。"
+    ],
+    "ko": [
+      "여러분 안녕하세요, 다음 분기 예산 검토부터 시작하겠습니다.",
+      "팀은 지난 목요일에 보고서 초안을 완성했습니다.",
+      "공급업체와 납품 날짜를 아직 확인해야 합니다.",
+      "매출이 작년에 비해 크게 늘었습니다.",
+      "금요일 저녁까지 수정된 일정표를 보내 주실 수 있나요?",
+      "신입 사원 교육은 다음 달에 진행됩니다.",
+      "데이터가 더 모일 때까지 결정을 미루는 것이 좋겠습니다.",
+      "고객이 신제품 시연을 요청했습니다.",
+      "화요일 아침에 다시 모여서 진행 상황을 확인합시다.",
+      "모두 감사합니다, 회의록은 이메일로 공유하겠습니다."
+    ],
+    "hi": [
+      "सभी को सुप्रभात, आइए अगली तिमाही के बजट की समीक्षा से शुरू करते हैं।",
+      "टीम ने पिछले गुरुवार को रिपोर्ट का पहला संस्करण पूरा किया।",
+      "हमें अभी भी आपूर्तिकर्ता के साथ डिलीवरी की तारीख की पुष्टि करनी है।",
+      "पिछले साल की तुलना में बिक्री काफी बढ़ी है।",
+      "क्या आप शुक्रवार शाम से पहले मुझे अपडेट किया हुआ कार्यक्रम भेज सकते हैं?",
+      "नए कर्मचारियों का प्रशिक्षण अगले महीने होगा।",
+      "मुझे लगता है कि जब तक हमारे पास और डेटा न हो, हमें फैसला टाल देना चाहिए।",
+      "ग्राहक ने नए उत्पाद का प्रदर्शन मांगा है।",
+      "प्रगति की समीक्षा के लिए मंगलवार सुबह फिर मिलते हैं।",
+      "सभी का धन्यवाद, मैं इस बैठक का विवरण ईमेल से साझा करूंगा।"
+    ]
+  }
+}
