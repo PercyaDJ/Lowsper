@@ -1,0 +1,81 @@
+# Suivi des vulnérabilités par Lysbor (decision.md §32).
+#
+# L'agent lysbor-scan inventorie les dépendances de ce dépôt (Syft, SBOM CycloneDX, dont la chaîne
+# de construction de tools/), analyse le code (Semgrep) et la configuration et les secrets (Trivy),
+# puis envoie le tout au projet Lowsper de Lysbor. Lysbor confronte ensuite l'inventaire à la base
+# OSV chaque nuit et alerte dès qu'une nouvelle vulnérabilité touche une dépendance.
+#
+# Ce workflow ne bloque jamais rien (choix du mainteneur) : pas de --fail-on, et il est séparé de la
+# CI principale. Ce qui part vers Lysbor : la liste des dépendances et les résultats des analyses
+# de ce dépôt public. Jamais de donnée d'utilisateur : l'application, elle, ne se connecte à rien.
+#
+# Réglages du dépôt (Settings › Secrets and variables › Actions) :
+#   LYSBOR_API_KEY   secret : clé API Lysbor, portées « lecture » et « envoi d'inventaires »
+#   LYSBOR_PROJECT   variable : identifiant du projet Lowsper dans Lysbor (onglet « Intégration CI »)
+# Sans l'un des deux, le job s'arrête proprement (utile sur une copie du dépôt).
+name: Lysbor (vulnérabilités)
+
+on:
+  schedule:
+    # Le 1er du mois à 06:17 UTC, filet de sécurité : Lysbor revérifie chaque nuit le dernier
+    # inventaire reçu, ce job ne sert qu'à le renvoyer quand il change.
+    - cron: "17 6 1 * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "tools/package.json"
+      - "tools/package-lock.json"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lysbor-scan
+  cancel-in-progress: true
+
+env:
+  LYSBOR_URL: https://lysbor.com
+  # Agent servi par l'instance, figé par son empreinte : une version modifiée n'est pas exécutée.
+  # Pour passer à une nouvelle version : vérifier le script, puis remplacer l'empreinte.
+  AGENT_SHA256: 69ac853778c4e4aee0c95677fa67f3bcaed00b48bfab847592eddf1957d6f6f6
+  SEMGREP_VERSION: 1.177.0
+
+jobs:
+  scan:
+    name: Inventaire et analyses envoyés à Lysbor
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Réglages présents ?
+        env:
+          LYSBOR_API_KEY: ${{ secrets.LYSBOR_API_KEY }}
+          LYSBOR_PROJECT: ${{ vars.LYSBOR_PROJECT }}
+        run: |
+          if [ -z "$LYSBOR_API_KEY" ] || [ -z "$LYSBOR_PROJECT" ]; then
+            echo "Secret LYSBOR_API_KEY ou variable LYSBOR_PROJECT absent : rien à envoyer."
+            echo "SKIP=1" >> "$GITHUB_ENV"
+          fi
+      - name: Installer l'agent, Syft, Trivy et Semgrep
+        if: env.SKIP != '1'
+        run: |
+          curl -sSfL -o /tmp/lysbor-scan.sh "$LYSBOR_URL/agent/lysbor-scan.sh"
+          echo "$AGENT_SHA256  /tmp/lysbor-scan.sh" | sha256sum -c -
+          install -m 755 /tmp/lysbor-scan.sh /usr/local/bin/lysbor-scan
+          # Syft et Trivy depuis leurs archives publiées, empreinte SHA-256 vérifiée par l'agent
+          lysbor-scan install-tools syft trivy
+          pipx install "semgrep==$SEMGREP_VERSION"
+      - name: Analyser le dépôt et envoyer à Lysbor
+        if: env.SKIP != '1'
+        env:
+          LYSBOR_API_KEY: ${{ secrets.LYSBOR_API_KEY }}
+          LYSBOR_PROJECT: ${{ vars.LYSBOR_PROJECT }}
+          SEMGREP_SEND_METRICS: "off"
+          # Jeux d'essai, audio de test et modèles téléchargés : pas des dépendances de Lowsper
+          SYFT_ARGS: --exclude ./tools/test/** --exclude ./tools/.cache/** --exclude ./tools/node_modules/** --exclude ./app/models/**
+          TRIVY_ARGS: --skip-dirs tools/test,tools/.cache,app/models
+        run: lysbor-scan --all .

@@ -57,6 +57,15 @@ Seule la dernière version publiée (voir `CHANGELOG.md`) reçoit des correctifs
   `'unsafe-inline'` restent interdits.
 - La politique est déclarée dans la page (balise `meta`), seul moyen disponible en `file://`.
 
+## Suivi des vulnérabilités du code
+
+Les dépendances de Lowsper (celles de `tools/`, dont transformers.js et ONNX Runtime Web,
+empaquetés dans `app/engine`) sont suivies par l'agent Lysbor (`.github/workflows/lysbor.yml`) :
+inventaire Syft, analyse Semgrep et Trivy, envoyés chaque mois et à chaque changement des
+dépendances. Lysbor alerte dès qu'une vulnérabilité publiée les touche. Ce flux part de la CI de
+GitHub, pas de l'application : il ne contient que des informations sur ce dépôt public
+(`decision.md` §32).
+
 ## Signaler une faille
 
 N'ouvrez pas d'issue publique. Utilisez le signalement privé de GitHub :

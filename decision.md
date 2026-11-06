@@ -2014,3 +2014,81 @@ charge que `engine.js` : il exécuterait le même code. Le réglage « Vitesse �
   la réunion ; sans ce clic, la note part dans les Téléchargements et l'écran de fin propose de
   l'enregistrer aussi dans le dossier. À observer sur un vrai poste.
 - La langue parlée reste à trois choix jusqu'au lot R8.
+
+## 31. Documentation : page d'accueil en anglais, courte, guide complet à part
+
+**Contexte.** Le README faisait 586 lignes en français, avec un résumé anglais séparé
+(`README.en.md`). Demande du mainteneur (6 novembre 2026) : une page d'accueil en anglais, une
+bascule vers le français, et une documentation plus courte, lisible par quelqu'un qui ne prendra
+pas le temps de tout lire.
+
+**Arbitrage.**
+- `README.md` en anglais, `README.fr.md` en français : même plan, une page chacun (environ 85
+  lignes), avec en tête « English | Français » pour passer de l'un à l'autre. GitHub affiche
+  `README.md` à l'accueil du dépôt.
+- Plan commun : la promesse, pourquoi Lowsper, démarrage en cinq étapes, ce qu'il fait, bon à
+  savoir (navigateurs, qualité, mise à jour), liens, commandes des développeurs, licences.
+- **Rien n'est perdu** (choix du mainteneur) : l'ancien README français, complet, devient
+  `docs/guide.md` (écrans, questions fréquentes, limites, feuille de route), liens recalculés pour
+  son nouvel emplacement. Les deux README y renvoient. `README.en.md` disparaît.
+- Le paquet de distribution contient `README.md` et `README.fr.md` (test `npm run test:release`).
+  Le guide, avec ses captures, reste en ligne dans le dépôt.
+- La contrainte n° 5 d'`AGENTS.md` change en conséquence : documentation en français, sauf les
+  deux pages d'accueil, tenues ensemble et courtes.
+
+## 32. Suivi des vulnérabilités par l'agent Lysbor
+
+**Contexte.** Le mainteneur veut suivre les vulnérabilités de Lowsper avec Lysbor, son service
+de suivi (SBOM confronté chaque nuit à la base OSV, alertes). Lysbor fournit un agent CI,
+`lysbor-scan`, et son propre dépôt l'utilise sur lui-même (workflow de référence, recopié ici).
+
+**Ce que fait `.github/workflows/lysbor.yml`.**
+- Déclencheurs : le 1er du mois, à la demande, et à chaque changement sur `main` de
+  `tools/package.json`, `tools/package-lock.json` ou des workflows. Lysbor revérifie chaque nuit
+  le dernier inventaire reçu : le renvoyer n'est utile que quand il change.
+- `lysbor-scan --all .` : inventaire CycloneDX par Syft, analyse du code par Semgrep (`p/default`),
+  configuration et secrets par Trivy. Envoi au projet Lowsper de l'instance `https://lysbor.com`.
+- **Ne bloque jamais** (choix du mainteneur) : pas de `--fail-on`, workflow séparé de la CI. Les
+  alertes viennent de Lysbor.
+- Réglages : secret `LYSBOR_API_KEY`, variable `LYSBOR_PROJECT`. Sans l'un des deux, le job
+  s'arrête proprement (copie du dépôt, ou avant la configuration).
+
+**Durcissements par rapport au workflow de référence.**
+- **Script de l'agent figé par son empreinte SHA-256** : il est téléchargé depuis l'instance puis
+  vérifié avant exécution. Mesure : le script servi par `https://lysbor.com/agent/lysbor-scan.sh`
+  et celui du dépôt Lysbor ont la même empreinte (`69ac8537...`). Une mise à jour de l'agent fait
+  donc échouer le job tant que l'empreinte n'est pas remplacée, après relecture.
+- **Semgrep figé** à 1.177.0, la version de l'image Docker de l'agent. Syft (1.52.0) et Trivy
+  (0.74.0) sont installés par l'agent depuis leurs archives publiées, empreinte vérifiée.
+- **Actions GitHub figées** sur l'empreinte de leur commit (`actions/checkout` et
+  `actions/setup-node` v4.4.0, la version désignée par `@v4` le 6 novembre 2026), dans les trois
+  workflows, au lieu d'une étiquette modifiable. Comportement inchangé.
+
+**Ce qui est envoyé, et pourquoi la contrainte n° 1 tient.** La CI de GitHub envoie à Lysbor la
+liste des dépendances et les résultats des analyses de ce dépôt public. L'application, elle, ne
+se connecte toujours à rien d'autre qu'Hugging Face (test de non-fuite inchangé). Aucune donnée
+d'utilisateur ne peut s'y trouver : le dépôt n'en contient pas (contrainte n° 9).
+
+**Exclusions.** Syft et Trivy ignorent `tools/test`, `tools/.cache`, `tools/node_modules` et
+`app/models` ; Semgrep lit `.semgrepignore` (mêmes dossiers, plus `app/engine`, le moteur
+généré : son code tiers est suivi par l'inventaire des dépendances, pas par l'analyse de code).
+
+**Mesures, outils lancés ici sans envoi (pas de clé dans cet environnement).**
+- Syft 1.52.0 : 194 composants, dont 185 paquets npm de `tools/package-lock.json` (parmi eux
+  `@huggingface/transformers` 4.3.0 et `onnxruntime-web` 1.31.0-dev, empaquetés dans
+  l'application) et les actions des workflows.
+- Trivy 0.74.0 (configuration, secrets) : aucun résultat.
+- Semgrep 1.177.0 : 19 résultats avant les exclusions, 5 après le figeage des actions et
+  l'exclusion de `tools/test`. Les 5 restants sont des faux positifs, vérifiés ligne par ligne, à
+  marquer comme tels dans Lysbor :
+  - `detect-non-literal-regexp` (`transcript.js`, `vocabulary.js`) : les mots saisis sont
+    échappés avant de construire l'expression ;
+  - `unsafe-formatstring` (`app.js`, `capture.js`) : messages de console au texte fixe ;
+  - `missing-integrity` (`Lowsper.html`) : la feuille de style est un fichier local du même
+    dossier, un contrôle d'intégrité n'y ajoute rien.
+
+**Limites.**
+- Le premier envoi réel n'a pas pu être fait ici : il demande la clé et le projet. Non vérifié
+  tant que le mainteneur n'a pas lancé le workflow une fois.
+- Le moteur empaqueté (`app/engine`) est suivi à travers `tools/package-lock.json` ; une
+  modification à la main du fichier généré (interdite par `AGENTS.md`) échapperait à l'inventaire.
