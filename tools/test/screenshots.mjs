@@ -2,8 +2,9 @@
 //
 // Rejoue le corpus synthétique « hebdo » (voix de synthèse, noms inventés) dans la vraie page,
 // avec le vrai moteur, puis capture l'accueil, l'enregistrement, la barre réduite et l'écran de fin
-// (thèmes clair et sombre), la fenêtre « Avant de commencer », l'import d'un fichier, le réglage de langue en anglais et l'écran de
-// bienvenue (matériel simulé), à double résolution. Aucune donnée réelle ne peut y apparaître.
+// (thèmes clair et sombre), la fenêtre « Avant de commencer », l'import d'un fichier, les trois onglets
+// des paramètres, le format de note, la sonde de l'IA intégrée, les paramètres en anglais et l'écran
+// de bienvenue (matériel simulé), à double résolution. Aucune donnée réelle ne peut y apparaître.
 //
 // Prérequis : node build.mjs --embed whisper-small   (CHROMIUM_PATH si besoin)
 // Usage : node test/screenshots.mjs
@@ -68,7 +69,9 @@ await page.addInitScript((pcmB64) => {
 await page.goto(pathToFileURL(join(root, 'Lowsper.html')).href);
 await page.waitForSelector('#engine[data-state="ready"]', { timeout: 300000 });
 await page.click('#settings-open');
+await page.click('[data-open="glossary"]');
 await page.fill('#glossary', corpus.glossary);
+await page.click('#page-glossary [data-back]');
 await page.click('#settings-close');
 await page.fill('#title', 'Point hebdo du centre de service');
 await page.screenshot({ path: join(out, 'accueil.png') });
@@ -132,16 +135,28 @@ await page.screenshot({ path: join(out, 'import.png') });
 await page.click('#import-cancel');
 await page.waitForSelector('#view-idle:not([hidden])', { timeout: 120000 });
 
-// Profils de sortie : éditeur dans les paramètres (profil fictif « Travail »)
+// Paramètres : les trois onglets (glossaire du corpus fictif, emplacement fictif « Travail »)
 await page.click('#settings-open');
+await page.waitForTimeout(300);
+await page.locator('#settings').screenshot({ path: join(out, 'reglages.png') });
+await page.click('#tab-notes');
 await page.click('#prof-new');
-await page.fill('#prof-name', 'Travail');
+await page.keyboard.type('Travail');
+await page.click('#page-place [data-back]');
+await page.waitForTimeout(300);
+await page.locator('#settings').screenshot({ path: join(out, 'reglages-notes.png') });
+// Format de la note « Pour les applications de notes » : propriétés, étiquettes, liens
+await page.click('[data-open="format"]');
 await page.check('#prof-links');
 await page.fill('#prof-tags', 'reunion, travail');
 await page.fill('#prof-extra', 'projet: Atlas');
-await page.evaluate(() => document.getElementById('prof-title').scrollIntoView({ block: 'start' }));
+await page.evaluate(() => document.querySelector('#page-format .settings-body').scrollTo(0, 0));
 await page.waitForTimeout(300);
 await page.locator('#settings').screenshot({ path: join(out, 'profils.png') });
+await page.click('#page-format [data-back]');
+await page.click('#tab-advanced');
+await page.waitForTimeout(300);
+await page.locator('#settings').screenshot({ path: join(out, 'reglages-avance.png') });
 
 // Sonde de l'IA intégrée : réponse simulée d'un navigateur qui peut télécharger son modèle (le
 // Chromium de capture n'a pas d'IA intégrée) ; seul l'état est capturé, pas un résultat d'essai
@@ -149,31 +164,23 @@ await page.evaluate(() => {
   window.Summarizer = { availability: async () => 'downloadable' };
   window.LanguageModel = { availability: async () => 'downloadable' };
 });
+await page.click('[data-open="lai"]');
 await page.click('#lai-probe');
 await page.waitForFunction(() => !document.getElementById('lai-trial').hidden);
-await page.evaluate(() => {
-  // Titre de la section sous l'en-tête fixe des paramètres
-  const title = document.getElementById('lai-title');
-  title.scrollIntoView({ block: 'start' });
-  let box = title.parentElement;
-  while (box && box.scrollHeight <= box.clientHeight) box = box.parentElement;
-  if (box) box.scrollTop -= 90;
-});
 await page.waitForTimeout(300);
 await page.locator('#settings').screenshot({ path: join(out, 'sonde-ia.png') });
+await page.click('#page-lai [data-back]');
 
-// Langue de l'interface : bascule en anglais, rubrique « Display » des paramètres
-await page.selectOption('#ui-lang', 'en');
-await page.evaluate(() => {
-  const title = document.getElementById('look-title');
-  title.scrollIntoView({ block: 'start' });
-  let box = title.parentElement;
-  while (box && box.scrollHeight <= box.clientHeight) box = box.parentElement;
-  if (box) box.scrollTop -= 90;
-});
+// Langue de l'interface : bascule en anglais, onglet « Transcription » des paramètres
+await page.click('#tab-transcription');
+await page.click('[data-open="ui-lang"]');
+await page.click('#ui-lang [data-value="en"]');
+await page.click('#page-ui-lang [data-back]');
 await page.waitForTimeout(300);
 await page.locator('#settings').screenshot({ path: join(out, 'langue.png') });
-await page.selectOption('#ui-lang', 'fr');
+await page.click('[data-open="ui-lang"]');
+await page.click('#ui-lang [data-value="fr"]');
+await page.click('#page-ui-lang [data-back]');
 await page.click('#settings-close');
 
 // Écran de bienvenue (premier lancement) : copie du dossier sans modèle, PC simulé à 8 fils,

@@ -611,6 +611,153 @@ await test('réglages : restaurés depuis le dossier quand le navigateur les a e
   assert.equal(await box.Lowsper.Settings.save(), 'unchanged');
 });
 
+// --- Réglages en onglets (lot R7, decision.md §30) ---
+await test('réglages : export sans empreintes vocales, import d’un export ou d’une copie app/reglages.txt', async () => {
+  const mem = new Map([
+    ['lowsper.glossary', 'COPIL, KPI'],
+    ['lowsper.fixes', '[["Kalmar","CALMAR"]]'],
+    ['lowsper.voices.v1', '{"enabled":true,"voices":[{"name":"Intervenant fictif"}]}'],
+    ['lowsper.speed.whisper-small', '{"load":0.4}'],
+    ['lowsper.model', 'whisper-small'],
+    ['lowsper.session.v1', '{"texte":"réunion en cours"}'],
+    ['autre.cle', 'x'],
+  ]);
+  const box = {
+    console,
+    localStorage: {
+      getItem: (k) => (mem.has(k) ? mem.get(k) : null),
+      setItem: (k, v) => mem.set(k, String(v)),
+      removeItem: (k) => mem.delete(k),
+    },
+    indexedDB: { open: () => ({}) },
+  };
+  box.window = box;
+  box.self = box;
+  Object.defineProperty(box.localStorage, 'keys', { value: () => [...mem.keys()] });
+  vm.createContext(box);
+  vm.runInContext(
+    'Object.keys = ((orig) => (o) => (o === localStorage ? localStorage.keys() : orig(o)))(Object.keys);',
+    box
+  );
+  vm.runInContext(await readFile(join(appJs, 'settings.js'), 'utf8'), box, { filename: 'settings.js' });
+  const S = box.Lowsper.Settings;
+  const out = S.exportData(Date.UTC(2026, 10, 6));
+  assert.equal(out.lowsper, 'reglages');
+  assert.equal(out.version, 1);
+  assert.equal(out.exportedAt, '2026-11-06T00:00:00.000Z');
+  assert.deepEqual(Object.keys(out.data).sort(), ['lowsper.fixes', 'lowsper.glossary']);
+  const text = JSON.stringify(out, null, 2);
+  assert.ok(
+    !/voices|Intervenant fictif|réunion en cours|speed|whisper-small/.test(text),
+    'rien de ce qui reste sur ce PC'
+  );
+  // Import d'un export : relu tel quel
+  assert.deepEqual(S.parseImport(text), out.data);
+  // Import d'une copie app/reglages.txt : les voix qu'elle contient sont ignorées
+  const txt =
+    '/* Réglages de Lowsper */\nself.LOWSPER_SETTINGS=' +
+    JSON.stringify({
+      savedAt: 1,
+      data: {
+        'lowsper.vocab': 'cyber',
+        'lowsper.voices.v1': '{}',
+        'lowsper.session.v1': '{}',
+        'lowsper.opt.people': 6,
+      },
+    }) +
+    ';\n';
+  assert.deepEqual({ ...S.parseImport(txt) }, { 'lowsper.vocab': 'cyber' }, 'valeur non textuelle ignorée');
+  // Fichier qui n'est pas un fichier de réglages
+  for (const bad of ['', 'bonjour', '{"data":{"autre":"x"}}', '[1,2]', '{"data":{"lowsper.voices.v1":"{}"}}'])
+    assert.throws(
+      () => S.parseImport(bad),
+      (e) => e.code === 'not-settings',
+      JSON.stringify(bad)
+    );
+  // Application : remplace les valeurs du fichier, garde le reste
+  assert.equal(S.importData({ 'lowsper.glossary': 'RSSI', 'lowsper.voices.v1': '{}', 'autre.cle': 'y' }), 1);
+  assert.equal(mem.get('lowsper.glossary'), 'RSSI');
+  assert.equal(mem.get('lowsper.fixes'), '[["Kalmar","CALMAR"]]');
+  assert.match(mem.get('lowsper.voices.v1'), /Intervenant fictif/, 'voix de ce PC intactes');
+  assert.equal(mem.get('autre.cle'), 'x');
+});
+
+// Faux dossier en mémoire : getDirectoryHandle, getFileHandle, createWritable
+function fakeDir(name, perm = 'granted') {
+  const dir = {
+    name,
+    perm,
+    dirs: new Map(),
+    files: new Map(),
+    queryPermission: async () => dir.perm,
+    requestPermission: async () => (dir.perm = 'granted'),
+    async getDirectoryHandle(n, o) {
+      if (!dir.dirs.has(n)) {
+        if (!(o && o.create)) throw new Error('absent');
+        dir.dirs.set(n, fakeDir(n));
+      }
+      return dir.dirs.get(n);
+    },
+    async getFileHandle(n, o) {
+      if (!dir.files.has(n) && !(o && o.create)) throw new Error('absent');
+      return {
+        createWritable: async () => {
+          let buf = '';
+          return { write: async (t) => (buf += t), close: async () => dir.files.set(n, buf) };
+        },
+      };
+    },
+  };
+  return dir;
+}
+
+await test('notes : sans dossier choisi, la note va dans Lowsper/Notes/<emplacement>', async () => {
+  const N = L.Notes;
+  const savedGet = N.lowsper.get;
+  const base = fakeDir('Lowsper', 'prompt');
+  N.lowsper.get = async () => base;
+  const p = N.normalize({ id: 'p1', name: 'Travail : client/projet', format: 'modele' });
+  assert.equal(p.subfolder, '', 'ancien profil : pas encore de sous-dossier figé');
+  assert.equal(N.subfolderOf(p), 'Travail client projet', 'caractères interdits retirés');
+  assert.equal(N.folderLabel(p, true), 'Lowsper › Notes › Travail client projet');
+  assert.equal(N.folderLabel(p, false), 'Vos Téléchargements', 'navigateur sans accès au dossier Lowsper');
+  assert.equal(N.folderLabel({ ...p, folderName: 'Coffre' }, true), 'Coffre', 'dossier choisi gardé');
+  // Accord pas encore donné : un clic est nécessaire, rien n'est créé
+  assert.deepEqual(
+    { ...(await N.access(p, false, true)) },
+    { state: 'a-demander', kind: 'lowsper', sub: 'Travail client projet' }
+  );
+  assert.equal(base.dirs.size, 0);
+  // Simple vérification (accueil) : accordé, sans créer de dossier
+  base.perm = 'granted';
+  const check = await N.access(p, false, false);
+  assert.equal(check.state, 'accorde');
+  assert.equal(check.dir, undefined);
+  assert.equal(base.dirs.size, 0, 'aucun dossier créé par une simple vérification');
+  // Écriture : Notes puis le sous-dossier sont créés
+  const acc = await N.access(p, false, true);
+  assert.equal(acc.kind, 'lowsper');
+  await N.writeNote(acc.dir, 'note.md', 'contenu');
+  assert.equal(base.dirs.get('Notes').dirs.get('Travail client projet').files.get('note.md'), 'contenu');
+  // Nom figé : un emplacement renommé garde son sous-dossier
+  const renamed = N.normalize({ ...p, name: 'Clients', subfolder: acc.sub });
+  assert.equal(N.subfolderOf(renamed), 'Travail client projet');
+  assert.equal(N.folderLabel(renamed, true), 'Lowsper › Notes › Travail client projet');
+  // Pas de dossier Lowsper (Firefox, accord jamais donné) : Téléchargements, comme avant
+  N.lowsper.get = async () => null;
+  assert.equal((await N.access(p, true, true)).state, 'aucun');
+  N.lowsper.get = savedGet;
+});
+
+await test('notes : noms de dossier sûrs sous Windows', () => {
+  const f = L.Notes.safeFolderName;
+  assert.equal(f('  Réunions. '), 'Réunions');
+  assert.equal(f('CON'), 'Emplacement', 'nom réservé par Windows');
+  assert.equal(f('a\u0001b'), 'a b');
+  assert.equal(f('///'), 'Emplacement');
+  assert.equal(f('x'.repeat(80)).length, 60);
+});
+
 await test("micro = une seule voix : l'écho des haut-parleurs est retiré, jamais vos phrases", async () => {
   const unit = (i, j = i, w = 0) => {
     const v = new Float32Array(256);

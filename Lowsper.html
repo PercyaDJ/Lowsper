@@ -52,101 +52,308 @@
   </header>
 
 
-  <!-- Paramètres (roue crantée) -->
+  <!-- Paramètres (roue crantée) : trois onglets, listes groupées, sous-écrans (decision.md §30) -->
   <dialog class="settings" id="settings" aria-labelledby="settings-title">
-    <div class="settings-head">
-      <h2 id="settings-title" data-i18n="settings.title">Paramètres</h2>
-      <button class="icon-btn" id="settings-close" type="button" aria-label="Fermer les paramètres" data-i18n-attr="aria-label:settings.close">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-      </button>
-    </div>
-    <div class="settings-body">
-      <section>
-        <h3 data-i18n="set.transcription">Transcription</h3>
-        <label class="field inline">
-            <span data-i18n="set.language">Langue parlée</span>
-            <select id="language">
-              <option value="fr" selected data-i18n="set.language.fr">Français</option>
-              <option value="en" data-i18n="set.language.en">Anglais</option>
-              <option value="auto" data-i18n="set.language.auto">Français et anglais (détection automatique)</option>
-            </select>
-          </label>
-        <label class="field inline">
-            <span data-i18n-html="set.glossary">Sigles et noms propres de vos réunions <em>(aide la reconnaissance, conservé sur ce poste)</em></span>
-            <textarea id="glossary" rows="3" spellcheck="false" placeholder="Ex. RSSI, COMEX, KPI, RGPD, NIS 2, projet Atlas, Mme Durand" data-i18n-attr="placeholder:set.glossaryPlaceholder"></textarea>
-          </label>
-        <div class="field inline">
-            <span data-i18n-html="set.vocab">Vocabulaire métier intégré <em>(sigles et termes du domaine, en plus des vôtres)</em></span>
-            <div class="vocab-list" id="vocab-list"></div>
-          </div>
-        <label class="check">
-            <input type="checkbox" id="with-others" checked>
-            <span data-i18n="set.withOthers">Capter aussi le son des participants (partage d'écran)</span>
-          </label>
-        <label class="check">
-            <input type="checkbox" id="distinguish" checked>
-            <span data-i18n="set.distinguish">Distinguer les intervenants (Intervenant 1, 2, 3...)</span>
-          </label>
-        <label class="field inline">
-            <span data-i18n="set.people">Nombre de personnes dans vos réunions, vous compris</span>
-            <input id="people" type="number" min="2" max="30" step="1" inputmode="numeric" placeholder="Automatique" data-i18n-attr="placeholder:set.peopleAuto" aria-describedby="people-help">
-            <span class="fine" id="people-help" data-i18n="set.peopleHelp">Laissez vide pour que Lowsper compte les voix lui-même. Ce nombre est gardé pour les réunions suivantes, et c'est un plafond : trop bas, des voix différentes sont regroupées.</span>
-          </label>
-        <label class="check">
-            <input type="checkbox" id="autopip" checked>
-            <span data-i18n="set.autopip">Réduire Lowsper en mini-fenêtre dès le début de l'enregistrement</span>
-          </label>
-        <label class="check">
-            <input type="checkbox" id="show-before" checked>
-            <span data-i18n="set.showBefore">Afficher « Avant de commencer » avant chaque réunion</span>
-          </label>
-        <div class="field inline" id="fixes-field">
-            <span data-i18n-html="set.fixes">Mots que Whisper déforme <em>(corrigés automatiquement dans chaque transcript)</em></span>
-            <div class="fixer-row">
-              <input id="set-fix-wrong" type="text" maxlength="80" placeholder="Mal reconnu (ex. Kalmar)" data-i18n-attr="placeholder:set.fixWrong" autocomplete="off" spellcheck="false">
-              <span class="arrow" aria-hidden="true">→</span>
-              <input id="set-fix-right" type="text" maxlength="80" placeholder="Bonne écriture (ex. CALMAR)" data-i18n-attr="placeholder:set.fixRight" autocomplete="off" spellcheck="false">
-              <button class="btn small" id="set-fix-add" type="button" data-i18n="set.fixAdd">Ajouter</button>
+    <div class="set-main" id="set-main">
+      <div class="settings-head">
+        <span class="head-side" aria-hidden="true"></span>
+        <h2 id="settings-title" data-i18n="settings.title">Paramètres</h2>
+        <span class="head-side end"><button class="linkish strong" id="settings-close" type="button" data-i18n="settings.done">OK</button></span>
+      </div>
+      <div class="seg" role="tablist" id="set-tabs" aria-label="Rubriques des paramètres" data-i18n-attr="aria-label:settings.tabs">
+        <button type="button" role="tab" id="tab-transcription" data-tab="transcription" aria-controls="tp-transcription" aria-selected="true" data-i18n="tab.transcription">Transcription</button>
+        <button type="button" role="tab" id="tab-notes" data-tab="notes" aria-controls="tp-notes" aria-selected="false" tabindex="-1" data-i18n="tab.notes">Notes et compte rendu</button>
+        <button type="button" role="tab" id="tab-advanced" data-tab="advanced" aria-controls="tp-advanced" aria-selected="false" tabindex="-1" data-i18n="tab.advanced">Avancé</button>
+      </div>
+      <div class="settings-body">
+
+        <!-- Onglet Transcription -->
+        <div role="tabpanel" id="tp-transcription" aria-labelledby="tab-transcription">
+          <section class="set-group" aria-labelledby="g-lang">
+            <h3 class="group-title" id="g-lang" data-i18n="grp.languages">Langues</h3>
+            <div class="group">
+              <button type="button" class="set-row" id="row-ui-lang" data-open="ui-lang">
+                <span class="set-text"><span class="set-label" data-i18n="set.uiLang">Langue de l'interface</span><span class="set-sub" id="ui-lang-busy" data-i18n="set.uiLangBusy" hidden>La langue se change en dehors d’une réunion ou d’une transcription en cours.</span></span>
+                <span class="set-value" id="v-ui-lang"></span>
+              </button>
+              <button type="button" class="set-row" data-open="language">
+                <span class="set-text"><span class="set-label" data-i18n="row.spoken">Langue parlée dans mes réunions</span></span>
+                <span class="set-value" id="v-language"></span>
+              </button>
             </div>
-            <div class="fix-chips" id="fix-chips"></div>
-          </div>
-        <p class="fine saved-line" id="settings-saved"></p>
-        <button class="btn ghost small" id="settings-keep" hidden data-i18n="set.keep">Conserver mes réglages dans le dossier Lowsper</button>
-      </section>
-      <section aria-labelledby="prof-title">
-        <h3 id="prof-title" data-i18n="prof.title">Profils de sortie</h3>
-        <p class="fine" data-i18n="prof.intro">Où et sous quelle forme arrive la note de chaque réunion, par exemple directement dans votre base de notes. Le profil se choisit sur l'écran d'accueil.</p>
-        <div class="row prof-row">
-          <label class="field inline compact">
-            <span data-i18n="prof.edit">Profil à modifier</span>
-            <select id="prof-select"></select>
-          </label>
-          <button class="btn small" id="prof-new" type="button" data-i18n="prof.new">Nouveau profil</button>
-          <button class="btn ghost small" id="prof-delete" type="button" data-i18n="prof.delete">Supprimer ce profil</button>
+          </section>
+          <section class="set-group" aria-labelledby="g-words">
+            <h3 class="group-title" id="g-words" data-i18n="grp.words">Mots</h3>
+            <div class="group">
+              <button type="button" class="set-row" data-open="glossary">
+                <span class="set-text"><span class="set-label" data-i18n="row.glossary">Mots à reconnaître</span><span class="set-sub" data-i18n="row.glossarySub">Sigles et noms que Lowsper doit connaître, par exemple Dr Martin, KPI.</span></span>
+                <span class="set-value" id="v-glossary"></span>
+              </button>
+              <button type="button" class="set-row" data-open="fixes">
+                <span class="set-text"><span class="set-label" data-i18n="row.fixes">Corrections automatiques</span><span class="set-sub" data-i18n="row.fixesSub">Remplace toujours un mot mal reconnu, par exemple Kalmar devient CALMAR.</span></span>
+                <span class="set-value" id="v-fixes"></span>
+              </button>
+              <button type="button" class="set-row" data-open="vocab">
+                <span class="set-text"><span class="set-label" data-i18n="row.vocab">Vocabulaire métier</span></span>
+                <span class="set-value" id="v-vocab"></span>
+              </button>
+            </div>
+            <p class="set-foot" id="settings-saved"></p>
+          </section>
+          <section class="set-group" aria-labelledby="g-during">
+            <h3 class="group-title" id="g-during" data-i18n="grp.during">Pendant la réunion</h3>
+            <div class="group">
+              <label class="set-row check">
+                <span class="set-text"><span class="set-label" data-i18n="set.withOthers">Écouter aussi le son de la réunion</span><span class="set-sub" data-i18n="set.withOthersSub">Pas seulement votre micro : le son partagé avec l'écran.</span></span>
+                <input type="checkbox" id="with-others" checked>
+              </label>
+              <label class="set-row check">
+                <span class="set-text"><span class="set-label" data-i18n="set.distinguish">Reconnaître qui parle</span><span class="set-sub" data-i18n="set.distinguishSub">Intervenant 1, 2, 3...</span></span>
+                <input type="checkbox" id="distinguish" checked>
+              </label>
+              <button type="button" class="set-row" data-open="people">
+                <span class="set-text"><span class="set-label" data-i18n="row.people">Nombre de personnes</span></span>
+                <span class="set-value" id="v-people"></span>
+              </button>
+              <label class="set-row check">
+                <span class="set-text"><span class="set-label" data-i18n="set.autopip">Réduire en mini-fenêtre au démarrage</span></span>
+                <input type="checkbox" id="autopip" checked>
+              </label>
+              <label class="set-row check">
+                <span class="set-text"><span class="set-label" data-i18n="set.showBefore">Afficher « Avant de commencer » avant chaque réunion</span></span>
+                <input type="checkbox" id="show-before" checked>
+              </label>
+            </div>
+          </section>
         </div>
-        <label class="field inline">
-          <span data-i18n="prof.name">Nom du profil</span>
+
+        <!-- Onglet Notes et compte rendu -->
+        <div role="tabpanel" id="tp-notes" aria-labelledby="tab-notes" hidden>
+          <section class="set-group" aria-labelledby="prof-title">
+            <h3 class="group-title" id="prof-title" data-i18n="grp.where">Où vont les notes</h3>
+            <div class="group">
+              <button type="button" class="set-row" data-open="place">
+                <span class="set-text"><span class="set-label" data-i18n="row.place">Emplacement</span></span>
+                <span class="set-value" id="v-place"></span>
+              </button>
+              <button type="button" class="set-row" data-open="folder">
+                <span class="set-text"><span class="set-label" data-i18n="row.folder">Dossier</span></span>
+                <span class="set-value" id="v-folder"></span>
+              </button>
+              <button type="button" class="set-row" data-open="format">
+                <span class="set-text"><span class="set-label" data-i18n="row.format">Format de la note</span></span>
+                <span class="set-value" id="v-format"></span>
+              </button>
+            </div>
+            <p class="set-foot" data-i18n="grp.whereFoot">Un emplacement, c'est un dossier et un format de note. Créez-en un par usage : Travail, Personnel... « Pour les applications de notes » ajoute un en-tête que des applications comme Obsidian savent lire.</p>
+          </section>
+          <section class="set-group" aria-labelledby="ai-title">
+            <h3 class="group-title" id="ai-title" data-i18n="grp.summary">Compte rendu</h3>
+            <div class="group">
+              <button type="button" class="set-row" data-open="prompt">
+                <span class="set-text"><span class="set-label" data-i18n="row.prompt">Consigne</span></span>
+                <span class="set-value" id="v-prompt"></span>
+              </button>
+              <button type="button" class="set-row action" data-open="prompts">
+                <span class="set-text"><span class="set-label" data-i18n="row.editPrompts">Modifier les consignes</span></span>
+              </button>
+            </div>
+            <p class="set-foot" data-i18n="grp.summaryFoot">Copiée avant le texte quand vous cliquez sur « Obtenir un résumé ».</p>
+          </section>
+          <section class="set-group">
+            <div class="group">
+              <button type="button" class="set-row action" id="prof-new">
+                <span class="set-text"><span class="set-label" data-i18n="row.addPlace">Ajouter un emplacement</span></span>
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <!-- Onglet Avancé -->
+        <div role="tabpanel" id="tp-advanced" aria-labelledby="tab-advanced" hidden>
+          <section class="set-group" aria-labelledby="g-reco">
+            <h3 class="group-title" id="g-reco" data-i18n="grp.recognition">Reconnaissance vocale</h3>
+            <div class="group">
+              <button type="button" class="set-row" data-open="model">
+                <span class="set-text"><span class="set-label" data-i18n="set.model">Modèle</span></span>
+                <span class="set-value" id="v-model"></span>
+              </button>
+              <button type="button" class="set-row" data-open="power">
+                <span class="set-text"><span class="set-label" data-i18n="row.power">Vitesse</span></span>
+                <span class="set-value" id="v-power"></span>
+              </button>
+              <button type="button" class="set-row action" id="speed-test">
+                <span class="set-text"><span class="set-label" data-i18n="set.speedTest">Mesurer la vitesse de ce PC</span><span class="set-sub" id="speed-result"></span></span>
+              </button>
+            </div>
+          </section>
+          <section class="set-group" aria-labelledby="look-title">
+            <h3 class="group-title" id="look-title" data-i18n="set.look">Affichage</h3>
+            <div class="group">
+              <button type="button" class="set-row" data-open="theme">
+                <span class="set-text"><span class="set-label" data-i18n="set.theme">Thème</span></span>
+                <span class="set-value" id="v-theme"></span>
+              </button>
+            </div>
+          </section>
+          <section class="set-group" aria-labelledby="g-voices">
+            <h3 class="group-title" id="g-voices" data-i18n="set.voices">Voix</h3>
+            <div class="group">
+              <label class="set-row check">
+                <span class="set-text"><span class="set-label" data-i18n="set.memory">Mémoriser les voix nommées</span><span class="set-sub" data-i18n="set.memorySub">Effacées automatiquement après 1, 3 ou 6 mois.</span></span>
+                <input type="checkbox" id="memory-on">
+              </label>
+              <button type="button" class="set-row" data-open="memory-days" id="row-memory-days" hidden>
+                <span class="set-text"><span class="set-label" data-i18n="set.memoryDays">Effacement automatique</span></span>
+                <span class="set-value" id="v-memory-days"></span>
+              </button>
+              <button type="button" class="set-row action danger" id="memory-clear" hidden>
+                <span class="set-text"><span class="set-label" data-i18n="set.memoryClear">Effacer les voix mémorisées</span></span>
+              </button>
+            </div>
+            <div class="set-foot" id="memory-details" hidden>
+              <p data-i18n="set.memoryWarn">Une empreinte vocale est une donnée biométrique : à n'activer qu'avec l'accord des personnes concernées. Seule une empreinte (une suite de nombres, pas d'enregistrement) est conservée, uniquement sur ce poste.</p>
+              <p id="memory-list"></p>
+            </div>
+          </section>
+          <section class="set-group" aria-labelledby="g-backup">
+            <h3 class="group-title" id="g-backup" data-i18n="grp.backup">Sauvegarde</h3>
+            <div class="group">
+              <button type="button" class="set-row action" id="settings-export">
+                <span class="set-text"><span class="set-label" data-i18n="set.export">Exporter les réglages dans un fichier</span></span>
+              </button>
+              <button type="button" class="set-row action" id="settings-import">
+                <span class="set-text"><span class="set-label" data-i18n="set.import">Importer des réglages depuis un fichier</span></span>
+              </button>
+            </div>
+            <input type="file" id="settings-import-file" accept=".json,.txt,application/json,text/plain" hidden>
+            <p class="set-foot" data-i18n="grp.backupFoot">Les réglages s'enregistrent tout seuls. Ceci ne sert qu'à les déplacer vers un autre PC. Les voix mémorisées, le modèle et les mesures de vitesse restent sur ce PC.</p>
+          </section>
+          <section class="set-group" aria-labelledby="g-exp">
+            <h3 class="group-title" id="g-exp" data-i18n="grp.experimental">Expérimental</h3>
+            <div class="group">
+              <button type="button" class="set-row action" data-open="lai">
+                <span class="set-text"><span class="set-label" data-i18n="row.lai">IA intégrée du navigateur</span><span class="set-sub" data-i18n="row.laiSub">Vérifie si ce PC peut rédiger des résumés hors ligne, sans service d'IA en ligne.</span></span>
+              </button>
+            </div>
+          </section>
+          <section class="set-group" aria-labelledby="g-help">
+            <h3 class="group-title" id="g-help" data-i18n="grp.help">Aide</h3>
+            <div class="group">
+              <button type="button" class="set-row action" id="set-journal">
+                <span class="set-text"><span class="set-label" data-i18n="set.journal">Télécharger le journal technique</span><span class="set-sub" data-i18n="set.journalSub">Ne contient aucun texte de réunion.</span></span>
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sous-écrans : une page par élément à choix ; « ‹ Paramètres » ou Échap ramène à l'écran principal -->
+    <div class="set-page" id="page-ui-lang" hidden>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 data-i18n="set.uiLang">Langue de l'interface</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-body"><div class="group choice-list" id="ui-lang" aria-labelledby="row-ui-lang"></div></div>
+    </div>
+
+    <div class="set-page" id="page-language" hidden>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 id="t-language" data-i18n="set.language">Langue parlée</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-body">
+        <div class="group choice-list" id="language" aria-labelledby="t-language"></div>
+        <p class="set-foot" data-i18n="page.languageFoot">Choisissez « Français et anglais » si les deux langues se mélangent : Lowsper reconnaît celle de chaque passage.</p>
+      </div>
+    </div>
+
+    <div class="set-page" id="page-glossary" hidden>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 data-i18n="row.glossary">Mots à reconnaître</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-body">
+        <label class="field">
+          <span class="visually-hidden" data-i18n="row.glossary">Mots à reconnaître</span>
+          <textarea id="glossary" rows="6" spellcheck="false" placeholder="Ex. RSSI, COMEX, KPI, RGPD, NIS 2, projet Atlas, Mme Durand" data-i18n-attr="placeholder:set.glossaryPlaceholder" aria-describedby="glossary-help"></textarea>
+        </label>
+        <p class="set-foot" id="glossary-help" data-i18n="page.glossaryHelp">Donnés à la reconnaissance vocale avant la transcription : elle a plus de chances de les écrire juste, sans garantie. Séparez-les par des virgules.</p>
+      </div>
+    </div>
+
+    <div class="set-page" id="page-fixes" hidden>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 data-i18n="row.fixes">Corrections automatiques</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-body">
+        <div class="fixer-row" id="fixes-field">
+          <input id="set-fix-wrong" type="text" maxlength="80" placeholder="Mal reconnu (ex. Kalmar)" data-i18n-attr="placeholder:set.fixWrong;aria-label:set.fixWrongLabel" aria-label="Mot mal reconnu" autocomplete="off" spellcheck="false">
+          <span class="arrow" aria-hidden="true">→</span>
+          <input id="set-fix-right" type="text" maxlength="80" placeholder="Bonne écriture (ex. CALMAR)" data-i18n-attr="placeholder:set.fixRight;aria-label:set.fixRightLabel" aria-label="Bonne écriture" autocomplete="off" spellcheck="false">
+          <button class="btn small" id="set-fix-add" type="button" data-i18n="set.fixAdd">Ajouter</button>
+        </div>
+        <div class="fix-chips" id="fix-chips"></div>
+        <p class="set-foot" data-i18n="page.fixesHelp">Appliquées après la transcription, à chaque fois : le mot mal reconnu est remplacé partout par le bon.</p>
+      </div>
+    </div>
+
+    <div class="set-page" id="page-vocab" hidden>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 id="t-vocab" data-i18n="row.vocab">Vocabulaire métier</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-body">
+        <div class="group choice-list" id="vocab-list" role="group" aria-labelledby="t-vocab"></div>
+        <p class="set-foot" data-i18n="page.vocabHelp">Ajoute les sigles et termes habituels de ces domaines aux mots à reconnaître.</p>
+      </div>
+    </div>
+
+    <div class="set-page" id="page-people" hidden>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 data-i18n="row.people">Nombre de personnes</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-body">
+        <label class="field">
+          <span data-i18n="set.people">Nombre de personnes dans vos réunions, vous compris</span>
+          <input id="people" type="number" min="2" max="30" step="1" inputmode="numeric" placeholder="Automatique" data-i18n-attr="placeholder:set.peopleAuto" aria-describedby="people-help">
+        </label>
+        <p class="set-foot" id="people-help" data-i18n="set.peopleHelp">Laissez vide pour que Lowsper compte les voix lui-même. Ce nombre est gardé pour les réunions suivantes, et c'est un plafond : trop bas, des voix différentes sont regroupées.</p>
+      </div>
+    </div>
+
+    <div class="set-page" id="page-place" hidden>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 id="t-place" data-i18n="row.place">Emplacement</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-body">
+        <h3 class="group-title" id="t-place-edit" data-i18n="prof.edit">Emplacement à modifier</h3>
+        <div class="group choice-list" id="prof-select" aria-labelledby="t-place-edit"></div>
+        <label class="field">
+          <span data-i18n="prof.name">Nom de l'emplacement</span>
           <input id="prof-name" type="text" maxlength="40" autocomplete="off">
         </label>
-        <div class="field inline">
-          <span id="prof-folder-label" data-i18n="prof.folder">Dossier de destination</span>
-          <div class="row prof-row" role="group" aria-labelledby="prof-folder-label">
-            <span class="prof-folder" id="prof-folder"></span>
-            <button class="btn small" id="prof-folder-pick" type="button" data-i18n="prof.folderPick">Choisir le dossier</button>
-            <button class="btn ghost small" id="prof-folder-clear" type="button" data-i18n="prof.folderClear">Revenir aux Téléchargements</button>
-          </div>
-          <span class="fine" data-i18n="prof.syncWarning">Un dossier synchronisé en ligne (stockage en ligne, synchronisation de votre base de notes) fera quitter la note de cet ordinateur.</span>
+        <div class="group">
+          <button type="button" class="set-row action danger" id="prof-delete">
+            <span class="set-text"><span class="set-label" data-i18n="prof.delete">Supprimer cet emplacement</span></span>
+          </button>
         </div>
-        <label class="field inline">
-          <span data-i18n="prof.prompt">Consigne proposée par « Obtenir un résumé »</span>
-          <select id="prof-prompt"></select>
-        </label>
-        <label class="check">
-          <input type="checkbox" id="prof-classic">
-          <span data-i18n="prof.classic">Format classique de Lowsper (sans modèle ni propriétés)</span>
-        </label>
+        <p class="set-foot" data-i18n="prof.intro">L'emplacement de la prochaine réunion se choisit sur l'accueil, dans « Enregistrer la note dans ».</p>
+      </div>
+    </div>
+
+    <div class="set-page" id="page-folder" hidden>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 data-i18n="row.folder">Dossier</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-body">
+        <div class="group folder-box">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          <div>
+            <span class="fine" id="prof-folder-label" data-i18n="prof.folder">Les notes de cet emplacement vont dans</span>
+            <code id="prof-folder"></code>
+          </div>
+        </div>
+        <div class="group">
+          <button type="button" class="set-row action" id="prof-folder-pick">
+            <span class="set-text"><span class="set-label" data-i18n="prof.folderPick">Choisir un autre dossier</span></span>
+          </button>
+          <button type="button" class="set-row action" id="prof-folder-clear">
+            <span class="set-text"><span class="set-label" data-i18n="prof.folderClear">Revenir au dossier par défaut</span></span>
+          </button>
+        </div>
+        <p class="set-foot" data-i18n="prof.folderHelp">Par défaut, chaque emplacement a son dossier dans Lowsper › Notes. Son nom ne change plus après la première note, même si vous renommez l'emplacement.</p>
+        <p class="set-foot" data-i18n="prof.syncWarning">Un dossier synchronisé en ligne (stockage en ligne, synchronisation de votre base de notes) fera quitter la note de cet ordinateur.</p>
+      </div>
+    </div>
+
+    <div class="set-page" id="page-format" hidden>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 id="t-format" data-i18n="row.format">Format de la note</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-body">
+        <div class="group choice-list" id="prof-format" aria-labelledby="t-format"></div>
         <div id="prof-custom">
-          <label class="field inline">
+          <label class="field">
             <span data-i18n-html="prof.fileName">Nom du fichier <em>(variables possibles, ex. {{date}} {{titre}})</em></span>
             <input id="prof-filename" type="text" maxlength="160" spellcheck="false" autocomplete="off">
           </label>
@@ -171,7 +378,7 @@
             <input type="checkbox" id="prof-links">
             <span data-i18n-html="prof.links">Écrire les intervenants nommés en liens <code>[[Nom]]</code></span>
           </label>
-          <label class="field inline">
+          <label class="field">
             <span data-i18n="prof.template">Modèle de note</span>
             <textarea id="prof-template" rows="7" spellcheck="false"></textarea>
           </label>
@@ -184,30 +391,73 @@
             <dl id="prof-vars"></dl>
           </details>
         </div>
-      </section>
-      <section aria-labelledby="ai-title">
-        <h3 id="ai-title" data-i18n="ai.title">Consignes pour l'IA</h3>
-        <p class="fine" data-i18n-html="ai.intro">Texte placé devant la note par « Obtenir un résumé », pour demander un compte rendu à l'assistant de votre choix. Variables possibles, comme dans les modèles de note ; <code>{{note}}</code> place la note ailleurs qu'à la fin.</p>
-        <div class="row prof-row">
-          <label class="field inline compact">
-            <span data-i18n="ai.edit">Consigne à modifier</span>
-            <select id="ai-select"></select>
-          </label>
-          <button class="btn small" id="ai-new" type="button" data-i18n="ai.new">Nouvelle consigne</button>
-          <button class="btn ghost small" id="ai-remove" type="button"></button>
-        </div>
-        <label class="field inline">
+      </div>
+    </div>
+
+    <div class="set-page" id="page-prompt" hidden>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 id="t-prompt" data-i18n="row.prompt">Consigne</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-body">
+        <div class="group choice-list" id="prof-prompt" aria-labelledby="t-prompt"></div>
+        <p class="set-foot" data-i18n="prof.prompt">Proposée par « Obtenir un résumé » pour les notes de cet emplacement.</p>
+      </div>
+    </div>
+
+    <div class="set-page" id="page-prompts" hidden>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 data-i18n="ai.title">Consignes pour l'IA</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-body">
+        <p class="set-foot" data-i18n-html="ai.intro">Texte placé devant la note par « Obtenir un résumé », pour demander un compte rendu à l'assistant de votre choix. Variables possibles, comme dans les modèles de note ; <code>{{note}}</code> place la note ailleurs qu'à la fin.</p>
+        <h3 class="group-title" id="t-ai-edit" data-i18n="ai.edit">Consigne à modifier</h3>
+        <div class="group choice-list" id="ai-select" aria-labelledby="t-ai-edit"></div>
+        <label class="field">
           <span data-i18n="ai.name">Nom</span>
           <input id="ai-name" type="text" maxlength="60" autocomplete="off">
         </label>
-        <label class="field inline">
+        <label class="field">
           <span data-i18n="ai.text">Texte de la consigne</span>
-          <textarea id="ai-text" rows="5"></textarea>
+          <textarea id="ai-text" rows="10"></textarea>
         </label>
-      </section>
-      <section aria-labelledby="lai-title">
-        <h3 id="lai-title" data-i18n="lai.title">IA intégrée du navigateur (expérimental)</h3>
-        <p class="fine" data-i18n="lai.intro">Chrome et Edge récents peuvent embarquer un petit modèle de langage qui rédige des résumés sur le PC, sans service en ligne, si le matériel le permet. La vérification ne télécharge rien et ne lit aucun de vos transcripts ; l'essai porte sur une réunion fictive.</p>
+        <div class="row prof-row">
+          <button class="btn small" id="ai-new" type="button" data-i18n="ai.new">Nouvelle consigne</button>
+          <button class="btn ghost small" id="ai-remove" type="button"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="set-page" id="page-model" hidden>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 id="t-model" data-i18n="set.model">Modèle</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-body">
+        <div class="group choice-list" id="model" aria-labelledby="t-model"></div>
+        <p class="set-foot" id="model-current"></p>
+        <div class="group">
+          <button type="button" class="set-row action" id="add-model">
+            <span class="set-text"><span class="set-label" data-i18n="set.addModel">Installer ou ajouter des modèles</span></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="set-page" id="page-power" hidden>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 id="t-power" data-i18n="row.power">Vitesse</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-body">
+        <div class="group choice-list" id="power" aria-labelledby="t-power"></div>
+        <p class="set-foot" data-i18n="set.power">Part du processeur utilisée pour transcrire.</p>
+      </div>
+    </div>
+
+    <div class="set-page" id="page-theme" hidden>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 id="t-theme" data-i18n="set.theme">Thème</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-body"><div class="group choice-list" id="theme" aria-labelledby="t-theme"></div></div>
+    </div>
+
+    <div class="set-page" id="page-memory-days" hidden>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 id="t-memory-days" data-i18n="set.memoryDays">Effacement automatique</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-body"><div class="group choice-list" id="memory-days" aria-labelledby="t-memory-days"></div></div>
+    </div>
+
+    <div class="set-page" id="page-lai" hidden>
+      <div class="settings-head"><span class="head-side"><button class="back" type="button" data-back><span aria-hidden="true">‹</span> <span data-i18n="settings.title">Paramètres</span></button></span><h2 id="lai-title" data-i18n="lai.title">IA intégrée du navigateur (expérimental)</h2><span class="head-side" aria-hidden="true"></span></div>
+      <div class="settings-body">
+        <p class="set-foot" data-i18n="lai.intro">Chrome et Edge récents peuvent embarquer un petit modèle de langage qui rédige des résumés sur le PC, sans service en ligne, si le matériel le permet. La vérification ne télécharge rien et ne lit aucun de vos transcripts ; l'essai porte sur une réunion fictive.</p>
         <div class="row lai-row">
           <button class="btn small" id="lai-probe" type="button" data-i18n="lai.probe">Vérifier ce PC</button>
           <button class="btn small" id="lai-trial" type="button" hidden data-i18n="lai.trial">Essayer sur une réunion fictive</button>
@@ -218,74 +468,7 @@
         <progress id="lai-progress" max="1" value="0" hidden aria-label="Téléchargement du modèle par le navigateur" data-i18n-attr="aria-label:lai.progress"></progress>
         <p class="fine" id="lai-status" aria-live="polite"></p>
         <pre class="lai-out" id="lai-out" tabindex="0" hidden></pre>
-      </section>
-      <section aria-labelledby="look-title">
-        <h3 id="look-title" data-i18n="set.look">Affichage</h3>
-        <label class="field inline">
-          <span data-i18n="set.theme">Thème</span>
-          <select id="theme">
-            <option value="auto" data-i18n="set.theme.auto">Automatique (comme le système)</option>
-            <option value="light" data-i18n="set.theme.light">Clair</option>
-            <option value="dark" data-i18n="set.theme.dark">Sombre</option>
-          </select>
-        </label>
-        <label class="field inline">
-          <span data-i18n="set.uiLang">Langue de l'interface</span>
-          <select id="ui-lang">
-            <option value="fr" lang="fr">Français</option>
-            <option value="en" lang="en">English</option>
-          </select>
-        </label>
-        <p class="fine" id="ui-lang-busy" data-i18n="set.uiLangBusy" hidden>La langue se change en dehors d’une réunion ou d’une transcription en cours.</p>
-      </section>
-      <section>
-        <h3 data-i18n="set.model">Modèle</h3>
-        <p class="fine" id="model-current"></p>
-        <label class="field inline" id="model-field" hidden>
-            <span data-i18n="set.modelSelect">Modèle de transcription</span>
-            <select id="model"></select>
-          </label>
-        <button class="btn small" id="add-model" type="button" data-i18n="set.addModel">Installer ou ajouter des modèles</button>
-      </section>
-      <section>
-        <h3 data-i18n="set.perf">Performance</h3>
-        <label class="field inline">
-            <span data-i18n-html="set.power">Puissance de calcul <em>(part du processeur utilisée pour transcrire)</em></span>
-            <select id="power">
-              <option value="eco" data-i18n="set.power.eco">Économe : 1 cœur, la transcription peut prendre du retard</option>
-              <option value="balanced" selected data-i18n="set.power.balanced">Équilibrée : laisse de la marge à Teams, Office... (conseillé)</option>
-              <option value="max" data-i18n="set.power.max">Maximale : le plus de direct possible, PC plus sollicité</option>
-            </select>
-          </label>
-        <div class="speed">
-            <button class="linkish" id="speed-test" type="button" data-i18n="set.speedTest">Mesurer la vitesse de ce PC avec le modèle actuel</button>
-            <p class="fine" id="speed-result"></p>
-          </div>
-      </section>
-      <section>
-        <h3 data-i18n="set.voices">Voix des intervenants</h3>
-        <div class="memory">
-            <label class="check">
-              <input type="checkbox" id="memory-on">
-              <span data-i18n="set.memory">Mémoriser les voix des intervenants que je nomme, pour les reconnaître aux réunions suivantes</span>
-            </label>
-            <div class="memory-details" id="memory-details" hidden>
-              <p class="fine" data-i18n="set.memoryWarn">Une empreinte vocale est une donnée biométrique : à n'activer qu'avec l'accord des personnes concernées. Seule une empreinte (une suite de nombres, pas d'enregistrement) est conservée, uniquement sur ce poste.</p>
-              <div class="row">
-                <label class="field inline compact">
-                  <span data-i18n="set.memoryDays">Effacement automatique</span>
-                  <select id="memory-days">
-                    <option value="30" data-i18n="set.memoryDays.30">après 1 mois</option>
-                    <option value="90" data-i18n="set.memoryDays.90">après 3 mois</option>
-                    <option value="180" data-i18n="set.memoryDays.180">après 6 mois</option>
-                  </select>
-                </label>
-                <button class="btn ghost small" id="memory-clear" type="button" data-i18n="set.memoryClear">Effacer les voix mémorisées</button>
-              </div>
-              <p class="fine" id="memory-list"></p>
-            </div>
-          </div>
-      </section>
+      </div>
     </div>
   </dialog>
 
@@ -599,6 +782,7 @@
   <script src="app/js/i18n.js"></script>
   <script src="app/js/recommend.js"></script>
   <script src="app/js/menu.js"></script>
+  <script src="app/js/panel.js"></script>
   <script src="app/js/meeting.js"></script>
   <script src="app/js/browser.js"></script>
   <script src="app/js/engine.js"></script>

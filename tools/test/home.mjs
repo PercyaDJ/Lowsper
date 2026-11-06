@@ -123,12 +123,17 @@ await test('menu « Enregistrer la note dans » : coche, dossier, clavier, choix
   assert.equal(await page.textContent('#place-current'), 'Travail');
 });
 
-await test('« Nouvel emplacement… » : un nouveau profil, dans les paramètres', async () => {
+await test('« Nouvel emplacement… » : un nouvel emplacement, sa page ouverte dans les paramètres', async () => {
   await page.click('#place-btn');
   await page.click('#place-list [role="menuitem"]');
   await page.waitForSelector('#settings[open]');
-  assert.equal(await page.inputValue('#prof-name'), 'Nouveau profil');
+  assert.equal(await page.isVisible('#page-place'), true);
+  assert.equal(await page.inputValue('#prof-name'), 'Nouvel emplacement');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'prof-name');
   assert.equal(await page.evaluate(() => window.Lowsper.Notes.list().length), 3);
+  // Échap : retour à l'onglet « Notes et compte rendu », puis fermeture
+  await page.keyboard.press('Escape');
+  assert.equal(await page.isVisible('#tp-notes'), true);
   await page.click('#settings-close');
 });
 
@@ -179,10 +184,14 @@ await test('« Ne plus afficher » : la fenêtre ne revient plus, sauf si on la 
 
 await test('« Nombre de personnes » dans les paramètres : automatique par défaut, gardé', async () => {
   await page.click('#settings-open');
+  assert.equal(await page.textContent('#v-people'), 'Automatique');
+  await page.click('[data-open="people"]');
   assert.equal(await page.inputValue('#people'), '');
   assert.equal(await page.getAttribute('#people', 'placeholder'), 'Automatique');
   assert.match(await page.textContent('#people-help'), /plafond/);
   await page.fill('#people', '6');
+  await page.click('#page-people [data-back]');
+  assert.equal(await page.textContent('#v-people'), '6');
   await page.click('#settings-close');
   await load();
   assert.equal(await page.inputValue('#people'), '6');

@@ -38,7 +38,9 @@ page.on('download', (d) => downloads.push(d));
 await page.goto(pathToFileURL(join(root, 'Lowsper.html')).href);
 await page.waitForSelector('#engine[data-state="ready"]', { timeout: 300000 });
 await page.click('#settings-open');
+await page.click('[data-open="glossary"]');
 await page.fill('#glossary', 'ServiceNow, COPIL, KPI');
+await page.click('#page-glossary [data-back]');
 await page.click('#settings-close');
 
 let failed = 0;

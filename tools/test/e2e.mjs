@@ -8,7 +8,7 @@
 // Usage : node test/e2e.mjs [durée_en_secondes]
 import { chromium } from 'playwright-core';
 import http from 'node:http';
-import { cp, mkdir, readFile, rm, writeFile, stat } from 'node:fs/promises';
+import { cp, mkdir, readFile, readdir, rm, writeFile, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -140,6 +140,9 @@ await page.exposeFunction('__lowsperFs', async (op, rel, data) => {
 await page.addInitScript((NOWRITE) => {
   const dir = (rel) => ({
     kind: 'directory',
+    name: rel === '.' ? 'Lowsper' : rel.split('/').pop(),
+    queryPermission: async () => 'granted',
+    requestPermission: async () => 'granted',
     async getDirectoryHandle(name, opts = {}) {
       await window.__lowsperFs('dir', rel + '/' + name, !!opts.create);
       return dir(rel + '/' + name);
@@ -176,6 +179,13 @@ await page.addInitScript((NOWRITE) => {
   });
   window.showDirectoryPicker = async () => dir('.');
   window.__NOWRITE = NOWRITE;
+  // Un vrai dossier est gardé par IndexedDB d'un lancement à l'autre ; ce faux dossier ne peut pas
+  // l'être : il est redonné après le rechargement qui suit l'installation, accord compris
+  const patch = () => {
+    if (!window.Lowsper || !window.Lowsper.Settings) return setTimeout(patch, 10);
+    window.Lowsper.Settings.folder = async () => dir('.');
+  };
+  patch();
 }, !!process.env.NOWRITE);
 page.on('console', (m) => {
   if (m.type() === 'error' || m.type() === 'warning' || process.env.NOWRITE)
@@ -247,8 +257,12 @@ await page.screenshot({ path: join(out, '2-accueil.png') });
 await page.fill('#title', 'Test automatique');
 await page.click('#settings-open'); // roue crantée
 await page.waitForSelector('#settings[open]');
-await page.selectOption('#language', 'fr');
+await page.click('[data-open="language"]');
+await page.click('#language [data-value="fr"]');
+await page.click('#page-language [data-back]');
+await page.click('[data-open="glossary"]');
 await page.fill('#glossary', corpusInfo.glossary);
+await page.click('#page-glossary [data-back]');
 await page.screenshot({ path: join(out, '2b-parametres.png') });
 await page.click('#settings-close');
 await page.click('#start');
@@ -363,18 +377,26 @@ await page.setViewportSize({ width: 900, height: 1000 });
 
 const tStop = Date.now();
 await page.click('#stop');
-for (let i = 0; i < 360 && downloads.length < 2; i++) await page.waitForTimeout(500);
+// Dossier Lowsper accordé à l'installation : les notes vont dans Lowsper/Notes/Par défaut (lot R7)
+const notesDir = join(site, 'Notes', 'Par défaut');
+const listNotes = async () => {
+  try {
+    return (await readdir(notesDir)).filter((f) => f.endsWith('.md'));
+  } catch {
+    return [];
+  }
+};
+for (let i = 0; i < 360 && (await listNotes()).length < 2; i++) await page.waitForTimeout(500);
+const notes = await listNotes();
 // La première réunion porte le titre « Test automatique » ; la seconde, enchaînée, n'en a pas
-const firstDl = downloads.find((d) => /test-automatique/.test(d.suggestedFilename())) || downloads[0];
-const download = downloads.find((d) => d !== firstDl) || firstDl;
-const firstPath = join(out, 'premiere-' + firstDl.suggestedFilename());
-await firstDl.saveAs(firstPath);
-const firstMd = await readFile(firstPath, 'utf8');
+const firstName = notes.find((f) => /test-automatique/.test(f)) || notes[0];
+const noteName = notes.find((f) => f !== firstName) || firstName;
+const firstMd = await readFile(join(notesDir, firstName), 'utf8');
 console.log(`Transcript final ${((Date.now() - tStop) / 1000).toFixed(1)} s après « Terminer »`);
-const mdPath = join(out, download.suggestedFilename());
-await download.saveAs(mdPath);
+const md = await readFile(join(notesDir, noteName), 'utf8');
+await writeFile(join(out, 'premiere-' + firstName), firstMd);
+await writeFile(join(out, noteName), md);
 await page.screenshot({ path: join(out, '4-termine.png'), fullPage: true });
-const md = await readFile(mdPath, 'utf8');
 const health = await page.evaluate(() => ({
   ...LowsperApp.health,
   failed: LowsperApp.failed.length,
@@ -392,7 +414,7 @@ for (let i = 0; i < 60; i++) {
 }
 const draftsLeft = await page.evaluate(() => LowsperApp.transcript.draftCount());
 console.log(`Passages « rapides » restant à améliorer : ${draftsLeft}`);
-console.log('----- ' + download.suggestedFilename() + ' -----\n' + md + '-----');
+console.log('----- ' + noteName + ' -----\n' + md + '-----');
 
 // Corriger un mot partout : remplacé dans l'aperçu, retenu pour les réunions suivantes
 const hadTickets = await page.evaluate(() => /tickets/i.test(document.getElementById('done-lines').textContent));
@@ -459,8 +481,12 @@ const checks = [
   ['corriger un mot partout, correction retenue', fixOk],
   ['écran de fin : un nom saisi, puis clic direct sur une autre voix', renameOk],
   [
-    'réunion suivante sans temps mort : deux fichiers, chacun horodaté depuis son début',
-    downloads.length === 2 && firstMd !== md && /\*\*\[00:00:\d\d\] /.test(md) && /à tous/.test(firstMd),
+    'réunion suivante sans temps mort : deux notes dans Lowsper/Notes/Par défaut, aucun téléchargement',
+    notes.length === 2 &&
+      downloads.length === 0 &&
+      firstMd !== md &&
+      /\*\*\[00:00:\d\d\] /.test(md) &&
+      /à tous/.test(firstMd),
   ],
   ['parole perdue en direct retrouvée par le rattrapage', health.dropped === 0 || /\*\*Rattrapage\*\*/.test(md)],
   [

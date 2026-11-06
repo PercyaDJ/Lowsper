@@ -9,8 +9,10 @@
  * Parade : une copie des réglages est écrite dans le dossier Lowsper (app/reglages.txt), relue
  * au lancement par une simple balise <script> (comme les modèles installés). Si le navigateur a
  * perdu un réglage, il est restauré depuis ce fichier, sans aucune action de l'utilisateur.
- * Écrire dans le dossier demande l'accord du navigateur : il est demandé une fois, au moment où
- * l'utilisateur ferme les paramètres après une modification (ou à l'installation du modèle).
+ * Écrire dans le dossier demande l'accord du navigateur : il est demandé à l'installation du
+ * modèle, ou au plus tard quand l'utilisateur ferme les paramètres après une modification.
+ *
+ * Exporter et importer servent seulement à déplacer les réglages vers un autre PC.
  */
 (function () {
   'use strict';
@@ -156,10 +158,61 @@
     return 'saved';
   }
 
+  // --- Exporter et importer les réglages (déplacer vers un autre PC, decision.md §30) ---
+  // Restent sur ce PC : les empreintes vocales (donnée biométrique, choix du mainteneur), les mesures
+  // de vitesse et le modèle choisi (propres au matériel de ce PC).
+  const NOT_EXPORTED = /^lowsper\.(voices\.|speed\.|model$)/;
+  const exportable = (k) => k.startsWith(PREFIX) && !SKIP.test(k) && !NOT_EXPORTED.test(k);
+
+  /** Contenu du fichier d'export : un JSON lisible, daté. */
+  function exportData(now = Date.now()) {
+    const data = {};
+    for (const [k, v] of Object.entries(snapshot())) if (exportable(k)) data[k] = v;
+    return { lowsper: 'reglages', version: 1, exportedAt: new Date(now).toISOString(), data };
+  }
+
+  /**
+   * Lit un fichier de réglages : un export (JSON) ou une copie app/reglages.txt. Ne garde que les
+   * réglages de Lowsper qui voyagent d'un PC à l'autre. Lève une erreur si le fichier n'en contient pas.
+   */
+  function parseImport(text) {
+    let obj = null;
+    const src = String(text || '').trim();
+    const m = src.match(/self\.LOWSPER_SETTINGS\s*=\s*([\s\S]*?);?\s*$/);
+    try {
+      obj = JSON.parse(m ? m[1] : src);
+    } catch {
+      obj = null;
+    }
+    const raw = obj && typeof obj === 'object' && obj.data && typeof obj.data === 'object' ? obj.data : null;
+    const data = {};
+    if (raw) for (const [k, v] of Object.entries(raw)) if (exportable(k) && typeof v === 'string') data[k] = v;
+    if (!Object.keys(data).length) {
+      const e = new Error('Fichier de réglages Lowsper illisible');
+      e.code = 'not-settings';
+      throw e;
+    }
+    return data;
+  }
+
+  /** Applique des réglages importés : ils remplacent ceux du navigateur, les autres restent. */
+  function importData(data) {
+    let n = 0;
+    for (const [k, v] of Object.entries(data)) {
+      if (!exportable(k) || typeof v !== 'string') continue;
+      ls.set(k, v);
+      n++;
+    }
+    return n;
+  }
+
+  /** Dossier Lowsper accordé (ou null) : sert aussi au dossier de notes par défaut (notes.js). */
+  const folder = () => savedHandle();
+
   function status() {
     const at = Number(ls.get('lowsper.folderSavedAt')) || (file && file.savedAt) || 0;
     return { savedAt: at, dirty: dirty(), restored: restored.slice(), hasFile: !!file };
   }
 
-  Lowsper.Settings = { snapshot, restore, save, setFolder, status };
+  Lowsper.Settings = { snapshot, restore, save, setFolder, folder, status, exportData, parseImport, importData };
 })();

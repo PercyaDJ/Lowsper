@@ -8,9 +8,11 @@
 //      aucun téléchargement ; voix renommée : la note est réécrite, avec le lien [[Nom]] ;
 //   4. accord du navigateur à redemander : repli sur les Téléchargements, puis bouton
 //      « Enregistrer aussi dans le dossier » ; nom déjà pris : « (2) » ;
-//   5. profil « Par défaut » : format classique, Téléchargements ;
-//   6. consignes pour l'IA : celle du profil proposée, consigne modifiée copiée avec la note ;
-//   7. aucune requête réseau.
+//   5. profil « Par défaut » sans dossier Lowsper accordé : format classique, Téléchargements ;
+//   6. dossier Lowsper accordé : la note va dans Lowsper/Notes/<emplacement>, et ce sous-dossier
+//      garde son nom quand l'emplacement est renommé (lot R7, decision.md §30) ;
+//   7. consignes pour l'IA : celle du profil proposée, consigne modifiée copiée avec la note ;
+//   8. aucune requête réseau.
 // Prérequis : node build.mjs --embed whisper-small   (CHROMIUM_PATH si besoin)
 // Usage : node test/e2e-notes.mjs
 import { chromium } from 'playwright-core';
@@ -79,13 +81,47 @@ await context.addInitScript(() => {
   // Rangement des accès en mémoire (un faux accès ne peut pas aller dans IndexedDB) ; il est perdu
   // au rechargement de la page, comme après un nettoyage du navigateur
   const kept = new Map();
+  // Faux dossier Lowsper (accordé à l'installation), avec ses sous-dossiers ; inactif tant que
+  // window.__useLowsper n'est pas vrai
+  const tree = (name) => {
+    const dirs = new Map();
+    const own = new Map();
+    return {
+      kind: 'directory',
+      name,
+      dirs,
+      files: own,
+      queryPermission: async () => 'granted',
+      requestPermission: async () => 'granted',
+      async getDirectoryHandle(n, o = {}) {
+        if (!dirs.has(n)) {
+          if (!o.create) throw new DOMException('absent', 'NotFoundError');
+          dirs.set(n, tree(n));
+        }
+        return dirs.get(n);
+      },
+      async getFileHandle(n, o = {}) {
+        if (!own.has(n) && !o.create) throw new DOMException('absent', 'NotFoundError');
+        return {
+          kind: 'file',
+          async createWritable() {
+            let text = '';
+            return { write: async (t) => (text += t), close: async () => own.set(n, text) };
+          },
+        };
+      },
+    };
+  };
+  window.__lowsper = tree('Lowsper');
+  window.__useLowsper = false;
   const patch = () => {
-    if (!window.Lowsper || !window.Lowsper.Notes) return setTimeout(patch, 10);
+    if (!window.Lowsper || !window.Lowsper.Notes || !window.Lowsper.Settings) return setTimeout(patch, 10);
     Object.assign(window.Lowsper.Notes.folders, {
       get: async (id) => kept.get(id) || null,
       put: async (id, dir) => kept.set(id, dir),
       delete: async (id) => kept.delete(id),
     });
+    window.Lowsper.Settings.folder = async () => (window.__useLowsper ? window.__lowsper : null);
   };
   patch();
 });
@@ -109,19 +145,37 @@ await page.goto(pathToFileURL(join(root, 'Lowsper.html')).href);
 await page.waitForSelector('#engine[data-state="ready"]', { timeout: 300000 });
 
 // 1. Profil « Travail » créé dans les paramètres
+// Paramètres, onglet « Notes et compte rendu » : chaque élément à choix ouvre un sous-écran
+const back = (name) => page.click(`#page-${name} [data-back]`);
 await page.click('#settings-open');
-await page.click('#prof-new');
-await page.fill('#prof-name', 'Travail');
+await page.click('#tab-notes');
+await page.click('#prof-new'); // « Ajouter un emplacement » : sa page s'ouvre, le nom sélectionné
+await page.keyboard.type('Travail');
+await back('place');
+await page.click('[data-open="folder"]');
 await page.click('#prof-folder-pick');
 await page.waitForFunction(() => /Coffre-notes/.test(document.getElementById('prof-folder').textContent));
+await back('folder');
+check((await page.textContent('#v-folder')) === 'Coffre-notes', 'ligne « Dossier » : dossier choisi');
+await page.click('[data-open="format"]');
+check(
+  (await page.getAttribute('#prof-format [data-value="modele"]', 'aria-checked')) === 'true',
+  'nouvel emplacement : « Pour les applications de notes »'
+);
 await page.check('#prof-links');
 await page.fill('#prof-tags', 'reunion, travail');
 await page.fill('#prof-extra', 'projet: Atlas');
-await page.selectOption('#prof-prompt', 'synthese-appel');
-// Consigne fournie modifiée dans les paramètres
-await page.selectOption('#ai-select', 'actions');
-await page.fill('#ai-text', 'Liste les actions de « {{titre}} » :\n\n{{note}}');
 const example = await page.textContent('#prof-filename-example');
+await back('format');
+await page.click('[data-open="prompt"]');
+await page.click('#prof-prompt [data-value="synthese-appel"]');
+await back('prompt');
+check((await page.textContent('#v-prompt')) === "Synthèse d'appel", 'ligne « Consigne » : choix affiché');
+// Consigne fournie modifiée dans les paramètres
+await page.click('[data-open="prompts"]');
+await page.click('#ai-select [data-value="actions"]');
+await page.fill('#ai-text', 'Liste les actions de « {{titre}} » :\n\n{{note}}');
+await back('prompts');
 await page.screenshot({ path: join(out, 'notes-parametres.png'), fullPage: true });
 await page.click('#settings-close');
 check(/Exemple : \d{4}-\d\d-\d\d Point hebdo\.md/.test(example), 'exemple de nom de fichier', example);
@@ -281,6 +335,49 @@ check(
   'profil « Par défaut » : format et nom classiques',
   d.suggestedFilename()
 );
+
+// 6. Dossier Lowsper accordé : « Par défaut » écrit dans Lowsper/Notes/Par défaut, sans téléchargement
+await page.evaluate(() => (window.__useLowsper = true));
+await page.click('#again');
+await page.click('#settings-open'); // relit le dossier Lowsper
+await page.click('#tab-notes');
+check(
+  (await page.textContent('#v-folder')) === 'Lowsper › Notes › Par défaut',
+  'ligne « Dossier » : Lowsper › Notes › Par défaut',
+  await page.textContent('#v-folder')
+);
+await page.click('#settings-close');
+const before = downloads.length;
+await importFile('extrait.mp3', '');
+const inNotes = await page.evaluate(() => {
+  const notes = window.__lowsper.dirs.get('Notes');
+  const sub = notes && notes.dirs.get('Par défaut');
+  return sub ? [...sub.files.keys()] : [];
+});
+check(
+  inNotes.length === 1 && /^reunion_.*_extrait\.md$/.test(inNotes[0]) && downloads.length === before,
+  'note écrite dans Lowsper/Notes/Par défaut, aucun téléchargement',
+  inNotes.join(', ')
+);
+check(
+  /Lowsper › Notes › Par défaut/.test(await page.textContent('#export-info')),
+  'écran de fin : la note est dans Lowsper › Notes › Par défaut',
+  await page.textContent('#export-info')
+);
+// Renommage de l'emplacement : le sous-dossier garde son nom, les notes ne se dispersent pas
+await page.click('#again');
+await page.click('#settings-open');
+await page.click('#tab-notes');
+await page.click('[data-open="place"]');
+await page.click('#prof-select [role="radio"]:has-text("Par défaut")');
+await page.fill('#prof-name', 'Réunions');
+await back('place');
+check(
+  (await page.textContent('#v-folder')) === 'Lowsper › Notes › Par défaut',
+  'emplacement renommé : sous-dossier inchangé',
+  await page.textContent('#v-folder')
+);
+await page.click('#settings-close');
 
 await browser.close();
 check(network.length === 0, 'aucune requête réseau', network.join(', '));

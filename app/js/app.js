@@ -503,10 +503,17 @@
       chip.appendChild(del);
       box.appendChild(chip);
     }
+    if (!fixes.length) {
+      const none = document.createElement('span');
+      none.className = 'fine';
+      none.textContent = tr('set.fixesNone');
+      box.appendChild(none);
+    }
+    if ($('v-fixes')) renderSettingsValues();
   }
 
   function selectedVocab() {
-    return [...document.querySelectorAll('#vocab-list input:checked')].map((b) => b.value);
+    return (store.get('lowsper.vocab') || '').split(',').filter((id) => id && L.Vocabulary.PRESETS[id]);
   }
 
   // Contexte donné à Whisper : nom de la réunion, vocabulaires métier et glossaire (vocabulary.js)
@@ -1747,7 +1754,7 @@
     $('view-done').hidden = state !== 'done';
     // Langue de l'interface : changeable seulement quand rien ne tourne (textes en cours stables)
     const busy = state === 'recording' || state === 'finishing' || state === 'importing';
-    $('ui-lang').disabled = busy;
+    $('row-ui-lang').disabled = busy;
     $('ui-lang-busy').hidden = !busy;
     // Menu de langue de l'en-tête : sur l'écran de bienvenue seulement
     $('lang-menu').hidden = state !== 'install';
@@ -1762,8 +1769,8 @@
   const noteOf = (t) => L.Notes.note(t, profileOf(t));
 
   /**
-   * Enregistre la note d'un transcript : dans le dossier du profil si l'accès est accordé, sinon
-   * dans les Téléchargements. options.interactive : appelé depuis un clic (l'accès peut être
+   * Enregistre la note d'un transcript : dans le dossier du profil (choisi, ou par défaut
+   * Lowsper/Notes/<emplacement>) si l'accès est accordé, sinon dans les Téléchargements. options.interactive : appelé depuis un clic (l'accès peut être
    * redemandé). options.update : mise à jour d'une note déjà écrite dans le dossier (jamais de
    * nouveau téléchargement).
    */
@@ -1775,21 +1782,24 @@
     ex.profile = profile.name;
     let acc = { state: 'aucun' };
     try {
-      acc = await L.Notes.access(profile, !!o.interactive);
+      acc = await L.Notes.access(profile, !!o.interactive, true);
     } catch (e) {
       console.warn('Accès au dossier de notes', e);
+      ex.error = (e && e.message) || String(e);
     }
     if (acc.state === 'accorde') {
       try {
         ex.savedAs = await L.Notes.writeNote(acc.dir, n.name, n.content, ex.where === 'dossier' ? ex.savedAs : null);
+        // Première note dans Lowsper/Notes : le nom du sous-dossier est figé (decision.md §30)
+        if (acc.kind === 'lowsper' && !profile.subfolder) updateProfile(profile.id, { subfolder: acc.sub });
         Object.assign(ex, {
           where: 'dossier',
-          folder: profile.folderName,
+          folder: acc.kind === 'lowsper' ? tr('prof.lowsperPath', { sub: acc.sub }) : profile.folderName,
           at: Date.now(),
           error: null,
           pending: null,
         });
-        journal('note', { où: 'dossier', profil: profile.format });
+        journal('note', { où: acc.kind === 'lowsper' ? 'lowsper-notes' : 'dossier', profil: profile.format });
         return ex;
       } catch (e) {
         ex.error = (e && e.message) || String(e);
@@ -1850,7 +1860,7 @@
         btn.textContent =
           ex.pending === 'oublie'
             ? tr('export.repick', { folder: profile.folderName })
-            : tr('export.alsoFolder', { folder: profile.folderName });
+            : tr('export.alsoFolder', { folder: folderLabel(profile) });
         btn.hidden = false;
         box.textContent +=
           ex.pending === 'oublie'
@@ -1885,23 +1895,25 @@
   }
 
   // --- Consignes pour l'IA : éditeur, choix par profil, choix sur l'écran de fin ---
-  function fillPromptSelect(sel, value) {
+  const promptName = (p) => p.name + (p.modified ? tr('ai.modified') : '');
+  // Liste des consignes dessinée par Lowsper (panel.js) : choix de la consigne d'un emplacement,
+  // ou de la consigne à modifier
+  function fillPromptChoices(box, value, onPick) {
     const list = L.Notes.prompts();
-    sel.replaceChildren(
-      ...list.map((p) => {
-        const o = document.createElement('option');
-        o.value = p.id;
-        o.textContent = p.name + (p.modified ? tr('ai.modified') : '');
-        return o;
-      })
-    );
-    sel.value = list.some((p) => p.id === value) ? value : list[0].id;
+    L.Panel.choices(box, {
+      options: list.map((p) => ({ value: p.id, label: promptName(p) })),
+      value: list.some((p) => p.id === value) ? value : list[0].id,
+      onPick,
+    });
   }
 
   function renderPrompts() {
     const list = L.Notes.prompts();
     if (!list.some((p) => p.id === app.editPromptId)) app.editPromptId = list[0].id;
-    fillPromptSelect($('ai-select'), app.editPromptId);
+    fillPromptChoices($('ai-select'), app.editPromptId, (id) => {
+      app.editPromptId = id;
+      renderPrompts();
+    });
     const p = list.find((x) => x.id === app.editPromptId);
     $('ai-name').value = p.name;
     $('ai-name').disabled = p.builtin;
@@ -1909,7 +1921,7 @@
     $('ai-remove').textContent = p.builtin ? tr('ai.restore') : tr('ai.delete');
     $('ai-remove').disabled = p.builtin && !p.modified;
     const prof = L.Notes.list().find((x) => x.id === app.editProfileId);
-    if (prof) fillPromptSelect($('prof-prompt'), prof.prompt);
+    if (prof) renderProfilePrompt(prof);
     renderAiChoice();
   }
 
@@ -1922,7 +1934,7 @@
   }
   function renderAiChoice() {
     const p = aiChoice();
-    $('ai-choice-label').textContent = p.name + (p.modified ? tr('ai.modified') : '');
+    $('ai-choice-label').textContent = promptName(p);
   }
   function summaryText() {
     const t = app.transcript;
@@ -1940,16 +1952,28 @@
     return all.find((p) => p.id === id);
   }
 
-  function fillSelect(sel, profiles, value) {
-    sel.replaceChildren(
-      ...profiles.map((p) => {
-        const o = document.createElement('option');
-        o.value = p.id;
-        o.textContent = p.name + (p.folderName ? tr('prof.inFolder', { folder: p.folderName }) : '');
-        return o;
-      })
-    );
-    sel.value = value;
+  // Où va la note d'un emplacement, en clair (dossier choisi, Lowsper › Notes › ..., Téléchargements)
+  const folderLabel = (p) => L.Notes.folderLabel(p, app.hasLowsper);
+
+  /** Emplacements, dans la page « Emplacement » : choix de celui qu'on modifie. */
+  function fillPlaceChoices(profiles, value) {
+    L.Panel.choices($('prof-select'), {
+      options: profiles.map((p) => ({ value: p.id, label: p.name, sub: folderLabel(p) })),
+      value,
+      onPick: (id) => {
+        app.editProfileId = id;
+        renderProfiles();
+      },
+    });
+  }
+
+  function renderProfilePrompt(p) {
+    fillPromptChoices($('prof-prompt'), p.prompt, (id) => {
+      updateProfile(app.editProfileId, { prompt: id });
+      renderProfiles();
+    });
+    const pr = L.Notes.prompts().find((x) => x.id === p.prompt) || L.Notes.prompts()[0];
+    $('v-prompt').textContent = promptName(pr);
   }
 
   // Exemple de nom de fichier, sur une réunion fictive
@@ -1970,15 +1994,28 @@
     const current = L.Notes.current();
     renderPlace();
     if (!profiles.some((p) => p.id === app.editProfileId)) app.editProfileId = current.id;
-    fillSelect($('prof-select'), profiles, app.editProfileId);
+    fillPlaceChoices(profiles, app.editProfileId);
     const p = profiles.find((x) => x.id === app.editProfileId);
-    $('prof-delete').disabled = p.id === L.Notes.DEFAULT_ID;
-    $('prof-name').value = p.name;
-    $('prof-folder').textContent = p.folderName
-      ? tr('prof.folderNamed', { folder: p.folderName })
-      : tr('prof.downloads');
+    $('v-place').textContent = p.name;
+    $('prof-delete').hidden = p.id === L.Notes.DEFAULT_ID;
+    if (document.activeElement !== $('prof-name')) $('prof-name').value = p.name;
+    $('prof-folder').textContent = folderLabel(p);
+    $('v-folder').textContent = folderLabel(p);
     $('prof-folder-clear').hidden = !p.folderName;
-    $('prof-classic').checked = p.format === 'classique';
+    // Format de la note : « Texte simple » (format classique) ou « Pour les applications de notes »
+    // (modèle, propriétés et liens)
+    L.Panel.choices($('prof-format'), {
+      options: [
+        { value: 'classique', label: tr('fmt.plain'), sub: tr('fmt.plainSub') },
+        { value: 'modele', label: tr('fmt.apps'), sub: tr('fmt.appsSub') },
+      ],
+      value: p.format,
+      onPick: (format) => {
+        updateProfile(app.editProfileId, { format });
+        renderProfiles();
+      },
+    });
+    $('v-format').textContent = tr(p.format === 'classique' ? 'fmt.plain' : 'fmt.apps');
     $('prof-custom').hidden = p.format === 'classique';
     $('prof-filename').value = p.fileName;
     $('prof-front').checked = !!p.front.enabled;
@@ -2011,7 +2048,7 @@
     for (const id of ['prof-tags', 'prof-extra']) $(id).disabled = !p.front.enabled;
     $('prof-links').checked = !!p.links;
     $('prof-template').value = p.template;
-    fillPromptSelect($('prof-prompt'), p.prompt);
+    renderProfilePrompt(p);
     renderProfileHints(p);
     renderProfileAccess();
   }
@@ -2033,10 +2070,7 @@
       const p = L.Notes.list().find((x) => x.id === app.editProfileId);
       const q = updateProfile(p.id, apply(p, $(id)));
       renderProfileHints(q);
-      if (id === 'prof-name') {
-        fillSelect($('prof-select'), L.Notes.list(), q.id);
-        renderPlace();
-      }
+      if (id === 'prof-name') renderProfiles();
     });
   }
 
@@ -2055,7 +2089,7 @@
     const box = $('profile-access');
     app.profileAccess = acc.state;
     if (acc.state === 'a-demander') {
-      $('profile-access-text').textContent = tr('prof.access.ask', { name: p.name, folder: p.folderName });
+      $('profile-access-text').textContent = tr('prof.access.ask', { name: p.name, folder: folderLabel(p) });
       $('profile-allow').textContent = tr('prof.access.allow');
     } else if (acc.state === 'oublie') {
       $('profile-access-text').textContent = tr('prof.access.forgotten', { name: p.name, folder: p.folderName });
@@ -2077,8 +2111,8 @@
     renderProfiles();
   }
 
-  function download(text, name) {
-    const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown;charset=utf-8' }));
+  function download(text, name, type) {
+    const url = URL.createObjectURL(new Blob([text], { type: (type || 'text/markdown') + ';charset=utf-8' }));
     const a = document.createElement('a');
     a.href = url;
     a.download = name;
@@ -2216,7 +2250,9 @@
     const m = app.memory;
     $('memory-on').checked = m.enabled;
     $('memory-details').hidden = !m.enabled;
-    $('memory-days').value = String(m.keepDays);
+    $('row-memory-days').hidden = !m.enabled;
+    $('v-memory-days').textContent = [30, 90, 180].includes(m.keepDays) ? tr('set.memoryDays.' + m.keepDays) : '';
+    $('memory-clear').hidden = !m.enabled;
     $('memory-clear').disabled = !m.count;
     $('memory-list').textContent = m.count
       ? tr('memory.list', { n: m.count, names: m.names().join(', ') })
@@ -2520,16 +2556,17 @@
   }
 
   function renderModelSelect(installed, current) {
-    const sel = $('model');
-    sel.replaceChildren();
-    for (const m of installed) {
-      const o = document.createElement('option');
-      o.value = m.id;
-      o.textContent = modelLabel(m);
-      o.selected = m.id === current;
-      sel.appendChild(o);
-    }
-    $('model-field').hidden = installed.length < 2;
+    L.Panel.choices($('model'), {
+      options: installed.map((m) => ({ value: m.id, label: modelLabel(m) })),
+      value: current,
+      onPick: (id) => {
+        if (id === app.modelId) return;
+        store.set('lowsper.model', id);
+        location.reload();
+      },
+    });
+    $('model').hidden = installed.length < 2;
+    $('v-model').textContent = modelLabel(installed.find((m) => m.id === current) || installed[0]);
     $('model-current').textContent = tr('set.modelCurrent', {
       current: modelLabel(installed.find((m) => m.id === current) || installed[0]),
       list: installed.map(modelLabel).join(', '),
@@ -2554,15 +2591,19 @@
     const btn = $('theme-toggle');
     btn.dataset.mode = mode;
     btn.setAttribute('aria-label', mode === 'dark' ? tr('theme.toLight') : tr('theme.toDark'));
-    $('theme').value = L.Theme.stored();
+    L.Panel.choices($('theme'), {
+      options: ['auto', 'light', 'dark'].map((v) => ({ value: v, label: tr('set.theme.' + v) })),
+      value: L.Theme.stored(),
+      onPick: (v) => {
+        L.Theme.set(v);
+        renderTheme();
+      },
+    });
+    $('v-theme').textContent = tr('set.theme.' + L.Theme.stored());
     if (app.pip) L.Theme.apply(L.Theme.stored(), app.pip.document);
   }
   $('theme-toggle').addEventListener('click', () => {
     L.Theme.toggle();
-    renderTheme();
-  });
-  $('theme').addEventListener('change', (e) => {
-    L.Theme.set(e.target.value);
     renderTheme();
   });
   try {
@@ -2572,16 +2613,24 @@
   }
   renderTheme();
 
-  // Langue de l'interface (i18n.js) : réglage « Affichage », choix mémorisé (lowsper.opt.lang)
-  $('ui-lang').value = L.i18n.lang();
-  $('ui-lang').addEventListener('change', (e) => L.i18n.setLang(e.target.value));
+  // Langue de l'interface (i18n.js) : réglage de l'onglet Transcription, choix mémorisé (lowsper.opt.lang)
+  function renderUiLang() {
+    L.Panel.choices($('ui-lang'), {
+      options: ['fr', 'en'].map((v) => ({ value: v, label: LANG_NAMES[v], lang: v })),
+      value: L.i18n.lang(),
+      onPick: (v) => L.i18n.setLang(v),
+    });
+    $('v-ui-lang').textContent = LANG_NAMES[L.i18n.lang()];
+    $('v-ui-lang').lang = L.i18n.lang();
+  }
   /**
    * Réécrit les textes calculés par ce fichier dans la nouvelle langue. Les textes fixes de la
    * page sont déjà traduits par i18n.js. La note d'une réunion garde la langue qu'elle avait au
    * début (meta.noteLang) : seule l'interface change.
    */
   function relabel() {
-    $('ui-lang').value = L.i18n.lang();
+    renderUiLang();
+    renderSettingsValues();
     if (app.pip) L.i18n.apply(app.pip.document);
     if (app.engineStatus) setEngine(app.engineStatus.state, app.engineStatus.key, app.engineStatus.vars);
     renderTheme();
@@ -2593,8 +2642,6 @@
     renderPrompts();
     renderLocalAI(!!lai.abort);
     if (lai.status) $('lai-status').textContent = tr(lai.status);
-    for (const el of document.querySelectorAll('#vocab-list [data-vocab]'))
-      el.querySelector('span').textContent = L.Vocabulary.label(el.dataset.vocab);
     if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia)
       $('with-others').parentElement.title = tr('set.withOthersUnsupported');
     const installed = self.LOWSPER_INSTALLED || [];
@@ -2650,22 +2697,92 @@
   renderLangMenu();
   L.i18n.onChange(renderLangMenu);
 
-  $('power').value = store.get('lowsper.power') || 'balanced';
-  $('power').addEventListener('change', (e) => {
-    store.set('lowsper.power', e.target.value);
-    if (app.mainAssets) app.limits = computeLimits(app.mainAssets.device);
-    pump();
-  });
+  renderUiLang();
+
+  // --- Paramètres : trois onglets, listes groupées, sous-écrans (panel.js, decision.md §30) ---
+  // Valeur affichée à droite d'une ligne : le choix actuel, ou un nombre
+  function renderSettingsValues() {
+    const lang = store.get('lowsper.language') || 'fr';
+    $('v-language').textContent = tr('set.language.' + lang);
+    const terms = ($('glossary').value || '')
+      .split(/[,;\n]+/)
+      .map((x) => x.trim())
+      .filter(Boolean);
+    $('v-glossary').textContent = String(terms.length);
+    $('v-fixes').textContent = String(learnedFixes().length);
+    const vocab = selectedVocab();
+    $('v-vocab').textContent =
+      vocab.length > 2
+        ? tr('set.selectedCount', { n: vocab.length })
+        : vocab.map((id) => L.Vocabulary.label(id)).join(', ') || tr('set.none');
+    $('v-people').textContent = store.get('lowsper.opt.people') || tr('set.peopleAuto');
+    $('v-power').textContent = tr('power.' + (store.get('lowsper.power') || 'balanced'));
+  }
+
+  // Langue parlée : liste dessinée par Lowsper (la liste à cocher multiple arrive au lot R8)
+  function renderLanguage() {
+    const cur = store.get('lowsper.language') || 'fr';
+    L.Panel.choices($('language'), {
+      options: ['fr', 'en', 'auto'].map((v) => ({ value: v, label: tr('set.language.' + v) })),
+      value: ['fr', 'en', 'auto'].includes(cur) ? cur : 'fr',
+      onPick: (v) => {
+        store.set('lowsper.language', v);
+        renderSettingsValues();
+      },
+    });
+  }
+  function renderPower() {
+    L.Panel.choices($('power'), {
+      options: ['eco', 'balanced', 'max'].map((v) => ({
+        value: v,
+        label: tr('power.' + v),
+        sub: tr('power.' + v + '.sub'),
+      })),
+      value: store.get('lowsper.power') || 'balanced',
+      onPick: (v) => {
+        store.set('lowsper.power', v);
+        if (app.mainAssets) app.limits = computeLimits(app.mainAssets.device);
+        pump();
+        renderSettingsValues();
+      },
+    });
+  }
+  function renderVocab() {
+    L.Panel.checklist($('vocab-list'), {
+      options: Object.keys(L.Vocabulary.PRESETS).map((id) => ({ value: id, label: L.Vocabulary.label(id) })),
+      values: selectedVocab(),
+      onToggle: (id, on) => {
+        const set = new Set(selectedVocab());
+        if (on) set.add(id);
+        else set.delete(id);
+        // Ordre du catalogue gardé, comme avant
+        store.set(
+          'lowsper.vocab',
+          Object.keys(L.Vocabulary.PRESETS)
+            .filter((x) => set.has(x))
+            .join(',')
+        );
+        renderSettingsValues();
+      },
+    });
+  }
+  function renderMemoryDays() {
+    L.Panel.choices($('memory-days'), {
+      options: ['30', '90', '180'].map((v) => ({ value: v, label: tr('set.memoryDays.' + v) })),
+      value: String(app.memory.keepDays),
+      onPick: (v) => {
+        app.memory.setKeepDays(Number(v));
+        renderMemory();
+      },
+    });
+  }
+
   $('memory-on').addEventListener('change', (e) => {
     if (e.target.checked && !confirm(tr('memory.confirm'))) {
       e.target.checked = false;
       return;
     }
     app.memory.setEnabled(e.target.checked);
-    renderMemory();
-  });
-  $('memory-days').addEventListener('change', (e) => {
-    app.memory.setKeepDays(Number(e.target.value));
     renderMemory();
   });
   $('memory-clear').addEventListener('click', () => {
@@ -2684,83 +2801,125 @@
     }
     showInstall();
   });
-  // Roue crantée : panneau Paramètres, accessible à tout moment
-  const openSettings = () => {
+
+  // Dossier Lowsper accordé (copie des réglages, dossier de notes par défaut) : connu de façon
+  // asynchrone (IndexedDB), relu à l'ouverture des paramètres et après l'installation
+  app.hasLowsper = false;
+  async function refreshLowsper() {
+    let dir = null;
+    try {
+      dir = await L.Settings.folder();
+    } catch {}
+    const had = app.hasLowsper;
+    app.hasLowsper = !!dir;
+    if (had !== app.hasLowsper) {
+      renderProfiles();
+      renderPlace();
+    }
+  }
+  refreshLowsper();
+
+  const panelTabs = L.Panel.tabs($('set-tabs'));
+  const panelPages = L.Panel.pages($('settings'), $('set-main'), (name) => {
+    if (name === 'place' || name === 'folder' || name === 'format' || name === 'prompt') renderProfiles();
+    if (name === 'prompts') renderPrompts();
+    if (name === 'language') renderLanguage();
+    if (name === 'power') renderPower();
+    if (name === 'vocab') renderVocab();
+    if (name === 'memory-days') renderMemoryDays();
+    if (name === 'fixes') renderFixes();
+  });
+  /**
+   * Roue crantée : panneau Paramètres, accessible à tout moment. o.tab : onglet à montrer,
+   * o.page : sous-écran à ouvrir directement (« Nouvel emplacement… » de l'accueil).
+   */
+  function openSettings(o) {
+    const opt = o && o.tab ? o : {};
+    // Emplacement montré : celui choisi sur l'accueil (« Enregistrer la note dans »)
+    app.editProfileId = L.Notes.current().id;
     renderProfiles();
     renderPrompts();
     renderMemory();
     renderFixes();
+    renderSettingsValues();
+    renderSaved();
+    refreshLowsper();
     const d = $('settings');
+    panelPages.back();
+    panelTabs.select(opt.tab || 'transcription');
     if (!d.open) d.showModal();
-  };
+    if (opt.page) panelPages.show(opt.page);
+  }
   function closeSettings() {
     const d = $('settings');
     if (d.open) d.close();
   }
   // À la fermeture des paramètres (geste de l'utilisateur) : copie des réglages dans le dossier
-  // Lowsper si quelque chose a changé et que le dossier est connu.
+  // Lowsper si quelque chose a changé. Le dossier est d'ordinaire accordé dès l'installation.
   $('settings').addEventListener('close', () => {
     L.Settings.save({ interactive: true })
       .then(renderSaved)
+      .then(refreshLowsper)
       .catch((e) => console.warn('Réglages non copiés dans le dossier', e));
   });
-  $('settings-keep').addEventListener('click', async () => {
-    try {
-      const r = await L.Settings.save({ interactive: true, force: true });
-      if (r === 'saved') toast(tr('set.kept'));
-    } catch (e) {
-      if (e.code !== 'CANCELLED') toast(e.message, 7000);
-    }
-    renderSaved();
-  });
+  /** Phrase sous la rubrique « Mots » : où sont gardés les réglages. */
   function renderSaved() {
     const st = L.Settings.status();
     const line = $('settings-saved');
-    if (st.savedAt) {
-      const d = new Date(st.savedAt);
-      const loc = L.i18n.locale();
-      line.textContent = tr('set.savedLine', {
-        when: d.toLocaleDateString(loc) + ' ' + d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }),
-        dirty: st.dirty,
-      });
-      $('settings-keep').hidden = true;
-    } else {
-      line.textContent = tr('set.notSaved');
-      $('settings-keep').hidden = false;
-    }
+    if (typeof window.showDirectoryPicker !== 'function') line.textContent = tr('set.savedBrowser');
+    else line.textContent = tr(st.savedAt && !st.dirty ? 'set.savedFolder' : 'set.savedPending');
   }
   renderSaved();
   if (L.Settings.status().restored.length) {
     toast(tr('set.restored'), 7000);
   }
-  $('settings-open').addEventListener('click', openSettings);
+  $('settings-open').addEventListener('click', () => openSettings());
   $('settings-close').addEventListener('click', closeSettings);
   $('settings').addEventListener('click', (e) => {
     if (e.target === $('settings')) closeSettings(); // clic à côté du panneau
   });
-  $('model').addEventListener('change', (e) => {
-    store.set('lowsper.model', e.target.value);
+
+  // --- Sauvegarde : exporter et importer, seulement pour déplacer les réglages vers un autre PC ---
+  $('settings-export').addEventListener('click', () => {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const name = `lowsper-reglages_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.json`;
+    download(JSON.stringify(L.Settings.exportData(), null, 2) + '\n', name, 'application/json');
+  });
+  $('settings-import').addEventListener('click', () => $('settings-import-file').click());
+  $('settings-import-file').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    let data;
+    try {
+      data = L.Settings.parseImport(await file.text());
+    } catch {
+      toast(tr('set.importBad', { file: file.name }), 7000);
+      return;
+    }
+    if (!confirm(tr('set.importConfirm', { file: file.name, n: Object.keys(data).length }))) return;
+    const n = L.Settings.importData(data);
+    // Après rechargement : un message, et la copie dans le dossier Lowsper à la prochaine fermeture
+    try {
+      sessionStorage.setItem('lowsper.imported', String(n));
+    } catch {}
+    try {
+      await L.Settings.save();
+    } catch {}
     location.reload();
   });
-  // Vocabulaires métier intégrés (vocabulary.js) : cases à cocher, mémorisées sur ce poste
-  const vocabSaved = (store.get('lowsper.vocab') || '').split(',').filter(Boolean);
-  for (const [id, p] of Object.entries(L.Vocabulary.PRESETS)) {
-    const label = document.createElement('label');
-    label.className = 'check';
-    label.title = p.terms;
-    label.innerHTML = '<input type="checkbox"><span></span>';
-    label.querySelector('span').textContent = L.Vocabulary.label(id);
-    label.dataset.vocab = id;
-    const box = label.querySelector('input');
-    box.value = id;
-    box.checked = vocabSaved.includes(id);
-    box.addEventListener('change', () => store.set('lowsper.vocab', selectedVocab().join(',')));
-    $('vocab-list').appendChild(label);
-  }
-  // Langue et options : mémorisées comme le reste
-  const lang = store.get('lowsper.language');
-  if (lang && [...$('language').options].some((o) => o.value === lang)) $('language').value = lang;
-  $('language').addEventListener('change', (e) => store.set('lowsper.language', e.target.value));
+  try {
+    const n = sessionStorage.getItem('lowsper.imported');
+    if (n) {
+      sessionStorage.removeItem('lowsper.imported');
+      toast(tr('set.imported', { n: Number(n) }), 7000);
+    }
+  } catch {}
+
+  // Vocabulaires métier intégrés (vocabulary.js) : liste à cocher, mémorisée sur ce poste
+  renderVocab();
+  // Options : mémorisées comme le reste
   for (const id of ['with-others', 'distinguish', 'autopip']) {
     const v = store.get('lowsper.opt.' + id);
     if (v != null && !$(id).disabled) $(id).checked = v === '1';
@@ -2771,18 +2930,25 @@
   $('people').addEventListener('input', (e) => {
     const n = parseInt(e.target.value, 10);
     store.set('lowsper.opt.people', n >= 2 && n <= 30 ? String(n) : '');
+    renderSettingsValues();
   });
   $('glossary').value = store.get('lowsper.glossary') || '';
-  $('glossary').addEventListener('input', (e) => store.set('lowsper.glossary', e.target.value));
+  $('glossary').addEventListener('input', (e) => {
+    store.set('lowsper.glossary', e.target.value);
+    renderSettingsValues();
+  });
   $('fix-apply').addEventListener('click', applyFix);
   $('gaps-retry').addEventListener('click', retryGaps);
-  $('journal-dl').addEventListener('click', () => {
+  // Journal technique : depuis l'écran de fin ou les paramètres (aucun texte de réunion)
+  function downloadJournal() {
     const d = new Date();
     const pad = (n) => String(n).padStart(2, '0');
     const name = `lowsper-journal_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}h${pad(d.getMinutes())}.txt`;
     const head = tr('done.journalHead');
-    download(head + app.journalLines.join('\n') + '\n', name);
-  });
+    download(head + app.journalLines.join('\n') + '\n', name, 'text/plain');
+  }
+  $('journal-dl').addEventListener('click', downloadJournal);
+  $('set-journal').addEventListener('click', downloadJournal);
   $('set-fix-add').addEventListener('click', addFixFromSettings);
   $('set-fix-right').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') addFixFromSettings();
@@ -2791,6 +2957,7 @@
     if (e.key === 'Enter') applyFix();
   });
   renderFixes();
+  renderSettingsValues();
   /**
    * « Démarrer » : la fenêtre « Avant de commencer » explique les trois étapes à venir, sauf si
    * l'utilisateur a coché « Ne plus afficher ». Le clic sur « Continuer » sert de geste de
@@ -2826,7 +2993,7 @@
       L.Notes.list().map((p) => ({
         value: p.id,
         label: p.name,
-        sub: p.folderName ? tr('home.inFolder', { folder: p.folderName }) : tr('home.downloads'),
+        sub: p.folderName ? tr('home.inFolder', { folder: p.folderName }) : folderLabel(p),
         checked: p.id === L.Notes.current().id,
       })),
     actions: () => [{ id: 'new', label: tr('home.newPlace') }],
@@ -2836,24 +3003,21 @@
       renderProfileAccess();
     },
     onAction: () => {
-      // Nouvel emplacement : un nouveau profil, dans les paramètres
-      openSettings();
-      $('prof-new').click();
-      $('prof-title').scrollIntoView({ block: 'start' });
+      // Nouvel emplacement : créé tout de suite, sa page s'ouvre dans les paramètres
+      openSettings({ tab: 'notes' });
+      newPlace();
     },
   });
   $('profile-allow').addEventListener('click', allowProfileFolder);
-  $('prof-select').addEventListener('change', () => {
-    app.editProfileId = $('prof-select').value;
-    renderProfiles();
-  });
-  $('prof-new').addEventListener('click', () => {
+  function newPlace() {
     const p = L.Notes.newProfile(tr('prof.new'), L.Notes.list());
     L.Notes.saveAll([...L.Notes.list(), p]);
     app.editProfileId = p.id;
-    renderProfiles();
+    panelPages.show('place', $('prof-new'));
+    $('prof-name').focus();
     $('prof-name').select();
-  });
+  }
+  $('prof-new').addEventListener('click', newPlace);
   $('prof-delete').addEventListener('click', async () => {
     const p = L.Notes.list().find((x) => x.id === app.editProfileId);
     if (!p || p.id === L.Notes.DEFAULT_ID || !confirm(tr('prof.deleteConfirm', { name: p.name }))) return;
@@ -2877,25 +3041,12 @@
     updateProfile(app.editProfileId, { folderName: '' });
     renderProfiles();
   });
-  $('prof-classic').addEventListener('change', () => {
-    updateProfile(app.editProfileId, {
-      format: $('prof-classic').checked ? 'classique' : 'modele',
-    });
-    renderProfiles();
-  });
   $('prof-front').addEventListener('change', () => {
     const p = L.Notes.list().find((x) => x.id === app.editProfileId);
     updateProfile(p.id, {
       front: Object.assign(p.front, { enabled: $('prof-front').checked }),
     });
     renderProfiles();
-  });
-  $('prof-prompt').addEventListener('change', () =>
-    updateProfile(app.editProfileId, { prompt: $('prof-prompt').value })
-  );
-  $('ai-select').addEventListener('change', () => {
-    app.editPromptId = $('ai-select').value;
-    renderPrompts();
   });
   $('ai-new').addEventListener('click', () => {
     app.editPromptId = L.Notes.newPrompt(tr('ai.new'));
@@ -2912,7 +3063,10 @@
     L.Notes.savePrompt(app.editPromptId, {
       name: $('ai-name').value.trim() || tr('ai.fallbackName'),
     });
-    fillPromptSelect($('ai-select'), app.editPromptId);
+    fillPromptChoices($('ai-select'), app.editPromptId, (id) => {
+      app.editPromptId = id;
+      renderPrompts();
+    });
   });
   $('ai-text').addEventListener('input', () => {
     L.Notes.savePrompt(app.editPromptId, { text: $('ai-text').value });
