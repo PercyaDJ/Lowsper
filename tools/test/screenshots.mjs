@@ -45,6 +45,8 @@ await page.addInitScript((pcmB64) => {
   localStorage.setItem('lowsper.opt.autopip', '0');
   // Réunion fictive à 6 personnes (réglage « Nombre de personnes »)
   localStorage.setItem('lowsper.opt.people', '6');
+  // Texte en direct affiché (interrupteur de la fenêtre de réunion), pour la capture
+  localStorage.setItem('lowsper.opt.showLive', '1');
   // Le son des participants remplace le partage d'écran (impossible sans écran)
   navigator.mediaDevices.getDisplayMedia = async () => {
     const ctx = new AudioContext();
@@ -86,8 +88,8 @@ while (Date.now() - t0 < SECONDS * 1000 * 0.8) {
   await page.waitForTimeout(1000);
 }
 await page.screenshot({ path: join(out, 'enregistrement.png') });
-// Fenêtre très basse : la barre façon appel en cours
-await page.setViewportSize({ width: 380, height: 64 });
+// Fenêtre très basse : la mini-barre, la même que dans la mini-fenêtre (248 × 52)
+await page.setViewportSize({ width: 248, height: 52 });
 await page.waitForTimeout(500);
 await page.screenshot({ path: join(out, 'barre.png') });
 await page.setViewportSize({ width: 900, height: 760 });

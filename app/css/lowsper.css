@@ -222,20 +222,8 @@ input[type="text"]:focus, select:focus { border-color: var(--accent); box-shadow
 .howto strong { color: var(--text); font-weight: 600; }
 
 /* Enregistrement */
-.rec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
 .rec-status { display: flex; align-items: center; gap: 10px; font-weight: 600; }
 .rec-status.paused .rec-dot { background: var(--muted); animation: none; }
-.timer { font-variant-numeric: tabular-nums; font-size: 34px; font-weight: 700; letter-spacing: -.02em; }
-
-.meters { display: grid; gap: 10px; margin-bottom: 14px; }
-.meter { display: grid; grid-template-columns: 100px 1fr auto; align-items: center; gap: 12px; font-size: 14px; }
-.meter .who { font-weight: 600; }
-.meter .bar { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; border: 1px solid var(--border); }
-.meter .bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .08s linear; }
-.meter.speaking .bar i { background: var(--ok); }
-.meter .state { color: var(--muted); font-size: 12.5px; min-width: 90px; text-align: right; }
-.meter.off { opacity: .55; }
-.meter .state button { font: inherit; color: var(--link); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
 
 .notice {
   background: var(--warn-bg);
@@ -262,7 +250,6 @@ input[type="text"]:focus, select:focus { border-color: var(--accent); box-shadow
 .feed .t { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12.5px; margin-right: 6px; }
 .feed .s { font-weight: 600; margin-right: 4px; }
 .feed .s.me { color: var(--link); }
-.queue { color: var(--muted); font-size: 12.5px; margin-top: 8px; min-height: 18px; }
 
 /* Finalisation */
 .spinner { width: 36px; height: 36px; margin: 6px auto 16px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--accent); animation: spin .9s linear infinite; }
@@ -305,9 +292,6 @@ input[type="text"]:focus, select:focus { border-color: var(--accent); box-shadow
 
 @media (max-width: 560px) {
   .card { padding: 20px; }
-  .timer { font-size: 26px; }
-  .meter { grid-template-columns: 84px 1fr; }
-  .meter .state { grid-column: 2; text-align: left; }
   .row.actions { justify-content: stretch; }
   .row.actions .btn { flex: 1; }
 }
@@ -333,12 +317,6 @@ textarea { resize: vertical; min-height: 64px; font: inherit; }
 .btn.primary-soft { background: var(--accent-soft); border-color: transparent; color: var(--link); }
 .btn.primary-soft .rec-dot { background: var(--rec); }
 
-/* Dernière phrase (affichée en mode compact et dans la mini-fenêtre) */
-.last-line { display: none; margin: 0 0 8px; font-size: 13.5px; color: var(--muted); overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.pip-placeholder { text-align: center; color: var(--muted); padding: 8px 0 16px; }
-.pip-placeholder p { margin: 0 0 10px; }
-.pip-placeholder .center-row { justify-content: center; gap: 10px; flex-wrap: wrap; }
-
 /* Fenêtre étroite ou basse : l'essentiel reste visible sans défiler */
 @media (max-width: 560px), (max-height: 640px) {
   .top { margin: 10px auto 6px; }
@@ -346,10 +324,6 @@ textarea { resize: vertical; min-height: 64px; font: inherit; }
   .card { padding: 16px; border-radius: 12px; }
   .foot { display: none; }
   .howto, .lead { font-size: 13px; }
-  .rec-head { margin-bottom: 10px; }
-  .timer { font-size: 24px; }
-  .meter { grid-template-columns: 86px 1fr; gap: 8px; font-size: 13px; }
-  .meter .state { display: none; }
   .feed { height: 160px; }
   .row.actions { flex-wrap: nowrap; }
   .row.actions .btn { flex: 1; padding: 9px 10px; }
@@ -358,60 +332,11 @@ textarea { resize: vertical; min-height: 64px; font: inherit; }
   .top { display: none; }
   main { padding-top: 8px; }
   .feed { display: none; }
-  .last-line { display: -webkit-box; }
 }
-@media (max-width: 480px) {
-  /* Boutons sur deux lignes : Pause et Mini-fenêtre côte à côte, Terminer en pleine largeur */
-  .rec-core .row.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .rec-core .row.actions #stop { grid-column: 1 / 3; order: -1; }
-  .rec-core .row.actions .btn { min-width: 0; }
-}
-
 /* Icônes des boutons d'enregistrement */
 .btn .ico { width: 14px; height: 14px; fill: currentColor; flex: none; }
-#pause .i-play, #pause.paused .i-pause { display: none; }
-#pause.paused .i-play { display: inline; }
-
-/* Barre mini : mini-fenêtre (Document Picture-in-Picture) et fenêtre très basse.
-   Une seule ligne, comme un appel Teams réduit : point rouge et durée, niveaux du micro et de
-   la réunion, pause, fin. La flèche déplie une deuxième ligne (dernière phrase, avis). */
-#pip-more { display: none; }
-body.mini { min-height: 0; background: var(--surface); }
-body.pip { overflow: hidden; }
-body.mini .top, body.mini .foot, body.mini .feed, body.mini .pip-placeholder { display: none !important; }
-body.mini main { padding: 0; margin: 0; max-width: none; }
-body.mini .card { border: 0; box-shadow: none; padding: 0; border-radius: 0; background: transparent; }
-body.mini .rec-core {
-  display: grid;
-  grid-template-columns: auto minmax(36px, 1fr) auto;
-  grid-template-areas: 'head meters actions' 'notice notice notice' 'line line line';
-  align-items: center;
-  gap: 4px 8px;
-  padding: 7px 8px;
-}
-body.mini .rec-head { grid-area: head; margin: 0; gap: 6px; justify-content: flex-start; }
-body.mini .rec-status { gap: 6px; }
-body.mini #rec-label { display: none; }
-body.mini .rec-dot { width: 9px; height: 9px; }
-body.mini .timer { font-size: 15px; letter-spacing: 0; }
-body.mini .meters { grid-area: meters; gap: 3px; margin: 0; }
-body.mini .meter { display: block; }
-body.mini .meter .who, body.mini .meter .state { display: none; }
-body.mini .meter .bar { display: block; height: 4px; }
-body.mini .notice, body.mini .last-line { display: none; }
-body.mini.expanded .notice:not([hidden]) { grid-area: notice; display: block; margin: 0; font-size: 11.5px; padding: 3px 6px; }
-body.mini.expanded .last-line { grid-area: line; display: block; margin: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-body.mini .queue { display: none; }
-body.mini .row.actions { grid-area: actions; margin: 0; display: flex; flex-wrap: nowrap; gap: 4px; }
-body.mini .row.actions .btn { flex: none; width: 30px; height: 28px; padding: 0; justify-content: center; border-radius: 7px; }
-body.mini .row.actions .lbl { display: none; }
-body.mini .row.actions #stop { order: 3; width: 36px; }
-body.mini #pip { display: none; }
-body.mini:not(.pip) #pip { display: inline-flex; }
-body.mini #pip-more { display: inline-flex; width: 24px !important; border-color: transparent; }
-body.mini.expanded #pip-more svg { transform: rotate(180deg); }
-/* Un avis attend d'être lu : la flèche se colore */
-body.mini:not(.expanded) .rec-core:has(.notice:not([hidden])) #pip-more { color: var(--warn-ink, #b45309); border-color: currentColor; }
+.i-play, .paused .i-pause { display: none; }
+.paused .i-play { display: inline; }
 
 .fine code, .folder-box code { font-size: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; word-break: break-all; }
 #temp-warning { margin-bottom: 14px; }
@@ -623,3 +548,79 @@ label.home-row { cursor: text; }
 .step-ico .ico { margin: 0; }
 .sheet .check { margin-bottom: 16px; }
 .sheet #before-cancel { display: block; margin: 8px auto 0; }
+
+/* Réunion, fenêtre agrandie (lot R5) : centrée, sans carte, comme la maquette */
+.card.meeting { max-width: 600px; margin: 16px auto; padding: 0; background: none; box-shadow: none; display: flex; flex-direction: column; gap: 18px; }
+.meet-head { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.meet-head .rec-status { font-weight: 400; font-size: 15px; gap: 8px; }
+.meet-head .timer { font-family: var(--font-display); font-size: 60px; font-weight: 300; letter-spacing: -.02em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+#meet-title { width: min(360px, 100%); height: 32px; padding: 0 8px; border: 1px solid transparent; border-radius: 8px; background: transparent; box-shadow: none; color: var(--muted); font: inherit; font-size: 15px; text-align: center; }
+#meet-title:hover { border-color: var(--border); }
+#meet-title:focus { border-color: var(--accent); color: var(--text); outline: none; }
+.checks { margin: 0; }
+.check-row { display: flex; align-items: center; gap: 12px; min-height: 54px; padding: 8px 16px; box-sizing: border-box; }
+.check-row + .check-row { border-top: 1px solid var(--border); }
+.check-mark { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 700; background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+.check-mark svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; display: none; }
+.check-row[data-state="ok"] .i-ok, .check-row[data-state="warn"] .i-warn, .check-row[data-state="idle"] .i-idle { display: block; }
+.check-row[data-state="warn"] .check-mark { background: var(--warn-bg); color: var(--warn-ink); }
+.check-row[data-state="idle"] .check-mark { background: var(--surface-2); color: var(--muted); }
+.check-text { flex: none; width: 210px; display: flex; flex-direction: column; gap: 1px; }
+.check-status { font-size: 13px; color: var(--muted); }
+.check-row[data-state="warn"] .check-status { color: var(--warn-ink); }
+.check-row .level { flex: 1; }
+.check-row[data-state="warn"] .level { display: none; }
+.fix-btn { margin-left: auto; }
+.level { display: block; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.level i { display: block; height: 100%; width: 0; background: var(--ok); border-radius: 3px; transition: width .08s linear; }
+.meeting .notice { margin: 0; }
+.big-actions { display: flex; justify-content: center; gap: 40px; }
+.round-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+.round-btn .round { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); }
+.round-btn .ico { width: 24px; height: 24px; margin: 0; fill: currentColor; stroke: none; }
+#pip .ico { fill: none; stroke: currentColor; }
+.round-btn.danger .round { background: var(--danger); color: #fff; }
+.round-btn .sq { width: 20px; height: 20px; border-radius: 4px; background: currentColor; }
+.round-btn:hover .round { filter: brightness(.96); }
+.round-btn:focus-visible { outline: none; }
+.round-btn:focus-visible .round { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 2px; }
+.chain-link { align-self: center; margin-top: -6px; font-size: 15px; text-decoration: none; padding: 8px 12px; }
+.live-toggle { justify-content: space-between; flex-direction: row-reverse; padding-top: 10px; border-top: 1px solid var(--border); color: var(--muted); font-size: 15px; }
+.meeting .feed { margin: 0; }
+
+/* Mini-barre : dans la mini-fenêtre (Document Picture-in-Picture, 248 × 52), ou seule quand la
+   fenêtre de Lowsper est très basse. Temps, niveaux du micro et de la réunion, pause, fin. */
+.mini-bar { display: none; box-sizing: border-box; height: 52px; padding: 0 8px 0 12px; align-items: center; gap: 10px; background: var(--surface); color: var(--text); }
+body.pip .mini-bar, body.mini .mini-bar { display: flex; }
+.mini-time { flex: none; width: 66px; display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.mini-time .rec-dot { width: 8px; height: 8px; background: var(--rec); }
+.mini-time.paused { color: var(--muted); }
+.mini-time.paused .rec-dot { background: var(--muted); animation: none; }
+.mini-levels { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.mini-level { display: flex; align-items: center; gap: 5px; color: var(--muted); }
+.mini-level .ico { width: 11px; height: 11px; margin: 0; }
+.mini-level .level { flex: 1; height: 4px; }
+.mini-level.warn { color: var(--warn-ink); }
+.mini-level.warn .level { background: var(--warn-border); }
+.mini-btn { flex: none; width: 34px; height: 34px; border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); color: var(--text); cursor: pointer; }
+.mini-btn .ico { width: 14px; height: 14px; margin: 0; fill: currentColor; stroke: none; }
+.mini-btn.stop { background: var(--danger); color: #fff; }
+.mini-btn .sq { width: 12px; height: 12px; border-radius: 3px; background: currentColor; }
+.mini-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+body.pip { margin: 0; overflow: hidden; background: var(--surface); }
+/* Fenêtre de Lowsper très basse : la mini-barre seule, comme la mini-fenêtre */
+body.mini { min-height: 0; background: var(--surface); }
+body.mini .top, body.mini .foot { display: none !important; }
+body.mini main { padding: 0; margin: 0; max-width: none; }
+body.mini #view-rec > :not(.mini-bar) { display: none !important; }
+body.mini .card.meeting { margin: 0; max-width: none; }
+
+@media (max-width: 560px), (max-height: 700px) {
+  .card.meeting { gap: 12px; margin-top: 4px; }
+  .meet-head .timer { font-size: 40px; }
+  .check-row { min-height: 44px; padding: 6px 12px; }
+  .check-text { width: auto; flex: 1; }
+  .check-row .level { flex: 0 0 25%; }
+  .big-actions { gap: 24px; }
+  .round-btn .round { width: 52px; height: 52px; }
+}

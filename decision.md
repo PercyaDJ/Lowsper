@@ -1669,3 +1669,95 @@ commencer ».
 **Limites.**
 - Rendu vérifié dans Chromium seulement, pas dans Edge ni Chrome du commerce.
 - Vocabulaire « profil » et « emplacement » mélangé jusqu'au lot R7.
+
+## 28. Refonte, lot R5 : réunion, mini-fenêtre et fenêtre agrandie
+
+**Contexte.** Pendant la réunion, Lowsper montrait des barres de niveau, un texte d'état technique
+(« 3 passages en attente de transcription. Charge du moteur : 87 % ») et cinq boutons. La mini-
+fenêtre reprenait le même bloc en plus petit. La refonte (`docs/refonte.md` §4 et §5, maquettes
+validées) sépare les deux usages : une mini-fenêtre minuscule pour travailler à côté, et une
+fenêtre agrandie qui dit en langage simple si tout va bien.
+
+**Mesure avant de coder : tailles acceptées par la mini-fenêtre.** Page d'essai
+`tools/test/pip-sizes.html` (un clic par taille demandée, car chaque ouverture exige un geste de
+l'utilisateur). Chromium 153 sous Linux, dans un écran virtuel Xvfb de 1920 × 1080, sans
+gestionnaire de fenêtres, sans l'émulation de taille de Playwright :
+
+| Demandé | Obtenu (intérieur) | Extérieur |
+|---|---|---|
+| 1 × 1, 100 × 30, 180 × 40 | 240 × 52 | 248 × 90 |
+| **248 × 52** (maquette) | **248 × 52** | 256 × 90 |
+| 300 × 48 (avant ce lot) | 300 × 52 | 308 × 90 |
+| 400 × 120 | 400 × 120 | 408 × 158 |
+| 1000 × 800 | 804 × 643 | 812 × 681 |
+| 4000 × 3000 | 831 × 623 | 839 × 661 |
+
+- Minimum : 240 × 52 ; la taille de la maquette est donc respectée telle quelle. La mini-fenêtre
+  est désormais demandée en 248 × 52.
+- Maximum : environ 830 × 640 sur cet écran, plafond imposé par le navigateur.
+- La barre de titre dessinée par le navigateur ajoute 38 px de haut.
+- Sans écran virtuel (Chromium sans écran), la taille demandée est ignorée : mesure inutilisable,
+  écartée.
+- **Non vérifié** : Chrome et Edge sous Windows et macOS. Le mainteneur ouvrira la page d'essai ;
+  le tableau sera complété.
+
+**Mini-fenêtre.**
+- Un élément à part, `#mini`, déplacé dans la fenêtre Document Picture-in-Picture : temps
+  (minutes:secondes), niveau du micro, niveau du son de la réunion, Pause, Terminer. Le reste de
+  l'écran de réunion reste dans la page : il n'est plus déplacé, et l'ancien texte « piloté depuis
+  la mini-fenêtre » disparaît.
+- Son de la réunion absent ou silencieux trop longtemps : icône et barre orange, explication au
+  survol.
+- Même barre quand la fenêtre de Lowsper est très basse (moins de 240 px de haut), comme avant.
+- Retirés : la flèche qui dépliait la dernière phrase et les avis dans la mini-fenêtre (absents de
+  la maquette).
+
+**Fenêtre agrandie.**
+- État (« Enregistrement » ou « En pause »), grand chronomètre, nom de la réunion modifiable. Le
+  nom modifié sert à la note et au contexte donné à Whisper pour les passages suivants.
+- **Contrôle d'état** : trois lignes, chacune avec une coche verte, un point d'exclamation orange
+  ou un tiret gris :
+  - micro : « Je vous entends » (ou « Non capté ») ;
+  - son de la réunion : « Le son arrive », « Rien ne passe » (source perdue), « Rien ne passe
+    depuis 1 min » (silence), ou « Non capté (option désactivée) » ;
+  - texte écrit : « À jour », « N s de retard », ou « Le moteur se prépare ».
+  Le détail technique (passages en attente, charge du moteur) reste en infobulle de la dernière
+  ligne.
+- « Comment corriger » : l'explication, avec le bouton existant pour partager de nouveau le son.
+  Vérifié dans `capture.js` : un nouveau partage remplace l'ancien proprement.
+- Trois gros boutons ronds légendés (Pause, Réduire, Terminer), « Commencer une nouvelle réunion
+  sans arrêter », et le texte en direct derrière un interrupteur, masqué par défaut (choix gardé,
+  `lowsper.opt.showLive`).
+- La logique des états est une fonction pure, `app/js/meeting.js`, couverte par un test unitaire
+  qui relit les corpus pour vérifier les seuils.
+
+**Seuils d'alerte, réglés sur les corpus de test.**
+- **Silence du son de la réunion** : plus long silence naturel des participants mesuré dans les
+  corpus, 8,3 s (« hebdo ») et 7,1 s (« entretien »). Seuil retenu : **60 s** sans aucune parole
+  détectée. La marge couvre les longs moments où vous parlez seul, que ces corpus de 3 minutes ne
+  contiennent pas. Le test unitaire exige au moins cinq fois le plus long silence mesuré.
+- **Silence du micro** : **jamais d'alerte**. Jusqu'à 80 s de silence au micro dans « hebdo », en
+  réunion normale : vous écoutez.
+- **Retard du texte** : âge du plus ancien passage de la réunion encore à transcrire. Mesuré
+  toutes les 2 s pendant le test de bout en bout (corpus « hebdo », machine de développement lente,
+  un seul moteur, panne de moteur simulée) : médiane 0 s, 90 % des relevés sous 8,9 s, maximum
+  12,9 s. Seuil retenu : **30 s**, plus du double du pire cas normal. Au-delà de 15 s, la voie
+  rapide de secours prend déjà le relais (§15.12).
+
+**Tests.**
+- Unitaires : contrôle d'état et seuils.
+- `npm run test:e2e` : mini-fenêtre ouverte en 248 × 52 si le navigateur le permet, avec ses
+  boutons Pause et Terminer, clics réels ; barre en fenêtre très basse ; retard du texte relevé et
+  contrôle d'état affiché.
+- Charge du moteur (`npm run bench`) : voir le tableau ci-dessous.
+
+| Passage de 25 s, Whisper small | Avant | Après |
+|---|---|---|
+| Durée (RTF) | 13 883 ms (0,555) | voir ci-dessous |
+
+**Limites.**
+- Tailles de la mini-fenêtre non mesurées dans Chrome et Edge sous Windows et macOS.
+- Corpus courts (3 minutes) : le seuil de silence de 60 s n'est pas mesuré sur de vraies réunions
+  longues ; il est choisi avec une large marge.
+- Le contrôle d'état se met à jour dix fois par seconde, comme les barres de niveau avant lui ; il
+  n'écrit dans la page que ce qui change.

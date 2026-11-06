@@ -13,7 +13,7 @@ The interface is in English or French, following the browser language (it can be
 Settings, « Display », « App language »). The full documentation is in French: see
 [README.md](README.md).
 
-![Lowsper during a fictional meeting: live transcript, microphone and participant levels](docs/images/enregistrement.png)
+![Lowsper during a fictional meeting: timer, status check of the microphone, sound and text, live transcript](docs/images/enregistrement.png)
 
 ## Why it exists
 
@@ -46,6 +46,9 @@ Settings, « Display », « App language »). The full documentation is in Frenc
 4. On the home screen, name the meeting (optional), choose where to « Save note to », and click
    « Start ». The « Before you start » window recalls the three steps: tell the other people,
    share your screen **with audio**, allow the microphone.
+   Lowsper shrinks to a small window (time, microphone and meeting sound levels, pause, stop). The
+   full window shows a plain-language status check: « Hearing you », « Coming through » (or
+   « Nothing is coming through » with « How to fix »), and whether the text is up to date.
 5. Click « Stop »: the `.md` transcript lands in your Downloads folder (or your profile folder).
 
 Recognition is tuned for French (with an English and an automatic French/English mode). The note

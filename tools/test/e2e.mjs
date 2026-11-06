@@ -267,6 +267,9 @@ await page.evaluate(() => {
   w.transcribe = (...a) => (once ? ((once = false), Promise.reject(new Error('panne simulée'))) : real(...a));
 });
 let maxBacklog = 0;
+// Retard du texte (âge du plus ancien passage en attente), relevé toutes les 2 s : sert à régler
+// le seuil « Texte écrit : à jour » (decision.md §28)
+const delays = [];
 // Enchaînement : à mi-parcours, « Réunion suivante » ; la première réunion est enregistrée seule
 const downloads = [];
 page.on('download', (d) => downloads.push(d));
@@ -285,10 +288,25 @@ for (let waited = 0; waited < meetingSeconds; waited += 2) {
   }
   if (!chained && waited >= meetingSeconds / 2) {
     chained = true;
-    await page.evaluate(() => (LowsperApp.pip ? LowsperApp.pip.document : document).getElementById('chain').click());
+    await page.evaluate(() => document.getElementById('chain').click());
   }
   const backlog = await page.evaluate(() => LowsperApp.queue.length + LowsperApp.inFlight);
   maxBacklog = Math.max(maxBacklog, backlog);
+  delays.push(await page.evaluate(() => LowsperApp.textDelay()));
+}
+{
+  const s = [...delays].sort((x, y) => x - y);
+  const q = (p) => s[Math.min(s.length - 1, Math.floor(p * s.length))].toFixed(1);
+  console.log(`Retard du texte pendant la réunion : médiane ${q(0.5)} s, 90 % ${q(0.9)} s, maximum ${q(1)} s`);
+  // Contrôle d'état affiché (ligne « Texte écrit »), en fin de réunion
+  console.log(
+    'Contrôle d’état : ' +
+      (await page.evaluate(() =>
+        [...document.querySelectorAll('.check-row')]
+          .map((r) => r.dataset.state + ' ' + r.querySelector('.check-status').textContent)
+          .join(' | ')
+      ))
+  );
 }
 const draftsDuring = await page.evaluate(
   () => (LowsperApp.transcript ? LowsperApp.transcript.draftCount() : 0) + LowsperApp.drafts.length
@@ -301,7 +319,7 @@ const pipSize = pipAuto
   ? await page.evaluate(() => [
       LowsperApp.pip.innerWidth,
       LowsperApp.pip.innerHeight,
-      !!LowsperApp.pip.document.getElementById('stop'),
+      !!LowsperApp.pip.document.getElementById('mini-stop'),
     ])
   : null;
 console.log(
@@ -313,9 +331,9 @@ let pipClickOk = !pipAuto;
 if (pipAuto) {
   const pipPage = context.pages().find((p) => p !== page);
   if (pipPage) {
-    await pipPage.click('#pause', { timeout: 5000 }).catch(() => {});
+    await pipPage.click('#mini-pause', { timeout: 5000 }).catch(() => {});
     const paused = await page.evaluate(() => LowsperApp.capture.paused);
-    await pipPage.click('#pause', { timeout: 5000 }).catch(() => {});
+    await pipPage.click('#mini-pause', { timeout: 5000 }).catch(() => {});
     const resumed = await page.evaluate(() => !LowsperApp.capture.paused);
     pipClickOk = paused && resumed;
   }
@@ -332,7 +350,7 @@ await page.setViewportSize({ width: 360, height: 110 });
 await page.waitForTimeout(300);
 await page.screenshot({ path: join(out, '3c-barre.png') });
 const barOk = await page.evaluate(() => {
-  const r = document.getElementById('stop').getBoundingClientRect();
+  const r = document.getElementById('mini-stop').getBoundingClientRect();
   return document.body.classList.contains('mini') && r.bottom <= window.innerHeight && r.width > 0;
 });
 await page.setViewportSize({ width: 360, height: 460 });

@@ -28,6 +28,7 @@ vm.createContext(sandbox);
 for (const f of [
   'i18n.js',
   'recommend.js',
+  'meeting.js',
   'browser.js',
   'engine.js',
   'capture.js',
@@ -1269,6 +1270,65 @@ await test('langue : chaque modèle du manifeste a un nom et un texte court dans
         assert.notEqual(L.i18n.t(k, null, lang), k, `${k} (${lang})`);
   // Le nom français est celui du manifeste (index des modèles installés, notes)
   for (const m of catalog) assert.equal(L.i18n.t('model.label.' + m.id, null, 'fr'), m.label);
+});
+
+// --- Réunion : contrôle d'état (decision.md §28) ---
+await test('réunion : contrôle d’état, seuils réglés sur les corpus', async () => {
+  const M = L.Meeting;
+  const base = {
+    me: 'on',
+    others: 'on',
+    othersWanted: true,
+    othersSilentMs: 0,
+    paused: false,
+    engineReady: true,
+    engineError: null,
+    delayS: 0,
+  };
+  const c = (patch) => M.checks({ ...base, ...patch });
+  // Tout va bien
+  let r = c({});
+  assert.deepEqual([r.me.state, r.others.state, r.text.state], ['ok', 'ok', 'ok']);
+  assert.deepEqual([r.me.key, r.others.key, r.text.key], ['meet.micOk', 'meet.soundOk', 'meet.textOk']);
+  // Seuil du son de la réunion : au-dessus du plus long silence naturel mesuré sur les corpus
+  const corpus = [];
+  for (const name of ['hebdo', 'entretien']) {
+    const truth = JSON.parse(
+      await readFile(join(appJs, '..', '..', 'tools', 'test', 'corpus', name + '.truth.json'), 'utf8')
+    );
+    const end = Math.max(...truth.map((x) => x.end));
+    for (const ch of ['me', 'others']) {
+      let prev = 0;
+      let gap = 0;
+      for (const x of truth.filter((t) => t.channel === ch).sort((a, b) => a.start - b.start)) {
+        gap = Math.max(gap, x.start - prev);
+        prev = Math.max(prev, x.end);
+      }
+      corpus.push({ name, ch, gap: Math.max(gap, end - prev) });
+    }
+  }
+  const othersMax = Math.max(...corpus.filter((x) => x.ch === 'others').map((x) => x.gap));
+  assert.ok(othersMax < 10 && M.OTHERS_SILENT_MS / 1000 > othersMax * 5, `silence des participants : ${othersMax} s`);
+  assert.equal(c({ othersSilentMs: othersMax * 1000 }).others.state, 'ok', 'silence naturel : pas d’alerte');
+  r = c({ othersSilentMs: M.OTHERS_SILENT_MS + 1 });
+  assert.deepEqual([r.others.state, r.others.key, r.others.fix], ['warn', 'meet.soundSilent', true]);
+  // Micro : jamais d'alerte de silence (on écoute souvent longtemps : 80 s dans « hebdo »)
+  const meMax = Math.max(...corpus.filter((x) => x.ch === 'me').map((x) => x.gap));
+  assert.ok(meMax > 60, `silence du micro : ${meMax} s`);
+  // Sources non captées
+  r = c({ me: 'off', others: 'off' });
+  assert.deepEqual([r.me.state, r.others.state, r.others.key, r.others.fix], ['warn', 'warn', 'meet.soundNone', true]);
+  r = c({ others: 'off', othersWanted: false });
+  assert.deepEqual([r.others.state, r.others.key, r.others.fix], ['idle', 'meet.soundOff', false]);
+  // Pause : rien à signaler, même après un long silence
+  r = c({ paused: true, othersSilentMs: 600000 });
+  assert.deepEqual([r.me.state, r.others.state], ['idle', 'idle']);
+  // Texte : à jour sous le seuil, retard en secondes au-delà, moteur en préparation
+  assert.equal(c({ delayS: M.TEXT_LATE_S - 1 }).text.state, 'ok');
+  r = c({ delayS: 47.4 });
+  assert.deepEqual([r.text.state, r.text.key, r.text.vars.s], ['warn', 'meet.textLate', 47]);
+  assert.equal(c({ engineReady: false }).text.key, 'meet.textPreparing');
+  assert.equal(c({ engineReady: false, engineError: 'x', delayS: 0 }).text.key, 'meet.textOk');
 });
 
 // --- Premier lancement : recommandation du modèle (decision.md §26) ---

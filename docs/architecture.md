@@ -94,6 +94,7 @@ vérifie à chaque pull request.
 | Lire un nouveau format de fichier | `app/js/audiofile.js` |
 | Changer le décodage Whisper, le contexte, les relances internes | `app/js/engine.js` |
 | Changer la file, les moteurs, l'interface | `app/js/app.js`, `Lowsper.html`, `app/css/lowsper.css` |
+| Changer le contrôle d'état de la réunion, ses seuils | `app/js/meeting.js` |
 | Changer la recommandation de modèle, le nombre de moteurs | `app/js/recommend.js` (mesures : `npm run bench -- --cores`) |
 | Ajouter ou changer un texte affiché (français et anglais) | `app/js/i18n.js` (les deux catalogues), puis `data-i18n` dans `Lowsper.html` ou `t()` dans le code |
 | Changer le Markdown, les filtres, les sigles | `app/js/transcript.js` |

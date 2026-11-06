@@ -113,6 +113,7 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Accueil : menu, fenêtre « Avant de commencer », nombre de personnes (10 s, Chromium) | `npm run test:home` |
 | Vitesse des modèles selon le nombre de moteurs (après `--embed whisper-small whisper-base`) | `npm run bench -- --cores` |
 | Essai à la main de la fenêtre de choix de dossier (`startIn`) dans Chrome et Edge | ouvrir `tools/test/startin.html` |
+| Essai à la main des tailles de la mini-fenêtre dans Chrome et Edge | ouvrir `tools/test/pip-sizes.html` |
 | Étude du résumé local (modèles dans `.cache/llm`, decision.md §22) | `node test/eval-summary.mjs <modèle> [--dtype=q8\|q4] [--sanity] [--long]` |
 
 Chromium : si Playwright ne trouve pas son navigateur, définissez `CHROMIUM_PATH`. Le test de
@@ -130,6 +131,7 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 |---|---|
 | `Lowsper.html` | Page à ouvrir : interface et politique de sécurité (CSP) |
 | `app/js/theme.js` | Thème clair ou sombre (système par défaut, choix mémorisé), chargé dans `<head>` |
+| `app/js/meeting.js` | Contrôle d'état de la réunion (micro, son, texte) et ses seuils (`decision.md` §28) |
 | `app/js/menu.js` | Menu dessiné par Lowsper, composant commun (clavier, lecteur d'écran) : langue, « Enregistrer la note dans » |
 | `app/js/recommend.js` | Détection du PC, moteurs autorisés, modèle recommandé au premier lancement (`decision.md` §26) |
 | `app/js/i18n.js` | Langue de l'interface : catalogues `fr` et `en`, `t(clé, variables)`, attributs `data-i18n`, chargé avant les autres scripts |

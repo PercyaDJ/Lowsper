@@ -575,7 +575,8 @@
         app.behindSince = null;
       }
     }
-    $('queue').textContent = text;
+    app.queueText = text;
+    if (app.state === 'recording') renderChecks();
     if (app.state === 'finishing') {
       $('finish-text').textContent = !app.engineReady
         ? tr('finish.preparing')
@@ -596,6 +597,7 @@
       return;
     }
     const withOthers = $('with-others').checked && !!navigator.mediaDevices.getDisplayMedia;
+    app.othersWanted = withOthers;
     $('start').disabled = true;
 
     // 1. Partage d'écran EN PREMIER : le navigateur exige qu'il suive directement le clic.
@@ -635,6 +637,7 @@
     app.behindSince = null;
     app.loadSamples = [];
     app.transcript = createTranscript($('title').value.trim(), parseInt($('people').value, 10));
+    $('meet-title').value = app.transcript.meta.title;
 
     app.capture = new L.Capture(
       (source, seg) => {
@@ -1014,6 +1017,7 @@
       old.meta.endedAt = Date.now();
       old.meta.endAbs = cut;
       app.transcript = createTranscript('', NaN, cut);
+      $('meet-title').value = '';
       for (const id of Object.keys(app.capture.sources))
         if (!app.transcript.meta.sources.includes(id)) app.transcript.meta.sources.push(id);
       app.pausedAt = null;
@@ -1240,21 +1244,58 @@
     el.hidden = false;
   }
 
+  // Source captée ('on') ou non ('off') ; l'heure de la dernière parole entendue
   function setMeter(id, mode) {
-    const el = $('meter-' + id);
-    el.classList.toggle('off', mode === 'off');
-    const state = el.querySelector('.state');
-    state.textContent = '';
-    if (mode === 'off') {
-      if (id === 'others' && navigator.mediaDevices.getDisplayMedia) {
-        const b = document.createElement('button');
-        b.textContent = tr('rec.offActivate');
-        b.addEventListener('click', retryOthers);
-        state.appendChild(b);
-      } else {
-        state.textContent = tr('rec.off');
-      }
-    }
+    app.src = app.src || {};
+    app.heard = app.heard || {};
+    app.src[id] = mode;
+    app.heard[id] = Date.now();
+    renderChecks();
+  }
+
+  /** Retard du texte : âge en secondes du plus ancien passage de la réunion encore à transcrire. */
+  app.textDelay = () => textDelay(); // diagnostic et tests
+  function textDelay() {
+    const t = app.transcript;
+    let oldest = Infinity;
+    for (const j of [...app.queue, ...app.running])
+      if (j.transcript === t && !j.redo && j.queuedAt) oldest = Math.min(oldest, j.queuedAt);
+    return oldest === Infinity ? 0 : (Date.now() - oldest) / 1000;
+  }
+
+  // Écrit une ligne du contrôle d'état seulement si elle change (appelée dix fois par seconde)
+  function setRow(id, state, status, title) {
+    const row = $('row-' + id);
+    if (row.dataset.state !== state) row.dataset.state = state;
+    const el = $(id + '-status');
+    if (el.textContent !== status) el.textContent = status;
+    if (title != null && row.title !== title) row.title = title;
+  }
+
+  /** Contrôle d'état en langage simple : micro, son de la réunion, texte écrit (meeting.js). */
+  function renderChecks() {
+    if (app.state !== 'recording' || !app.capture) return;
+    const src = app.src || {};
+    const c = L.Meeting.checks({
+      me: src.me,
+      others: src.others,
+      othersWanted: app.othersWanted,
+      othersSilentMs: Date.now() - ((app.heard && app.heard.others) || 0),
+      paused: app.capture.paused,
+      engineReady: app.engineReady,
+      engineError: app.engineError,
+      delayS: textDelay(),
+    });
+    setRow('me', c.me.state, tr(c.me.key));
+    setRow('others', c.others.state, tr(c.others.key));
+    setRow('text', c.text.state, tr(c.text.key, c.text.vars), app.queueText);
+    $('others-fix').hidden = !c.others.fix || !navigator.mediaDevices.getDisplayMedia;
+    // Mini-barre : icône orange et explication au survol
+    const mini = $('mini-others-row');
+    const warn = c.others.state === 'warn';
+    mini.classList.toggle('warn', warn);
+    const miniTitle = warn ? tr(c.others.key) + ' ' + tr('meet.fixShort') : tr('meet.sound');
+    if (mini.title !== miniTitle) mini.title = miniTitle;
   }
 
   // ---------------------------------------------------------------------------
@@ -1263,7 +1304,11 @@
 
   function tick() {
     if (!app.capture) return;
-    $('timer').textContent = L.formatTime(meetingNow());
+    // Minutes:secondes, comme la maquette ; les heures seulement au-delà d'une heure
+    const full = L.formatTime(meetingNow());
+    const short = full.startsWith('00:') ? full.slice(3) : full.replace(/^0/, '');
+    $('timer').textContent = short;
+    $('mini-timer').textContent = short;
     // Santé toutes les 30 s : retard de la détection de parole, file d'attente
     const now = Date.now();
     if (now - (app.lastHealth || 0) > 30000) {
@@ -1285,17 +1330,23 @@
       }
     }
     for (const id of ['me', 'others']) {
-      const el = $('meter-' + id);
       const on = !!app.capture.sources[id];
-      el.querySelector('.bar i').style.width = on ? Math.round(app.capture.level(id) * 100) + '%' : '0';
-      el.classList.toggle('speaking', on && app.capture.isSpeaking(id));
-      if (on) el.querySelector('.state').textContent = app.capture.isSpeaking(id) ? tr('rec.speaking') : '';
+      const w = on ? Math.round(app.capture.level(id) * 100) + '%' : '0';
+      $(id + '-level').style.width = w;
+      $('mini-' + id).style.width = w;
+      // Dernière parole entendue (la pause ne compte pas comme un silence)
+      if (on && (app.capture.paused || app.capture.isSpeaking(id))) app.heard[id] = now;
     }
+    renderChecks();
   }
 
   function renderPauseLabels(paused) {
-    $('pause').querySelector('.lbl').textContent = paused ? tr('rec.resume') : tr('rec.pause');
+    const label = paused ? tr('rec.resume') : tr('rec.pause');
+    $('pause').querySelector('.lbl').textContent = label;
+    $('mini-pause').setAttribute('aria-label', label);
+    $('mini-pause').title = label;
     $('rec-label').textContent = paused ? tr('rec.paused') : tr('rec.recording');
+    $('mini-state').title = paused ? tr('rec.paused') : tr('rec.recording');
   }
 
   function togglePause() {
@@ -1309,8 +1360,8 @@
       app.pausedAt = null;
     }
     renderPauseLabels(paused);
-    $('pause').classList.toggle('paused', paused);
-    $('rec-status').classList.toggle('paused', paused);
+    for (const id of ['pause', 'mini-pause', 'rec-status', 'mini-state']) $(id).classList.toggle('paused', paused);
+    renderChecks();
   }
 
   function renderLive() {
@@ -1344,10 +1395,6 @@
     }
     box.replaceChildren(frag);
     if (nearBottom) box.scrollTop = box.scrollHeight;
-    const lastPara = paras[paras.length - 1];
-    $('last-line').textContent = lastPara
-      ? tr('rec.lastLine', { name: app.transcript.speakerName(lastPara), text: lastPara.text })
-      : '';
   }
 
   // ---------------------------------------------------------------------------
@@ -1567,11 +1614,10 @@
     $('title').value = '';
     $('start').disabled = false;
     renderPauseLabels(false);
-    $('pause').classList.remove('paused');
-    $('rec-status').classList.remove('paused');
+    for (const id of ['pause', 'mini-pause', 'rec-status', 'mini-state']) $(id).classList.remove('paused');
     $('rec-notice').hidden = true;
-    $('timer').textContent = '00:00:00';
-    $('last-line').textContent = '';
+    $('timer').textContent = '00:00';
+    $('mini-timer').textContent = '00:00';
     app.improvedPending = false;
     app.draftsDone = false;
     $('next-meeting').hidden = false;
@@ -2070,10 +2116,9 @@
     try {
       // Taille d'un appel Teams réduit : une barre, la dernière phrase en dessous
       // Une seule ligne, comme un appel Teams réduit (la flèche déplie la dernière phrase)
-      win = await window.documentPictureInPicture.requestWindow({
-        width: 300,
-        height: 48,
-      });
+      // 248 × 52 : la maquette ; respecté tel quel par Chromium, qui impose au moins 240 × 52
+      // (mesures de decision.md §28)
+      win = await window.documentPictureInPicture.requestWindow({ width: 248, height: 52 });
     } catch (e) {
       if (!quiet) toast(tr('pip.failed', { error: e.message }), 6000);
       return;
@@ -2086,9 +2131,8 @@
     win.document.title = 'Lowsper';
     win.document.documentElement.lang = L.i18n.lang();
     L.Theme.apply(L.Theme.stored(), win.document);
-    win.document.body.className = 'pip mini' + (document.body.classList.contains('expanded') ? ' expanded' : '');
-    win.document.body.appendChild($('rec-core'));
-    $('pip-placeholder').hidden = false;
+    win.document.body.className = 'pip';
+    win.document.body.appendChild($('mini'));
     app.pip = win;
     updateMini();
     win.addEventListener('pagehide', closePip, { once: true });
@@ -2098,13 +2142,11 @@
     const w = app.pip;
     app.pip = null;
     try {
-      const core = (w && !w.closed && w.document.getElementById('rec-core')) || $('rec-core');
-      const view = $('view-rec');
-      if (core) view.insertBefore(document.adoptNode(core), view.firstChild);
+      const mini = (w && !w.closed && w.document.getElementById('mini')) || $('mini');
+      if (mini) $('view-rec').appendChild(document.adoptNode(mini));
     } catch (e) {
       console.warn('Retour des commandes dans la page', e);
     }
-    $('pip-placeholder').hidden = true;
     updateMini();
     try {
       if (w && !w.closed) w.close();
@@ -2894,7 +2936,24 @@
   });
   $('pause').addEventListener('click', togglePause);
   $('stop').addEventListener('click', stop);
-  $('stop-main').addEventListener('click', stop);
+  $('mini-stop').addEventListener('click', stop);
+  $('mini-pause').addEventListener('click', togglePause);
+  // « Comment corriger » : l'explication, avec un bouton pour partager de nouveau le son
+  $('others-fix').addEventListener('click', () => notice(tr('meet.fixHelp'), 'others'));
+  // Nom de la réunion, modifiable pendant la réunion (note et contexte donné à Whisper)
+  $('meet-title').addEventListener('input', () => {
+    if (!app.transcript || app.state !== 'recording') return;
+    app.transcript.meta.title = $('meet-title').value.trim();
+    app.transcript.save();
+  });
+  // Texte en direct derrière un interrupteur, masqué par défaut ; le choix est gardé
+  $('show-live').checked = store.get('lowsper.opt.showLive') === '1';
+  $('live').hidden = !$('show-live').checked;
+  $('show-live').addEventListener('change', (e) => {
+    store.set('lowsper.opt.showLive', e.target.checked ? '1' : '0');
+    $('live').hidden = !e.target.checked;
+    if (e.target.checked) renderLive();
+  });
   $('chain').addEventListener('click', chainNext);
   $('download').addEventListener('click', () => {
     const n = noteOf(app.transcript);
@@ -2912,18 +2971,7 @@
     askBeforeStart(); // le clic sert de geste utilisateur pour le partage d'écran
   });
   $('pip').addEventListener('click', () => openPip());
-  // Flèche de la barre : déplie ou replie la deuxième ligne (dernière phrase, avis)
-  $('pip-more').addEventListener('click', () => {
-    const bodies = [document.body, app.pip && app.pip.document.body].filter(Boolean);
-    const on = !document.body.classList.contains('expanded');
-    for (const b of bodies) b.classList.toggle('expanded', on);
-    if (app.pip) {
-      try {
-        app.pip.resizeTo(app.pip.outerWidth, app.pip.outerHeight + (on ? 40 : -40));
-      } catch {}
-    }
-  });
-  $('pip-back').addEventListener('click', closePip);
+
   $('title').addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
     // Touche consommée : sinon le même appui activerait « Continuer », qui vient de recevoir le focus
