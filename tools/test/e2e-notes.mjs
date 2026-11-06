@@ -169,8 +169,22 @@ check(
 );
 check(/## Transcript\n\n\*\*\[00:00:01\] Intervenant 1 :\*\* Bonjour à tous/.test(note), 'transcript dans la note');
 check(
-  /Note enregistrée dans le dossier « Coffre-notes »/.test(await page.textContent('#export-info')),
-  'écran de fin : emplacement de la note'
+  /Dans le dossier « Coffre-notes »/.test(await page.textContent('#export-info')) &&
+    (await page.textContent('#saved-title')) === 'Note enregistrée',
+  'écran de fin : « Note enregistrée », avec son emplacement'
+);
+// Écran de fin en deux colonnes (lot R6) : le texte lisible à gauche, la suite à droite
+const layout = await page.evaluate(() => {
+  const a = document.querySelector('.done-main').getBoundingClientRect();
+  const b = document.querySelector('.done-side').getBoundingClientRect();
+  const lines = document.querySelectorAll('#done-lines .done-line').length;
+  const raw = /\*\*\[/.test(document.getElementById('done-lines').textContent);
+  return { twoCols: a.right <= b.left && Math.abs(a.top - b.top) < 40, lines, raw };
+});
+check(
+  layout.twoCols && layout.lines > 0 && !layout.raw,
+  'deux colonnes, texte lisible sans Markdown brut',
+  JSON.stringify(layout)
 );
 // Consigne pour l'IA : celle du profil proposée, une autre choisie, texte copié
 await page.evaluate(() => {
@@ -179,21 +193,47 @@ await page.evaluate(() => {
     window.__copied = text;
   };
 });
-check((await page.inputValue('#ai-choice')) === 'synthese-appel', 'consigne du profil proposée par défaut');
+check((await page.textContent('#ai-choice-label')) === "Synthèse d'appel", 'consigne du profil proposée par défaut');
 await page.click('#copy-ai');
 const call = await page.evaluate(() => window.__copied);
 check(
-  /^Voici le transcript automatique d'un appel[\s\S]*\n\n---\n\n---\ndate: 2026-03-14/.test(call || ''),
-  "texte copié : consigne de synthèse d'appel puis la note"
+  /^# Rôle\nTu rédiges des synthèses d'appel[\s\S]*\n# Règles\n[\s\S]*\n# Transcript\n---\ndate: 2026-03-14/.test(
+    call || ''
+  ),
+  "« Obtenir un résumé » : prompt système de synthèse d'appel, puis la note"
 );
-await page.selectOption('#ai-choice', 'actions');
+check((await page.textContent('#copy-ai-title')) === 'Copié', '« Obtenir un résumé » devient « Copié »');
+// « Voir ce qui est copié » montre exactement le texte copié
+await page.click('#ai-see');
+check((await page.textContent('#ai-preview')) === call, '« Voir ce qui est copié » : texte exact');
+await page.keyboard.press('Escape');
+check(!(await page.isVisible('#ai-dialog')), 'fenêtre « Voir ce qui est copié » fermée par Échap');
+// Autre consigne : menu dessiné par Lowsper, ouvert au clavier
+await page.focus('#ai-choice');
+await page.keyboard.press('Enter');
+await page.click('#ai-list [role="menuitemradio"]:has-text("Liste d")');
+check((await page.textContent('#copy-ai-title')) === 'Obtenir un résumé', 'autre consigne : bouton remis à zéro');
 await page.click('#copy-ai');
 const actions = await page.evaluate(() => window.__copied);
 check(
   /^Liste les actions de « Point hebdo » :\n\n---\ndate:/.test(actions || ''),
   'consigne modifiée, variable rendue, note à la place de {{note}}'
 );
-await page.fill('#voice-list input', 'Claire');
+// Renommer une voix directement sur une réplique : Échap annule, Entrée valide
+await page.click('#done-lines button.chip');
+await page.keyboard.type('Zoé');
+await page.keyboard.press('Escape');
+const undone = await page.textContent('#done-lines button.chip');
+check(undone === 'Intervenant 1', 'renommage annulé par Échap', undone);
+await page.click('#done-lines button.chip');
+await page.keyboard.type('Claire');
+await page.keyboard.press('Enter');
+const chips = await page.$$eval('#done-lines .chip.others', (els) => els.map((e) => e.textContent));
+check(
+  chips.length > 0 && chips.every((c) => c === 'Claire'),
+  'voix renommée sur toutes ses répliques',
+  chips.join(', ')
+);
 await page.waitForTimeout(3000);
 files = await vault();
 const updated = files['2026-03-14 Point hebdo.md'] || '';
@@ -206,6 +246,7 @@ await page.screenshot({ path: join(out, 'notes-fin.png'), fullPage: true });
 
 // 4. Accord à redemander : repli sur les Téléchargements, puis enregistrement en un clic
 await page.click('#again');
+check(await page.isVisible('#view-idle'), '« Nouvelle réunion » ramène à l’accueil');
 await page.evaluate(() => (window.__perm = 'prompt'));
 await importFile('extrait.m4a', 'Point hebdo');
 check(downloads.length === 1, 'accord à redemander : note dans les Téléchargements en attendant');

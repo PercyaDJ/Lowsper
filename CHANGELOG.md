@@ -23,6 +23,29 @@ Les détails techniques et les mesures sont dans `decision.md`.
 - Consignes fournies pour « Copier pour une IA » en français et en anglais. Une consigne modifiée
   par l'utilisateur ne change jamais.
 
+### Ajouté (lot R6)
+- Écran de fin en deux colonnes (decision.md §29). À gauche, le texte de la réunion, lisible (plus
+  de Markdown brut) : un clic sur « Intervenant 2 » permet de taper le vrai nom, qui change
+  partout. À droite, « Note enregistrée » (mise à jour à chaque correction) et « Et maintenant ? » :
+  « Obtenir un résumé », « Voir ce qui est copié », « Copier le texte », « Enregistrer une copie »,
+  puis « Corriger un mot mal reconnu » et « Nouvelle réunion ».
+
+### Modifié (lot R6)
+- Les trois consignes fournies (compte rendu de réunion, synthèse d'appel, liste d'actions) sont
+  réécrites comme un prompt système : rôle, contexte, tâche, règles, puis le transcript, en
+  français et en anglais. Elles demandent la langue principale du transcript. Une consigne que
+  vous aviez laissée telle quelle passe au nouveau texte ; une consigne modifiée, même d'un
+  caractère, est gardée telle quelle.
+- « Copier pour une IA » devient « Obtenir un résumé ». La consigne se choisit dans un menu
+  dessiné par Lowsper, sous le bouton.
+- « Nouvelle réunion » ramène à l'accueil : « Démarrer la réunion suivante » et « Retour à
+  l'accueil » sont fusionnés (choix du mainteneur). Pour enchaîner sans arrêter, « Commencer une
+  nouvelle réunion sans arrêter » reste dans la fenêtre de réunion.
+- Le panneau « Intervenants détectés » disparaît : on renomme directement sur les répliques. La
+  mémoire des voix apprend le nom quand la saisie est validée, comme avant.
+- « Corriger un mot mal reconnu » s'ouvre dans une fenêtre.
+- La note en français produite par le format classique ne change pas.
+
 ### Ajouté (lot R5)
 - Fenêtre de réunion : grand chronomètre, nom de la réunion modifiable, contrôle d'état en langage
   simple (micro, son de la réunion, texte écrit) avec « Comment corriger », trois gros boutons

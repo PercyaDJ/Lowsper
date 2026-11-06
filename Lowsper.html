@@ -138,7 +138,7 @@
           <span class="fine" data-i18n="prof.syncWarning">Un dossier synchronisé en ligne (stockage en ligne, synchronisation de votre base de notes) fera quitter la note de cet ordinateur.</span>
         </div>
         <label class="field inline">
-          <span data-i18n="prof.prompt">Consigne proposée par « Copier pour une IA »</span>
+          <span data-i18n="prof.prompt">Consigne proposée par « Obtenir un résumé »</span>
           <select id="prof-prompt"></select>
         </label>
         <label class="check">
@@ -187,7 +187,7 @@
       </section>
       <section aria-labelledby="ai-title">
         <h3 id="ai-title" data-i18n="ai.title">Consignes pour l'IA</h3>
-        <p class="fine" data-i18n-html="ai.intro">Texte placé devant la note par « Copier pour une IA », pour demander un compte rendu à l'assistant de votre choix. Variables possibles, comme dans les modèles de note ; <code>{{note}}</code> place la note ailleurs qu'à la fin.</p>
+        <p class="fine" data-i18n-html="ai.intro">Texte placé devant la note par « Obtenir un résumé », pour demander un compte rendu à l'assistant de votre choix. Variables possibles, comme dans les modèles de note ; <code>{{note}}</code> place la note ailleurs qu'à la fin.</p>
         <div class="row prof-row">
           <label class="field inline compact">
             <span data-i18n="ai.edit">Consigne à modifier</span>
@@ -493,50 +493,92 @@
       <p class="lead" id="finish-text" data-i18n="finish.last">Transcription des dernières phrases…</p>
     </section>
 
-    <!-- Résultat -->
-    <section class="card view" id="view-done" hidden>
-      <h2 data-i18n="done.title">Transcript prêt</h2>
-      <p class="lead" id="done-info"></p>
-      <div class="export-row">
-        <p class="fine" id="export-info" role="status" hidden></p>
-        <button class="btn small" id="export-folder" type="button" hidden></button>
-      </div>
-      <div class="row">
-        <button class="btn primary" id="download" data-i18n="done.download">Télécharger le fichier .md</button>
-        <button class="btn" id="copy" data-i18n="done.copy">Copier</button>
-        <span class="ai-copy">
-          <select id="ai-choice" aria-label="Consigne pour l'IA" data-i18n-attr="aria-label:ai.choice"></select>
-          <button class="btn" id="copy-ai" title="Copie la note précédée de la consigne choisie, à coller dans l'assistant de votre choix" data-i18n-attr="title:done.copyAiTitle" data-i18n="done.copyAi">Copier pour une IA</button>
-        </span>
-      </div>
-      <div class="finished" id="finished" hidden>
-        <span class="fine" data-i18n="done.finished">Réunions précédentes de cette session (déjà dans vos Téléchargements) :</span>
-        <div class="fix-chips" id="finished-list"></div>
-      </div>
-      <div class="notice soft" id="drafts" hidden></div>
-      <div class="notice" id="gaps" hidden><span id="gaps-text"></span> <button class="btn small" id="gaps-retry" type="button" data-i18n="done.retry">Réessayer ces passages</button></div>
-      <div class="voices" id="voices" hidden>
-        <h3 data-i18n="done.voices">Intervenants détectés</h3>
-        <p class="fine" data-i18n="done.voicesHint">Donnez un nom aux voix que vous reconnaissez : le transcript est mis à jour (pensez à le retélécharger).</p>
-        <div id="voice-list"></div>
-      </div>
-      <details class="fixer" id="fixer">
-        <summary data-i18n="done.fixer">Corriger un mot mal reconnu, partout et pour les prochaines réunions</summary>
+    <!-- Fin de réunion (lot R6, decision.md §29) : le texte à gauche, la suite à droite -->
+    <section class="view done" id="view-done" hidden>
+      <section class="done-main" aria-labelledby="done-title">
+        <div class="done-head">
+          <h2 id="done-title"></h2>
+          <p class="done-sub" id="done-sub"></p>
+          <p class="fine" id="done-info"></p>
+        </div>
+        <div class="done-text" id="done-text" tabindex="0" role="region" aria-label="Texte de la réunion" data-i18n-attr="aria-label:done.textLabel">
+          <p class="done-hint" id="done-hint" hidden>
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+            <span data-i18n="done.hint">Cliquez sur un nom comme « Intervenant 2 » pour écrire le vrai nom. Il change partout.</span>
+          </p>
+          <div class="notice soft" id="drafts" hidden></div>
+          <div class="notice" id="gaps" hidden><span id="gaps-text"></span> <button class="btn small" id="gaps-retry" type="button" data-i18n="done.retry">Réessayer ces passages</button></div>
+          <div class="done-lines" id="done-lines"></div>
+        </div>
+      </section>
+
+      <aside class="done-side" aria-label="Et maintenant ?" data-i18n-attr="aria-label:done.next">
+        <div class="group saved-card" id="saved-card" hidden>
+          <span class="saved-mark" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>
+          <div class="saved-text">
+            <strong id="saved-title" data-i18n="done.saved">Note enregistrée</strong>
+            <span class="fine" id="export-info" role="status"></span>
+            <button class="btn small" id="export-folder" type="button" hidden></button>
+          </div>
+        </div>
+        <div class="finished" id="finished" hidden>
+          <span class="fine" data-i18n="done.finished">Réunions précédentes de cette session (déjà dans vos Téléchargements) :</span>
+          <div class="fix-chips" id="finished-list"></div>
+        </div>
+
+        <div>
+          <h3 class="group-title" data-i18n="done.next">Et maintenant ?</h3>
+          <div class="group next-list">
+            <button class="next-row" id="copy-ai" type="button">
+              <span class="next-ico accent" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg></span>
+              <span class="next-text"><strong id="copy-ai-title" data-i18n="done.summary">Obtenir un résumé</strong><span class="fine" id="copy-ai-sub" data-i18n="done.summarySub">Copie le texte avec une consigne, à coller dans votre assistant IA.</span></span>
+            </button>
+            <div class="next-sub">
+              <div class="ai-pick">
+                <button class="linkish ai-choice" id="ai-choice" type="button" aria-haspopup="menu" aria-expanded="false"><span id="ai-choice-label"></span><svg class="ico chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
+                <div class="menu ai-menu" id="ai-list" hidden data-i18n-attr="aria-label:ai.choice" aria-label="Consigne pour l'IA"></div>
+              </div>
+              <button class="linkish" id="ai-see" type="button" data-i18n="done.see">Voir ce qui est copié</button>
+            </div>
+            <button class="next-row" id="copy" type="button">
+              <span class="next-ico" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></span>
+              <span class="next-text"><strong data-i18n="done.copyText">Copier le texte</strong><span class="fine" data-i18n="done.copyTextSub">Pour le coller dans un e-mail ou un document.</span></span>
+            </button>
+            <button class="next-row" id="download" type="button">
+              <span class="next-ico" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M5 20h14"/></svg></span>
+              <span class="next-text"><strong data-i18n="done.saveCopy">Enregistrer une copie</strong><span class="fine" data-i18n="done.saveCopySub">Dans votre dossier Téléchargements.</span></span>
+            </button>
+          </div>
+        </div>
+
+        <button class="linkish" id="fix-open" type="button" data-i18n="done.fixOpen">Corriger un mot mal reconnu</button>
+        <span class="done-spacer"></span>
+        <button class="btn big soft" id="again" type="button" data-i18n="done.again">Nouvelle réunion</button>
+        <button class="linkish journal" id="journal-dl" type="button" title="Fonctionnement du logiciel pendant la réunion (aucun texte) : utile si quelque chose s'est mal passé" data-i18n-attr="title:done.journalTitle" data-i18n="done.journal">Journal technique</button>
+      </aside>
+
+      <dialog class="sheet wide" id="ai-dialog" aria-labelledby="ai-dialog-title">
+        <div class="sheet-head">
+          <h2 id="ai-dialog-title" data-i18n="done.seeTitle">Ce que copie « Obtenir un résumé »</h2>
+          <button class="linkish strong" id="ai-dialog-close" type="button" data-i18n="done.ok">OK</button>
+        </div>
+        <pre class="prompt-preview" id="ai-preview" tabindex="0"></pre>
+      </dialog>
+
+      <dialog class="sheet wide" id="fix-dialog" aria-labelledby="fix-title">
+        <div class="sheet-head">
+          <h2 id="fix-title" data-i18n="done.fixer">Corriger un mot mal reconnu, partout et pour les prochaines réunions</h2>
+          <button class="linkish strong" id="fix-close" type="button" data-i18n="done.ok">OK</button>
+        </div>
         <div class="fixer-row">
-          <input id="fix-wrong" type="text" maxlength="80" placeholder="Mal reconnu (ex. Mira Bello)" data-i18n-attr="placeholder:done.fixWrong" autocomplete="off" spellcheck="false">
+          <input id="fix-wrong" type="text" maxlength="80" placeholder="Mal reconnu (ex. Mira Bello)" data-i18n-attr="placeholder:done.fixWrong;aria-label:done.fixWrong" aria-label="Mal reconnu (ex. Mira Bello)" autocomplete="off" spellcheck="false">
           <span class="arrow" aria-hidden="true">→</span>
-          <input id="fix-right" type="text" maxlength="80" placeholder="Bonne écriture" data-i18n-attr="placeholder:done.fixRight" autocomplete="off" spellcheck="false">
-          <button class="btn small" id="fix-apply" data-i18n="done.fixApply">Corriger</button>
+          <input id="fix-right" type="text" maxlength="80" placeholder="Bonne écriture" data-i18n-attr="placeholder:done.fixRight;aria-label:done.fixRight" aria-label="Bonne écriture" autocomplete="off" spellcheck="false">
+          <button class="btn small" id="fix-apply" type="button" data-i18n="done.fixApply">Corriger</button>
         </div>
         <div class="fix-chips suspects" id="fix-suspects"></div>
         <p class="fine" data-i18n="done.fixHint">Lowsper retient la correction : elle s'appliquera toute seule aux réunions suivantes, et le bon mot rejoint vos sigles et noms propres.</p>
-      </details>
-      <div class="row next">
-        <button class="btn primary-soft" id="next-meeting"><span class="rec-dot"></span> <span data-i18n="done.next">Démarrer la réunion suivante</span></button>
-        <button class="btn ghost" id="again" data-i18n="done.again">Retour à l'accueil</button>
-        <button class="btn ghost small" id="journal-dl" type="button" title="Fonctionnement du logiciel pendant la réunion (aucun texte) : utile si quelque chose s'est mal passé" data-i18n-attr="title:done.journalTitle" data-i18n="done.journal">Journal technique</button>
-      </div>
-      <pre class="preview" id="preview"></pre>
+      </dialog>
     </section>
 
     <div class="toast" id="toast" role="status" hidden></div>

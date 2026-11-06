@@ -103,8 +103,13 @@ for (let i = 0; i < 120; i++) {
 }
 // Les voix reçoivent des prénoms fictifs, comme le ferait l'utilisateur
 const names = ['Claire', 'Julien', 'Sophie', 'Karim', 'Nathalie'];
-const inputs = await page.$$('#voice-list input');
-for (let i = 0; i < inputs.length && i < names.length; i++) await inputs[i].fill(names[i]);
+// Renommage directement sur les répliques (lot R6) : une voix après l'autre, dans l'ordre
+const voices = await page.$$eval('#done-lines button.chip', (els) => [...new Set(els.map((e) => e.dataset.voice))]);
+for (let i = 0; i < voices.length && i < names.length; i++) {
+  await page.click(`#done-lines button.chip[data-voice="${voices[i]}"]`);
+  await page.keyboard.type(names[i]);
+  await page.keyboard.press('Enter');
+}
 await page.evaluate(() => document.activeElement && document.activeElement.blur());
 await page.waitForTimeout(300);
 await page.screenshot({ path: join(out, 'fin.png'), fullPage: true });

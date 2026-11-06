@@ -395,15 +395,15 @@ console.log(`Passages « rapides » restant à améliorer : ${draftsLeft}`);
 console.log('----- ' + download.suggestedFilename() + ' -----\n' + md + '-----');
 
 // Corriger un mot partout : remplacé dans l'aperçu, retenu pour les réunions suivantes
-const hadTickets = await page.evaluate(() => /tickets/i.test(document.getElementById('preview').textContent));
-await page.click('#fixer summary');
+const hadTickets = await page.evaluate(() => /tickets/i.test(document.getElementById('done-lines').textContent));
+await page.click('#fix-open');
 await page.fill('#fix-wrong', 'tickets');
 await page.fill('#fix-right', 'demandes');
 await page.click('#fix-apply');
 await page.waitForTimeout(300);
 const fixOk = await page.evaluate(
   (had) =>
-    (!had || /demandes/.test(document.getElementById('preview').textContent)) &&
+    (!had || /demandes/.test(document.getElementById('done-lines').textContent)) &&
     JSON.parse(localStorage.getItem('lowsper.fixes') || '[]').some(([w, r]) => w === 'tickets' && r === 'demandes'),
   hadTickets
 );
@@ -412,6 +412,24 @@ const suspects = await page.evaluate(() =>
 );
 console.log('Mots à vérifier proposés : ' + suspects.join(', '));
 await page.screenshot({ path: join(out, '4b-corriger.png'), fullPage: true });
+await page.click('#fix-close');
+
+// Renommage sur les répliques : saisir un nom, puis cliquer directement sur une autre voix. Le
+// premier nom est validé et le clic ouvre bien la saisie de la seconde (il n'est pas perdu).
+const twoVoices = await page.$$eval('#done-lines button.chip', (els) => [...new Set(els.map((e) => e.dataset.voice))]);
+let renameOk = twoVoices.length < 2;
+if (twoVoices.length >= 2) {
+  await page.click(`#done-lines button.chip[data-voice="${twoVoices[0]}"]`);
+  await page.keyboard.type('Claire');
+  // Appui et relâchement espacés, comme un vrai clic (environ 100 ms)
+  await page.click(`#done-lines button.chip[data-voice="${twoVoices[1]}"]`, { delay: 120 });
+  await page.waitForTimeout(200);
+  renameOk = await page.evaluate((v) => {
+    const a = [...document.querySelectorAll(`#done-lines .chip[data-voice="${v}"]`)].map((e) => e.textContent);
+    return document.activeElement.classList.contains('chip-input') && a.length > 0 && a.every((x) => x === 'Claire');
+  }, twoVoices[0]);
+  await page.keyboard.press('Escape');
+}
 
 // Thème sombre
 await page.emulateMedia({ colorScheme: 'dark' });
@@ -439,6 +457,7 @@ const checks = [
   ['le moteur suit le rythme malgré la panne simulée (file <= 6)', maxBacklog <= 6],
   ['passages rapides tous retranscrits ensuite', draftsLeft === 0],
   ['corriger un mot partout, correction retenue', fixOk],
+  ['écran de fin : un nom saisi, puis clic direct sur une autre voix', renameOk],
   [
     'réunion suivante sans temps mort : deux fichiers, chacun horodaté depuis son début',
     downloads.length === 2 && firstMd !== md && /\*\*\[00:00:\d\d\] /.test(md) && /à tous/.test(firstMd),

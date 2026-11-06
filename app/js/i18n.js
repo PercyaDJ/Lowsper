@@ -89,7 +89,7 @@
     'prof.folderClear': 'Revenir aux Téléchargements',
     'prof.syncWarning':
       'Un dossier synchronisé en ligne (stockage en ligne, synchronisation de votre base de notes) fera quitter la note de cet ordinateur.',
-    'prof.prompt': 'Consigne proposée par « Copier pour une IA »',
+    'prof.prompt': 'Consigne proposée par « Obtenir un résumé »',
     'prof.classic': 'Format classique de Lowsper (sans modèle ni propriétés)',
     'prof.fileName': 'Nom du fichier <em>(variables possibles, ex. {{date}} {{titre}})</em>',
     'prof.front': 'Propriétés en tête de note (front matter)',
@@ -141,7 +141,7 @@
     // --- Paramètres : consignes pour l'IA ---
     'ai.title': "Consignes pour l'IA",
     'ai.intro':
-      "Texte placé devant la note par « Copier pour une IA », pour demander un compte rendu à l'assistant de votre choix. Variables possibles, comme dans les modèles de note ; <code>{{note}}</code> place la note ailleurs qu'à la fin.",
+      "Texte placé devant la note par « Obtenir un résumé », pour demander un compte rendu à l'assistant de votre choix. Variables possibles, comme dans les modèles de note ; <code>{{note}}</code> place la note ailleurs qu'à la fin.",
     'ai.edit': 'Consigne à modifier',
     'ai.new': 'Nouvelle consigne',
     'ai.name': 'Nom',
@@ -154,22 +154,86 @@
     'ai.choice': "Consigne pour l'IA",
     'prompt.compte-rendu.name': 'Compte rendu de réunion',
     'prompt.compte-rendu.text':
-      "Voici le transcript automatique d'une réunion (il peut contenir des erreurs de reconnaissance). " +
-      'Rédige un compte rendu structuré en français : contexte et participants identifiables, ' +
-      'points abordés, décisions prises, actions à mener (qui, quoi, échéance), questions ouvertes. ' +
-      "N'invente rien : si un passage est incompréhensible ou ambigu, signale-le.",
+      '# Rôle\n' +
+      'Tu rédiges des comptes rendus de réunion exacts et utiles.\n' +
+      '\n' +
+      '# Contexte\n' +
+      "Ci-dessous figure le transcript automatique d'une réunion, enregistrée et transcrite par Lowsper sur l'ordinateur de l'utilisateur.\n" +
+      '- Il peut contenir des erreurs de reconnaissance vocale.\n' +
+      "- « Vous » est la personne qui a enregistré. Les autres personnes peuvent apparaître sous la forme « Intervenant 1 », « Intervenant 2 »... quand leur nom n'est pas connu.\n" +
+      "- Les heures sont comptées depuis le début de l'enregistrement.\n" +
+      '\n' +
+      '# Tâche\n' +
+      'Rédige le compte rendu dans la langue principale du transcript, avec ces sections :\n' +
+      '1. Résumé : 3 à 5 phrases.\n' +
+      "2. Participants : noms ou étiquettes tels qu'ils apparaissent.\n" +
+      '3. Sujets abordés.\n' +
+      '4. Décisions prises.\n' +
+      '5. Actions à mener : qui, quoi, échéance. Écris « non précisé » quand une information manque.\n' +
+      '6. Questions ouvertes.\n' +
+      '\n' +
+      '# Règles\n' +
+      "- N'utilise que ce qui figure dans le transcript. N'invente jamais un nom, un chiffre ou une date.\n" +
+      '- Recopie les chiffres exactement.\n' +
+      '- Quand un passage est peu clair ou semble mal reconnu, signale-le au lieu de deviner.\n' +
+      '- Sois concis. Utilise des listes à puces.\n' +
+      '\n' +
+      '# Transcript\n' +
+      '{{note}}',
     'prompt.synthese-appel.name': "Synthèse d'appel",
     'prompt.synthese-appel.text':
-      "Voici le transcript automatique d'un appel (il peut contenir des erreurs de reconnaissance). " +
-      "Rédige une synthèse courte en français, en quelques lignes : objet de l'appel, points clés, " +
-      'engagements pris de part et d’autre, prochaines étapes et leur date si elle est citée. ' +
-      "N'invente rien : si un passage est incompréhensible ou ambigu, signale-le.",
+      '# Rôle\n' +
+      "Tu rédiges des synthèses d'appel exactes et utiles.\n" +
+      '\n' +
+      '# Contexte\n' +
+      "Ci-dessous figure le transcript automatique d'un appel, enregistré et transcrit par Lowsper sur l'ordinateur de l'utilisateur.\n" +
+      '- Il peut contenir des erreurs de reconnaissance vocale.\n' +
+      "- « Vous » est la personne qui a enregistré. Les autres personnes peuvent apparaître sous la forme « Intervenant 1 », « Intervenant 2 »... quand leur nom n'est pas connu.\n" +
+      "- Les heures sont comptées depuis le début de l'enregistrement.\n" +
+      '\n' +
+      '# Tâche\n' +
+      'Rédige la synthèse dans la langue principale du transcript, avec ces sections :\n' +
+      "1. Objet de l'appel : 1 à 2 phrases.\n" +
+      "2. Participants : noms ou étiquettes tels qu'ils apparaissent.\n" +
+      '3. Points clés.\n' +
+      '4. Engagements pris de part et d’autre.\n' +
+      '5. Prochaines étapes : qui, quoi, date. Écris « non précisé » quand une information manque.\n' +
+      '\n' +
+      '# Règles\n' +
+      "- N'utilise que ce qui figure dans le transcript. N'invente jamais un nom, un chiffre ou une date.\n" +
+      '- Recopie les chiffres exactement.\n' +
+      '- Quand un passage est peu clair ou semble mal reconnu, signale-le au lieu de deviner.\n' +
+      '- Sois concis. Utilise des listes à puces.\n' +
+      '\n' +
+      '# Transcript\n' +
+      '{{note}}',
     'prompt.actions.name': "Liste d'actions",
     'prompt.actions.text':
-      "Voici le transcript automatique d'une réunion (il peut contenir des erreurs de reconnaissance). " +
-      'Extrais uniquement les actions à mener, sous forme de tableau : action, responsable, échéance, ' +
-      "phrase du transcript qui la justifie (avec son horodatage). Si le responsable ou l'échéance ne " +
-      "sont pas dits explicitement, écris « non précisé » : n'invente ni nom ni date.",
+      '# Rôle\n' +
+      'Tu relèves avec exactitude les actions décidées en réunion.\n' +
+      '\n' +
+      '# Contexte\n' +
+      "Ci-dessous figure le transcript automatique d'une réunion, enregistrée et transcrite par Lowsper sur l'ordinateur de l'utilisateur.\n" +
+      '- Il peut contenir des erreurs de reconnaissance vocale.\n' +
+      "- « Vous » est la personne qui a enregistré. Les autres personnes peuvent apparaître sous la forme « Intervenant 1 », « Intervenant 2 »... quand leur nom n'est pas connu.\n" +
+      "- Les heures sont comptées depuis le début de l'enregistrement.\n" +
+      '\n' +
+      '# Tâche\n' +
+      'Relève uniquement les actions à mener, dans la langue principale du transcript, sous forme de tableau avec ces colonnes :\n' +
+      '1. Action.\n' +
+      '2. Responsable.\n' +
+      '3. Échéance.\n' +
+      '4. Source : la phrase du transcript qui la justifie, avec son heure.\n' +
+      "Écris « non précisé » quand le responsable ou l'échéance n'est pas dit explicitement.\n" +
+      '\n' +
+      '# Règles\n' +
+      "- N'utilise que ce qui figure dans le transcript. N'invente jamais un nom, un chiffre ou une date.\n" +
+      '- Recopie les chiffres exactement.\n' +
+      '- Quand un passage est peu clair ou semble mal reconnu, signale-le au lieu de deviner.\n' +
+      '- Sois concis.\n' +
+      '\n' +
+      '# Transcript\n' +
+      '{{note}}',
 
     // --- Paramètres : IA intégrée du navigateur ---
     'lai.title': 'IA intégrée du navigateur (expérimental)',
@@ -183,7 +247,7 @@
     'lai.checking': 'Vérification…',
     'lai.usableHere':
       'Le navigateur déclare pouvoir travailler en français sur ce PC. L’essai dira ce que vaut le résultat.',
-    'lai.notUsable': 'L’IA intégrée n’est pas utilisable ici. « Copier pour une IA » reste disponible.',
+    'lai.notUsable': 'L’IA intégrée n’est pas utilisable ici. « Obtenir un résumé » reste disponible.',
     'lai.downloadConfirm':
       'Le navigateur doit d’abord télécharger son modèle de langage. Ce téléchargement est fait par le navigateur, pas par Lowsper, et demande au moins 22 Go d’espace libre (documentation de Chrome). Continuer ?',
     'lai.writing': '{name} : rédaction du compte rendu de la réunion fictive…',
@@ -500,18 +564,35 @@
     'finish.voices': 'Identification des intervenants…',
 
     // --- Écran de fin ---
-    'done.title': 'Transcript prêt',
-    'done.download': 'Télécharger le fichier .md',
-    'done.copy': 'Copier',
-    'done.copyAi': 'Copier pour une IA',
-    'done.copyAiTitle': "Copie la note précédée de la consigne choisie, à coller dans l'assistant de votre choix",
+    'done.textLabel': 'Texte de la réunion',
+    'done.hint': 'Cliquez sur un nom comme « Intervenant 2 » pour écrire le vrai nom. Il change partout.',
+    'done.today': 'Aujourd’hui, {time}',
+    'done.minutes': (v) => `${v.n} minute${s(v.n)}`,
+    'done.people': (v) => `${v.n} personne${s(v.n)}`,
+    'done.subSep': ' · ',
+    'done.rename': 'Nom de {label}',
+    'done.renameTitle': 'Cliquez pour écrire le vrai nom',
+    'done.recognized': 'Voix reconnue grâce à la mémoire des voix',
+    'done.saved': 'Note enregistrée',
+    'done.saving': 'Enregistrement de la note…',
+    'done.notSaved': 'Note non enregistrée',
+    'done.next': 'Et maintenant ?',
+    'done.summary': 'Obtenir un résumé',
+    'done.summarySub': 'Copie le texte avec une consigne, à coller dans votre assistant IA.',
+    'done.summaryCopied': 'Copié',
+    'done.summaryCopiedSub': 'Collez-le maintenant dans votre assistant IA habituel.',
+    'done.see': 'Voir ce qui est copié',
+    'done.seeTitle': 'Ce que copie « Obtenir un résumé »',
+    'done.ok': 'OK',
+    'done.copyText': 'Copier le texte',
+    'done.copyTextSub': 'Pour le coller dans un e-mail ou un document.',
+    'done.saveCopy': 'Enregistrer une copie',
+    'done.saveCopySub': 'Dans votre dossier Téléchargements.',
+    'done.fixOpen': 'Corriger un mot mal reconnu',
     'done.copied': 'Copié dans le presse-papiers.',
     'done.finished': 'Réunions précédentes de cette session (déjà dans vos Téléchargements) :',
     'done.downloadAgain': 'Télécharger à nouveau',
     'done.retry': 'Réessayer ces passages',
-    'done.voices': 'Intervenants détectés',
-    'done.voicesHint':
-      'Donnez un nom aux voix que vous reconnaissez : le transcript est mis à jour (pensez à le retélécharger).',
     'done.fixer': 'Corriger un mot mal reconnu, partout et pour les prochaines réunions',
     'done.fixWrong': 'Mal reconnu (ex. Mira Bello)',
     'done.fixRight': 'Bonne écriture',
@@ -519,8 +600,7 @@
     'done.fixHint':
       "Lowsper retient la correction : elle s'appliquera toute seule aux réunions suivantes, et le bon mot rejoint vos sigles et noms propres.",
     'done.suspects': 'À vérifier :',
-    'done.next': 'Démarrer la réunion suivante',
-    'done.again': "Retour à l'accueil",
+    'done.again': 'Nouvelle réunion',
     'done.journal': 'Journal technique',
     'done.journalTitle':
       "Fonctionnement du logiciel pendant la réunion (aucun texte) : utile si quelque chose s'est mal passé",
@@ -539,23 +619,20 @@
       'Leur version précise est en cours de calcul…',
     'done.draftsFolder': 'Tous les passages ont maintenant leur version précise : la note du dossier est mise à jour.',
     'done.draftsDownload':
-      'Tous les passages ont maintenant leur version précise. Retéléchargez le fichier pour avoir la version finale.',
+      'Tous les passages ont maintenant leur version précise. Enregistrez une copie pour avoir la version finale.',
     'done.gaps': (v) =>
       `${v.n} passage${s(v.n)} (${v.s} s de parole) n'${v.n > 1 ? 'ont' : 'a'} pas pu être transcrit${s(v.n)}. ` +
       'Ils sont signalés dans le transcript.',
-    'done.gapsAll': 'Tous les passages ont finalement été transcrits. Retéléchargez le fichier.',
+    'done.gapsAll':
+      'Tous les passages ont finalement été transcrits. Enregistrez une copie pour avoir la version finale.',
     'done.retrying': 'Nouvel essai en cours…',
     'done.fixResult': (v) =>
       (v.n
         ? `${v.n} remplacement${s(v.n)} dans ce transcript (retéléchargez le fichier). `
         : 'Mot absent de ce transcript. ') + 'Correction retenue pour les prochaines réunions.',
-    'voice.talk': '{talk} de parole · dès {at}',
-    'voice.name': 'Nom (facultatif)',
-    'voice.recognized': 'reconnu',
-    'voice.sample': '« {text} »',
     'export.folder':
-      'Note enregistrée dans le dossier « {folder} » (profil « {profile} ») : {file}. Elle est mise à jour à chaque modification ci-dessous (dernière : {at}).',
-    'export.downloads': 'Note enregistrée dans vos Téléchargements : {file}.',
+      'Dans le dossier « {folder} » (profil « {profile} ») : {file}. Vos modifications y sont ajoutées (dernière : {at}).',
+    'export.downloads': 'Dans vos Téléchargements : {file}.',
     'export.repick': 'Désigner à nouveau le dossier « {folder} » et y enregistrer la note',
     'export.alsoFolder': 'Enregistrer aussi dans le dossier « {folder} »',
     'export.forgotten':
@@ -713,7 +790,7 @@
     'prof.folderClear': 'Back to Downloads',
     'prof.syncWarning':
       'A folder synced online (cloud storage, notes app sync) will make the note leave this computer.',
-    'prof.prompt': 'Instructions offered by “Copy for an AI”',
+    'prof.prompt': 'Instructions offered by “Get a summary”',
     'prof.classic': 'Lowsper classic format (no template, no properties)',
     'prof.fileName': 'File name <em>(variables allowed, e.g. {{date}} {{titre}})</em>',
     'prof.front': 'Properties at the top of the note (front matter)',
@@ -763,7 +840,7 @@
 
     'ai.title': 'Instructions for the AI',
     'ai.intro':
-      'Text placed before the note by “Copy for an AI”, to ask the assistant of your choice for minutes. Variables are allowed, as in note templates; <code>{{note}}</code> puts the note somewhere other than at the end.',
+      'Text placed before the note by “Get a summary”, to ask the assistant of your choice for minutes. Variables are allowed, as in note templates; <code>{{note}}</code> puts the note somewhere other than at the end.',
     'ai.edit': 'Instructions to edit',
     'ai.new': 'New instructions',
     'ai.name': 'Name',
@@ -776,22 +853,86 @@
     'ai.choice': 'Instructions for the AI',
     'prompt.compte-rendu.name': 'Meeting minutes',
     'prompt.compte-rendu.text':
-      'Here is the automatic transcript of a meeting (it may contain speech recognition errors). ' +
-      'Write structured minutes in English: context and identifiable participants, ' +
-      'topics discussed, decisions made, action items (who, what, deadline), open questions. ' +
-      'Do not invent anything: if a passage is unclear or ambiguous, say so.',
+      '# Role\n' +
+      'You write accurate, useful meeting minutes.\n' +
+      '\n' +
+      '# Context\n' +
+      "Below is an automatic transcript of a meeting, recorded and transcribed on the user's own computer by Lowsper.\n" +
+      '- It may contain speech recognition errors.\n' +
+      '- « You » is the person who recorded. Other people may appear as « Speaker 1 », « Speaker 2 »... when their names are unknown.\n' +
+      '- Times are relative to the start of the recording.\n' +
+      '\n' +
+      '# Task\n' +
+      'Write the minutes in the main language of the transcript, with these sections:\n' +
+      '1. Summary: 3 to 5 sentences.\n' +
+      '2. Participants: names or labels as they appear.\n' +
+      '3. Topics discussed.\n' +
+      '4. Decisions made.\n' +
+      '5. Action items: who, what, deadline. Write « not specified » when something is missing.\n' +
+      '6. Open questions.\n' +
+      '\n' +
+      '# Rules\n' +
+      '- Use only what is in the transcript. Never invent a name, a number or a date.\n' +
+      '- Copy numbers exactly.\n' +
+      '- When a passage is unclear or looks misheard, say so instead of guessing.\n' +
+      '- Be concise. Use bullet points.\n' +
+      '\n' +
+      '# Transcript\n' +
+      '{{note}}',
     'prompt.synthese-appel.name': 'Call summary',
     'prompt.synthese-appel.text':
-      'Here is the automatic transcript of a call (it may contain speech recognition errors). ' +
-      'Write a short summary in English, in a few lines: purpose of the call, key points, ' +
-      'commitments made by each side, next steps and their date if one is mentioned. ' +
-      'Do not invent anything: if a passage is unclear or ambiguous, say so.',
+      '# Role\n' +
+      'You write accurate, useful call summaries.\n' +
+      '\n' +
+      '# Context\n' +
+      "Below is an automatic transcript of a call, recorded and transcribed on the user's own computer by Lowsper.\n" +
+      '- It may contain speech recognition errors.\n' +
+      '- « You » is the person who recorded. Other people may appear as « Speaker 1 », « Speaker 2 »... when their names are unknown.\n' +
+      '- Times are relative to the start of the recording.\n' +
+      '\n' +
+      '# Task\n' +
+      'Write the summary in the main language of the transcript, with these sections:\n' +
+      '1. Purpose of the call: 1 or 2 sentences.\n' +
+      '2. Participants: names or labels as they appear.\n' +
+      '3. Key points.\n' +
+      '4. Commitments made by each side.\n' +
+      '5. Next steps: who, what, date. Write « not specified » when something is missing.\n' +
+      '\n' +
+      '# Rules\n' +
+      '- Use only what is in the transcript. Never invent a name, a number or a date.\n' +
+      '- Copy numbers exactly.\n' +
+      '- When a passage is unclear or looks misheard, say so instead of guessing.\n' +
+      '- Be concise. Use bullet points.\n' +
+      '\n' +
+      '# Transcript\n' +
+      '{{note}}',
     'prompt.actions.name': 'Action items',
     'prompt.actions.text':
-      'Here is the automatic transcript of a meeting (it may contain speech recognition errors). ' +
-      'Extract only the action items, as a table: action, owner, deadline, ' +
-      'sentence of the transcript that supports it (with its timestamp). If the owner or the deadline ' +
-      'is not stated explicitly, write “not specified”: never invent a name or a date.',
+      '# Role\n' +
+      'You list the action items agreed in meetings, accurately.\n' +
+      '\n' +
+      '# Context\n' +
+      "Below is an automatic transcript of a meeting, recorded and transcribed on the user's own computer by Lowsper.\n" +
+      '- It may contain speech recognition errors.\n' +
+      '- « You » is the person who recorded. Other people may appear as « Speaker 1 », « Speaker 2 »... when their names are unknown.\n' +
+      '- Times are relative to the start of the recording.\n' +
+      '\n' +
+      '# Task\n' +
+      'List only the action items, in the main language of the transcript, as a table with these columns:\n' +
+      '1. Action.\n' +
+      '2. Owner.\n' +
+      '3. Deadline.\n' +
+      '4. Source: the sentence of the transcript that supports it, with its time.\n' +
+      'Write « not specified » when the owner or the deadline is not stated explicitly.\n' +
+      '\n' +
+      '# Rules\n' +
+      '- Use only what is in the transcript. Never invent a name, a number or a date.\n' +
+      '- Copy numbers exactly.\n' +
+      '- When a passage is unclear or looks misheard, say so instead of guessing.\n' +
+      '- Be concise.\n' +
+      '\n' +
+      '# Transcript\n' +
+      '{{note}}',
 
     'lai.title': 'Browser built-in AI (experimental)',
     'lai.intro':
@@ -803,7 +944,7 @@
     'lai.progress': 'Model download by the browser',
     'lai.checking': 'Checking…',
     'lai.usableHere': 'The browser says it can work in French on this PC. The trial will tell how good the result is.',
-    'lai.notUsable': 'The built-in AI cannot be used here. “Copy for an AI” is still available.',
+    'lai.notUsable': 'The built-in AI cannot be used here. “Get a summary” is still available.',
     'lai.downloadConfirm':
       'The browser must first download its language model. The browser does this download, not Lowsper, and it needs at least 22 GB of free space (Chrome documentation). Continue?',
     'lai.writing': '{name}: writing minutes of the made-up meeting…',
@@ -1102,18 +1243,35 @@
     'finish.sweepN': (v) => `Catching up ${v.n} forgotten passage${sEn(v.n)}…`,
     'finish.voices': 'Identifying speakers…',
 
-    'done.title': 'Transcript ready',
-    'done.download': 'Download the .md file',
-    'done.copy': 'Copy',
-    'done.copyAi': 'Copy for an AI',
-    'done.copyAiTitle': 'Copies the note after the chosen instructions, to paste into the assistant of your choice',
+    'done.textLabel': 'Meeting text',
+    'done.hint': 'Click a name such as “Speaker 2” to type the real name. It changes everywhere.',
+    'done.today': 'Today, {time}',
+    'done.minutes': (v) => `${v.n} minute${sEn(v.n)}`,
+    'done.people': (v) => `${v.n} ${v.n === 1 ? 'person' : 'people'}`,
+    'done.subSep': ' · ',
+    'done.rename': 'Name of {label}',
+    'done.renameTitle': 'Click to type the real name',
+    'done.recognized': 'Voice recognized from the voice memory',
+    'done.saved': 'Note saved',
+    'done.saving': 'Saving the note…',
+    'done.notSaved': 'Note not saved',
+    'done.next': 'What next?',
+    'done.summary': 'Get a summary',
+    'done.summarySub': 'Copies the text with instructions, to paste into your AI assistant.',
+    'done.summaryCopied': 'Copied',
+    'done.summaryCopiedSub': 'Now paste it into your usual AI assistant.',
+    'done.see': 'See what is copied',
+    'done.seeTitle': 'What “Get a summary” copies',
+    'done.ok': 'Done',
+    'done.copyText': 'Copy the text',
+    'done.copyTextSub': 'To paste in an email or a document.',
+    'done.saveCopy': 'Save a copy',
+    'done.saveCopySub': 'In your Downloads folder.',
+    'done.fixOpen': 'Fix a misheard word',
     'done.copied': 'Copied to the clipboard.',
     'done.finished': 'Earlier meetings of this session (already in your Downloads):',
     'done.downloadAgain': 'Download again',
     'done.retry': 'Try these passages again',
-    'done.voices': 'Speakers found',
-    'done.voicesHint':
-      'Give a name to the voices you recognize: the transcript is updated (remember to download it again).',
     'done.fixer': 'Fix a misheard word, everywhere and for the next meetings',
     'done.fixWrong': 'Misheard (e.g. Mira Bello)',
     'done.fixRight': 'Correct spelling',
@@ -1121,8 +1279,7 @@
     'done.fixHint':
       'Lowsper remembers the fix: it will apply by itself to the next meetings, and the right word joins your acronyms and names.',
     'done.suspects': 'To check:',
-    'done.next': 'Start the next meeting',
-    'done.again': 'Back to home',
+    'done.again': 'New meeting',
     'done.journal': 'Technical log',
     'done.journalTitle': 'How the software ran during the meeting (no text): useful if something went wrong',
     'done.journalHead': 'Lowsper technical log: no meeting text, only how the software ran.\n\n',
@@ -1138,24 +1295,19 @@
       `${v.n} passage${v.n === 1 ? ' was' : 's were'} transcribed in quick mode during the meeting to stay live. ` +
       'Their accurate version is being computed…',
     'done.draftsFolder': 'All passages now have their accurate version: the note in the folder is updated.',
-    'done.draftsDownload':
-      'All passages now have their accurate version. Download the file again to get the final version.',
+    'done.draftsDownload': 'All passages now have their accurate version. Save a copy to get the final version.',
     'done.gaps': (v) =>
       `${v.n} passage${sEn(v.n)} (${v.s} s of speech) could not be transcribed. ` +
       `${v.n === 1 ? 'It is' : 'They are'} marked in the transcript.`,
-    'done.gapsAll': 'All passages were transcribed in the end. Download the file again.',
+    'done.gapsAll': 'All passages were transcribed in the end. Save a copy to get the final version.',
     'done.retrying': 'Trying again…',
     'done.fixResult': (v) =>
       (v.n
         ? `${v.n} replacement${sEn(v.n)} in this transcript (download the file again). `
         : 'Word not found in this transcript. ') + 'Fix kept for the next meetings.',
-    'voice.talk': '{talk} of speech · from {at}',
-    'voice.name': 'Name (optional)',
-    'voice.recognized': 'recognized',
-    'voice.sample': '“{text}”',
     'export.folder':
-      'Note saved in the folder “{folder}” (profile “{profile}”): {file}. It is updated with every change below (last: {at}).',
-    'export.downloads': 'Note saved in your Downloads: {file}.',
+      'In the folder “{folder}” (profile “{profile}”): {file}. Your changes are added to it (last: {at}).',
+    'export.downloads': 'In your Downloads: {file}.',
     'export.repick': 'Choose the folder “{folder}” again and save the note there',
     'export.alsoFolder': 'Also save in the folder “{folder}”',
     'export.forgotten': ' The browser forgot access to the folder of the profile “{profile}” (browsing data erased?).',

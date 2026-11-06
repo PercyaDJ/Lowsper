@@ -34,7 +34,7 @@ Seule la dernière version publiée (voir `CHANGELOG.md`) reçoit des correctifs
   est une décision de l'utilisateur.
 - **Le stockage du navigateur.** La sauvegarde de secours du transcript et les empreintes vocales
   mémorisées y sont lisibles par toute personne ayant accès à la session.
-- **Ce que l'utilisateur fait du texte.** Le bouton « Copier pour une IA » met le transcript dans
+- **Ce que l'utilisateur fait du texte.** Le bouton « Obtenir un résumé » met le transcript dans
   le presse-papiers. S'il est collé dans un service en ligne, il quitte le poste, par choix de
   l'utilisateur.
 - **Le modèle de langage du navigateur.** La sonde « IA intégrée » (expérimental) ne lit qu'une

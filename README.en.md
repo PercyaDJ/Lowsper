@@ -50,6 +50,11 @@ Settings, « Display », « App language »). The full documentation is in Frenc
    full window shows a plain-language status check: « Hearing you », « Coming through » (or
    « Nothing is coming through » with « How to fix »), and whether the text is up to date.
 5. Click « Stop »: the `.md` transcript lands in your Downloads folder (or your profile folder).
+   The end screen shows the readable text on the left: click « Speaker 2 » to type the real
+   name, and it changes everywhere. On the right, « What next? »: « Get a summary » copies
+   instructions written like a system prompt (role, context, task, rules, then the transcript),
+   to paste into the AI assistant of your choice; « See what is copied » shows the exact text.
+   Instructions you have edited are never replaced.
 
 Recognition is tuned for French (with an English and an automatic French/English mode). The note
 follows the app language when the meeting starts: in English, its header and labels are

@@ -833,11 +833,8 @@
     L.Transcript.current = t;
     app.finalMarkdown = noteOf(t).content;
     app.doneFailures = failures.map((i) => ({ name: i.file.name, error: i.error }));
-    renderDoneInfo();
-    $('preview').textContent = app.finalMarkdown;
+    openDone(t);
     renderExport(t);
-    $('next-meeting').hidden = true;
-    renderVoices();
     renderPrompts();
     renderSuspects();
     renderGaps();
@@ -1435,9 +1432,8 @@
     journal('couverture', app.transcript.coverageSummary());
     app.finalMarkdown = noteOf(app.transcript).content;
     app.doneFailures = [];
-    renderDoneInfo();
-    $('preview').textContent = app.finalMarkdown;
-    renderVoices();
+    openDone(app.transcript);
+    renderExport(app.transcript);
     renderPrompts();
     renderSuspects();
     renderGaps();
@@ -1453,6 +1449,7 @@
   function renderDoneInfo() {
     const t = app.transcript;
     if (!t) return;
+    renderDoneHead(t);
     const paras = t.paragraphs().length;
     const cov = t.coverageSummary();
     const covered = cov.missing < 1 ? tr('done.allCovered') : '';
@@ -1476,6 +1473,34 @@
       covered +
       (t.meta.recovered >= 1 ? tr('done.recovered', { s: Math.round(t.meta.recovered) }) : '') +
       (echo ? tr('done.echo', { n: echo }) : '');
+  }
+
+  // Écran de fin : titre, puis « Aujourd'hui, 10:02 · 12 minutes · 5 personnes »
+  function renderDoneHead(t) {
+    const loc = L.i18n.locale();
+    const parts = [];
+    if (t.meta.file) {
+      $('done-title').textContent = t.meta.title || t.meta.file.name;
+      parts.push(tr('done.minutes', { n: Math.max(1, Math.round(t.meta.file.duration / 60)) }));
+    } else {
+      $('done-title').textContent = t.meta.title || tr('meeting.untitled');
+      const d = new Date(t.meta.startedAt);
+      const time = d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
+      parts.push(
+        d.toDateString() === new Date().toDateString()
+          ? tr('done.today', { time })
+          : d.toLocaleDateString(loc, { day: 'numeric', month: 'long', year: 'numeric' }) + ', ' + time
+      );
+      parts.push(tr('done.minutes', { n: Math.max(1, Math.round((t.meta.endedAt - t.meta.startedAt) / 60000)) }));
+    }
+    // Nombre de personnes : seulement si les voix ont été distinguées (sinon, inconnu)
+    const paras = t.paragraphs();
+    const others = paras.some((p) => p.source === 'others');
+    if (!others || t.hasVoices()) {
+      const n = (paras.some((p) => p.source === 'mic') ? 1 : 0) + t.voiceOrder().length;
+      if (n) parts.push(tr('done.people', { n }));
+    }
+    $('done-sub').textContent = parts.join(tr('done.subSep'));
   }
 
   // Écran de fin : suivi de la retranscription des passages « rapides »
@@ -1553,54 +1578,130 @@
     pump();
   }
 
-  // Écran de fin : renommer les intervenants détectés
-  function renderVoices() {
+  /** Ouvre l'écran de fin sur un transcript : en-tête, texte lisible, consigne du profil. */
+  function openDone(t) {
+    app.aiChoice = null;
+    app.summaryCopied = false;
+    app.editingVoice = null;
+    renderSummaryButton();
+    renderDoneInfo();
+    renderDoneText();
+    $('done-text').scrollTop = 0;
+  }
+
+  // Écran de fin : le texte lisible (plus de Markdown brut), et le renommage des voix directement
+  // sur les répliques. Un clic sur « Intervenant 2 » le remplace par un champ ; le nom change
+  // partout, la note est réécrite, et la mémoire des voix l'apprend quand la saisie est validée.
+  function renderDoneText() {
     const t = app.transcript;
-    const list = t ? t.voiceSummary() : [];
-    $('voices').hidden = !list.length;
-    const box = $('voice-list');
-    box.replaceChildren();
-    for (const v of list) {
-      const row = document.createElement('div');
-      row.className = 'voice-row';
-      const label = document.createElement('div');
-      label.className = 'vlabel';
-      label.textContent = v.label;
-      const small = document.createElement('small');
-      const talk = v.seconds < 90 ? `${Math.round(v.seconds)} s` : `${Math.round(v.seconds / 60)} min`;
-      small.textContent = tr('voice.talk', { talk, at: L.formatTime(v.at) });
-      label.appendChild(small);
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.maxLength = 60;
-      input.placeholder = tr('voice.name');
-      input.setAttribute('aria-label', v.label);
-      input.value = (t.meta.names && t.meta.names[v.voice]) || '';
-      input.addEventListener('input', () => {
-        t.nameVoice(v.voice, input.value);
-        refreshNote(t);
-      });
-      // Mémoire des voix : on retient l'empreinte quand la saisie est validée
-      input.addEventListener('change', () => {
-        const c = t.tracker && t.tracker.centroids && t.tracker.centroids.get(v.voice);
-        if (app.memory.enabled && c && input.value.trim()) {
-          app.memory.remember(input.value.trim(), c.emb, c.seconds);
-          renderMemory();
-        }
-      });
-      if ((t.meta.recognized || []).includes(v.voice)) {
-        const b = document.createElement('span');
-        b.className = 'badge auto';
-        b.textContent = tr('voice.recognized');
-        label.appendChild(b);
-      }
-      const sample = document.createElement('div');
-      sample.className = 'vsample';
-      sample.textContent = tr('voice.sample', { text: v.sample });
-      sample.title = v.sample;
-      row.append(label, input, sample);
-      box.appendChild(row);
+    if (!t) return;
+    // Jamais pendant une saisie : le champ serait perdu. Le texte est redessiné à la fin.
+    if (app.editingVoice != null) return void (app.doneTextStale = true);
+    app.doneTextStale = false;
+    const box = $('done-lines');
+    const frag = document.createDocumentFragment();
+    let renamable = false;
+    for (const para of t.paragraphs()) {
+      const p = document.createElement('div');
+      p.className = 'done-line' + (para.draft ? ' draft' : '');
+      if (para.draft) p.title = tr('rec.draftTitle');
+      const head = document.createElement('div');
+      head.className = 'done-who';
+      if (para.source === 'others' && para.voice != null) renamable = true;
+      const chip = makeChip(t, para);
+      const time = document.createElement('span');
+      time.className = 'done-time';
+      time.textContent = L.formatTime(para.start);
+      head.append(chip, time);
+      const text = document.createElement('p');
+      text.textContent = para.text;
+      p.append(head, text);
+      frag.appendChild(p);
     }
+    box.replaceChildren(frag);
+    $('done-hint').hidden = !renamable;
+  }
+
+  /** Étiquette d'une réplique : bouton pour une voix distinguée, simple texte sinon (« Vous »). */
+  function makeChip(t, para) {
+    let chip;
+    if (para.source === 'others' && para.voice != null) {
+      chip = document.createElement('button');
+      chip.type = 'button';
+      chip.dataset.voice = para.voice;
+      chip.title = (t.meta.recognized || []).includes(para.voice) ? tr('done.recognized') : tr('done.renameTitle');
+      chip.addEventListener('click', () => editVoice(chip, para.voice));
+    } else chip = document.createElement('span');
+    chip.className = 'chip ' + para.source + (t.meta.names && t.meta.names[para.voice] ? ' named' : '');
+    chip.textContent = t.speakerName(para);
+    return chip;
+  }
+
+  function editVoice(chip, voice) {
+    const t = app.transcript;
+    if (!t) return;
+    const label = t.voiceSummary().find((v) => v.voice === voice);
+    const before = (t.meta.names && t.meta.names[voice]) || '';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.maxLength = 60;
+    input.className = 'chip-input';
+    input.value = before;
+    input.placeholder = label ? label.label : '';
+    input.setAttribute('aria-label', tr('done.rename', { label: input.placeholder }));
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    app.editingVoice = voice;
+    chip.replaceWith(input);
+    input.focus();
+    input.select();
+    let closed = false;
+    // Toutes les répliques de cette voix changent pendant la saisie
+    const show = () => {
+      for (const c of document.querySelectorAll(`#done-lines .chip[data-voice="${voice}"]`)) {
+        c.textContent = t.speakerName({ source: 'others', voice });
+        c.classList.toggle('named', !!(t.meta.names && t.meta.names[voice]));
+      }
+    };
+    input.addEventListener('input', () => {
+      t.nameVoice(voice, input.value);
+      show();
+      refreshNote(t, { text: false });
+    });
+    const close = (keep) => {
+      if (closed) return;
+      closed = true;
+      if (!keep) {
+        t.nameVoice(voice, before);
+        refreshNote(t, { text: false });
+      }
+      // Mémoire des voix : on retient l'empreinte quand la saisie est validée
+      const c = t.tracker && t.tracker.centroids && t.tracker.centroids.get(voice);
+      const named = t.meta.names && t.meta.names[voice];
+      if (keep && app.memory.enabled && c && named && named !== before) {
+        app.memory.remember(named, c.emb, c.seconds);
+        renderMemory();
+      }
+      app.editingVoice = null;
+      // L'étiquette revient à sa place, sans redessiner le texte : un clic sur une autre
+      // étiquette, qui a provoqué la fin de cette saisie, n'est pas perdu.
+      const back = makeChip(t, { source: 'others', voice });
+      const focused = input === document.activeElement;
+      input.replaceWith(back);
+      show();
+      if (focused) back.focus();
+      if (app.doneTextStale) setTimeout(renderDoneText, 0);
+    };
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        close(true);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        close(false);
+      }
+    });
+    input.addEventListener('blur', () => close(true));
   }
 
   function reset() {
@@ -1620,7 +1721,7 @@
     $('mini-timer').textContent = '00:00';
     app.improvedPending = false;
     app.draftsDone = false;
-    $('next-meeting').hidden = false;
+    app.editingVoice = null;
     setState('idle');
   }
 
@@ -1709,11 +1810,12 @@
   }
 
   // Après la réunion, chaque correction (voix nommée, mot corrigé, passage retranscrit) réécrit
-  // la note du dossier, quelques secondes après la dernière modification.
-  function refreshNote(t) {
+  // la note du dossier, quelques secondes après la dernière modification. o.text === false : le
+  // texte de l'écran est déjà à jour (saisie d'un nom, seules les étiquettes changent).
+  function refreshNote(t, o) {
     if (!t) return;
     app.finalMarkdown = noteOf(t).content;
-    $('preview').textContent = app.finalMarkdown;
+    if (t === app.transcript && !(o && o.text === false)) renderDoneText();
     if (!t.export || t.export.where !== 'dossier') return;
     clearTimeout(t.export.timer);
     t.export.timer = setTimeout(async () => {
@@ -1758,6 +1860,9 @@
     } else box.textContent = '';
     if (ex.error) box.textContent += tr('export.writeError', { error: ex.error });
     box.hidden = !box.textContent;
+    $('saved-card').hidden = false;
+    $('saved-card').dataset.state = ex.where ? 'ok' : ex.error ? 'error' : 'busy';
+    $('saved-title').textContent = tr(ex.where ? 'done.saved' : ex.error ? 'done.notSaved' : 'done.saving');
   }
 
   async function saveToFolder() {
@@ -1805,7 +1910,27 @@
     $('ai-remove').disabled = p.builtin && !p.modified;
     const prof = L.Notes.list().find((x) => x.id === app.editProfileId);
     if (prof) fillPromptSelect($('prof-prompt'), prof.prompt);
-    if (app.transcript) fillPromptSelect($('ai-choice'), profileOf(app.transcript).prompt);
+    renderAiChoice();
+  }
+
+  // Écran de fin : consigne de « Obtenir un résumé » (celle du profil, sauf autre choix)
+  function aiChoice() {
+    const list = L.Notes.prompts();
+    const t = app.transcript;
+    const want = app.aiChoice || (t && profileOf(t).prompt);
+    return list.find((p) => p.id === want) || list[0];
+  }
+  function renderAiChoice() {
+    const p = aiChoice();
+    $('ai-choice-label').textContent = p.name + (p.modified ? tr('ai.modified') : '');
+  }
+  function summaryText() {
+    const t = app.transcript;
+    return t ? L.Notes.promptText(t, profileOf(t), aiChoice().id) : '';
+  }
+  function renderSummaryButton() {
+    $('copy-ai-title').textContent = tr(app.summaryCopied ? 'done.summaryCopied' : 'done.summary');
+    $('copy-ai-sub').textContent = tr(app.summaryCopied ? 'done.summaryCopiedSub' : 'done.summarySub');
   }
 
   // --- Profils de sortie : choix à l'accueil, éditeur dans les paramètres ---
@@ -2492,7 +2617,8 @@
     if (app.state === 'done' && app.transcript) {
       renderDoneInfo();
       renderExport(app.transcript);
-      renderVoices();
+      renderDoneText();
+      renderSummaryButton();
       renderSuspects();
       renderGaps();
       renderFinished();
@@ -2955,21 +3081,59 @@
     if (e.target.checked) renderLive();
   });
   $('chain').addEventListener('click', chainNext);
+  // Écran de fin : « Et maintenant ? »
   $('download').addEventListener('click', () => {
     const n = noteOf(app.transcript);
     download(n.content, n.name);
   });
   $('copy').addEventListener('click', () => copy(app.finalMarkdown));
-  // Consigne choisie (celle du profil par défaut) + note, à coller dans un assistant
-  $('copy-ai').addEventListener('click', () => {
-    const t = app.transcript;
-    if (t) copy(L.Notes.promptText(t, profileOf(t), $('ai-choice').value));
+  // « Obtenir un résumé » : consigne choisie (celle du profil par défaut) + note, à coller dans
+  // un assistant. Lowsper n'envoie rien : le texte va dans le presse-papiers.
+  $('copy-ai').addEventListener('click', async () => {
+    if (!app.transcript) return;
+    await copy(summaryText());
+    app.summaryCopied = true;
+    renderSummaryButton();
   });
+  L.Menu.attach({
+    button: $('ai-choice'),
+    menu: $('ai-list'),
+    items: () => {
+      const current = aiChoice().id;
+      return L.Notes.prompts().map((p) => ({
+        value: p.id,
+        label: p.name + (p.modified ? tr('ai.modified') : ''),
+        checked: p.id === current,
+      }));
+    },
+    onSelect: (id) => {
+      app.aiChoice = id;
+      app.summaryCopied = false;
+      renderAiChoice();
+      renderSummaryButton();
+    },
+  });
+  $('ai-see').addEventListener('click', () => {
+    $('ai-preview').textContent = summaryText();
+    $('ai-dialog').showModal();
+    $('ai-preview').scrollTop = 0;
+  });
+  $('ai-dialog-close').addEventListener('click', () => $('ai-dialog').close());
+  $('fix-open').addEventListener('click', () => {
+    renderSuspects();
+    $('fix-dialog').showModal();
+    $('fix-wrong').focus();
+  });
+  $('fix-close').addEventListener('click', () => $('fix-dialog').close());
+  for (const id of ['fix-wrong', 'fix-right'])
+    $(id).addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyFix();
+      }
+    });
+  // « Nouvelle réunion » : retour à l'accueil (choix du mainteneur, comme la maquette)
   $('again').addEventListener('click', reset);
-  $('next-meeting').addEventListener('click', () => {
-    reset();
-    askBeforeStart(); // le clic sert de geste utilisateur pour le partage d'écran
-  });
   $('pip').addEventListener('click', () => openPip());
 
   $('title').addEventListener('keydown', (e) => {

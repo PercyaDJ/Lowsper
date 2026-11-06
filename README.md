@@ -98,13 +98,22 @@ réunion qui travaille hors ligne.
    Le texte en direct est masqué par défaut : l'interrupteur « Afficher le texte pendant la
    réunion » l'affiche (choix gardé). « Commencer une nouvelle réunion sans arrêter » enchaîne
    sur la suivante sans repartager l'écran.
-7. En fin de réunion, cliquez sur **« Terminer »** (carré rouge). Le fichier `.md` est enregistré
-   dans vos Téléchargements (ou le dossier de votre profil). Nommez les intervenants si vous le
-   souhaitez ; **« Copier pour une IA »** copie la note précédée de la consigne choisie (compte
-   rendu de réunion, synthèse d'appel, liste d'actions, ou la vôtre), à coller dans l'assistant
-   de votre choix.
+7. En fin de réunion, cliquez sur **« Terminer »** (carré rouge). La note est enregistrée dans vos
+   Téléchargements (ou le dossier de votre profil) : la carte « Note enregistrée » dit où. L'écran
+   de fin montre le texte de la réunion à gauche, lisible. Pour nommer un intervenant, cliquez sur
+   son étiquette (« Intervenant 2 ») et tapez son nom : il change sur toutes ses répliques et dans
+   la note (Entrée valide, Échap annule). À droite, « Et maintenant ? » :
+   - **« Obtenir un résumé »** copie une consigne pour l'IA suivie de la note, à coller dans
+     l'assistant de votre choix. La consigne (compte rendu de réunion, synthèse d'appel, liste
+     d'actions, ou la vôtre) se choisit juste en dessous, et **« Voir ce qui est copié »** montre
+     le texte exact ;
+   - **« Copier le texte »** copie la note seule ;
+   - **« Enregistrer une copie »** la télécharge.
 
-![Écran de fin d'une réunion fictive : intervenants nommés, aperçu du transcript Markdown](docs/images/fin.png)
+   « Corriger un mot mal reconnu » ouvre la correction, et « Nouvelle réunion » ramène à
+   l'accueil.
+
+![Écran de fin d'une réunion fictive : le texte lisible avec les intervenants nommés à gauche, « Note enregistrée » et « Et maintenant ? » à droite](docs/images/fin.png)
 
 *Captures faites sur une réunion entièrement fictive (voix de synthèse), sur la machine de
 développement, lente : l'indicateur « Charge du moteur » y dépasse 100 %. Elles se régénèrent avec
@@ -185,7 +194,7 @@ La note suit la langue de l'interface au moment où la réunion commence :
 Dans un profil avec modèle de note, les noms des variables (`{{titre}}`, `{{duree}}`...) et les
 propriétés écrites en tête de note (`duree:`, `intervenants:`...) restent les mêmes dans les deux
 langues : un modèle ou une recherche dans votre base de notes ne casse pas si vous changez de
-langue. Les consignes fournies pour « Copier pour une IA » existent dans les deux langues ; une
+langue. Les consignes fournies pour « Obtenir un résumé » existent dans les deux langues ; une
 consigne que vous avez modifiée n'est jamais changée.
 
 ## À quoi ressemble le transcript
@@ -293,12 +302,21 @@ cliquez sur « Autoriser maintenant » sur l'écran d'accueil avant la réunion.
 effacé ses données (fréquent sur un poste d'entreprise), il faut désigner le dossier à nouveau.
 
 **Comment obtenir un compte rendu ?**
-Sur l'écran de fin, choisissez une consigne à côté de « Copier pour une IA », cliquez, puis collez
-dans l'assistant d'IA autorisé par votre entreprise. Trois consignes sont fournies (compte rendu de
-réunion, synthèse d'appel, liste d'actions) ; modifiez-les ou créez les vôtres dans les paramètres,
+Sur l'écran de fin, cliquez sur « Obtenir un résumé », puis collez dans l'assistant d'IA autorisé
+par votre entreprise. Trois consignes sont fournies (compte rendu de réunion, synthèse d'appel,
+liste d'actions), écrites comme un prompt système : rôle, contexte, tâche, règles, puis le
+transcript. Elles demandent de répondre dans la langue principale du transcript, de ne rien
+inventer (ni nom, ni chiffre, ni date) et de signaler un passage douteux. « Voir ce qui est copié »
+montre le texte exact avant de le coller. Modifiez-les ou créez les vôtres dans les paramètres,
 section « Consignes pour l'IA », et rattachez-en une à chaque profil. Attention : coller le
 transcript dans un assistant en ligne le fait sortir de l'ordinateur ; c'est votre choix, pas celui
 de Lowsper.
+
+**J'avais modifié une consigne fournie. Est-elle remplacée par la nouvelle version ?**
+Non. Une consigne que vous avez modifiée n'est jamais changée, même d'un seul caractère. Seules
+les consignes laissées telles quelles passent au nouveau texte. Pour obtenir le nouveau texte
+quand même, utilisez « Rétablir le texte d'origine » dans les paramètres (votre version est alors
+perdue : copiez-la avant si besoin).
 
 **Lowsper peut-il résumer lui-même la réunion, sans rien envoyer ?**
 Pas encore. Un petit modèle de langage dans la page a été mesuré : il invente des faits en
@@ -446,7 +464,7 @@ et `decision.md`) :
 2. **Langues parlées multiples et vocabulaires métier élargis**, après mesure de la qualité.
 3. **Mémoire des voix plus fiable** d'une visio à l'autre, après mesure.
 4. **Résumé local** : la piste de l'IA intégrée du navigateur reste à l'étude (`decision.md`
-   §22 et §23). D'ici là, « Copier pour une IA » reste la voie recommandée.
+   §22 et §23). D'ici là, « Obtenir un résumé » reste la voie recommandée.
 
 Une idée, un problème ? Ouvrez une [issue](https://github.com/PercyaDJ/Lowsper/issues/new/choose),
 ou posez votre question dans les [discussions](https://github.com/PercyaDJ/Lowsper/discussions).
