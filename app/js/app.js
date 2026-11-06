@@ -72,7 +72,7 @@
       const model = installed.find((m) => m.id === preferred) || installed[0];
       app.modelLabel = model.label;
       app.modelId = model.id;
-      $('foot-model').textContent = model.label;
+      $('foot-model').textContent = modelLabel(model);
       renderModelSelect(installed, model.id);
 
       const assets = await L.loadAssets(
@@ -166,21 +166,14 @@
   app.drafts = []; // passages transcrits par la voie rapide, à améliorer
   app.blockSeq = 0;
 
+  // Formule partagée avec la recommandation de l'écran de bienvenue (recommend.js)
   function computeLimits(device) {
-    if (device === 'webgpu') return { start: 1, normal: 1, boost: 1, max: 1 };
-    const threads = navigator.hardwareConcurrency || 4;
-    const memory = navigator.deviceMemory || 8; // plafonné à 8 par Chrome
-    const memCap = memory < 4 ? 1 : memory < 8 ? 2 : 6;
-    const clamp = (n) => Math.max(1, Math.min(memCap, n));
-    const power = store.get('lowsper.power') || 'balanced';
-    if (power === 'eco') return { start: 1, normal: 1, boost: 1, max: 1 };
-    if (power === 'max') {
-      const n = clamp(Math.floor(threads / 2));
-      return { start: Math.min(n, 3), normal: n, boost: n, max: n };
-    }
-    const normal = clamp(Math.ceil(threads / 4));
-    const boost = clamp(Math.max(normal, Math.floor(threads / 3)));
-    return { start: normal, normal, boost, max: boost };
+    return L.Recommend.limits(
+      navigator.hardwareConcurrency,
+      navigator.deviceMemory,
+      store.get('lowsper.power') || 'balanced',
+      device
+    );
   }
 
   function newWorker(assets) {
@@ -1610,6 +1603,9 @@
     const busy = state === 'recording' || state === 'finishing' || state === 'importing';
     $('ui-lang').disabled = busy;
     $('ui-lang-busy').hidden = !busy;
+    // Menu de langue de l'en-tête : sur l'écran de bienvenue seulement
+    $('lang-menu').hidden = state !== 'install';
+    if (state !== 'install') closeLangMenu();
     updateQueue();
   }
 
@@ -2143,62 +2139,89 @@
 
   const modelSize = (m) => m.files.reduce((n, f) => n + f.size, 0);
 
+  // Nom d'un modèle dans la langue de l'interface (repli : celui du manifeste)
+  const modelLabel = (m) =>
+    L.t('model.label.' + m.id) !== 'model.label.' + m.id ? tr('model.label.' + m.id) : m.label;
+
+  // Modèle « processeur » autre que Whisper base : Whisper base l'accompagne (voie rapide de secours)
+  const needsBackup = (m) => m.device !== 'webgpu' && m.id !== 'whisper-base';
+
+  /**
+   * Écran de bienvenue (premier lancement), ou ajout d'un modèle depuis les paramètres : ce qui a
+   * été détecté, un seul modèle à choisir, le recommandé présélectionné, les modèles inutilisables
+   * grisés avec leur raison, le dossier, un seul bouton (decision.md §26).
+   */
   function showInstall() {
     const catalog = (self.LOWSPER_MANIFEST && self.LOWSPER_MANIFEST.catalog) || [];
     const installed = self.LOWSPER_INSTALLED || [];
+    const installedIds = installed.map((m) => m.id);
+    const adding = installed.length > 0;
+    const hw = L.Recommend.hardware(navigator, app.gpu);
+    const plan = L.Recommend.choose(catalog, hw, installedIds);
+    app.installPlan = plan;
+    $('install-title').textContent = tr(adding ? 'install.titleAdd' : 'install.title');
+    $('view-install').querySelector('.lead').textContent = tr(adding ? 'install.leadAdd' : 'install.lead');
+    renderHardware(hw);
+    // Choix présélectionné : celui déjà fait sur cet écran, sinon le recommandé, sinon le premier possible
+    const free = (id) => plan.options.some((o) => o.id === id && o.usable && !o.installed);
+    if (!free(app.installChoice)) {
+      app.installChoice = free(plan.recommended)
+        ? plan.recommended
+        : (plan.options.find((o) => o.usable && !o.installed) || {}).id || null;
+    }
     const box = $('model-choices');
     box.replaceChildren();
-    catalog.forEach((m) => {
-      const mb = Math.round(modelSize(m) / 1e6);
-      const needsGpu = m.device === 'webgpu';
-      const gpuMissing = needsGpu && !app.gpu;
-      const isInstalled = installed.some((x) => x.id === m.id);
+    // Modèles utilisables d'abord, ceux qui demandent une carte graphique absente ensuite
+    for (const o of [...plan.options.filter((x) => x.usable), ...plan.options.filter((x) => !x.usable)]) {
+      const m = catalog.find((x) => x.id === o.id);
       const label = document.createElement('label');
-      label.className = 'model-opt';
+      label.className = 'model-row';
+      if (!o.usable) label.classList.add('unusable');
+      if (o.installed) label.classList.add('done');
       const input = document.createElement('input');
-      input.type = 'checkbox';
+      input.type = 'radio';
       input.name = 'model-choice';
       input.value = m.id;
-      // Déjà installé : coché et grisé. Sinon, seul le modèle recommandé est pré-coché.
-      input.checked = isInstalled || (!installed.length && !!m.recommended);
-      input.disabled = isInstalled;
-      if (isInstalled) label.classList.add('done');
-      if (gpuMissing) label.classList.add('nogpu');
-      input.addEventListener('change', updateInstallButton);
-      const title = document.createElement('strong');
-      title.textContent = m.label;
-      const badge = (text, cls) => {
+      input.checked = m.id === app.installChoice;
+      input.disabled = !o.usable || o.installed || !!app.installing;
+      input.addEventListener('change', () => {
+        app.installChoice = m.id;
+        updateInstallButton();
+      });
+      const text = document.createElement('span');
+      text.className = 'model-text';
+      const name = document.createElement('span');
+      name.className = 'model-name';
+      const strong = document.createElement('strong');
+      strong.textContent = modelLabel(m);
+      name.appendChild(strong);
+      const badge = (key, cls) => {
         const b = document.createElement('span');
         b.className = 'badge' + (cls ? ' ' + cls : '');
-        b.textContent = text;
-        title.appendChild(b);
+        b.textContent = tr(key);
+        name.appendChild(b);
       };
-      if (m.recommended) badge(tr('install.recommended'));
-      if (isInstalled) badge(tr('install.installed'), 'auto');
-      if (needsGpu) badge(tr('install.gpu'));
-      const size = document.createElement('span');
-      size.className = 'size';
-      size.textContent = tr('install.size', { mb });
+      if (o.id === plan.recommended && !o.installed) badge('install.best', 'best');
+      if (o.installed) badge('install.installed', 'auto');
       const desc = document.createElement('span');
       desc.className = 'desc';
-      // Description traduite si le catalogue la connaît, sinon celle du manifeste
-      const key = 'model.desc.' + m.id;
-      desc.textContent =
-        (L.t(key) !== key ? tr(key) : m.description || '') +
-        (gpuMissing
-          ? tr('install.noGpu')
-          : needsGpu
-            ? tr('install.gpuFound', { name: app.gpu.description || app.gpu.vendor || tr('install.gpuCompatible') })
-            : '');
-      // Mention affichée quand Whisper base est ajouté d'office (voie rapide de secours)
-      const auto = document.createElement('span');
-      auto.className = 'auto-note';
-      auto.textContent = tr('install.autoAdded');
-      desc.appendChild(auto);
-      label.append(input, title, size, desc);
+      // Texte court du catalogue si connu, sinon la description du manifeste
+      const key = 'model.short.' + m.id;
+      const parts = [L.t(key) !== key ? tr(key) : m.description || ''];
+      const base = catalog.find((x) => x.id === 'whisper-base');
+      const withBase = needsBackup(m) && base && !installedIds.includes(base.id);
+      if (withBase && o.usable) parts.push(tr('install.withBackup'));
+      if (!o.usable) parts.push(tr('install.reasonGpu'));
+      desc.textContent = parts.filter(Boolean).join(' ');
+      text.append(name, desc);
+      const size = document.createElement('span');
+      size.className = 'size';
+      const bytes = modelSize(m) + (withBase ? modelSize(base) : 0);
+      size.textContent = tr('install.size', { mb: Math.round(bytes / 1e6) });
+      label.append(input, text, size);
       box.appendChild(label);
-    });
-    $('install-back').hidden = !installed.length;
+    }
+    $('install-back').hidden = !adding;
     $('page-folder').textContent = L.pageFolder();
     $('temp-warning').hidden = !L.openedFromTemp();
     $('install-error').hidden = true;
@@ -2206,42 +2229,41 @@
     setState('install');
   }
 
-  // Modèles à télécharger : la sélection (hors déjà installés), plus Whisper base quand un
-  // modèle processeur est choisi (voie rapide de secours).
+  /** Puces « Détecté sur ce PC » : processeurs logiques, mémoire, carte graphique. */
+  function renderHardware(hw) {
+    const chips = [];
+    if (hw.threads) chips.push(tr('install.threads', { n: hw.threads }));
+    if (hw.memory) chips.push(tr('install.memory', { n: hw.memory }));
+    chips.push(tr(app.gpuChecked ? (hw.gpu ? 'install.gpuYes' : 'install.gpuNo') : 'install.gpuChecking'));
+    $('hw-chips').replaceChildren(
+      ...chips.map((c) => {
+        const li = document.createElement('li');
+        li.textContent = c;
+        return li;
+      })
+    );
+  }
+
+  // Modèles à télécharger : le modèle choisi, plus Whisper base avec un modèle processeur
+  // (voie rapide de secours), s'il n'est pas déjà installé.
   function installList() {
     const catalog = self.LOWSPER_MANIFEST.catalog;
     const installedIds = (self.LOWSPER_INSTALLED || []).map((m) => m.id);
-    const picked = [...document.querySelectorAll('input[name="model-choice"]:checked')]
-      .map((i) => catalog.find((m) => m.id === i.value))
-      .filter((m) => m && !installedIds.includes(m.id));
+    const picked = catalog.find((m) => m.id === app.installChoice && !installedIds.includes(m.id));
+    if (!picked) return [];
+    const list = [picked];
     const fast = catalog.find((m) => m.id === 'whisper-base');
-    const needsFast = picked.some((m) => m.device !== 'webgpu' && m.id !== 'whisper-base');
-    if (needsFast && fast && !installedIds.includes(fast.id) && !picked.includes(fast)) picked.push(fast);
-    return picked;
+    if (needsBackup(picked) && fast && !installedIds.includes(fast.id)) list.push(fast);
+    return list;
   }
 
   function updateInstallButton() {
-    // Whisper base est ajouté d'office avec un modèle processeur : la case le montre
-    const baseBox = document.querySelector('input[name="model-choice"][value="whisper-base"]');
-    const installedIds = (self.LOWSPER_INSTALLED || []).map((m) => m.id);
-    if (baseBox && !installedIds.includes('whisper-base')) {
-      const catalog = self.LOWSPER_MANIFEST.catalog;
-      const cpuPicked = [...document.querySelectorAll('input[name="model-choice"]:checked')]
-        .map((i) => catalog.find((m) => m.id === i.value))
-        .some((m) => m && m.device !== 'webgpu' && m.id !== 'whisper-base' && !installedIds.includes(m.id));
-      if (cpuPicked) baseBox.checked = true;
-      baseBox.disabled = cpuPicked;
-      baseBox.closest('.model-opt').classList.toggle('auto', cpuPicked);
-    }
     const list = installList();
     const mb = Math.round(list.reduce((n, m) => n + modelSize(m), 0) / 1e6);
     const btn = $('install');
-    btn.disabled = !list.length || app.installing;
-    btn.textContent = !list.length
-      ? tr('install.pickOne')
-      : list.length === 1
-        ? tr('install.one', { label: list[0].label, mb })
-        : tr('install.many', { n: list.length, mb });
+    btn.disabled = !list.length || !!app.installing;
+    btn.textContent = list.length ? tr('install.cta', { mb }) : tr('install.nothing');
+    $('install-hint').hidden = !list.length;
   }
 
   async function install() {
@@ -2295,7 +2317,7 @@
               speed: speed.toFixed(1),
             }) +
             (left > 2 ? tr('install.left', { left: left > 90 ? Math.round(left / 60) + ' min' : left + ' s' }) : '') +
-            (list.length > 1 ? ` · ${m.label}` : '');
+            (list.length > 1 ? ` · ${modelLabel(m)}` : '');
         });
         before += m.files.reduce((k, f) => k + f.size, 0);
       }
@@ -2333,14 +2355,14 @@
     for (const m of installed) {
       const o = document.createElement('option');
       o.value = m.id;
-      o.textContent = m.label;
+      o.textContent = modelLabel(m);
       o.selected = m.id === current;
       sel.appendChild(o);
     }
     $('model-field').hidden = installed.length < 2;
     $('model-current').textContent = tr('set.modelCurrent', {
-      current: (installed.find((m) => m.id === current) || installed[0]).label,
-      list: installed.map((m) => m.label).join(', '),
+      current: modelLabel(installed.find((m) => m.id === current) || installed[0]),
+      list: installed.map(modelLabel).join(', '),
     });
   }
 
@@ -2408,7 +2430,8 @@
     const installed = self.LOWSPER_INSTALLED || [];
     if (installed.length && app.modelId) renderModelSelect(installed, app.modelId);
     else $('model-current').textContent = tr('set.noModel');
-    if (app.modelLabel) $('foot-model').textContent = app.modelLabel;
+    const inUse = installed.find((m) => m.id === app.modelId);
+    if (inUse) $('foot-model').textContent = modelLabel(inUse);
     const known = app.modelId && store.get('lowsper.speed.' + app.modelId);
     if (known) {
       try {
@@ -2416,7 +2439,11 @@
       } catch {}
     }
     renderPauseLabels(false);
-    if (app.state === 'install') showInstall();
+    if (app.state === 'install') {
+      // Pendant le téléchargement, l'écran n'est pas redessiné : seul le bouton change de langue
+      if (app.installing) $('install').textContent = tr('install.running');
+      else showInstall();
+    }
     if (app.state === 'done' && app.transcript) {
       renderDoneInfo();
       renderExport(app.transcript);
@@ -2431,6 +2458,58 @@
     updateQueue();
   }
   L.i18n.onChange(relabel);
+
+  // Menu de langue de l'écran de bienvenue (dessiné par Lowsper, utilisable au clavier)
+  function renderLangMenu() {
+    const lang = L.i18n.lang();
+    const current = $('lang-current');
+    current.textContent = lang === 'fr' ? 'Français' : 'English';
+    current.lang = lang;
+    for (const b of document.querySelectorAll('#lang-list [data-lang]'))
+      b.setAttribute('aria-checked', String(b.dataset.lang === lang));
+  }
+  function closeLangMenu(focusButton) {
+    $('lang-list').hidden = true;
+    $('lang-btn').setAttribute('aria-expanded', 'false');
+    if (focusButton) $('lang-btn').focus();
+  }
+  function openLangMenu() {
+    $('lang-list').hidden = false;
+    $('lang-btn').setAttribute('aria-expanded', 'true');
+    const items = [...document.querySelectorAll('#lang-list [data-lang]')];
+    (items.find((b) => b.getAttribute('aria-checked') === 'true') || items[0]).focus();
+  }
+  $('lang-btn').addEventListener('click', () => ($('lang-list').hidden ? openLangMenu() : closeLangMenu()));
+  $('lang-btn').addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      openLangMenu();
+    }
+  });
+  $('lang-list').addEventListener('keydown', (e) => {
+    const items = [...document.querySelectorAll('#lang-list [data-lang]')];
+    const i = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus();
+    } else if (e.key === 'Escape') {
+      closeLangMenu(true);
+    } else if (e.key === 'Tab') {
+      closeLangMenu();
+    }
+  });
+  for (const b of document.querySelectorAll('#lang-list [data-lang]')) {
+    b.addEventListener('click', () => {
+      closeLangMenu(true);
+      L.i18n.setLang(b.dataset.lang);
+    });
+  }
+  // Clic ailleurs : le menu se ferme
+  document.addEventListener('click', (e) => {
+    if (!$('lang-list').hidden && !$('lang-menu').contains(e.target)) closeLangMenu();
+  });
+  renderLangMenu();
+  L.i18n.onChange(renderLangMenu);
 
   $('power').value = store.get('lowsper.power') || 'balanced';
   $('power').addEventListener('change', (e) => {
@@ -2843,7 +2922,8 @@
   checkRecovery();
   L.detectWebGPU().then((gpu) => {
     app.gpu = gpu;
-    if (app.state === 'install') showInstall();
+    app.gpuChecked = true;
+    if (app.state === 'install' && !app.installing) showInstall();
   });
   bootEngine();
 })();

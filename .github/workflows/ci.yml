@@ -46,6 +46,8 @@ jobs:
         run: npm run test:localai
       - name: Interface en français et en anglais
         run: npm run test:i18n
+      - name: Premier lancement guidé (matériel simulé, téléchargement simulé)
+        run: npm run test:welcome
       # Décodage des fichiers importés : Google Chrome, préinstallé sur les machines de GitHub,
       # lit les formats brevetés (AAC, MP3), comme Edge et Chrome chez l'utilisateur
       - name: Décodage des fichiers audio importés

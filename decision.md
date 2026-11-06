@@ -1504,3 +1504,99 @@ textes étaient écrits en dur dans `Lowsper.html`, dans le JavaScript et même 
 - Les textes du navigateur lui-même (fenêtres d'autorisation, sélecteur de dossier, erreurs
   techniques remontées telles quelles) suivent la langue du navigateur, pas celle de Lowsper.
 - La qualité de la traduction anglaise n'a pas été relue par un anglophone natif.
+
+## 26. Refonte, lot R3 : premier lancement guidé
+
+**Contexte.** Au premier lancement, l'utilisateur devait choisir lui-même un ou plusieurs modèles
+dans une liste. La refonte (`docs/refonte.md` §2, maquette validée) demande qu'il n'ait qu'à
+valider : Lowsper lit le PC, recommande un modèle (« Best for this PC »), grise ceux qui ne
+peuvent pas tourner avec leur raison, montre le dossier, et n'offre qu'un bouton.
+
+**Mesures avant de coder.** Nouveau banc `npm run bench -- --cores` (après
+`node build.mjs --embed whisper-small whisper-base`) : pour chaque modèle, de 1 à N moteurs au
+travail en même temps (un moteur occupe un cœur), coût d'un bloc de 18 s, puis charge d'une
+réunion où l'on parle sans arrêt, calculée comme le test de vitesse des paramètres
+(`Lowsper.estimateLoad`). Charge sous 1 : le direct suit. Moyenne de 2 mesures par moteur, après
+une mesure de chauffe.
+
+Machine : le conteneur de développement, Chromium de Playwright sans écran, 4 fils (Intel Xeon
+2,1 GHz), sans carte graphique ; le navigateur y annonce 16 Go de mémoire.
+
+| Moteurs en même temps | Whisper small : encodeur, par jeton, charge | Whisper base : encodeur, par jeton, charge |
+|---|---|---|
+| 1 | 10 416 ms, 144 ms, **1,44** | 3 114 ms, 57 ms, **0,51** |
+| 2 | 10 398 ms, 144 ms, **0,72** | 3 131 ms, 60 ms, **0,27** |
+| 3 | 10 320 ms, 140 ms, **0,47** | 3 226 ms, 60 ms, **0,18** |
+| 4 | 10 896 ms, 157 ms, **0,39** | 3 343 ms, 63 ms, **0,14** |
+
+Lecture : chaque moteur garde sa vitesse jusqu'à 3 en parallèle ; à 4 (tous les fils), il ralentit
+d'environ 5 à 10 %. La charge baisse donc presque en proportion du nombre de moteurs. Whisper base
+suit le direct dès un seul moteur ; Whisper small en demande au moins deux sur ce processeur.
+
+**Règle de recommandation** (`app/js/recommend.js`, testée sans navigateur).
+- **Nombre de moteurs** : celui de la puissance « équilibrée », par défaut (§15.12) : un quart des
+  fils, plafonné par la mémoire. La formule est désormais dans `recommend.js` et utilisée aussi
+  pendant les réunions ; un test vérifie qu'elle donne exactement les mêmes résultats que l'ancien
+  code de `app.js`, sur toutes les combinaisons courantes.
+- **Whisper small** si sa charge mesurée avec ce nombre de moteurs est d'au plus 1, sinon
+  **Whisper base**. Avec les mesures ci-dessus : small à partir de 5 fils (2 moteurs, charge
+  0,72) et 4 Go de mémoire ; base à 4 fils ou moins, ou sous 4 Go. Au-delà de 4 moteurs, la
+  charge par moteur est supposée rester celle du 4e.
+- **Modèles « carte graphique »** : utilisables seulement si WebGPU trouve une carte, et **jamais
+  recommandés d'office** : leur vitesse n'a jamais pu être mesurée ici (§15.7). Ils restent au
+  choix.
+- **Navigateur muet** (Firefox ne donne pas la mémoire) : mêmes valeurs par défaut que pendant les
+  réunions (4 fils, 8 Go), donc une recommandation prudente.
+- **Provisoire.** La règle repose sur un seul processeur, lent et sans turbo : un portable récent
+  a probablement des cœurs plus rapides, ce qui rendrait la règle trop prudente, mais ce n'est pas
+  mesuré. Le mainteneur lancera `npm run bench -- --cores` sur un ou deux vrais PC ; les seuils
+  seront ajustés avec ces chiffres (tableau `MEASURED` de `recommend.js`).
+
+**Écran de bienvenue.**
+- **Détection** : processeurs logiques (`navigator.hardwareConcurrency`, des fils et non des
+  cœurs physiques, d'où ce mot), mémoire (`navigator.deviceMemory`, arrondie vers le bas par le
+  navigateur, d'où « ou plus »), carte graphique (adaptateur WebGPU).
+- **Un seul modèle** (choix du mainteneur, comme la maquette) : boutons ronds, le recommandé coché.
+  Whisper base reste ajouté d'office avec un modèle processeur (voie rapide de secours, §15.12) :
+  la ligne le dit et sa taille l'inclut. Ajouter un autre modèle plus tard se fait depuis les
+  paramètres, un à la fois, sur le même écran (titre « Ajouter un modèle »). *Remplace la
+  sélection multiple de §15.13.*
+- **Modèles grisés** : sans carte graphique compatible, les modèles « carte graphique » ne sont
+  plus installables (ils l'étaient, pour préparer un dossier à copier vers un PC équipé, §15.13).
+  Pour ce cas rare, il suffit d'installer le modèle depuis le PC équipé, puis de copier le
+  dossier Lowsper vers les autres.
+- **Dossier** : celui de la page, affiché avant le clic. La consigne dit d'y choisir « ce dossier,
+  puis valider », sans citer le libellé du bouton du navigateur (il dépend du navigateur et de sa
+  langue, non vérifié).
+- **Langue** : menu dessiné par Lowsper dans l'en-tête, sur cet écran seulement (maquette,
+  `refonte.md` §1) ; au clavier : flèches, Entrée, Échap.
+- **Un seul accord** : le dossier choisi sert à installer le modèle et à la copie automatique des
+  réglages (`app/reglages.txt`), comme avant ; il est gardé (IndexedDB) pour le dossier de notes
+  par défaut du lot R7. Le test `npm run test:welcome` vérifie qu'une seule fenêtre de choix est
+  ouverte et que le même dossier sert aux deux.
+
+**À vérifier : `startIn`.** La spécification de `showDirectoryPicker` n'accepte comme point de
+départ qu'un dossier connu (« documents », « downloads »...) ou un dossier déjà autorisé, pas un
+chemin libre : la fenêtre ne peut donc pas s'ouvrir d'elle-même sur le dossier Lowsper au premier
+lancement. **Non vérifié dans Chrome ni Edge** : le Chromium sans écran de l'environnement de
+développement n'affiche pas cette fenêtre. Page d'essai pour le mainteneur :
+`tools/test/startin.html` (six cas, journal à copier). Lowsper garde pour l'instant l'option `id`
+(le navigateur rouvre le dernier dossier choisi), sans `startIn`.
+
+**Tests.**
+- `npm run test:welcome` (Chromium, aussi en CI, sur une copie du dossier sans modèle) : matériel
+  simulé (4 fils : base ; 8 fils : small ; carte graphique : modèles utilisables, non
+  recommandés), détection affichée, un seul choix coché, raisons des modèles grisés, un seul
+  bouton, menu de langue au clavier, ajout d'un modèle depuis les paramètres, et liste exacte des
+  modèles téléchargés (small entraîne base ; base seul) avec un seul choix de dossier.
+- Tests unitaires : règle de recommandation, formule des moteurs identique à l'ancienne.
+- `npm run test:e2e` : choisit Whisper small explicitement (ses vérifications de qualité portent
+  sur small), et vérifie que le recommandé est le seul coché.
+
+**Limites.**
+- Mesures sur une seule machine, lente : règle provisoire (voir plus haut).
+- Vitesse sur carte graphique toujours non mesurée.
+- `startIn` non vérifié dans les navigateurs.
+- Le nombre de fils n'est pas la vitesse : deux PC à 8 fils peuvent différer du simple au double.
+  Le test de vitesse des paramètres, fait automatiquement au premier démarrage du modèle, reste la
+  mesure de référence sur le poste.

@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' blob: 'wasm-unsafe-eval' file:; worker-src blob:; connect-src blob: data:; style-src 'unsafe-inline'">
+<title>Banc d'essai : vitesse selon le nombre de moteurs</title>
+<pre id="log"></pre>
+<script>window.Lowsper = { assetBase: '../../app/' };</script>
+<script src="../../app/manifest.js"></script>
+<script src="../../app/models/index.txt"></script>
+<script src="../../app/js/engine.js"></script>
+<script>
+// Pour chaque modèle installé (sauf carte graphique) et pour 1 à N moteurs travaillant en même
+// temps (un moteur = un cœur), mesure le coût d'un bloc et en déduit la charge d'une réunion où
+// l'on parle sans arrêt (Lowsper.estimateLoad, comme le test de vitesse des paramètres).
+// Charge < 1 : le direct suit. Moyenne de 2 mesures par moteur, après une mesure de chauffe.
+const log = (m) => { document.getElementById('log').textContent += m + '\n'; console.log(m); };
+window.benchResult = (async () => {
+  const max = Number(new URLSearchParams(location.search).get('max')) || navigator.hardwareConcurrency || 4;
+  log(`machine : ${navigator.hardwareConcurrency} fils, mémoire annoncée par le navigateur : ${navigator.deviceMemory || '?'} Go`);
+  const out = [];
+  for (const m of self.LOWSPER_INSTALLED || []) {
+    if (m.device === 'webgpu') continue;
+    const assets = await Lowsper.loadAssets(null, m.id);
+    const workers = [];
+    for (let n = 1; n <= max; n++) {
+      const w = new Lowsper.Transcriber(assets);
+      await w.ready;
+      workers.push(w);
+      await Promise.all(workers.map((x) => x.bench())); // chauffe
+      const runs = [];
+      for (let k = 0; k < 2; k++) runs.push(...(await Promise.all(workers.map((x) => x.bench()))));
+      const avg = {
+        encMs: runs.reduce((s, r) => s + r.encMs, 0) / runs.length,
+        tokMs: runs.reduce((s, r) => s + r.tokMs, 0) / runs.length,
+      };
+      const load = Lowsper.estimateLoad(avg, n);
+      const row = { model: m.id, workers: n, encMs: Math.round(avg.encMs), tokMs: Math.round(avg.tokMs), load: +load.toFixed(2) };
+      out.push(row);
+      log(`RÉSULTAT ${JSON.stringify(row)}`);
+    }
+    workers.forEach((w) => w.dispose());
+  }
+  return out;
+})().catch((e) => { log('ERREUR ' + e.stack); throw e; });
+</script>

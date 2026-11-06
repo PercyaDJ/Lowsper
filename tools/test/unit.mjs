@@ -27,6 +27,7 @@ sandbox.navigator = { language: 'fr-FR' };
 vm.createContext(sandbox);
 for (const f of [
   'i18n.js',
+  'recommend.js',
   'browser.js',
   'engine.js',
   'capture.js',
@@ -1251,17 +1252,83 @@ await test('langue : chaque clé utilisée dans le code et la page existe dans l
   assert.deepEqual([...L.i18n.missing()], []);
 });
 
-await test('langue : descriptions des modèles, en français identiques au manifeste, traduites', async () => {
+async function manifestCatalog() {
   const box = {};
   box.self = box;
   vm.createContext(box);
   vm.runInContext(await readFile(join(appJs, '..', 'manifest.js'), 'utf8'), box);
-  const catalog = box.LOWSPER_MANIFEST.catalog;
+  return box.LOWSPER_MANIFEST.catalog;
+}
+
+await test('langue : chaque modèle du manifeste a un nom et un texte court dans les deux langues', async () => {
+  const catalog = await manifestCatalog();
   assert.ok(catalog.length >= 3);
-  for (const m of catalog) {
-    assert.equal(L.i18n.t('model.desc.' + m.id, null, 'fr'), m.description, m.id);
-    assert.notEqual(L.i18n.t('model.desc.' + m.id, null, 'en'), 'model.desc.' + m.id, m.id);
+  for (const m of catalog)
+    for (const lang of ['fr', 'en'])
+      for (const k of ['model.label.' + m.id, 'model.short.' + m.id])
+        assert.notEqual(L.i18n.t(k, null, lang), k, `${k} (${lang})`);
+  // Le nom français est celui du manifeste (index des modèles installés, notes)
+  for (const m of catalog) assert.equal(L.i18n.t('model.label.' + m.id, null, 'fr'), m.label);
+});
+
+// --- Premier lancement : recommandation du modèle (decision.md §26) ---
+await test('recommandation : moteurs autorisés, formule inchangée (decision.md §15.12)', () => {
+  const R = L.Recommend;
+  // Ancienne formule de app.js (3.5.0), recopiée telle quelle pour la comparaison
+  const old = (threads, memory, power, device) => {
+    if (device === 'webgpu') return { start: 1, normal: 1, boost: 1, max: 1 };
+    threads = threads || 4;
+    memory = memory || 8;
+    const memCap = memory < 4 ? 1 : memory < 8 ? 2 : 6;
+    const clamp = (n) => Math.max(1, Math.min(memCap, n));
+    if (power === 'eco') return { start: 1, normal: 1, boost: 1, max: 1 };
+    if (power === 'max') {
+      const n = clamp(Math.floor(threads / 2));
+      return { start: Math.min(n, 3), normal: n, boost: n, max: n };
+    }
+    const normal = clamp(Math.ceil(threads / 4));
+    const boost = clamp(Math.max(normal, Math.floor(threads / 3)));
+    return { start: normal, normal, boost, max: boost };
+  };
+  for (const threads of [undefined, 1, 2, 4, 6, 8, 12, 16, 24, 32])
+    for (const memory of [undefined, 1, 2, 4, 8, 16])
+      for (const power of ['eco', 'balanced', 'max'])
+        for (const device of ['wasm', 'webgpu'])
+          assert.deepEqual({ ...R.limits(threads, memory, power, device) }, old(threads, memory, power, device));
+  // Exemple de decision.md §15.12 : Ryzen 5, 12 fils, puissance équilibrée
+  assert.deepEqual({ ...R.limits(12, 8, 'balanced', 'wasm') }, { start: 3, normal: 3, boost: 4, max: 4 });
+});
+
+await test('recommandation : modèle recommandé, modèles grisés avec leur raison', async () => {
+  const R = L.Recommend;
+  const catalog = await manifestCatalog();
+  const pick = (hw, installed) => R.choose(catalog, { threads: null, memory: null, gpu: null, ...hw }, installed);
+  // Sans carte graphique : les modèles « carte graphique » sont grisés, raison donnée
+  let r = pick({ threads: 8, memory: 8 });
+  for (const o of r.options) {
+    const gpuModel = catalog.find((m) => m.id === o.id).device === 'webgpu';
+    assert.equal(o.usable, !gpuModel, o.id);
+    assert.equal(o.reason, gpuModel ? 'gpu' : null, o.id);
   }
+  // 8 fils : 2 moteurs en puissance équilibrée, small suit le direct
+  assert.equal(r.recommended, 'whisper-small');
+  assert.equal(r.workers, 2);
+  // 4 fils : 1 moteur, small ne suit pas une parole continue (charge mesurée 1,44)
+  assert.equal(pick({ threads: 4, memory: 8 }).recommended, 'whisper-base');
+  // Peu de mémoire : 1 moteur au plus, comme pendant les réunions
+  assert.equal(pick({ threads: 16, memory: 2 }).recommended, 'whisper-base');
+  // Navigateur muet (aucune information) : 4 fils supposés, comme pendant les réunions
+  assert.equal(pick({}).recommended, 'whisper-base');
+  // Carte graphique présente : modèles utilisables, mais jamais recommandés (vitesse non mesurée)
+  r = pick({ threads: 16, memory: 8, gpu: { vendor: 'x' } });
+  assert.ok(r.options.every((o) => o.usable));
+  assert.equal(r.recommended, 'whisper-small');
+  // Déjà installés : marqués comme tels
+  r = pick({ threads: 8, memory: 8 }, ['whisper-small', 'whisper-base']);
+  assert.ok(r.options.find((o) => o.id === 'whisper-small').installed);
+  // Catalogue réduit : repli sur ce qui existe
+  assert.equal(R.choose([{ id: 'whisper-small', device: 'wasm' }], { threads: 4 }).recommended, 'whisper-small');
+  assert.equal(R.choose([], { threads: 4 }).recommended, null);
 });
 
 await test('note en anglais : en-tête, libellés et nom de fichier traduits', () => {

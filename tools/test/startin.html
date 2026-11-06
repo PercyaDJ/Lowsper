@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'">
+<title>Lowsper : essai de showDirectoryPicker (startIn)</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 760px; margin: 32px auto; padding: 0 16px; }
+  button { font: inherit; padding: 6px 14px; margin: 4px 0; display: block; }
+  pre { background: #f2f4f3; padding: 12px; white-space: pre-wrap; }
+</style>
+<h1>Essai de la fenêtre « Sélectionner un dossier »</h1>
+<p>
+  Page d'essai pour le lot R3 (decision.md §26). Elle n'écrit rien et ne fait aucune requête
+  réseau. Ouvrez-la dans Chrome, puis dans Edge, depuis le dossier <code>tools/test</code> (double
+  clic). Pour chaque bouton : notez <strong>dans quel dossier la fenêtre s'ouvre</strong>, puis
+  choisissez n'importe quel dossier (ou annulez). Copiez enfin le journal en bas de page.
+</p>
+<p>Dossier de cette page : <code id="here"></code></p>
+<button data-opts='{"id":"lowsper-essai-a","mode":"readwrite"}'>1. Comme aujourd'hui : id seul</button>
+<button data-opts='{"id":"lowsper-essai-a","mode":"readwrite"}'>2. Même id, une seconde fois (le navigateur s'en souvient-il ?)</button>
+<button data-opts='{"id":"lowsper-essai-b","mode":"readwrite","startIn":"documents"}'>3. startIn : « documents »</button>
+<button data-opts='{"id":"lowsper-essai-c","mode":"readwrite","startIn":"downloads"}'>4. startIn : « downloads »</button>
+<button data-path>5. startIn : chemin de cette page (texte libre)</button>
+<button data-handle>6. startIn : le dossier choisi au bouton 1 (accès déjà donné)</button>
+<pre id="log"></pre>
+<script>
+  const log = (m) => (document.getElementById('log').textContent += m + '\n');
+  let p = decodeURIComponent(location.pathname).replace(/\/[^/]*$/, '');
+  if (/^\/[A-Za-z]:\//.test(p)) p = p.slice(1).replace(/\//g, '\\');
+  document.getElementById('here').textContent = p;
+  log('Navigateur : ' + navigator.userAgent);
+  log('showDirectoryPicker présent : ' + (typeof showDirectoryPicker === 'function'));
+  let first = null;
+  async function pick(label, opts) {
+    try {
+      const dir = await showDirectoryPicker(opts);
+      if (!first) first = dir;
+      log(`${label} : dossier choisi « ${dir.name} » (options ${JSON.stringify(opts, (k, v) => (v instanceof FileSystemHandle ? 'handle:' + v.name : v))})`);
+    } catch (e) {
+      log(`${label} : ${e.name} : ${e.message}`);
+    }
+  }
+  for (const b of document.querySelectorAll('button')) {
+    b.addEventListener('click', () => {
+      const label = b.textContent.split(' ')[0].replace('.', '');
+      if (b.hasAttribute('data-path')) return pick('5', { id: 'lowsper-essai-d', mode: 'readwrite', startIn: p });
+      if (b.hasAttribute('data-handle')) {
+        if (!first) return log('6 : cliquez d’abord sur le bouton 1 et choisissez un dossier');
+        return pick('6', { id: 'lowsper-essai-e', mode: 'readwrite', startIn: first });
+      }
+      pick(label, JSON.parse(b.dataset.opts));
+    });
+  }
+</script>
+</html>

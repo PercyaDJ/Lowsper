@@ -208,6 +208,21 @@ await page.addInitScript((pcmB64) => {
 let t0 = Date.now();
 await page.goto(pathToFileURL(join(site, 'Lowsper.html')).href);
 await page.waitForSelector('#view-install:not([hidden])');
+// Écran de bienvenue (decision.md §26) : ce qui est détecté, un seul choix, le recommandé coché
+const welcome = await page.evaluate(() => ({
+  chips: [...document.querySelectorAll('#hw-chips li')].map((li) => li.textContent),
+  radios: document.querySelectorAll('input[name="model-choice"][type="radio"]').length,
+  checked: [...document.querySelectorAll('input[name="model-choice"]:checked')].map((i) => i.value),
+  best: [...document.querySelectorAll('.badge.best')].map((b) => b.closest('label').querySelector('input').value),
+  folder: document.getElementById('page-folder').textContent,
+}));
+console.log(`Bienvenue : ${welcome.chips.join(' · ')} ; recommandé : ${welcome.best.join(', ')}`);
+if (!welcome.chips.some((c) => /processeurs? logiques?/.test(c))) throw new Error('cœurs non affichés');
+if (welcome.checked.length !== 1 || welcome.checked[0] !== welcome.best[0])
+  throw new Error('le modèle recommandé doit être le seul coché : ' + JSON.stringify(welcome));
+if (!welcome.folder) throw new Error('dossier détecté non affiché');
+// Le test porte sur Whisper small (qualité attendue ci-dessous), quel que soit le recommandé ici
+await page.check('input[name="model-choice"][value="whisper-small"]');
 const installLabel = await page.textContent('#install');
 console.log(`Bouton d'installation : ${installLabel}`);
 await page.screenshot({ path: join(out, '0-installation.png') });

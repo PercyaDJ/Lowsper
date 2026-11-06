@@ -29,7 +29,7 @@ Chaque lot respecte `AGENTS.md`, et en particulier :
 |---|---|---|---|
 | R1 | Fondations visuelles : couleurs, thème, style commun | 3.5.0 | Livré |
 | R2 | Interface en français et en anglais | Non publiée | Livré |
-| R3 | Premier lancement guidé | Non publiée | À faire |
+| R3 | Premier lancement guidé | Non publiée | Livré |
 | R4 | Accueil | Non publiée | À faire |
 | R5 | Réunion : mini-fenêtre et fenêtre agrandie | Non publiée | À faire |
 | R6 | Fin de réunion et consignes réécrites | Non publiée | À faire |
@@ -74,7 +74,13 @@ des vocabulaires métier (lot R8) et l'essai de l'IA intégrée sur la réunion 
 - **Règle** : la contrainte n° 5 d'`AGENTS.md` passe à « interface en français et en anglais ».
   Le README anglais est mis à jour.
 
-## R3 : premier lancement guidé
+## R3 : premier lancement guidé (livré)
+
+Livré, voir `decision.md` §26. Choix du mainteneur en cours de lot : un seul modèle à choisir
+(comme la maquette) ; règle de recommandation mesurée sur le conteneur de développement, à
+ajuster avec `npm run bench -- --cores` lancé sur un ou deux vrais PC ; `startIn` à vérifier par le
+mainteneur avec `tools/test/startin.html`. Les modèles « carte graphique » ne sont jamais
+recommandés d'office (vitesse non mesurée).
 
 Voir `refonte.md` §2.
 - **Avant de coder** : mesurer, avec `npm run bench`, la vitesse de Whisper base et de Whisper
@@ -166,7 +172,7 @@ Voir `refonte.md` §9.
 
 ## Texte pour ouvrir la session suivante
 
-Remplacer `R3` par le lot voulu, et sa ligne d'objectif par celle du tableau.
+Remplacer `R4` par le lot voulu, et sa ligne d'objectif par celle du tableau.
 
 ```text
 Tu travailles sur le dépôt PercyaDJ/Lowsper (application de transcription de réunions 100 %
@@ -176,7 +182,7 @@ Avant tout, lis AGENTS.md (règles non négociables), docs/refonte.md (spécific
 refonte) et docs/lots.md (plan des lots). Les maquettes validées sont sur
 https://claude.ai/artifact/KeT2Rk6qFNieqFozpFJxMx : lis-les si tu as l'outil Artifact.
 
-Ta mission : réaliser le lot R3 de docs/lots.md (premier lancement guidé), et
+Ta mission : réaliser le lot R4 de docs/lots.md (accueil), et
 seulement ce lot. Respecte toutes les règles d'AGENTS.md. Mesure au lieu de supposer, et si
 un point n'est pas vérifiable, écris-le comme non vérifié.
 

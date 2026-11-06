@@ -20,7 +20,8 @@
     "test:release": "node test/release.mjs",
     "test:localai": "node test/localai.mjs",
     "test:i18n": "node test/i18n.mjs",
-    "test": "npm run lint && npm run format:check && npm run test:unit && npm run test:release && npm run test:csp && npm run test:localai && npm run test:i18n && npm run test:import",
+    "test:welcome": "node test/welcome.mjs",
+    "test": "npm run lint && npm run format:check && npm run test:unit && npm run test:release && npm run test:csp && npm run test:localai && npm run test:i18n && npm run test:welcome && npm run test:import",
     "bench": "node test/bench.mjs",
     "release": "node release.mjs"
   },

@@ -109,6 +109,9 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Qualité sur corpus réaliste | `node test/eval-hebdo.mjs whisper-small` |
 | Sonde de l'IA intégrée, page en `file://`, fausse IA (20 s, Chromium) | `npm run test:localai` |
 | Interface en français et en anglais : catalogue, page, bascule (5 s, Chromium) | `npm run test:i18n` |
+| Écran de bienvenue : matériel simulé, recommandation, installation simulée (10 s, Chromium) | `npm run test:welcome` |
+| Vitesse des modèles selon le nombre de moteurs (après `--embed whisper-small whisper-base`) | `npm run bench -- --cores` |
+| Essai à la main de la fenêtre de choix de dossier (`startIn`) dans Chrome et Edge | ouvrir `tools/test/startin.html` |
 | Étude du résumé local (modèles dans `.cache/llm`, decision.md §22) | `node test/eval-summary.mjs <modèle> [--dtype=q8\|q4] [--sanity] [--long]` |
 
 Chromium : si Playwright ne trouve pas son navigateur, définissez `CHROMIUM_PATH`. Le test de
@@ -126,6 +129,7 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 |---|---|
 | `Lowsper.html` | Page à ouvrir : interface et politique de sécurité (CSP) |
 | `app/js/theme.js` | Thème clair ou sombre (système par défaut, choix mémorisé), chargé dans `<head>` |
+| `app/js/recommend.js` | Détection du PC, moteurs autorisés, modèle recommandé au premier lancement (`decision.md` §26) |
 | `app/js/i18n.js` | Langue de l'interface : catalogues `fr` et `en`, `t(clé, variables)`, attributs `data-i18n`, chargé avant les autres scripts |
 | `app/js/browser.js` | Reconnaissance du navigateur (Brave, Edge, Chrome, Firefox) et messages quand l'écriture dans un dossier est impossible |
 | `app/js/engine.js` | Chargement des fichiers embarqués, moteur Whisper dans un Worker (glossaire, langue, reprise, boucles) |

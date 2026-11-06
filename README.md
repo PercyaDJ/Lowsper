@@ -55,10 +55,15 @@ réunion qui travaille hors ligne.
    **Dézippez-le** où vous voulez (clic droit, « Extraire tout »), par exemple dans Documents.
 2. **Double-cliquez sur `Lowsper.html`**. Il s'ouvre dans votre navigateur (Edge ou Chrome).
    Si un autre navigateur s'ouvre : clic droit sur le fichier, « Ouvrir avec », Microsoft Edge.
-3. **Premier lancement uniquement** : cochez le ou les modèles voulus (Whisper small est coché par
-   défaut), cliquez sur « Installer », sélectionnez le **dossier Lowsper** (celui qui contient
-   `Lowsper.html`) et acceptez que Lowsper y enregistre des fichiers. Le téléchargement (environ
-   250 Mo) prend une à quelques minutes, la page redémarre toute seule à la fin.
+3. **Premier lancement uniquement** : l'écran de bienvenue montre ce que Lowsper a détecté sur
+   votre PC (processeurs, mémoire, carte graphique) et coche le modèle **« Le meilleur pour ce
+   PC »**. Cliquez sur **« Télécharger et installer »**, puis, dans la fenêtre du navigateur,
+   choisissez le **dossier Lowsper** affiché à l'écran (celui qui contient `Lowsper.html`) et
+   acceptez que Lowsper y enregistre des fichiers. Le téléchargement (80 à 330 Mo selon le modèle)
+   prend une à quelques minutes, la page redémarre toute seule à la fin. Ce même accord sert
+   ensuite à garder une copie de vos réglages dans ce dossier.
+
+   ![Écran de bienvenue : détection du PC, modèle recommandé, dossier, un seul bouton](docs/images/bienvenue.png)
 4. Dans les **paramètres** (roue crantée en haut à droite), cochez votre **vocabulaire métier**
    (cybersécurité, informatique, gestion de projet) et remplissez une fois pour toutes le champ
    **« Sigles et noms propres »** avec le vocabulaire de vos réunions (ex. `Ombrelune, projet Atlas,
@@ -205,15 +210,18 @@ sur 35. Le son d'une visio est compressé : Whisper small y fait nettement plus 
 micro. Sur un PC équipé d'une carte graphique, le modèle « large-v3 turbo » est bien plus précis.
 
 **Quel modèle choisir ?**
-- « Whisper small » (recommandé, 250 Mo) : bon compromis, fonctionne sur tous les PC.
+Celui que l'écran de bienvenue marque **« Le meilleur pour ce PC »** : Lowsper le choisit d'après le
+nombre de processeurs et la mémoire, pour que la transcription suive la réunion en direct
+(règle et mesures : `decision.md` §26).
+- « Whisper small » (330 Mo avec son modèle de secours) : précis ; recommandé à partir de 5
+  processeurs logiques et 4 Go de mémoire.
+- « Whisper base » (80 Mo) : plus rapide, moins précis ; recommandé en dessous.
 - « Whisper small (carte graphique) » et « Whisper large-v3 turbo » (le plus précis, 760 Mo) :
-  utilisent la carte graphique, proposés seulement si le PC en a une compatible.
-- « Whisper base » (80 Mo) : pour un PC ancien.
+  utilisent la carte graphique ; grisés si le PC n'en a pas de compatible. Jamais recommandés
+  d'office : leur vitesse n'a pas encore été mesurée.
 Un modèle plus précis n'est pas plus rapide. Pendant la réunion, l'indicateur « Charge du moteur »
-doit rester sous 100 % ; sinon, installez un modèle plus rapide (paramètres, « Installer ou ajouter des modèles »). Plusieurs
-modèles peuvent être installés en une fois ; un sélecteur apparaît alors dans les paramètres. Un
-modèle « carte graphique » peut être installé même sur un PC sans carte compatible, pour copier
-ensuite le dossier Lowsper vers un PC équipé.
+doit rester sous 100 % ; sinon, installez un modèle plus rapide (paramètres, « Installer ou ajouter
+des modèles », un modèle à la fois). Un sélecteur apparaît alors dans les paramètres.
 
 **Mes sigles et réglages ont disparu après avoir fermé le navigateur.**
 Beaucoup de postes d'entreprise effacent les données du navigateur à la fermeture. Lowsper en garde
@@ -395,7 +403,8 @@ et `decision.md`) :
    anglais et en français, installation guidée selon la puissance du PC, mini-fenêtre réduite au
    strict nécessaire. Spécifications : [docs/refonte.md](docs/refonte.md), plan des lots : [docs/lots.md](docs/lots.md).
    Livré : nouvelles couleurs, thème clair ou sombre (3.5.0) ; interface en français et en
-   anglais (lot R2, publié avec la 4.0.0).
+   anglais (lot R2) ; premier lancement guidé avec recommandation du modèle (lot R3). Les lots R2
+   et suivants seront publiés ensemble avec la 4.0.0.
 2. **Langues parlées multiples et vocabulaires métier élargis**, après mesure de la qualité.
 3. **Mémoire des voix plus fiable** d'une visio à l'autre, après mesure.
 4. **Résumé local** : la piste de l'IA intégrée du navigateur reste à l'étude (`decision.md`
@@ -441,6 +450,7 @@ Structure :
 Lowsper.html          page à ouvrir (interface + politique de sécurité)
 app/css/              styles
 app/js/i18n.js        langue de l'interface : catalogues français et anglais, fonction t()
+app/js/recommend.js   détection du PC et modèle recommandé au premier lancement
 app/js/engine.js      chargement des fichiers, moteur Whisper dans un Worker (glossaire, langue)
 app/js/installer.js   installation du modèle au premier lancement
 app/js/settings.js    réglages copiés dans le dossier (survivent au nettoyage du navigateur)

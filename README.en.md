@@ -39,8 +39,10 @@ Settings, « Display », « App language »). The full documentation is in Frenc
 1. Download `Lowsper-X.Y.Z.zip` from the [latest release](https://github.com/PercyaDJ/Lowsper/releases/latest)
    and unzip it.
 2. Open `Lowsper.html` in Edge or Chrome.
-3. First launch only: pick a model, click « Install » and select the Lowsper folder. The model
-   (about 250 MB for Whisper small) is downloaded once and stored next to the page.
+3. First launch only: the welcome screen shows what Lowsper found on your PC (processors, memory,
+   graphics card) and ticks the model « Best for this PC ». Click « Download and install » and
+   select the Lowsper folder shown on screen. The model (80 to 330 MB) is downloaded once and
+   stored next to the page.
 4. Click « Start recording », share your screen **with audio**, allow the microphone.
 5. Click « Stop »: the `.md` transcript lands in your Downloads folder.
 
