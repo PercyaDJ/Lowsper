@@ -19,23 +19,23 @@ Chaque lot respecte `AGENTS.md`, et en particulier :
 À la fin de chaque lot, mettre à jour l'état dans le tableau ci-dessous.
 
 **Versions** (décision du mainteneur) :
-- la refonte est publiée en une seule fois, en version 4.0.0, à la fin du dernier lot ;
-- les lots R2 à R8 ne changent pas la version de `tools/package.json` et ne publient pas de
-  release. Leurs changements s'ajoutent à la section « Non publié » du CHANGELOG ;
-- le dernier lot passe la version à 4.0.0, renomme cette section en `[4.0.0]`, puis le
-  mainteneur publie la release `v4.0.0`.
+- les lots R2 à R7 sont publiés ensemble en version 4.0.0 (décision du 6 novembre 2026 : publier
+  sans attendre R8 et R9) ;
+- R8 et R9 ont chacun leur version mineure (4.1.0, puis 4.2.0) : le lot passe la version de
+  `tools/package.json`, renomme la section « Non publié » du CHANGELOG, puis le mainteneur publie
+  la release correspondante.
 
 | Lot | Contenu | Version | État |
 |---|---|---|---|
 | R1 | Fondations visuelles : couleurs, thème, style commun | 3.5.0 | Livré |
-| R2 | Interface en français et en anglais | Non publiée | Livré |
-| R3 | Premier lancement guidé | Non publiée | Livré |
-| R4 | Accueil | Non publiée | Livré |
-| R5 | Réunion : mini-fenêtre et fenêtre agrandie | Non publiée | Livré |
-| R6 | Fin de réunion et consignes réécrites | Non publiée | Livré |
-| R7 | Réglages en onglets | Non publiée | Livré |
-| R8 | Langues parlées multiples et vocabulaires métier élargis | Non publiée | À faire |
-| R9 | Mémoire des voix d'une visio à l'autre | 4.0.0 | À faire |
+| R2 | Interface en français et en anglais | 4.0.0 | Livré |
+| R3 | Premier lancement guidé | 4.0.0 | Livré |
+| R4 | Accueil | 4.0.0 | Livré |
+| R5 | Réunion : mini-fenêtre et fenêtre agrandie | 4.0.0 | Livré |
+| R6 | Fin de réunion et consignes réécrites | 4.0.0 | Livré |
+| R7 | Réglages en onglets | 4.0.0 | Livré |
+| R8 | Langues parlées multiples et vocabulaires métier élargis | 4.1.0 | À faire |
+| R9 | Mémoire des voix d'une visio à l'autre | 4.2.0 | À faire |
 
 ## R1 : fondations visuelles (livré)
 
