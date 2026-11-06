@@ -33,7 +33,7 @@ Chaque lot respecte `AGENTS.md`, et en particulier :
 | R4 | Accueil | Non publiée | Livré |
 | R5 | Réunion : mini-fenêtre et fenêtre agrandie | Non publiée | Livré |
 | R6 | Fin de réunion et consignes réécrites | Non publiée | Livré |
-| R7 | Réglages en onglets | Non publiée | À faire |
+| R7 | Réglages en onglets | Non publiée | Livré |
 | R8 | Langues parlées multiples et vocabulaires métier élargis | Non publiée | À faire |
 | R9 | Mémoire des voix d'une visio à l'autre | 4.0.0 | À faire |
 
@@ -151,7 +151,13 @@ Voir `refonte.md` §6 et §7.
   de `refonte.md` §7, en français et en anglais. Les consignes déjà modifiées par l'utilisateur
   sont conservées telles quelles (règle de rétrocompatibilité).
 
-## R7 : réglages en onglets
+## R7 : réglages en onglets (livré)
+
+Livré, voir `decision.md` §30. Choix du mainteneur en cours de lot : les emplacements sans dossier
+choisi, dont « Par défaut », passent à `Lowsper/Notes/<emplacement>` (Téléchargements en secours
+sans accès au dossier Lowsper) ; le nom du sous-dossier est figé (à la première note écrite, pour
+ne pas figer « Nouvel emplacement ») ; les empreintes vocales ne sont jamais exportées. Non
+vérifié : si Chrome et Edge gardent l'accord au dossier Lowsper après un redémarrage.
 
 Voir `refonte.md` §8.
 - **Organisation** : trois onglets (Transcription, Notes et compte rendu, Avancé), des listes
@@ -187,7 +193,7 @@ Voir `refonte.md` §9.
 
 ## Texte pour ouvrir la session suivante
 
-Remplacer `R7` par le lot voulu, et sa ligne d'objectif par celle du tableau.
+Remplacer `R8` par le lot voulu, et sa ligne d'objectif par celle du tableau.
 
 ```text
 Tu travailles sur le dépôt PercyaDJ/Lowsper (application de transcription de réunions 100 %
@@ -197,8 +203,9 @@ Avant tout, lis AGENTS.md (règles non négociables), docs/refonte.md (spécific
 refonte) et docs/lots.md (plan des lots). Les maquettes validées sont sur
 https://claude.ai/artifact/KeT2Rk6qFNieqFozpFJxMx : lis-les si tu as l'outil Artifact.
 
-Ta mission : réaliser le lot R7 de docs/lots.md (réglages en onglets), et seulement ce lot. Respecte toutes les règles d'AGENTS.md. Mesure au lieu de supposer, et si
-un point n'est pas vérifiable, écris-le comme non vérifié.
+Ta mission : réaliser le lot R8 de docs/lots.md (langues parlées multiples et vocabulaires
+métier élargis), et seulement ce lot. Respecte toutes les règles d'AGENTS.md. Mesure au lieu de
+supposer, et si un point n'est pas vérifiable, écris-le comme non vérifié.
 
 Si un choix important n'est pas couvert par les spécifications, pose-moi la question avant
 de le trancher.

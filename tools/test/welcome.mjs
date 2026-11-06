@@ -75,6 +75,8 @@ async function open({ threads, memory, gpu = false, locale = 'fr-FR', installed 
   // Modèle déjà installé : l'écran s'ouvre depuis les paramètres, « Installer ou ajouter des modèles »
   if (installed) {
     await page.click('#settings-open');
+    await page.click('#tab-advanced');
+    await page.click('[data-open="model"]');
     await page.click('#add-model');
   }
   await page.waitForSelector('#view-install:not([hidden])');

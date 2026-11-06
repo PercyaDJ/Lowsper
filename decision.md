@@ -1883,3 +1883,134 @@ passage :
   redessinait à chaque frappe : la saisie d'un nom ne redessine donc que les étiquettes.
 - Les guillemets « » du texte anglais viennent de la spécification validée ; le reste de
   l'interface anglaise utilise “ ”.
+
+## 30. Refonte, lot R7 : réglages en onglets
+
+**Contexte.** Les paramètres étaient une longue page de sept rubriques, avec dix listes
+déroulantes natives, des cases à cocher et des éditeurs empilés (profils, consignes, sonde de
+l'IA). La refonte (`docs/refonte.md` §8, maquette validée « Paramètres ») les range en trois
+onglets, en listes groupées, chaque élément à choix ouvrant un sous-écran.
+
+**Organisation.**
+- **Transcription** : Langues (langue de l'interface, langue parlée), Mots (« Mots à
+  reconnaître », « Corrections automatiques », « Vocabulaire métier »), Pendant la réunion (son
+  de la réunion, reconnaître qui parle, nombre de personnes, mini-fenêtre, « Avant de
+  commencer »).
+- **Notes et compte rendu** : Où vont les notes (« Emplacement », « Dossier », « Format de la
+  note »), Compte rendu (« Consigne », « Modifier les consignes »), « Ajouter un emplacement ».
+- **Avancé** : Reconnaissance vocale (modèle, vitesse, mesure de vitesse), Affichage (thème),
+  Voix (mémoire des voix), Sauvegarde (exporter, importer), Expérimental (IA intégrée), Aide
+  (journal technique).
+- **Hors maquette, placés par nous** : le thème (la maquette ne montre qu'un bouton d'essai) va
+  dans Avancé › Affichage ; le nombre de personnes et « Avant de commencer », réglages des lots R4
+  et R5, vont dans « Pendant la réunion ». La langue parlée garde ses trois choix actuels : la liste
+  à cocher de plusieurs langues est le lot R8.
+- **Nouveaux noms**, chacun expliqué sous sa ligne : « Mots à reconnaître » (donnés à Whisper
+  avant la transcription, sans garantie), « Corrections automatiques » (appliquées après, à
+  chaque fois), « Emplacement » (ancien « profil » : un dossier et un format de note), « Format
+  de la note » (« Texte simple » ou « Pour les applications de notes »). « Profil » disparaît de
+  l'interface ; dans le code et dans `app/reglages.txt`, les clés restent `lowsper.profiles` et
+  `lowsper.profile`, et la variable de modèle `{{profil}}` ne change pas (rétrocompatibilité).
+- **Format de la note** : « Texte simple » est l'ancien format classique, « Pour les applications
+  de notes » l'ancien « modèle » (propriétés, étiquettes, liens `[[Nom]]`, modèle et nom de
+  fichier). Les réglages avancés du modèle restent dans le même sous-écran, sous le choix.
+
+**Composant commun `app/js/panel.js`** (comme `menu.js` au §27).
+- **Onglets** : motif WAI-ARIA « tabs », flèches gauche et droite, Début, Fin ; un seul onglet
+  dans l'ordre de tabulation.
+- **Sous-écrans** : une ligne `[data-open]` ouvre sa page ; le focus va au titre ; « ‹ Paramètres »
+  ou Échap reviennent à l'écran principal, le focus sur la ligne d'origine. Échap n'y ferme pas la
+  fenêtre (événement `cancel` intercepté) ; un second Échap la ferme. Un seul niveau de sous-écran.
+- **Listes à choix** : choix unique en `role="radiogroup"` (flèches, le choix suit le focus,
+  appliqué tout de suite), choix multiple en `role="checkbox"`. Plus aucune liste déroulante native
+  dans les paramètres (principe 2 de la refonte, vérifié par `npm run test:settings`).
+
+**Sauvegarde : exporter et importer.**
+- **Exporter** télécharge `lowsper-reglages_AAAA-MM-JJ.json`, un JSON lisible :
+  `{ "lowsper": "reglages", "version": 1, "exportedAt": ..., "data": { ... } }`.
+- **Restent sur ce PC** : les empreintes vocales (`lowsper.voices.*`, donnée biométrique ; choix
+  du mainteneur), les mesures de vitesse (`lowsper.speed.*`) et le modèle choisi
+  (`lowsper.model`), propres au matériel. La phrase sous la rubrique le dit. Comme pour
+  `app/reglages.txt`, la réunion en cours n'est jamais copiée.
+- **Importer** accepte un export, ou une copie de `app/reglages.txt` (même filtre : ses empreintes
+  vocales sont ignorées). Les réglages du fichier remplacent ceux du navigateur, les autres
+  restent. Une confirmation, puis la page se recharge et dit combien de réglages ont été importés.
+  Un fichier qui n'en contient pas : message clair, rien n'est touché.
+- **Accès aux dossiers** : un export ne contient aucun accès de navigateur (ils ne sont pas
+  exportables). Sur l'autre PC, un emplacement avec un dossier choisi demande de le redésigner.
+- **Le bouton « Conserver mes réglages dans le dossier Lowsper » disparaît** (§8.3). L'accord au
+  dossier est demandé à l'installation (§26) ; sinon, au plus tard à la fermeture des paramètres,
+  comme avant. La phrase sous « Mots » dit l'état réel : « Enregistrés dans le dossier Lowsper :
+  toujours là après un redémarrage du PC. », « Pas encore copiés... » ou, dans un navigateur sans
+  accès aux dossiers, « Gardés par ce navigateur seulement ».
+
+**Dossier de notes par défaut : `Lowsper/Notes/<emplacement>`** (refonte §8.5).
+- **Règle** (choix du mainteneur) : un emplacement avec un dossier choisi le garde. Un emplacement
+  sans dossier choisi, dont « Par défaut », écrit désormais dans `Notes/<emplacement>`, dans le
+  dossier Lowsper accordé à l'installation, et non plus dans les Téléchargements. Changement
+  visible, signalé dans le CHANGELOG.
+- **Repli** : sans dossier Lowsper accordé (Firefox, accord jamais donné), la note part dans les
+  Téléchargements, comme avant. Accord à redemander (`queryPermission` différent de `granted`) :
+  l'accueil propose « Autoriser maintenant », et l'écran de fin « Enregistrer aussi dans le
+  dossier », comme pour un dossier choisi (§20).
+- **Nom figé** (choix du mainteneur : renommer ne doit pas disperser les notes). Le sous-dossier
+  prend le nom de l'emplacement, nettoyé des caractères interdits sous Windows, et ce nom est
+  enregistré dans l'emplacement (`subfolder`) à la première note écrite. Il est figé à la première
+  note plutôt qu'à la création : « Ajouter un emplacement » crée « Nouvel emplacement », que
+  l'utilisateur renomme aussitôt ; le figer à la création aurait créé un dossier « Nouvel
+  emplacement ». La page « Dossier » le dit.
+- **Pas de dossier créé pour rien** : la vérification de l'accueil ne crée rien ; `Notes` et le
+  sous-dossier sont créés au moment d'écrire.
+- **Compatibilité** : un ancien emplacement n'a pas de `subfolder` ; il est complété à vide,
+  aucune migration. Une version plus ancienne de Lowsper qui relit ces réglages ignore le champ.
+- **Mise à jour de Lowsper** : les notes sont dans le dossier de la version utilisée. Le README
+  dit de copier aussi le dossier `Notes` vers la nouvelle version, comme `app/models` et
+  `app/reglages.txt`. Le dépôt ignore `/Notes/`.
+
+**Défauts trouvés en relecture et corrigés.**
+- **Liste écrasée** : dans une page plus haute que la fenêtre (format « Pour les applications de
+  notes »), la liste de choix tombait à 0 pixel de haut. Cause : dans un conteneur flexible qui
+  défile, un bloc à débordement masqué peut rétrécir jusqu'à zéro. Correction : aucun bloc des
+  paramètres ne rétrécit, c'est la page qui défile. Le test vérifie la hauteur de la liste ; il
+  échoue sans la correction (0 px) et passe avec (vérifié dans les deux sens). Les tests de bout en
+  bout ne le voyaient pas : le clic sur un élément invisible passait quand même.
+- **Focus perdu** : un choix qui redessine sa propre liste (thème, langue de l'interface, format)
+  retirait l'élément qui avait le focus ; au clavier, on perdait sa place. Le focus revient
+  désormais sur le choix actuel (test : trois flèches de suite dans la liste des thèmes).
+- **Emplacement montré** : les paramètres s'ouvraient sur le dernier emplacement modifié, pas sur
+  celui choisi à l'accueil. Ils s'ouvrent maintenant sur celui de l'accueil (trouvé par le test de
+  bout en bout des notes).
+
+**Journal technique dans les paramètres** (Avancé › Aide), en plus de l'écran de fin. La maquette
+promet « Ne contient aucun texte de réunion » : vérifié en relisant chaque appel de `journal()`
+dans `app.js` (début, fin, santé du moteur, erreurs, couverture, emplacement de la note : aucun
+texte transcrit).
+
+**Tests.**
+- Unitaires : export sans empreintes vocales ni mesures, import d'un export et d'une copie
+  `app/reglages.txt`, fichiers refusés, réglages de ce PC gardés ; dossier par défaut (accord à
+  demander, simple vérification sans création, écriture, nom figé, repli), noms de dossier sûrs.
+- `npm run test:settings` (nouveau, en CI, 15 s) : onglets au clavier, aucune liste déroulante
+  native, nouveaux noms expliqués, sous-écran (focus, Échap), choix au clavier, valeurs des
+  lignes, export, import et fichier refusé, « Ajouter un emplacement », ni erreur ni réseau.
+- `npm run test:e2e-notes` : création d'un emplacement par les sous-écrans ; avec un dossier
+  Lowsper accordé, note de « Par défaut » écrite dans `Notes/Par défaut` sans téléchargement ;
+  emplacement renommé, sous-dossier inchangé.
+- `npm run test:e2e` : les deux notes de la réunion sont lues dans `Notes/Par défaut` (dossier
+  accordé à l'installation), aucun téléchargement.
+- Tests de l'accueil, de la langue, de la sonde, du premier lancement et captures adaptés aux
+  sous-écrans.
+
+**Charge du moteur.** Pas de mesure avant et après : le chemin du direct n'est pas modifié.
+`engine.js`, `capture.js`, `analyzer.js`, `speakers.js`, `transcript.js`, `meeting.js` et
+`audiofile.js` sont identiques à ceux de `main` (`git diff` vide), et le banc (`npm run bench`) ne
+charge que `engine.js` : il exécuterait le même code. Le réglage « Vitesse » écrit la même clé
+(`lowsper.power`) et appelle le même recalcul qu'avant.
+
+**Limites.**
+- Rendu vérifié dans Chromium (Playwright) seulement, pas dans Edge ni Chrome du commerce.
+- **Non vérifié** : si Chrome et Edge gardent l'accord d'écriture au dossier Lowsper après un
+  redémarrage du navigateur. S'ils le redemandent, l'accueil affiche « Autoriser maintenant » avant
+  la réunion ; sans ce clic, la note part dans les Téléchargements et l'écran de fin propose de
+  l'enregistrer aussi dans le dossier. À observer sur un vrai poste.
+- La langue parlée reste à trois choix jusqu'au lot R8.

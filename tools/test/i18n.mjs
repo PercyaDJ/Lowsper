@@ -98,7 +98,8 @@ await test('navigateur en anglais : interface en anglais, sans reste de françai
   assert.equal(await page.getAttribute('html', 'lang'), 'en');
   await page.click('#settings-open');
   assert.equal(await page.textContent('#settings-title'), 'Settings');
-  assert.equal(await page.inputValue('#ui-lang'), 'en');
+  assert.equal(await page.getAttribute('#ui-lang [data-value="en"]', 'aria-checked'), 'true');
+  assert.equal(await page.textContent('#v-ui-lang'), 'English');
   // Chaque texte marqué est celui du catalogue anglais
   const found = await page.evaluate(collect);
   assert.deepEqual(differs(found, 'en'), []);
@@ -113,8 +114,7 @@ await test('navigateur en anglais : interface en anglais, sans reste de françai
       if (p.closest('[lang="fr"]')) continue; // nom de la langue dans le menu : « Français »
       if (french.test(n.textContent)) out.push(n.textContent.trim().slice(0, 80));
     }
-    // Termes des vocabulaires métier (infobulle) : du contenu, en français jusqu'au lot R8
-    for (const el of document.querySelectorAll('[title]:not(#vocab-list *), [placeholder], [aria-label]'))
+    for (const el of document.querySelectorAll('[title], [placeholder], [aria-label]'))
       for (const a of ['title', 'placeholder', 'aria-label'])
         if (el.hasAttribute(a) && french.test(el.getAttribute(a))) out.push(`${a}: ${el.getAttribute(a)}`);
     return out;
@@ -128,7 +128,8 @@ await test('navigateur en anglais : interface en anglais, sans reste de françai
 await test('réglage « Langue de l’interface » : changement immédiat, choix gardé', async () => {
   const { context, page, errors } = await open('en-US');
   await page.click('#settings-open');
-  await page.selectOption('#ui-lang', 'fr');
+  await page.click('[data-open="ui-lang"]');
+  await page.click('#ui-lang [data-value="fr"]');
   assert.equal(await page.getAttribute('html', 'lang'), 'fr');
   assert.equal(await page.textContent('#settings-title'), 'Paramètres');
   // Textes calculés réécrits aussi (consignes, variables des modèles)
@@ -143,7 +144,8 @@ await test('réglage « Langue de l’interface » : changement immédiat, choix
   assert.equal(await page.evaluate(() => localStorage.getItem('lowsper.opt.lang')), 'fr');
   // Retour à l'anglais, sans recharger
   await page.click('#settings-open');
-  await page.selectOption('#ui-lang', 'en');
+  await page.click('[data-open="ui-lang"]');
+  await page.click('#ui-lang [data-value="en"]');
   assert.equal(await page.inputValue('#ai-name'), 'Meeting minutes');
   assert.equal(await page.textContent('#settings-title'), 'Settings');
   assert.deepEqual(errors, []);

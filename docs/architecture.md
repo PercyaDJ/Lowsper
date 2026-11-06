@@ -38,7 +38,7 @@ flowchart LR
   SPK --> TR[speakers.js<br/>regroupement des voix]
   TR --> T
   REC -->|fin de réunion :<br/>parole jamais transcrite| Q
-  T --> MD[Markdown<br/>Téléchargements]
+  T --> MD[Markdown<br/>Lowsper/Notes, dossier choisi<br/>ou Téléchargements]
 ```
 
 1. **Capture** (`capture.js`). Le micro (« Vous ») et le son du partage d'écran (« Participants »)
@@ -80,7 +80,7 @@ le rattrapage ne servent pas (decision.md §19).
 |---|---|---|
 | `installer.js` | Écrit les modèles dans `app/models/` (dossier choisi par l'utilisateur) | **Seul code réseau** : téléchargement depuis Hugging Face, révision figée, empreinte SHA-256 vérifiée |
 | `settings.js` | Écrit `app/reglages.txt` (réglages, jamais de texte de réunion) | Aucun |
-| `app.js`, `notes.js` | La note : dans le dossier du profil choisi par l'utilisateur (accès accordé au navigateur), sinon par un téléchargement | Aucun |
+| `app.js`, `notes.js` | La note : dans `Notes/<emplacement>` du dossier Lowsper ou dans le dossier choisi pour l'emplacement (accès accordé au navigateur), sinon par un téléchargement | Aucun |
 | Tous les autres | Aucun | Aucun |
 
 La politique de sécurité de `Lowsper.html` interdit tout le reste, et `tools/test/csp.mjs` le
@@ -110,6 +110,7 @@ vérifie à chaque pull request.
 | `tools/test/unit.mjs` | Découpage, assemblage, filtres, voix, couverture, budget de jetons (Node seul) | 16 s |
 | `tools/test/csp.mjs` | Non-fuite réseau : politique, code, navigateur | 15 s |
 | `tools/test/home.mjs` | Accueil : menu « Enregistrer la note dans », fenêtre « Avant de commencer », réglages | 10 s |
+| `tools/test/settings.mjs` | Paramètres en onglets : clavier, sous-écrans, listes dessinées, export et import | 15 s |
 | `tools/test/welcome.mjs` | Écran de bienvenue : matériel simulé, recommandation, menu de langue, installation simulée | 10 s |
 | `tools/test/i18n.mjs` | Interface en anglais sans reste de français, page identique au catalogue français, bascule de langue | 5 s |
 | `tools/test/import.mjs` | Décodage des fichiers importés, 7 formats ; `--long` : 3 h et mémoire | 10 s, 10 min |

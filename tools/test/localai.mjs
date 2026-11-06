@@ -49,6 +49,8 @@ async function open(fake) {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.waitForSelector('#settings-open');
   await page.click('#settings-open');
+  await page.click('#tab-advanced');
+  await page.click('[data-open="lai"]');
   await page.click('#lai-probe');
   await page.waitForFunction(() => !document.getElementById('lai-probe').disabled);
   return { context, page, errors, requests };

@@ -9,3 +9,5 @@ app/models/*
 # Réglages de l'utilisateur, copiés dans le dossier par l'application
 app/reglages.txt
 tools/dist/
+# Notes des réunions, écrites par l'application dans le dossier Lowsper (Notes/<emplacement>)
+/Notes/

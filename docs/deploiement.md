@@ -13,8 +13,9 @@ menace complet est dans [SECURITY.md](../SECURITY.md), l'architecture dans
   vocale depuis Hugging Face. La page déclare une politique de sécurité (CSP) qui interdit toute
   autre connexion ; un test automatique le vérifie à chaque modification du code.
 - **Ce qui est écrit sur le disque** : les modèles (dans le dossier Lowsper), une copie des
-  réglages (`app/reglages.txt`, sans texte de réunion) et les transcripts, téléchargés par
-  l'utilisateur. **Jamais d'audio.**
+  réglages (`app/reglages.txt`, sans texte de réunion) et les transcripts, rangés dans
+  `Notes/<emplacement>` du dossier Lowsper, dans un dossier choisi par l'utilisateur, ou à défaut
+  téléchargés. **Jamais d'audio.**
 - **Code ouvert** (licence MIT), dépendances listées dans `app/engine/THIRD_PARTY_LICENSES.txt`.
 
 ## Flux réseau
@@ -51,7 +52,8 @@ installé, devrait fonctionner, les réglages restant alors dans le seul stockag
 ce cas n'a pas été testé.
 
 **Mise à jour.** Remplacer le dossier par la nouvelle version, en recopiant `app/models` et
-`app/reglages.txt` de l'ancienne : rien n'est perdu (règle de compatibilité du projet).
+`app/reglages.txt` de l'ancienne : rien n'est perdu (règle de compatibilité du projet). Recopier
+aussi le dossier `Notes`, qui contient les notes des utilisateurs.
 
 ## Prérequis navigateur
 
@@ -89,10 +91,11 @@ Voir `decision.md` §23.
 | Donnée | Où | Durée de vie |
 |---|---|---|
 | Audio de la réunion | Mémoire de l'onglet uniquement | Effacé en quittant la page ou à la réunion suivante |
-| Transcript (`.md`) | Dossier Téléchargements, ou dossier choisi par l'utilisateur pour un profil de sortie (base de notes) | Géré par l'utilisateur |
-| Accès au dossier d'un profil | Stockage du navigateur (accord donné par l'utilisateur) | Jusqu'au nettoyage du navigateur |
+| Transcript (`.md`) | `Notes/<emplacement>` du dossier Lowsper, ou dossier choisi par l'utilisateur pour un emplacement (base de notes) ; Téléchargements sans accès au dossier | Géré par l'utilisateur |
+| Accès au dossier Lowsper et au dossier d'un emplacement | Stockage du navigateur (accord donné par l'utilisateur) | Jusqu'au nettoyage du navigateur |
 | Copie de secours du transcript en cours | Stockage local du navigateur | Effacée à la réunion suivante |
-| Réglages (glossaire, vocabulaire, préférences, profils de sortie) | Stockage du navigateur et `app/reglages.txt` | Jusqu'à modification |
+| Réglages (glossaire, vocabulaire, préférences, emplacements) | Stockage du navigateur et `app/reglages.txt` | Jusqu'à modification |
+| Export des réglages (facultatif) | Fichier `lowsper-reglages_AAAA-MM-JJ.json`, téléchargé à la demande | Géré par l'utilisateur ; sans empreinte vocale |
 | Empreintes vocales (facultatif, désactivé par défaut) | Stockage du navigateur | Effacement automatique après 1, 3 ou 6 mois, ou à la demande |
 | Journal technique (facultatif) | Téléchargé à la demande | Ne contient aucun texte de réunion |
 

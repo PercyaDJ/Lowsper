@@ -50,6 +50,8 @@ jobs:
         run: npm run test:welcome
       - name: Accueil (menu, fenêtre « Avant de commencer », réglages)
         run: npm run test:home
+      - name: Paramètres en onglets (sous-écrans, clavier, export et import)
+        run: npm run test:settings
       # Décodage des fichiers importés : Google Chrome, préinstallé sur les machines de GitHub,
       # lit les formats brevetés (AAC, MP3), comme Edge et Chrome chez l'utilisateur
       - name: Décodage des fichiers audio importés

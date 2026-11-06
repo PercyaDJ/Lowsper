@@ -1,8 +1,9 @@
 /*
  * Lowsper : profils de sortie et notes Markdown.
  *
- * Un profil (« Personnel », « Travail »...) dit où et sous quelle forme arrive la note d'une
- * réunion : dossier de destination (une base de notes de type Obsidian, ou les Téléchargements),
+ * Un profil, appelé « emplacement » dans l'interface (« Personnel », « Travail »...), dit où et sous
+ * quelle forme arrive la note d'une réunion : dossier de destination (par défaut
+ * Lowsper/Notes/<emplacement>, ou un dossier choisi, comme une base de notes de type Obsidian),
  * nom du fichier, propriétés en tête de note (front matter YAML), modèle de note à variables,
  * intervenants nommés écrits en liens [[Nom]].
  *
@@ -13,6 +14,11 @@
  * app/reglages.txt). L'accès à un dossier, lui, est un droit accordé par le navigateur : il est
  * gardé dans IndexedDB et ne survit pas à un nettoyage du navigateur ; il faut alors redésigner
  * le dossier (la note part dans les Téléchargements en attendant).
+ *
+ * Sans dossier choisi, la note va dans Lowsper/Notes/<emplacement>, à l'intérieur du dossier
+ * Lowsper déjà accordé à l'installation (settings.js). Le nom du sous-dossier est figé à la
+ * première note écrite : renommer l'emplacement ensuite ne disperse pas les notes (decision.md §30).
+ * Sans accès au dossier Lowsper (Firefox, accord refusé), la note part dans les Téléchargements.
  */
 (function () {
   'use strict';
@@ -69,6 +75,7 @@
       links: false,
       front: { enabled: false, fields: ['date', 'duree', 'intervenants', 'source'], tags: '', extra: '' },
       folderName: '',
+      subfolder: '', // sous-dossier de Lowsper/Notes, figé à la première note écrite
       prompt: 'compte-rendu', // consigne proposée par « Obtenir un résumé »
     };
   }
@@ -97,7 +104,33 @@
     if (!Array.isArray(out.front.fields)) out.front.fields = [];
     out.format = out.format === 'modele' ? 'modele' : 'classique';
     out.name = String(out.name || tx('prof.fallbackName')).slice(0, 40);
+    out.subfolder = typeof out.subfolder === 'string' ? out.subfolder : '';
     return out;
+  }
+
+  /** Nom de dossier sûr sous Windows, macOS et Linux (caractères interdits retirés). */
+  function safeFolderName(name) {
+    const s = [...String(name || '')]
+      .map((c) => (c.charCodeAt(0) < 32 || '\\/:*?"<>|'.includes(c) ? ' ' : c))
+      .join('')
+      .replace(/\s+/g, ' ')
+      .replace(/^[\s.]+|[\s.]+$/g, '')
+      .slice(0, 60)
+      .trim();
+    return /^(con|prn|aux|nul|com\d|lpt\d)$/i.test(s) || !s ? tx('prof.fallbackName') : s;
+  }
+
+  /** Sous-dossier de Lowsper/Notes d'un emplacement : figé s'il a déjà reçu une note, sinon son nom. */
+  const subfolderOf = (p) => p.subfolder || safeFolderName(p.name);
+
+  /**
+   * Où va la note, en clair : le dossier choisi, Lowsper › Notes › <emplacement>, ou les
+   * Téléchargements quand ce navigateur n'a pas accès au dossier Lowsper.
+   */
+  function folderLabel(p, hasLowsper) {
+    if (p.folderName) return p.folderName;
+    if (!hasLowsper) return tx('home.downloads');
+    return tx('prof.lowsperPath', { sub: subfolderOf(p) });
   }
 
   // ---------------------------------------------------------------------------
@@ -477,21 +510,42 @@
     return dir.name;
   }
 
-  /**
-   * État de l'accès au dossier d'un profil : 'aucun' (pas de dossier), 'oublie' (désigné puis
-   * perdu, navigateur nettoyé), 'accorde', ou 'a-demander' (un clic est nécessaire).
-   * interactive : appelé depuis un clic, l'accès peut être redemandé.
-   */
-  async function access(profile, interactive) {
-    if (!profile || !profile.folderName) return { state: 'aucun' };
-    const dir = await getFolder(profile.id);
-    if (!dir) return { state: 'oublie' };
+  // Dossier Lowsper accordé à l'installation (settings.js). Remplaçable par les tests.
+  const lowsper = { get: async () => (Lowsper.Settings ? Lowsper.Settings.folder() : null) };
+
+  async function permission(dir, interactive) {
     let perm = 'prompt';
     try {
       perm = await dir.queryPermission({ mode: 'readwrite' });
       if (perm !== 'granted' && interactive) perm = await dir.requestPermission({ mode: 'readwrite' });
     } catch {}
-    return perm === 'granted' ? { state: 'accorde', dir } : { state: 'a-demander' };
+    return perm === 'granted';
+  }
+
+  /**
+   * État de l'accès au dossier d'un profil : 'aucun' (Téléchargements), 'oublie' (dossier choisi
+   * puis perdu, navigateur nettoyé), 'accorde', ou 'a-demander' (un clic est nécessaire).
+   * kind : 'choisi' (dossier désigné pour ce profil) ou 'lowsper' (Lowsper/Notes/<emplacement>).
+   * interactive : appelé depuis un clic, l'accès peut être redemandé.
+   * write : la note va être écrite, les sous-dossiers de Lowsper/Notes sont créés au besoin.
+   */
+  async function access(profile, interactive, write) {
+    if (!profile) return { state: 'aucun' };
+    if (!profile.folderName) {
+      const base = await lowsper.get();
+      if (!base) return { state: 'aucun' };
+      const sub = subfolderOf(profile);
+      if (!(await permission(base, interactive))) return { state: 'a-demander', kind: 'lowsper', sub };
+      if (!write) return { state: 'accorde', kind: 'lowsper', sub };
+      const notes = await base.getDirectoryHandle('Notes', { create: true });
+      const dir = await notes.getDirectoryHandle(sub, { create: true });
+      return { state: 'accorde', kind: 'lowsper', sub, dir };
+    }
+    const dir = await getFolder(profile.id);
+    if (!dir) return { state: 'oublie', kind: 'choisi' };
+    return (await permission(dir, interactive))
+      ? { state: 'accorde', kind: 'choisi', dir }
+      : { state: 'a-demander', kind: 'choisi' };
   }
 
   async function exists(dir, name) {
@@ -544,6 +598,10 @@
     pickFolder,
     forgetFolder,
     access,
+    lowsper,
+    safeFolderName,
+    subfolderOf,
+    folderLabel,
     writeNote,
     folders,
     BUILTIN_IDS,

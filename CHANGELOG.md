@@ -23,6 +23,41 @@ Les détails techniques et les mesures sont dans `decision.md`.
 - Consignes fournies pour « Copier pour une IA » en français et en anglais. Une consigne modifiée
   par l'utilisateur ne change jamais.
 
+### Ajouté (lot R7)
+- Paramètres en trois onglets : Transcription, Notes et compte rendu, Avancé (decision.md §30).
+  Listes groupées ; chaque élément à choix ouvre un sous-écran (« ‹ Paramètres » ou Échap pour
+  revenir). Plus aucune liste déroulante native : les choix sont dessinés par Lowsper,
+  utilisables au clavier.
+- « Exporter les réglages dans un fichier » et « Importer des réglages depuis un fichier »
+  (onglet Avancé), pour déplacer les réglages vers un autre PC. Les voix mémorisées, le modèle et
+  les mesures de vitesse ne sont pas exportés. L'import accepte aussi une copie de
+  `app/reglages.txt`.
+- « Télécharger le journal technique » dans les paramètres (Avancé, Aide), en plus de l'écran de
+  fin.
+
+### Modifié (lot R7)
+- **Changement visible : les notes vont désormais dans `Notes\<emplacement>`, dans le dossier
+  Lowsper** (par exemple `Notes\Par défaut`), et non plus dans les Téléchargements. Les
+  emplacements qui avaient un dossier choisi le gardent. Le nom du sous-dossier est figé à la
+  première note : renommer l'emplacement ne disperse pas les notes. Sans accès au dossier
+  Lowsper (Firefox, accord jamais donné), la note va dans les Téléchargements, comme avant. En
+  changeant de version de Lowsper, copiez aussi le dossier `Notes`.
+- Nouveaux noms, chacun expliqué sous sa ligne : « Sigles et noms propres » devient « Mots à
+  reconnaître », « Mots que Whisper déforme » devient « Corrections automatiques », « Profil »
+  devient « Emplacement », le format classique ou à modèle devient « Format de la note » (« Texte
+  simple » ou « Pour les applications de notes »).
+- Le bouton « Conserver mes réglages dans le dossier Lowsper » disparaît : l'accord est demandé à
+  l'installation, sinon à la fermeture des paramètres. Une phrase sous « Mots » dit si les
+  réglages sont enregistrés dans le dossier Lowsper.
+- Le format de `app/reglages.txt` ne change pas ; un emplacement gagne seulement un champ
+  facultatif (`subfolder`). Aucune migration.
+
+### Tests (lot R7)
+- `npm run test:settings` (aussi en CI) : onglets au clavier, sous-écrans, listes dessinées,
+  nouveaux noms, export et import.
+- Les tests de bout en bout lisent les notes dans `Notes\Par défaut` quand le dossier Lowsper est
+  accordé.
+
 ### Ajouté (lot R6)
 - Écran de fin en deux colonnes (decision.md §29). À gauche, le texte de la réunion, lisible (plus
   de Markdown brut) : un clic sur « Intervenant 2 » permet de taper le vrai nom, qui change
