@@ -205,6 +205,9 @@
       const pattern = fold(term)
         .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
         .replace(/\s+/g, '\\s+');
+      // Terme échappé ci-dessus : l'expression ne contient que du texte littéral et \s+, sans
+      // retour arrière exponentiel possible (mesure dans decision.md §33)
+      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
       const re = new RegExp('(^|[^\\p{L}\\p{N}])(' + pattern + ')(?=$|[^\\p{L}\\p{N}])', 'giu');
       const folded = fold(out);
       // fold() conserve les longueurs (une lettre accentuée = une lettre), on remplace par positions
