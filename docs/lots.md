@@ -32,7 +32,7 @@ Chaque lot respecte `AGENTS.md`, et en particulier :
 | R3 | Premier lancement guidé | Non publiée | Livré |
 | R4 | Accueil | Non publiée | Livré |
 | R5 | Réunion : mini-fenêtre et fenêtre agrandie | Non publiée | Livré |
-| R6 | Fin de réunion et consignes réécrites | Non publiée | À faire |
+| R6 | Fin de réunion et consignes réécrites | Non publiée | Livré |
 | R7 | Réglages en onglets | Non publiée | À faire |
 | R8 | Langues parlées multiples et vocabulaires métier élargis | Non publiée | À faire |
 | R9 | Mémoire des voix d'une visio à l'autre | 4.0.0 | À faire |
@@ -136,7 +136,12 @@ Voir `refonte.md` §4 et §5.
 - **Performance** : mesurer la charge du moteur avant et après (`npm run bench`). Le direct ne
   doit pas ralentir.
 
-## R6 : fin de réunion et consignes
+## R6 : fin de réunion et consignes (livré)
+
+Livré, voir `decision.md` §29. Choix du mainteneur en cours de lot : « Nouvelle réunion » ramène à
+l'accueil (comme la maquette), et le panneau « Intervenants détectés » est retiré, le renommage se
+faisant sur les répliques. La synthèse d'appel et la liste d'actions gardent le contexte et les
+règles du compte rendu ; leur rôle et leurs sections changent.
 
 Voir `refonte.md` §6 et §7.
 - **Disposition** : deux colonnes. Le texte lisible à gauche, renommage des voix directement sur
@@ -182,7 +187,7 @@ Voir `refonte.md` §9.
 
 ## Texte pour ouvrir la session suivante
 
-Remplacer `R6` par le lot voulu, et sa ligne d'objectif par celle du tableau.
+Remplacer `R7` par le lot voulu, et sa ligne d'objectif par celle du tableau.
 
 ```text
 Tu travailles sur le dépôt PercyaDJ/Lowsper (application de transcription de réunions 100 %
@@ -192,8 +197,7 @@ Avant tout, lis AGENTS.md (règles non négociables), docs/refonte.md (spécific
 refonte) et docs/lots.md (plan des lots). Les maquettes validées sont sur
 https://claude.ai/artifact/KeT2Rk6qFNieqFozpFJxMx : lis-les si tu as l'outil Artifact.
 
-Ta mission : réaliser le lot R6 de docs/lots.md (fin de réunion et consignes réécrites),
-et seulement ce lot. Respecte toutes les règles d'AGENTS.md. Mesure au lieu de supposer, et si
+Ta mission : réaliser le lot R7 de docs/lots.md (réglages en onglets), et seulement ce lot. Respecte toutes les règles d'AGENTS.md. Mesure au lieu de supposer, et si
 un point n'est pas vérifiable, écris-le comme non vérifié.
 
 Si un choix important n'est pas couvert par les spécifications, pose-moi la question avant

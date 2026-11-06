@@ -1768,3 +1768,118 @@ gestionnaire de fenêtres, sans l'émulation de taille de Playwright :
   longues ; il est choisi avec une large marge.
 - Le contrôle d'état se met à jour dix fois par seconde, comme les barres de niveau avant lui ; il
   n'écrit dans la page que ce qui change.
+
+## 29. Refonte, lot R6 : fin de réunion et consignes réécrites
+
+**Contexte.** L'écran de fin empilait un résumé, quatre boutons (télécharger, copier, une liste
+déroulante de consignes, « Copier pour une IA »), un panneau « Intervenants détectés », la
+correction de mots dépliable, deux boutons de sortie et l'aperçu du Markdown brut. La refonte
+(`docs/refonte.md` §6, maquette validée « Fin de réunion ») le met en deux colonnes. Les consignes
+fournies, trois phrases chacune, deviennent un prompt système structuré (§7).
+
+**Écran de fin.**
+- **À gauche, le texte lisible** : titre, « Aujourd'hui, 10:02 · 12 minutes · 5 personnes », puis
+  les répliques (étiquette, heure, texte). Plus de Markdown brut. Le nombre de personnes n'est
+  affiché que si les voix ont été distinguées ; sinon il est inconnu, et il est omis.
+- **Renommage sur les répliques** : un clic sur « Intervenant 2 » le remplace par un champ ; la
+  saisie change le nom sur toutes ses répliques et réécrit la note du dossier (même délai de
+  1,5 s qu'avant). Entrée ou un clic ailleurs valide, Échap annule. La mémoire des voix apprend le
+  nom à la validation, comme le faisait le panneau. « Vous » et « Participant » ne sont pas des
+  boutons : ce ne sont pas des voix distinguées. Pendant une saisie, le texte n'est jamais
+  redessiné (le champ serait perdu) ; il l'est à la fin si une version précise d'un passage est
+  arrivée entre-temps. À la fin d'une saisie, l'étiquette revient à sa place sans redessiner le
+  texte, sinon un clic sur une autre étiquette, qui a provoqué la fin de la saisie, serait perdu.
+- **Défaut trouvé en relecture et corrigé** : chaque frappe du nom marquait le texte « à
+  redessiner », qui l'était donc juste après la saisie, entre l'appui et le relâchement du clic
+  sur l'étiquette suivante : ce clic était perdu. La saisie d'un nom ne demande plus de rendu
+  complet (seules les étiquettes changent). Le test de bout en bout ne reproduisait pas le défaut
+  avec un clic instantané ; avec un clic de 120 ms entre appui et relâchement, comme un clic
+  humain, il échoue sur l'ancien code et passe sur le nouveau (vérifié dans les deux sens).
+- **Panneau « Intervenants détectés » retiré** (choix du mainteneur). Il disait aussi le temps de
+  parole et un extrait de chaque voix ; ce n'est plus affiché. Le badge « reconnu » devient
+  l'infobulle de l'étiquette.
+- **À droite** : la carte « Note enregistrée » (où, et « Vos modifications y sont ajoutées »), qui
+  dit « Enregistrement de la note… » tant que l'écriture n'est pas finie et garde le bouton
+  « Enregistrer aussi dans le dossier » quand l'accord du navigateur manque. Puis « Et
+  maintenant ? » : « Obtenir un résumé », la consigne choisie et « Voir ce qui est copié »,
+  « Copier le texte », « Enregistrer une copie ». Puis « Corriger un mot mal reconnu », qui ouvre
+  la correction existante dans une fenêtre, et « Nouvelle réunion ».
+- **« Nouvelle réunion » ramène à l'accueil** (choix du mainteneur, comme la maquette).
+  « Démarrer la réunion suivante » disparaît ; enchaîner sans arrêter reste possible pendant la
+  réunion (« Commencer une nouvelle réunion sans arrêter », §28).
+- **Choix de la consigne** : le menu commun (`menu.js`, §27) remplace la liste déroulante native.
+  Par défaut, la consigne du profil ; un autre choix ne vaut que pour cet écran.
+- **« Voir ce qui est copié »** montre le texte produit par la même fonction que la copie : ce qui
+  est affiché est exactement ce qui part dans le presse-papiers (vérifié par le test de bout en
+  bout).
+- Restent, à leur place dans la nouvelle disposition : avis des passages rapides et des passages
+  non transcrits (en tête du texte), réunions précédentes de la session, journal technique.
+
+**Consignes réécrites comme un prompt système.**
+- **Compte rendu de réunion** : le texte anglais est celui de `docs/refonte.md` §7, au caractère
+  près. Un test unitaire relit le document et compare. Le français en est la traduction, avec les
+  libellés de la note française (« Vous », « Intervenant 1 »).
+- **Synthèse d'appel et liste d'actions** : même structure, même contexte et mêmes règles ; le rôle
+  et les sections changent (objet de l'appel, points clés, engagements, prochaines étapes ;
+  tableau action, responsable, échéance, source avec l'heure). Pour la liste d'actions, « Utilise
+  des listes à puces » est retiré des règles, puisqu'on demande un tableau. Le contexte de la
+  synthèse d'appel dit « un appel » au lieu d'« une réunion ». Un test vérifie que contexte et
+  règles sont identiques d'une consigne à l'autre.
+- **Langue** : chaque consigne demande la langue principale du transcript (l'ancienne demandait
+  « en français » ou « in English »). Les consignes restent proposées dans la langue de
+  l'interface.
+- **Place de la note** : le texte se termine par `# Transcript` puis `{{note}}`. La note, elle, ne
+  change pas.
+
+**Rétrocompatibilité des consignes (règle de §25 prolongée).**
+- Un texte enregistré est « non modifié » s'il est identique à un texte fourni actuel, dans l'une
+  ou l'autre langue, **ou à un texte fourni d'une version précédente**. Les anciens textes (3.3.0
+  à 3.5.0 en français, lot R2 en anglais) sont gardés dans `notes.js` (`LEGACY_PROMPTS`), jamais
+  affichés. Mesure : comparés par programme au code de la 3.3.0 (`git show 5a5d736`) et à celui
+  d'avant ce lot, les six textes sont identiques au caractère près.
+- Un texte non modifié passe donc au prompt système ; un texte modifié, même d'un caractère, est
+  gardé tel quel (test unitaire). Le format de `app/reglages.txt` ne change pas : aucune migration.
+- Les consignes personnelles ne sont jamais touchées.
+
+**La note en français ne change pas.** `transcript.js` n'est pas modifié, et `notes.js` ne l'est
+que dans la partie des consignes. Mesure : les tests unitaires d'avant ce lot, lancés sur le
+nouveau code, passent tous (59) sauf les trois qui vérifiaient l'ancien texte des consignes.
+
+**Libellé.** « Copier pour une IA » devient « Obtenir un résumé » partout : paramètres (« Consigne
+proposée par « Obtenir un résumé » »), sonde de l'IA intégrée, README, `SECURITY.md`.
+
+**Tests.**
+- Unitaires : structure des six consignes (titres dans l'ordre, transcript à la fin), égalité avec
+  le texte de la spécification, anciens textes reconnus, texte modifié gardé.
+- `npm run test:e2e-notes` : deux colonnes, texte sans Markdown brut, « Note enregistrée » avec
+  l'emplacement, consigne du profil proposée, copie (prompt système de synthèse d'appel puis la
+  note), « Copié », « Voir ce qui est copié » identique au presse-papiers, Échap, autre consigne
+  par le menu au clavier, renommage annulé par Échap puis validé par Entrée sur toutes les
+  répliques, note réécrite avec le lien `[[Claire]]`, « Nouvelle réunion » vers l'accueil.
+- `npm run test:e2e` : correction d'un mot dans la nouvelle fenêtre, texte de l'écran mis à jour ;
+  nom saisi puis clic direct sur une autre voix (défaut ci-dessus).
+- `npm run test:i18n` : textes de la page identiques au catalogue, aucun français en anglais.
+- Captures `fin.png`, `fin-sombre.png` et `profils.png` régénérées.
+
+**Charge du moteur** (`npm run bench`, 4 cœurs, Whisper small, même machine). Le chemin du direct
+n'est pas modifié ; mesure faite quand même, le code d'avant ce lot remis en place le temps d'un
+passage :
+
+| Passage de 25 s, Whisper small | Avant | Après |
+|---|---|---|
+| Durée (RTF) | 12 854 ms (0,514) | 12 631 ms (0,505) |
+| Second passage | 12 603 ms | 12 760 ms |
+
+  Écarts de l'ordre du bruit de la machine, dans les deux sens.
+
+**Limites.**
+- Rendu vérifié dans Chromium (Playwright) seulement, pas dans Edge ni Chrome du commerce.
+- La traduction française des consignes et la qualité des réponses obtenues avec elles n'ont pas
+  été évaluées sur un assistant d'IA : Lowsper n'en appelle aucun. Non vérifié.
+- Le texte de l'écran de fin est redessiné en entier à chaque correction. Mesure dans Chromium,
+  sur une réunion fictive de 1 h 15 (469 répliques, une toutes les 8 s) : un changement de langue
+  avec l'écran de fin affiché, mise en page comprise, prend 30 à 49 ms (médiane de 5 passages, deux
+  essais), contre 2 ms sans l'écran de fin. Imperceptible pour un clic, mais à surveiller si l'on
+  redessinait à chaque frappe : la saisie d'un nom ne redessine donc que les étiquettes.
+- Les guillemets « » du texte anglais viennent de la spécification validée ; le reste de
+  l'interface anglaise utilise “ ”.
