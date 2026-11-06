@@ -1,0 +1,10 @@
+# Fichiers ignorés par Semgrep (agent Lysbor, .github/workflows/lysbor.yml, decision.md §32)
+# Moteur généré par tools/build.mjs : code tiers empaqueté (transformers.js, ONNX Runtime), suivi par
+# l'inventaire des dépendances (tools/package-lock.json), pas par l'analyse de code
+app/engine/
+# Modèles, tests et jeux d'essai (non livrés : exclus aussi de Syft et Trivy dans le workflow)
+app/models/
+tools/test/
+tools/.cache/
+tools/node_modules/
+tools/dist/

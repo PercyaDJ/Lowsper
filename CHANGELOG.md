@@ -13,6 +13,28 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [4.0.0] - 2026-11-06
+
+Refonte de l'interface (lots R1 à R7). Version majeure : les notes vont désormais dans le dossier
+Lowsper (`Notes\<emplacement>`) et non plus dans les Téléchargements. En passant à cette
+version, copiez `app\models` et `app\reglages.txt` de l'ancienne version vers la nouvelle, comme
+d'habitude ; aux mises à jour suivantes, copiez aussi le dossier `Notes`. Les réglages ne
+demandent aucune action : leur format ne change pas.
+
+### Documentation (4.0.0)
+- La page d'accueil du dépôt passe en anglais (`README.md`), avec sa version française
+  (`README.fr.md`) et un lien de bascule de l'une à l'autre. Les deux tiennent sur une page ; le
+  guide complet (écrans, questions fréquentes, limites) est dans `docs/guide.md` (decision.md
+  §31). `README.en.md` disparaît, remplacé par `README.md`.
+
+### Sécurité (4.0.0)
+- Suivi des vulnérabilités par l'agent Lysbor : inventaire des dépendances (Syft), analyse du code
+  (Semgrep) et de la configuration (Trivy), envoyés à Lysbor chaque mois et à chaque changement
+  des dépendances sur `main`. Le workflow ne bloque rien ; il n'envoie que des informations sur ce
+  dépôt public, jamais de donnée d'utilisateur (decision.md §32).
+- Les actions GitHub des workflows sont figées sur l'empreinte de leur version (v4.4.0) au lieu
+  d'une étiquette modifiable.
+
 ### Ajouté
 - Interface en français et en anglais (lot R2) : Lowsper prend la langue du navigateur, et le
   réglage « Langue de l'interface » (paramètres, « Affichage ») la change sans recharger. Le

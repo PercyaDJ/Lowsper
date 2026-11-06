@@ -26,7 +26,9 @@ Une modification qui affaiblit l'une d'elles est refusée, quelle qu'en soit la 
 3. **L'audio n'est jamais écrit sur le disque.** En mémoire seulement, effacé en quittant la page.
    Vaut aussi pour les fichiers importés : lus, traités, libérés.
 4. **Navigateurs cibles** : Edge et Chrome récents. Firefox en mode dégradé, documenté.
-5. **Langues** : documentation en français (résumé en anglais dans `README.en.md`). Interface
+5. **Langues** : documentation en français, sauf la page d'accueil du dépôt : `README.md` en
+   anglais et `README.fr.md` en français, courts, avec un lien de bascule de l'un à l'autre ; le
+   détail est dans `docs/guide.md` (`decision.md` §31). Interface
    en français et en anglais, selon la langue du navigateur ou le réglage « Langue de
    l'interface » (`docs/refonte.md` §1, `decision.md` §25). Tout texte affiché passe par le
    catalogue `app/js/i18n.js`, dans les deux langues : jamais de texte en dur dans le HTML sans
@@ -66,8 +68,9 @@ Une modification qui affaiblit l'une d'elles est refusée, quelle qu'en soit la 
 
 - Tests unitaires pour toute logique nouvelle ; test e2e si la capture, le moteur ou l'interface
   changent.
-- README mis à jour dans le même lot que la fonctionnalité : usage, FAQ, limites connues.
-  `README.en.md` aussi, si la promesse, l'installation ou une fonction majeure change.
+- Documentation mise à jour dans le même lot que la fonctionnalité : `docs/guide.md` (usage,
+  FAQ, limites connues), et `README.md` et `README.fr.md` ensemble si la promesse, l'installation
+  ou une fonction majeure change. Les deux README restent courts : une page chacun.
 - Captures ou GIF courts pour toute fonctionnalité visible, sans aucune donnée réelle : étendre
   `tools/test/screenshots.mjs` plutôt que capturer à la main.
 - Accessibilité de base : navigation au clavier, libellés, contrastes.
@@ -80,7 +83,8 @@ Une modification qui affaiblit l'une d'elles est refusée, quelle qu'en soit la 
 
 - Tous les tests passent, en local et en CI.
 - Le test de non-fuite réseau passe.
-- `README.md`, `CHANGELOG.md`, `decision.md` et `AGENTS.md` sont à jour.
+- `README.md`, `README.fr.md`, `docs/guide.md`, `CHANGELOG.md`, `decision.md` et `AGENTS.md` sont
+  à jour.
 - La pull request est relisible en moins de 15 minutes.
 - Un résumé de 5 lignes : ce qui a changé, ce qui reste, la suite recommandée.
 
@@ -157,7 +161,9 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `tools/test/` | Tests unitaires, non-fuite, e2e, bancs de mesure ; `corpus/` : corpus synthétiques et leurs générateurs |
 | `docs/` | Architecture, guide de déploiement (DSI, RSSI), spécifications de la refonte (`refonte.md`) et plan des lots (`lots.md`), captures d'écran (`docs/images`, régénérées par `tools/test/screenshots.mjs`) |
 | `tools/release.mjs` | Paquet de distribution, joint aux releases par `.github/workflows/release.yml` |
-| `README.en.md` | Résumé en anglais du README |
+| `README.md`, `README.fr.md` | Pages d'accueil courtes, en anglais et en français, avec bascule |
+| `docs/guide.md` | Guide complet de l'utilisateur, en français : écrans, FAQ, limites |
+| `.github/workflows/lysbor.yml`, `.semgrepignore` | Suivi des vulnérabilités par l'agent Lysbor (`decision.md` §32) |
 | `CODE_OF_CONDUCT.md` | Code de conduite (Contributor Covenant 2.1, traduction officielle) |
 | `decision.md` | Décisions techniques et arbitrages |
 | `SECURITY.md` | Modèle de menace et signalement des failles |

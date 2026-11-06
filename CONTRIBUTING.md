@@ -37,7 +37,8 @@ En participant, vous acceptez le [code de conduite](CODE_OF_CONDUCT.md).
    npm test
    ```
 
-5. Mettez à jour dans la même pull request : `README.md` (usage), `CHANGELOG.md` (section
+5. Mettez à jour dans la même pull request : `docs/guide.md` (usage), `README.md` et `README.fr.md`
+   ensemble si la promesse change, `CHANGELOG.md` (section
    « Non publié »), `decision.md` (tout choix technique non trivial) et `AGENTS.md` (si une règle
    ou une commande change).
 6. Remplissez le modèle de pull request.

@@ -21,7 +21,7 @@ const { version } = JSON.parse(await readFile(join(here, 'package.json'), 'utf8'
 
 // Ce que reçoit l'utilisateur final : la page, son dossier app/, et les documents qui le concernent.
 // Modèles installés et réglages personnels : exclus ici, en plus d'être ignorés par Git.
-const DOCS = ['LICENSE', 'README.md', 'README.en.md', 'SECURITY.md', 'CHANGELOG.md'];
+const DOCS = ['LICENSE', 'README.md', 'README.fr.md', 'SECURITY.md', 'CHANGELOG.md'];
 export function selectFiles(tracked) {
   return tracked
     .filter(
