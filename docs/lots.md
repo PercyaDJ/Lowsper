@@ -34,7 +34,7 @@ Chaque lot respecte `AGENTS.md`, et en particulier :
 | R5 | Réunion : mini-fenêtre et fenêtre agrandie | 4.0.0 | Livré |
 | R6 | Fin de réunion et consignes réécrites | 4.0.0 | Livré |
 | R7 | Réglages en onglets | 4.0.0 | Livré |
-| R8 | Langues parlées multiples et vocabulaires métier élargis | 4.1.0 | À faire |
+| R8 | Langues parlées multiples et vocabulaires métier élargis | 4.1.0 | Livré |
 | R9 | Mémoire des voix d'une visio à l'autre | 4.2.0 | À faire |
 
 ## R1 : fondations visuelles (livré)
@@ -170,7 +170,16 @@ Voir `refonte.md` §8.
 - **Compatibilité** : `app/reglages.txt` reste lisible (règle de compatibilité ; migration si le
   format change).
 
-## R8 : langues parlées multiples et vocabulaires élargis
+## R8 : langues parlées multiples et vocabulaires élargis (livré)
+
+Livré, voir `decision.md` §34 et §35. Choix du mainteneur en cours de lot : seuil de qualité
+(au plus 10 % d'erreur : proposée ; 10 à 25 % : mise en garde ; au-delà : pas proposée, donc onze
+langues sur les douze de la maquette, le hindi écarté) ; aucune limite au nombre de langues ni de
+vocabulaires cochés, un conseil sous la liste ; noms des langues dans leur propre langue, traduits
+dessous ; vocabulaires en français et en anglais seulement, les autres langues ouvertes aux
+contributions ; listes françaises d'origine gardées telles quelles (noms de produits compris) ;
+règle de l'alternance pour plusieurs vocabulaires. Corrigés au passage : la langue parlée ignorée
+depuis la 4.0.0, et deux défauts de l'écran de bienvenue signalés par le mainteneur (§36).
 
 Voir `refonte.md` §8.1 et §8.4.
 - **Avant d'exposer une langue** : mesurer la qualité de Whisper small sur des corpus synthétiques

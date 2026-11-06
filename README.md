@@ -44,14 +44,16 @@ to an AI for the minutes. Neither the sound nor the text leaves the computer.
 
 - **Live transcription** of your microphone and of the shared meeting sound, speakers told apart.
 - **Words to recognize** (names, acronyms) and **automatic fixes** for misheard words, kept from
-  one meeting to the next; built-in industry vocabularies.
+  one meeting to the next; twelve built-in industry vocabularies, in English and French.
 - **Places**: each one is a folder and a note format. « For note apps » adds properties and
   `[[Name]]` links readable by apps like Obsidian.
 - **Audio files** (WAV, MP3, M4A, OGG, WebM), even several hours long, with the same engine.
 - **Settings** in three tabs, saved in the Lowsper folder; export and import to move them to
   another PC.
-- **Interface in English or French**, following the browser. Speech recognition is tuned for
-  French, English, or both.
+- **Spoken languages**: tick those of your meetings (French, English, Spanish, German,
+  Portuguese, Dutch, Arabic, Japanese; Mandarin, Italian and Korean less reliable), Lowsper
+  recognizes the one used in each passage. **Interface in English or French**, following the
+  browser.
 
 ## Good to know
 

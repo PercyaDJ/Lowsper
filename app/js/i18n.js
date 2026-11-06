@@ -97,7 +97,8 @@
     'set.savedFolder': 'Enregistrés dans le dossier Lowsper : toujours là après un redémarrage du PC.',
     'set.none': 'Aucun',
     'set.selectedCount': '{n} choisis',
-    'page.vocabHelp': 'Ajoute les sigles et termes habituels de ces domaines aux mots à reconnaître.',
+    'page.vocabHelp':
+      'Ajoute les sigles et termes habituels de ces domaines aux mots à reconnaître, dans la langue parlée. Cochez seulement vos domaines : plus il y en a, moins chacun a de place.',
     'row.vocab': 'Vocabulaire métier',
     'set.fixRightLabel': 'Bonne écriture',
     'set.fixWrongLabel': 'Mot mal reconnu',
@@ -884,7 +885,8 @@
     'set.savedFolder': 'Saved in the Lowsper folder: still there after you restart your PC.',
     'set.none': 'None',
     'set.selectedCount': '{n} selected',
-    'page.vocabHelp': 'Adds the usual acronyms and terms of these fields to the words to recognize.',
+    'page.vocabHelp':
+      'Adds the usual acronyms and terms of these fields to the words to recognize, in the spoken language. Tick only your own fields: the more you tick, the less room each one gets.',
     'row.vocab': 'Industry vocabulary',
     'set.fixRightLabel': 'Correct spelling',
     'set.fixWrongLabel': 'Misheard word',

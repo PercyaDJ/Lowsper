@@ -98,7 +98,8 @@ vérifie à chaque pull request.
 | Changer la recommandation de modèle, le nombre de moteurs | `app/js/recommend.js` (mesures : `npm run bench -- --cores`) |
 | Ajouter ou changer un texte affiché (français et anglais) | `app/js/i18n.js` (les deux catalogues), puis `data-i18n` dans `Lowsper.html` ou `t()` dans le code |
 | Changer le Markdown, les filtres, les sigles | `app/js/transcript.js` |
-| Ajouter un vocabulaire métier | `app/js/vocabulary.js` |
+| Ajouter un vocabulaire métier, ou une langue à un vocabulaire | `app/js/vocabularies.js` (format dans `CONTRIBUTING.md`) et son nom dans `app/js/i18n.js` |
+| Proposer une nouvelle langue parlée | mesure avec `tools/test/eval-langs.mjs`, puis `app/js/languages.js` (`decision.md` §34) |
 | Changer le format des notes, ajouter une variable de modèle | `app/js/notes.js` (et `parts()` dans `transcript.js`) |
 | Changer la distinction des voix | `app/js/speakers.js` |
 | Ajouter ou mettre à jour un modèle | `tools/models.mjs`, `tools/models.lock.json`, puis `npm run build` |
