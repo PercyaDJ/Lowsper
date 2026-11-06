@@ -111,6 +111,7 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Interface en français et en anglais : catalogue, page, bascule (5 s, Chromium) | `npm run test:i18n` |
 | Écran de bienvenue : matériel simulé, recommandation, installation simulée (10 s, Chromium) | `npm run test:welcome` |
 | Accueil : menu, fenêtre « Avant de commencer », nombre de personnes (10 s, Chromium) | `npm run test:home` |
+| Paramètres en onglets : clavier, sous-écrans, listes dessinées, export et import (15 s, Chromium) | `npm run test:settings` |
 | Vitesse des modèles selon le nombre de moteurs (après `--embed whisper-small whisper-base`) | `npm run bench -- --cores` |
 | Essai à la main de la fenêtre de choix de dossier (`startIn`) dans Chrome et Edge | ouvrir `tools/test/startin.html` |
 | Essai à la main des tailles de la mini-fenêtre dans Chrome et Edge | ouvrir `tools/test/pip-sizes.html` |
@@ -133,6 +134,7 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/js/theme.js` | Thème clair ou sombre (système par défaut, choix mémorisé), chargé dans `<head>` |
 | `app/js/meeting.js` | Contrôle d'état de la réunion (micro, son, texte) et ses seuils (`decision.md` §28) |
 | `app/js/menu.js` | Menu dessiné par Lowsper, composant commun (clavier, lecteur d'écran) : langue, « Enregistrer la note dans », consigne de « Obtenir un résumé » |
+| `app/js/panel.js` | Paramètres : onglets, sous-écrans et listes à choix dessinées, composant commun (clavier, lecteur d'écran, `decision.md` §30) |
 | `app/js/recommend.js` | Détection du PC, moteurs autorisés, modèle recommandé au premier lancement (`decision.md` §26) |
 | `app/js/i18n.js` | Langue de l'interface : catalogues `fr` et `en`, `t(clé, variables)`, attributs `data-i18n`, chargé avant les autres scripts |
 | `app/js/browser.js` | Reconnaissance du navigateur (Brave, Edge, Chrome, Firefox) et messages quand l'écriture dans un dossier est impossible |
@@ -142,11 +144,11 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/js/audiofile.js` | Fichiers importés : lecteurs de conteneur (WAV, MP3, AAC, M4A, Ogg, WebM), décodage WebCodecs en flux |
 | `app/js/speakers.js` | Distinction, regroupement et mémoire des voix ; voix du micro (anti-écho) |
 | `app/js/transcript.js` | Assemblage, sigles, filtres, couverture, Markdown, sauvegarde de secours |
-| `app/js/notes.js` | Profils de sortie : modèle de note, nom de fichier, front matter, liens, dossier de destination ; consignes pour l'IA (textes fournis dans `i18n.js`, anciens textes reconnus pour la rétrocompatibilité, `decision.md` §29) |
+| `app/js/notes.js` | Emplacements (profils de sortie) : modèle de note, nom de fichier, front matter, liens, dossier de destination (par défaut `Notes/<emplacement>` du dossier Lowsper, `decision.md` §30) ; consignes pour l'IA (textes fournis dans `i18n.js`, anciens textes reconnus pour la rétrocompatibilité, `decision.md` §29) |
 | `app/js/localai.js` | Sonde de l'IA intégrée du navigateur (expérimental) : disponibilité, essai sur une réunion fictive, rapport |
 | `app/js/vocabulary.js` | Vocabulaires métier et contexte donné à Whisper |
 | `app/js/installer.js` | Téléchargement vérifié du modèle : seul code réseau de l'application |
-| `app/js/settings.js` | Copie des réglages dans `app/reglages.txt` |
+| `app/js/settings.js` | Copie des réglages dans `app/reglages.txt` ; export et import d'un fichier de réglages (sans empreintes vocales) |
 | `app/js/app.js` | Contrôleur de l'interface, file de transcription, cycle de la réunion, écran de fin (texte lisible, renommage des voix sur les répliques) |
 | `app/css/` | Styles (thèmes clair et sombre) |
 | `app/engine/`, `app/manifest.js` | Générés par `tools/build.mjs` : ne pas modifier à la main |

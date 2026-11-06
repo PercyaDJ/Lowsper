@@ -10,7 +10,7 @@ Whisper, tells speakers apart, and gives you a timestamped Markdown transcript a
 hand to an AI for meeting minutes. Neither audio nor text ever leaves the computer.
 
 The interface is in English or French, following the browser language (it can be changed in
-Settings, « Display », « App language »). The full documentation is in French: see
+Settings, « Transcription » tab, « App language »). The full documentation is in French: see
 [README.md](README.md).
 
 ![Lowsper during a fictional meeting: timer, status check of the microphone, sound and text, live transcript](docs/images/enregistrement.png)
@@ -27,9 +27,16 @@ Settings, « Display », « App language »). The full documentation is in Frenc
 - **Built for meetings, not dictation.** Two sources (you and the other participants), speaker
   separation, custom glossary and domain vocabularies, a small always-on-top window, back-to-back
   meetings, and a safety net that never silently drops speech.
-- **Straight into your notes.** Output profiles (« Personnel », « Travail »...) write each note
-  into a folder of your choice, such as an Obsidian vault, with a note template, YAML front
-  matter, and `[[Name]]` links for the speakers you name. The note is updated as you fix it.
+- **Straight into your notes.** Each place (« Personnel », « Travail »...) is a folder and a note
+  format. By default, notes go to `Notes/<place>` inside the Lowsper folder; a place can also
+  write into a folder of your choice, such as an Obsidian vault. « For note apps » adds YAML front
+  matter, a note template and `[[Name]]` links for the speakers you name. The note is updated as
+  you fix it.
+- **Clear settings.** Three tabs (Transcription, Notes and summary, Advanced), grouped lists and
+  sub-screens. « Words to recognize » are given to Whisper before transcribing; « Automatic
+  fixes » replace a misheard word after transcribing. Settings save automatically; « Export
+  settings to a file » and « Import settings from a file » only move them to another PC (voice
+  prints are never exported).
 - **Recordings too.** Drop a WAV, MP3, M4A/AAC, OGG/Opus or WebM file (even several hours long)
   and it goes through the same engine. Files are read in small pieces with bounded memory and are
   never copied or uploaded.
@@ -49,7 +56,8 @@ Settings, « Display », « App language »). The full documentation is in Frenc
    Lowsper shrinks to a small window (time, microphone and meeting sound levels, pause, stop). The
    full window shows a plain-language status check: « Hearing you », « Coming through » (or
    « Nothing is coming through » with « How to fix »), and whether the text is up to date.
-5. Click « Stop »: the `.md` transcript lands in your Downloads folder (or your profile folder).
+5. Click « Stop »: the `.md` transcript lands in `Notes/<place>` inside the Lowsper folder (or the
+   folder you chose for the place; your Downloads folder if the browser has no folder access).
    The end screen shows the readable text on the left: click « Speaker 2 » to type the real
    name, and it changes everywhere. On the right, « What next? »: « Get a summary » copies
    instructions written like a system prompt (role, context, task, rules, then the transcript),

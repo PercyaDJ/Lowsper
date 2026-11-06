@@ -27,8 +27,8 @@ Ce que Lowsper fait :
 - **intervenants distingués** automatiquement (Intervenant 1, 2, 3...), renommables à la fin ;
 - **glossaire** et **vocabulaires métier** pour bien écrire vos sigles et noms propres, corrections
   de mots retenues d'une réunion à l'autre ;
-- **profils de sortie** : la note arrive directement dans votre base de notes (type Obsidian),
-  avec son modèle, ses propriétés et ses liens `[[Nom]]`, un profil par contexte ;
+- **emplacements** : la note arrive dans `Lowsper\Notes`, ou directement dans votre base de notes
+  (type Obsidian) avec ses propriétés et ses liens `[[Nom]]`, un emplacement par usage ;
 - **mini-fenêtre** toujours visible pendant la visio, **réunions enchaînées** sans temps mort ;
 - **import de fichiers audio** (dictaphone, téléphone, enregistrement fait ailleurs), même de
   plusieurs heures, avec le même moteur que le direct ;
@@ -61,18 +61,21 @@ réunion qui travaille hors ligne.
    choisissez le **dossier Lowsper** affiché à l'écran (celui qui contient `Lowsper.html`) et
    acceptez que Lowsper y enregistre des fichiers. Le téléchargement (80 à 330 Mo selon le modèle)
    prend une à quelques minutes, la page redémarre toute seule à la fin. Ce même accord sert
-   ensuite à garder une copie de vos réglages dans ce dossier.
+   ensuite à garder une copie de vos réglages dans ce dossier, et à y ranger vos notes
+   (`Notes\<emplacement>`).
 
    ![Écran de bienvenue : détection du PC, modèle recommandé, dossier, un seul bouton](docs/images/bienvenue.png)
-4. Dans les **paramètres** (roue crantée en haut à droite), cochez votre **vocabulaire métier**
-   (cybersécurité, informatique, gestion de projet) et remplissez une fois pour toutes le champ
-   **« Sigles et noms propres »** avec le vocabulaire de vos réunions (ex. `Ombrelune, projet Atlas,
-   Mme Durand`). Tout est mémorisé, et copié dans le dossier Lowsper pour survivre à un nettoyage
-   du navigateur. Donnez aussi un **nom à chaque réunion** (« Entretien Ombrelune ») :
-   Lowsper le fournit au moteur, les noms propres qu'il contient sont alors bien écrits.
+4. Dans les **paramètres** (roue crantée en haut à droite), onglet **Transcription** : ouvrez
+   **« Vocabulaire métier »** et cochez le vôtre (cybersécurité, informatique, gestion de projet),
+   puis **« Mots à reconnaître »** et entrez une fois pour toutes les sigles et noms de vos réunions
+   (ex. `Ombrelune, projet Atlas, Mme Durand`). Tout est mémorisé, et copié dans le dossier Lowsper
+   pour survivre à un nettoyage du navigateur. Donnez aussi un **nom à chaque réunion** (« Entretien
+   Ombrelune ») : Lowsper le fournit au moteur, les noms propres qu'il contient sont alors bien
+   écrits.
+
+   ![Paramètres, onglet Transcription : langues, mots à reconnaître, corrections automatiques, vocabulaire métier, options de la réunion](docs/images/reglages.png)
 5. Sur l'**accueil**, donnez un **nom** à la réunion (facultatif) et choisissez où **enregistrer
-   la note** (menu : vos Téléchargements, ou le dossier d'un profil ; « Nouvel emplacement… » en
-   crée un). Cliquez sur **« Démarrer »**.
+   la note** (menu des emplacements, avec leur dossier ; « Nouvel emplacement… » en crée un). Cliquez sur **« Démarrer »**.
 
    ![Accueil : nom de la réunion, emplacement de la note, Démarrer](docs/images/accueil.png)
 6. La fenêtre **« Avant de commencer »** rappelle les trois étapes ; cliquez sur **« Continuer »** :
@@ -98,8 +101,9 @@ réunion qui travaille hors ligne.
    Le texte en direct est masqué par défaut : l'interrupteur « Afficher le texte pendant la
    réunion » l'affiche (choix gardé). « Commencer une nouvelle réunion sans arrêter » enchaîne
    sur la suivante sans repartager l'écran.
-7. En fin de réunion, cliquez sur **« Terminer »** (carré rouge). La note est enregistrée dans vos
-   Téléchargements (ou le dossier de votre profil) : la carte « Note enregistrée » dit où. L'écran
+7. En fin de réunion, cliquez sur **« Terminer »** (carré rouge). La note est enregistrée dans le
+   dossier de l'emplacement (par défaut `Lowsper\Notes\Par défaut`) : la carte « Note
+   enregistrée » dit où. L'écran
    de fin montre le texte de la réunion à gauche, lisible. Pour nommer un intervenant, cliquez sur
    son étiquette (« Intervenant 2 ») et tapez son nom : il change sur toutes ses répliques et dans
    la note (Entrée valide, Échap annule). À droite, « Et maintenant ? » :
@@ -137,61 +141,93 @@ cliquez sur **« Transcrire un fichier audio »**, ou glissez un ou plusieurs fi
   vocabulaires et corrections retenues. Le réglage « Nombre de personnes » (paramètres) indique le
   nombre de voix de l'enregistrement ; le nom de la réunion vaut pour un fichier seul.
 - Une barre indique l'avancement et le temps restant estimé ; « Annuler » arrête proprement.
-  Chaque transcript arrive dans vos Téléchargements dès que son fichier est terminé, daté du jour
-  de l'enregistrement quand le fichier le précise.
+  Chaque transcript arrive dans le dossier de l'emplacement choisi dès que son fichier est terminé,
+  daté du jour de l'enregistrement quand le fichier le précise.
 - Le fichier est lu par morceaux depuis son emplacement, jamais copié ni envoyé ; le son décodé
   n'est jamais écrit sur le disque.
 
 ![Transcription de deux fichiers fictifs : avancement, file d'attente, annulation](docs/images/import.png)
 
-### Envoyer la note dans votre base de notes : les profils
+### Où vont les notes : les emplacements
 
-Un **profil de sortie** dit où et sous quelle forme arrive la note d'une réunion. Créez-en autant
-que de contextes (« Personnel », « Travail »...) dans les paramètres, section **« Profils de
-sortie »**, puis choisissez-le sur l'accueil, ligne **« Enregistrer la note dans »**, avant la
-réunion.
+Un **emplacement**, c'est un dossier et un format de note. Créez-en un par usage (« Personnel »,
+« Travail »...) dans les paramètres, onglet **Notes et compte rendu**, « Ajouter un emplacement »,
+puis choisissez-le sur l'accueil, ligne **« Enregistrer la note dans »**, avant la réunion.
 
-- **Dossier de destination** : choisi une fois (par exemple le dossier de votre base Obsidian).
-  La note y est écrite dès la fin de la réunion ; sans dossier, elle va dans vos Téléchargements.
-- **Nom du fichier** à variables, par exemple `{{date}} {{titre}}` ; les caractères interdits par
-  Windows sont retirés d'office. Un nom déjà pris reçoit « (2) » : aucune note n'est écrasée.
-- **Propriétés en tête de note** (front matter YAML) : date, durée, intervenants, source,
-  modèle, étiquettes et champs libres (`projet: Atlas`).
-- **Modèle de note** éditable, avec des variables (`{{titre}}`, `{{date}}`, `{{intervenants}}`,
-  `{{transcript}}`... liste complète dans les paramètres).
-- **Liens** : les intervenants que vous nommez peuvent être écrits `[[Nom]]`, comme des liens
-  entre notes.
+- **Dossier** : par défaut, chaque emplacement a son dossier dans le dossier Lowsper,
+  `Notes\<emplacement>` (par exemple `Notes\Par défaut`). Le nom de ce dossier ne change plus
+  après la première note, même si vous renommez l'emplacement : vos notes ne se dispersent pas.
+  Vous pouvez aussi choisir un autre dossier (par exemple celui de votre base Obsidian).
+- **Format de la note** : **« Texte simple »** (le format habituel de Lowsper, lisible partout) ou
+  **« Pour les applications de notes »**, qui ajoute :
+  - des **propriétés en tête de note** (front matter YAML) : date, durée, intervenants, source,
+    modèle, étiquettes et champs libres (`projet: Atlas`) ;
+  - des **liens** : les intervenants que vous nommez peuvent être écrits `[[Nom]]` ;
+  - un **nom de fichier** à variables, par exemple `{{date}} {{titre}}` (les caractères interdits
+    par Windows sont retirés d'office) et un **modèle de note** éditable (`{{titre}}`, `{{date}}`,
+    `{{intervenants}}`, `{{transcript}}`... liste complète dans les paramètres).
+- Un nom de fichier déjà pris reçoit « (2) » : aucune note n'est écrasée.
 - Après la réunion, chaque correction (intervenant nommé, mot corrigé) **met à jour la note** du
   dossier, toute seule.
-- Le profil **« Par défaut »** garde le format classique de Lowsper, dans les Téléchargements :
-  rien ne change pour qui ne configure rien.
+- L'emplacement **« Par défaut »** garde le format classique de Lowsper (« Texte simple »).
 
-![Éditeur de profils dans les paramètres : nom, dossier, nom de fichier, propriétés, étiquettes](docs/images/profils.png)
+![Paramètres, onglet Notes et compte rendu : emplacement, dossier, format de la note, consigne](docs/images/reglages-notes.png)
+
+![Format « Pour les applications de notes » : nom de fichier, propriétés, étiquettes, liens](docs/images/profils.png)
+
+Sans accès au dossier Lowsper (Firefox, ou accord jamais donné au navigateur), la note part dans
+vos Téléchargements, comme dans les versions précédentes.
 
 Attention : si ce dossier est synchronisé par un autre outil (stockage en ligne, synchronisation
 de votre base de notes), la note quittera l'ordinateur par cet outil. Pour des réunions
 confidentielles, choisissez un dossier qui reste sur le poste.
 
-Les profils sont conservés avec vos réglages (y compris dans `app\reglages.txt`). L'accès au
+Les emplacements sont conservés avec vos réglages (y compris dans `app\reglages.txt`). L'accès au
 dossier, lui, est un accord donné au navigateur : s'il est oublié ou doit être redonné, l'écran
 d'accueil le signale et un clic suffit.
+
+### Les paramètres
+
+Trois onglets ; chaque élément à choix ouvre un sous-écran (« ‹ Paramètres » ou Échap pour revenir).
+- **Transcription** : langue de l'interface, langue parlée, mots à reconnaître, corrections
+  automatiques, vocabulaire métier, options de la réunion.
+- **Notes et compte rendu** : emplacements, dossier, format de la note, consigne de « Obtenir un
+  résumé » et éditeur des consignes.
+- **Avancé** : modèle, vitesse, thème, mémoire des voix, sauvegarde, IA intégrée du navigateur
+  (expérimental), journal technique.
+
+« Mots à reconnaître » et « Corrections automatiques » sont deux outils différents :
+
+| | Mots à reconnaître | Corrections automatiques |
+|---|---|---|
+| Quand | **Avant** la transcription | **Après** la transcription |
+| Comment | Donnés à Whisper comme contexte : il a plus de chances de les écrire juste | Un mot mal reconnu est remplacé partout par le bon |
+| Exemple | `COPIL, Dr Martin, KPI` | `Kalmar` devient `CALMAR` |
+| Garantie | Aucune : une aide | Systématique |
+
+**Sauvegarde.** Les réglages s'enregistrent tout seuls. « Exporter les réglages dans un fichier »
+et « Importer des réglages depuis un fichier » (onglet Avancé) servent seulement à les déplacer
+vers un autre PC. Les voix mémorisées, le modèle et les mesures de vitesse restent sur ce PC ;
+l'accès à un dossier choisi est à redonner sur l'autre PC.
+
+![Paramètres, onglet Avancé : modèle, vitesse, thème, voix, sauvegarde, IA intégrée, journal](docs/images/reglages-avance.png)
 
 Déploiement sur un parc (DSI, RSSI) : voir [docs/deploiement.md](docs/deploiement.md).
 
 ### Interface en français ou en anglais
 
 Lowsper s'affiche en français si le navigateur est en français, en anglais sinon. Pour changer :
-paramètres, rubrique **Affichage**, **Langue de l'interface**. Le choix est gardé avec vos
+paramètres, onglet **Transcription**, **Langue de l'interface**. Le choix est gardé avec vos
 réglages, y compris dans `app\reglages.txt`. La langue se change entre deux réunions, pas pendant.
 
-![Paramètres en anglais : rubrique « Display », thème et langue de l'interface](docs/images/langue.png)
+![Paramètres en anglais : onglet « Transcription », langue de l'interface](docs/images/langue.png)
 
 La note suit la langue de l'interface au moment où la réunion commence :
 - **en français**, elle est identique à celle des versions précédentes, au caractère près ;
 - **en anglais**, son en-tête et ses libellés sont traduits (« Speaker 1 », « You »...) et le
   fichier s'appelle `meeting_...md`.
 
-Dans un profil avec modèle de note, les noms des variables (`{{titre}}`, `{{duree}}`...) et les
+Dans le format « Pour les applications de notes », les noms des variables (`{{titre}}`, `{{duree}}`...) et les
 propriétés écrites en tête de note (`duree:`, `intervenants:`...) restent les mêmes dans les deux
 langues : un modèle ou une recherche dans votre base de notes ne casse pas si vous changez de
 langue. Les consignes fournies pour « Obtenir un résumé » existent dans les deux langues ; une
@@ -266,21 +302,29 @@ nombre de processeurs et la mémoire, pour que la transcription suive la réunio
   utilisent la carte graphique ; grisés si le PC n'en a pas de compatible. Jamais recommandés
   d'office : leur vitesse n'a pas encore été mesurée.
 Un modèle plus précis n'est pas plus rapide. Pendant la réunion, l'indicateur « Charge du moteur »
-doit rester sous 100 % ; sinon, installez un modèle plus rapide (paramètres, « Installer ou ajouter
-des modèles », un modèle à la fois). Un sélecteur apparaît alors dans les paramètres.
+doit rester sous 100 % ; sinon, installez un modèle plus rapide (paramètres, onglet Avancé,
+« Modèle », « Installer ou ajouter des modèles », un modèle à la fois). Le choix entre les modèles
+installés se fait au même endroit.
 
 **Mes sigles et réglages ont disparu après avoir fermé le navigateur.**
 Beaucoup de postes d'entreprise effacent les données du navigateur à la fermeture. Lowsper en garde
 une copie dans son dossier (`app\reglages.txt`) et la restaure tout seul au lancement suivant.
 Il faut avoir autorisé Lowsper une fois à écrire dans le dossier : c'est fait à l'installation du
-modèle, sinon via le bouton « Conserver mes réglages dans le dossier Lowsper » des paramètres.
+modèle, sinon à la fermeture des paramètres. La phrase sous « Mots » (onglet Transcription) dit
+si la copie est faite.
+
+**Comment déplacer mes réglages vers un autre PC ?**
+Paramètres, onglet Avancé, « Exporter les réglages dans un fichier », puis sur l'autre PC
+« Importer des réglages depuis un fichier ». Le fichier `lowsper-reglages_AAAA-MM-JJ.json` contient
+vos mots, corrections, emplacements, consignes et préférences, mais aucune empreinte vocale.
+Importer remplace les réglages du fichier et garde les autres ; Lowsper se recharge.
 
 **Des mots sont mal compris (noms de projets, de clients, sigles maison).**
 Whisper ne peut pas connaître votre jargon. À la fin de la réunion, utilisez « Corriger un mot mal
 reconnu » : le mot est corrigé partout, et Lowsper retient la correction pour les réunions
 suivantes. La liste « À vérifier » propose les noms propres douteux : un clic suffit pour commencer.
-Si vous connaissez déjà les déformations, entrez-les à l'avance dans les paramètres (« Mots que
-Whisper déforme », ex. `Kalmar` → `CALMAR`).
+Si vous connaissez déjà les déformations, entrez-les à l'avance dans les paramètres
+(« Corrections automatiques », ex. `Kalmar` → `CALMAR`).
 
 **J'ai enregistré une réunion avec mon téléphone. Combien de temps pour la transcrire ?**
 Lire le fichier est rapide, même pour plusieurs heures : sur notre machine de test, lente, 3 h se
@@ -290,14 +334,15 @@ puisque le PC n'est pas occupé par une visio. La barre d'avancement affiche une
 secondes ; le test de vitesse des paramètres donne un ordre de grandeur pour votre PC.
 
 **J'utilise Obsidian (ou une autre base de notes en Markdown).**
-Créez un profil, choisissez comme dossier celui de votre coffre (ou un sous-dossier, comme
-`Réunions`), cochez les propriétés et les liens `[[Nom]]` : la note arrive dans le coffre à la fin
+Créez un emplacement, choisissez comme dossier celui de votre coffre (ou un sous-dossier, comme
+`Réunions`), prenez le format « Pour les applications de notes » et cochez les propriétés et les
+liens `[[Nom]]` : la note arrive dans le coffre à la fin
 de la réunion, avec ses propriétés lisibles par Obsidian, et les intervenants que vous nommez
 renvoient vers leurs notes.
 
 **Ma note est partie dans les Téléchargements et pas dans mon dossier.**
-Le navigateur demande votre accord pour écrire dans un dossier, et ne peut le faire qu'après un
-clic. Sur l'écran de fin, « Enregistrer aussi dans le dossier » règle la question ; pour l'éviter,
+Le navigateur demande votre accord pour écrire dans un dossier (le dossier Lowsper ou celui que
+vous avez choisi), et ne peut le faire qu'après un clic. Sur l'écran de fin, « Enregistrer aussi dans le dossier » règle la question ; pour l'éviter,
 cliquez sur « Autoriser maintenant » sur l'écran d'accueil avant la réunion. Si le navigateur a
 effacé ses données (fréquent sur un poste d'entreprise), il faut désigner le dossier à nouveau.
 
@@ -308,7 +353,8 @@ liste d'actions), écrites comme un prompt système : rôle, contexte, tâche, r
 transcript. Elles demandent de répondre dans la langue principale du transcript, de ne rien
 inventer (ni nom, ni chiffre, ni date) et de signaler un passage douteux. « Voir ce qui est copié »
 montre le texte exact avant de le coller. Modifiez-les ou créez les vôtres dans les paramètres,
-section « Consignes pour l'IA », et rattachez-en une à chaque profil. Attention : coller le
+onglet Notes et compte rendu, « Modifier les consignes », et rattachez-en une à chaque emplacement
+(« Consigne »). Attention : coller le
 transcript dans un assistant en ligne le fait sortir de l'ordinateur ; c'est votre choix, pas celui
 de Lowsper.
 
@@ -360,7 +406,7 @@ lancement suivant si le navigateur se ferme).
 Vérifiez que Lowsper n'est pas ouvert directement depuis le zip (clic droit sur le zip, « Extraire
 tout »). Après avoir téléchargé une nouvelle version de Lowsper, copiez le dossier `app\models`
 de l'ancienne version dans la nouvelle au lieu de retélécharger (et le fichier `app\reglages.txt`,
-qui contient vos sigles et préférences).
+qui contient vos sigles et préférences, ainsi que le dossier `Notes`, qui contient vos notes).
 
 **Lowsper va-t-il ralentir mon PC pendant les réunions ?**
 Non, par défaut (puissance « Équilibrée ») il n'utilise qu'environ un quart du processeur, un peu
@@ -419,7 +465,7 @@ seul, dans un dossier Lowsper où le modèle a déjà été installé depuis Edg
 
 **J'utilise Brave : « Ce navigateur ne permet pas d'enregistrer le modèle ».**
 Brave bloque par défaut l'écriture dans un dossier, dont Lowsper a besoin pour installer le
-modèle et pour écrire les notes d'un profil. Deux solutions :
+modèle et pour écrire les notes dans un dossier. Deux solutions :
 1. l'autoriser : ouvrez `brave://flags`, cherchez « File System Access », choisissez « Enabled »,
    puis relancez Brave ;
 2. ou installer le modèle une fois avec Microsoft Edge (clic droit sur `Lowsper.html`, « Ouvrir
@@ -448,7 +494,10 @@ Lowsper reconnaît Brave et affiche ces explications au bon moment.
   (délai propre à ces formats).
 - **Dossier de notes** : l'accès est gardé par le navigateur ; il disparaît avec ses données
   (nettoyage, profil effacé) et doit alors être redonné. Le navigateur peut aussi redemander son
-  accord à chaque ouverture de Lowsper : un clic sur l'accueil suffit.
+  accord à chaque ouverture de Lowsper : un clic sur l'accueil suffit. Que Chrome et Edge gardent
+  ou non l'accord au dossier Lowsper après un redémarrage n'est pas encore vérifié.
+- **Notes et nouvelle version** : les notes sont rangées dans le dossier de la version de Lowsper
+  utilisée ; copiez le dossier `Notes` en passant à une nouvelle version.
 
 ## Feuille de route
 
