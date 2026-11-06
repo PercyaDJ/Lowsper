@@ -20,14 +20,6 @@
   <script src="app/js/theme.js"></script>
 </head>
 <body>
-  <div class="consent" id="consent" role="note">
-    <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
-    <p data-i18n-html="consent.text"><strong>Prévenez les participants</strong> avant de lancer l'enregistrement : la réunion va être transcrite. Tout est traité sur cet ordinateur, ni le son ni le texte ne sont envoyés sur Internet.</p>
-    <button class="consent-close" id="consent-close" type="button" aria-label="Fermer l'avertissement" title="Fermer (il réapparaîtra à la prochaine ouverture)" data-i18n-attr="aria-label:consent.close;title:consent.closeTitle">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-    </button>
-  </div>
-
   <header class="top">
     <div class="brand">
       <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" class="brand-bg"/><rect x="12" y="6" width="8" height="14" rx="4" fill="#fff"/><path d="M9 15a7 7 0 0 0 14 0M16 22v4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
@@ -40,11 +32,12 @@
           <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
           <span id="lang-current" lang="fr">Français</span>
         </button>
-        <div class="menu" id="lang-list" role="menu" hidden data-i18n-attr="aria-label:set.uiLang" aria-label="Langue de l'interface">
-          <button type="button" role="menuitemradio" data-lang="fr" lang="fr" aria-checked="true"><span class="check" aria-hidden="true">✓</span>Français</button>
-          <button type="button" role="menuitemradio" data-lang="en" lang="en" aria-checked="false"><span class="check" aria-hidden="true">✓</span>English</button>
-        </div>
+        <div class="menu" id="lang-list" hidden data-i18n-attr="aria-label:set.uiLang" aria-label="Langue de l'interface"></div>
       </div>
+      <span class="privacy-pill" id="privacy-pill" data-i18n-attr="title:home.privacyTitle" title="Ni le son ni le texte ne quittent cet ordinateur">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <span data-i18n="home.privacy">Reste sur ce PC</span>
+      </span>
       <div class="engine" id="engine" data-state="loading">
         <span class="dot"></span><span id="engine-text" data-i18n="engine.preparing">Préparation du moteur</span>
       </div>
@@ -94,9 +87,18 @@
             <input type="checkbox" id="distinguish" checked>
             <span data-i18n="set.distinguish">Distinguer les intervenants (Intervenant 1, 2, 3...)</span>
           </label>
+        <label class="field inline">
+            <span data-i18n="set.people">Nombre de personnes dans vos réunions, vous compris</span>
+            <input id="people" type="number" min="2" max="30" step="1" inputmode="numeric" placeholder="Automatique" data-i18n-attr="placeholder:set.peopleAuto" aria-describedby="people-help">
+            <span class="fine" id="people-help" data-i18n="set.peopleHelp">Laissez vide pour que Lowsper compte les voix lui-même. Ce nombre est gardé pour les réunions suivantes, et c'est un plafond : trop bas, des voix différentes sont regroupées.</span>
+          </label>
         <label class="check">
             <input type="checkbox" id="autopip" checked>
             <span data-i18n="set.autopip">Réduire Lowsper en mini-fenêtre dès le début de l'enregistrement</span>
+          </label>
+        <label class="check">
+            <input type="checkbox" id="show-before" checked>
+            <span data-i18n="set.showBefore">Afficher « Avant de commencer » avant chaque réunion</span>
           </label>
         <div class="field inline" id="fixes-field">
             <span data-i18n-html="set.fixes">Mots que Whisper déforme <em>(corrigés automatiquement dans chaque transcript)</em></span>
@@ -338,24 +340,24 @@
       </details>
     </section>
 
-    <!-- Avant la réunion -->
-    <section class="card view" id="view-idle">
-      <h1 data-i18n="idle.title">Transcrire une réunion</h1>
-      <p class="lead" data-i18n="idle.lead">Lancez l'enregistrement en début de réunion, arrêtez-le à la fin : vous récupérez un transcript Markdown horodaté.</p>
+    <!-- Accueil (lot R4, decision.md §27) : un titre, deux lignes, un bouton, un lien -->
+    <section class="card view home" id="view-idle">
+      <h1 data-i18n="home.title">Enregistrer une réunion</h1>
+      <p class="lead" data-i18n="home.lead">Lowsper écrit ce qui se dit, pendant que vous participez.</p>
 
-      <div class="field-row">
-        <label class="field grow">
-          <span data-i18n-html="idle.name">Nom de la réunion <em>(facultatif)</em></span>
-          <input id="title" type="text" maxlength="80" placeholder="Ex. Point hebdo projet" data-i18n-attr="placeholder:idle.namePlaceholder" autocomplete="off">
+      <div class="group home-form">
+        <label class="home-row">
+          <span class="home-label" data-i18n="home.name">Nom</span>
+          <input id="title" type="text" maxlength="80" placeholder="Facultatif" data-i18n-attr="placeholder:home.namePlaceholder" autocomplete="off">
         </label>
-        <label class="field people">
-          <span data-i18n="idle.people">Personnes</span>
-          <input id="people" type="number" min="2" max="30" step="1" inputmode="numeric" placeholder="Auto" title="Nombre de personnes, vous compris (2 pour un tête-à-tête). Facultatif : aide Lowsper à distinguer les intervenants." data-i18n-attr="title:idle.peopleTitle">
-        </label>
-        <label class="field profile-field" id="profile-field" hidden>
-          <span data-i18n="prof.homeLabel">Profil</span>
-          <select id="profile" title="Où et sous quelle forme arrive la note (paramètres, « Profils de sortie »)" data-i18n-attr="title:prof.homeTitle"></select>
-        </label>
+        <div class="home-place">
+          <button class="home-row" id="place-btn" type="button">
+            <span class="home-label" data-i18n="home.saveTo">Enregistrer la note dans</span>
+            <span class="home-value" id="place-current"></span>
+            <svg class="ico chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"/></svg>
+          </button>
+          <div class="menu place-menu" id="place-list" hidden data-i18n-attr="aria-label:home.saveTo" aria-label="Enregistrer la note dans"></div>
+        </div>
       </div>
       <p class="fine profile-access" id="profile-access" hidden>
         <span id="profile-access-text"></span>
@@ -363,32 +365,44 @@
       </p>
 
       <button class="btn primary big" id="start">
-        <span class="rec-dot"></span> <span data-i18n="idle.start">Démarrer l'enregistrement</span>
+        <span class="rec-dot"></span> <span data-i18n="home.start">Démarrer</span>
       </button>
 
-      <!-- Enregistrement fait ailleurs (dictaphone, téléphone) : même moteur que le direct -->
+      <!-- Enregistrement fait ailleurs (dictaphone, téléphone) : même moteur que le direct. Le
+           glisser-déposer d'un fichier n'importe où dans la page fonctionne toujours. -->
       <div class="import-zone" id="import-zone">
-        <button class="btn" id="import-pick" type="button">
-          <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8m0 0L5 7m3 3 3-3M3 12.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span data-i18n="idle.import">Transcrire un fichier</span>
+        <button class="linkish import-link" id="import-pick" type="button">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+          <span data-i18n="home.import">Transcrire un fichier audio</span>
         </button>
-        <span class="fine" id="import-hint" data-i18n="idle.importHint">ou glissez ici un ou plusieurs enregistrements (WAV, MP3, M4A, AAC, OGG, WebM). Le fichier est lu sur ce poste, jamais copié ni envoyé.</span>
         <input type="file" id="import-input" multiple accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.opus,.webm,.flac" hidden>
       </div>
-
-
-      <p class="fine settings-hint"><span data-i18n="idle.settingsHint">Langue, sigles, modèle, puissance :</span> <button class="linkish" id="settings-open-2" type="button" data-i18n="idle.settingsLink">paramètres</button> <span data-i18n="idle.settingsWhere">(roue crantée en haut à droite).</span></p>
-
-      <details class="howto-box" id="howto-idle" open>
-      <summary data-i18n="idle.howto">Comment ça marche ?</summary>
-      <ol class="howto">
-        <li data-i18n-html="idle.howto1">Votre navigateur va proposer un <strong>partage d'écran</strong> : choisissez l'écran entier (ou l'onglet de la réunion) et <strong>cochez « Partager l'audio »</strong>. Rien n'est filmé ni enregistré, seul le son est utilisé.</li>
-        <li data-i18n-html="idle.howto2">Autorisez ensuite le <strong>micro</strong>.</li>
-        <li data-i18n="idle.howto3">Avec un casque, le résultat est plus propre (le micro ne réentend pas les participants).</li>
-        <li data-i18n-html="idle.howto4">Lowsper se réduit en <strong>mini-fenêtre</strong>, toujours visible, comme un appel Teams.</li>
-      </ol>
-      </details>
     </section>
+
+    <!-- « Avant de commencer » : les trois étapes à venir, avant le partage d'écran et le micro -->
+    <dialog class="sheet" id="before" aria-labelledby="before-title">
+      <h2 id="before-title" data-i18n="before.title">Avant de commencer</h2>
+      <ol class="steps">
+        <li>
+          <span class="step-ico warn" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+          <span><strong data-i18n="before.tell">Prévenez les autres participants</strong><span class="fine" data-i18n="before.tellSub">Dites-leur que la réunion est transcrite. Tout reste sur cet ordinateur.</span></span>
+        </li>
+        <li>
+          <span class="step-ico" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
+          <span><strong data-i18n="before.screen">Choisissez l'écran de la réunion</strong><span class="fine" data-i18n="before.screenSub">Puis cochez « Partager l'audio ». Rien n'est filmé.</span></span>
+        </li>
+        <li>
+          <span class="step-ico ok" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg></span>
+          <span><strong data-i18n="before.mic">Autorisez le micro</strong><span class="fine" data-i18n="before.micSub">Lowsper se réduit ensuite en petite fenêtre.</span></span>
+        </li>
+      </ol>
+      <label class="check">
+        <input type="checkbox" id="before-skip">
+        <span data-i18n="before.skip">Ne plus afficher</span>
+      </label>
+      <button class="btn primary big" id="before-continue" type="button" data-i18n="before.continue">Continuer</button>
+      <button class="btn ghost" id="before-cancel" type="button" data-i18n="before.cancel">Annuler</button>
+    </dialog>
 
     <!-- Pendant la réunion -->
     <section class="card view" id="view-rec" hidden>
@@ -536,6 +550,7 @@
   <!-- Langue de l'interface : appliquée avant les autres scripts -->
   <script src="app/js/i18n.js"></script>
   <script src="app/js/recommend.js"></script>
+  <script src="app/js/menu.js"></script>
   <script src="app/js/browser.js"></script>
   <script src="app/js/engine.js"></script>
   <script src="app/js/analyzer.js"></script>

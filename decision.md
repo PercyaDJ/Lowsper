@@ -1604,3 +1604,68 @@ moteurs est maintenant calculé par `recommend.js`, avec la même formule. Passa
 - Le nombre de fils n'est pas la vitesse : deux PC à 8 fils peuvent différer du simple au double.
   Le test de vitesse des paramètres, fait automatiquement au premier démarrage du modèle, reste la
   mesure de référence sur le poste.
+
+## 27. Refonte, lot R4 : accueil
+
+**Contexte.** L'accueil empilait un bandeau jaune permanent, un formulaire (nom, nombre de
+personnes, profil), un gros bouton, une zone d'import, un lien vers les paramètres et un mode
+d'emploi déplié. La refonte (`docs/refonte.md` §3, maquette validée) le réduit à un titre, deux
+lignes (« Nom », « Enregistrer la note dans »), un bouton « Démarrer » et le lien « Transcrire un
+fichier audio ». Les explications arrivent au moment où elles servent : dans la fenêtre « Avant de
+commencer ».
+
+**Menu dessiné par Lowsper, composant commun** (`app/js/menu.js`).
+- Remplace la liste déroulante native du profil, et le menu de langue de l'écran de bienvenue
+  (lot R3) l'utilise désormais aussi. Il servira aux lots suivants (réglages en sous-écrans, R7).
+- Motif « menu button » de WAI-ARIA : bouton `aria-haspopup="menu"` et `aria-expanded`, entrées
+  `menuitemradio` cochées, entrées d'action après un séparateur (« Nouvel emplacement… ») ;
+  flèches, Début, Fin, Entrée, Échap (le focus revient au bouton), Tab ferme ; clic ailleurs
+  ferme.
+- « Enregistrer la note dans » : chaque profil, avec en sous-titre son dossier ou « Vos
+  Téléchargements ». « Nouvel emplacement… » crée un profil dans les paramètres. Le mot
+  « emplacement » annonce le lot R7, où « Profil » devient « Emplacement » partout ; d'ici là, les
+  paramètres disent encore « profil ».
+
+**Fenêtre « Avant de commencer ».**
+- `<dialog>` modal du navigateur : focus enfermé, Échap pour fermer, sans code de plus.
+- Trois étapes (prévenir les participants, choisir l'écran et cocher « Partager l'audio »,
+  autoriser le micro), « Continuer », « Annuler », « Ne plus afficher ».
+- Le clic sur « Continuer » sert de geste de l'utilisateur au partage d'écran, que le navigateur
+  exige ; le parcours de capture lui-même ne change pas. « Démarrer la réunion suivante » (écran
+  de fin) et Entrée dans le nom suivent le même chemin.
+- **Défaut trouvé par le test et corrigé** : Entrée dans le nom ouvrait la fenêtre et donnait le
+  focus à « Continuer », que le même appui activait aussitôt. La réunion démarrait donc sans
+  laisser lire les étapes. La touche est désormais consommée.
+- « Ne plus afficher » se défait dans les paramètres (« Afficher « Avant de commencer » avant
+  chaque réunion ») : effacer les données du navigateur ne suffirait pas, le choix étant restauré
+  depuis `app/reglages.txt`.
+
+**Ce qui disparaît de l'accueil.**
+- **Bandeau jaune permanent** : son rappel (prévenir les participants, rien ne quitte le poste)
+  passe dans la fenêtre « Avant de commencer » et dans la pastille « Reste sur ce PC » de
+  l'en-tête, comme sur la maquette. Avec « Ne plus afficher », plus aucun rappel de prévenir les
+  participants ne s'affiche : c'est voulu par la spécification, pour les habitués.
+- **« Comment ça marche ? »** et le lien vers les paramètres : la fenêtre « Avant de commencer »
+  et la roue crantée les remplacent.
+- **Texte de la zone d'import** : le lien seul reste ; glisser un fichier n'importe où dans la
+  page fonctionne toujours.
+- **Champ « Personnes »** : il passe dans les paramètres (« Nombre de personnes dans vos réunions,
+  vous compris »), **gardé d'une réunion à l'autre** (choix du mainteneur), vide par défaut
+  (automatique). Vérifié dans `speakers.js` : ce nombre est un plafond strict pour la distinction
+  des voix. Une phrase sous le champ le dit, et une question de la FAQ aussi : trop bas, des voix
+  différentes sont regroupées. Clé `lowsper.opt.people`, copiée dans `app/reglages.txt`.
+
+**Tests.**
+- `npm run test:home` (Chromium, aussi en CI, sur une copie du dossier, moteur absent) : écran,
+  disparition du bandeau et du mode d'emploi, menu au clavier, choix gardé après rechargement,
+  « Nouvel emplacement… », fenêtre (Annuler, Échap, Entrée dans le nom, Continuer qui demande bien
+  le partage d'écran), « Ne plus afficher » puis l'interrupteur des paramètres, nombre de
+  personnes gardé, aucune requête réseau.
+- `npm run test:e2e` passe par la fenêtre ; `test:e2e-notes` choisit le profil dans le nouveau
+  menu ; `test:welcome` lit le menu de langue du composant commun.
+- **Charge du moteur** : non mesurée de nouveau. Le chemin du direct (capture, découpage, moteurs)
+  ne change pas ; seul le geste qui le lance passe par la fenêtre.
+
+**Limites.**
+- Rendu vérifié dans Chromium seulement, pas dans Edge ni Chrome du commerce.
+- Vocabulaire « profil » et « emplacement » mélangé jusqu'au lot R7.

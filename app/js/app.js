@@ -1565,7 +1565,6 @@
     $('gaps').hidden = true;
     app.finalMarkdown = '';
     $('title').value = '';
-    $('people').value = '';
     $('start').disabled = false;
     renderPauseLabels(false);
     $('pause').classList.remove('paused');
@@ -1798,8 +1797,7 @@
   function renderProfiles() {
     const profiles = L.Notes.list();
     const current = L.Notes.current();
-    fillSelect($('profile'), profiles, current.id);
-    $('profile-field').hidden = profiles.length < 2;
+    renderPlace();
     if (!profiles.some((p) => p.id === app.editProfileId)) app.editProfileId = current.id;
     fillSelect($('prof-select'), profiles, app.editProfileId);
     const p = profiles.find((x) => x.id === app.editProfileId);
@@ -1866,9 +1864,14 @@
       renderProfileHints(q);
       if (id === 'prof-name') {
         fillSelect($('prof-select'), L.Notes.list(), q.id);
-        fillSelect($('profile'), L.Notes.list(), L.Notes.current().id);
+        renderPlace();
       }
     });
+  }
+
+  /** Accueil : nom du profil choisi, dans la ligne « Enregistrer la note dans ». */
+  function renderPlace() {
+    $('place-current').textContent = L.Notes.current().name;
   }
 
   /** Accueil : le dossier du profil choisi demande-t-il un clic avant la réunion ? */
@@ -2459,55 +2462,23 @@
   }
   L.i18n.onChange(relabel);
 
-  // Menu de langue de l'écran de bienvenue (dessiné par Lowsper, utilisable au clavier)
+  // Menu de langue de l'écran de bienvenue (composant commun, menu.js)
+  const LANG_NAMES = { fr: 'Français', en: 'English' };
+  app.langMenu = L.Menu.attach({
+    button: $('lang-btn'),
+    menu: $('lang-list'),
+    items: () => L.i18n.LANGS.map((l) => ({ value: l, label: LANG_NAMES[l], lang: l, checked: l === L.i18n.lang() })),
+    onSelect: (l) => L.i18n.setLang(l),
+  });
   function renderLangMenu() {
     const lang = L.i18n.lang();
-    const current = $('lang-current');
-    current.textContent = lang === 'fr' ? 'Français' : 'English';
-    current.lang = lang;
-    for (const b of document.querySelectorAll('#lang-list [data-lang]'))
-      b.setAttribute('aria-checked', String(b.dataset.lang === lang));
+    $('lang-current').textContent = LANG_NAMES[lang];
+    $('lang-current').lang = lang;
   }
-  function closeLangMenu(focusButton) {
-    $('lang-list').hidden = true;
-    $('lang-btn').setAttribute('aria-expanded', 'false');
-    if (focusButton) $('lang-btn').focus();
+  // Appelée aussi par setState(), avant que le menu existe : déclaration de fonction
+  function closeLangMenu() {
+    if (app.langMenu) app.langMenu.close(false);
   }
-  function openLangMenu() {
-    $('lang-list').hidden = false;
-    $('lang-btn').setAttribute('aria-expanded', 'true');
-    const items = [...document.querySelectorAll('#lang-list [data-lang]')];
-    (items.find((b) => b.getAttribute('aria-checked') === 'true') || items[0]).focus();
-  }
-  $('lang-btn').addEventListener('click', () => ($('lang-list').hidden ? openLangMenu() : closeLangMenu()));
-  $('lang-btn').addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      openLangMenu();
-    }
-  });
-  $('lang-list').addEventListener('keydown', (e) => {
-    const items = [...document.querySelectorAll('#lang-list [data-lang]')];
-    const i = items.indexOf(document.activeElement);
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus();
-    } else if (e.key === 'Escape') {
-      closeLangMenu(true);
-    } else if (e.key === 'Tab') {
-      closeLangMenu();
-    }
-  });
-  for (const b of document.querySelectorAll('#lang-list [data-lang]')) {
-    b.addEventListener('click', () => {
-      closeLangMenu(true);
-      L.i18n.setLang(b.dataset.lang);
-    });
-  }
-  // Clic ailleurs : le menu se ferme
-  document.addEventListener('click', (e) => {
-    if (!$('lang-list').hidden && !$('lang-menu').contains(e.target)) closeLangMenu();
-  });
   renderLangMenu();
   L.i18n.onChange(renderLangMenu);
 
@@ -2595,17 +2566,6 @@
     toast(tr('set.restored'), 7000);
   }
   $('settings-open').addEventListener('click', openSettings);
-  // Bandeau d'avertissement : fermé pour cette session, il revient à chaque ouverture de Lowsper
-  try {
-    if (sessionStorage.getItem('lowsper.consent.closed')) $('consent').hidden = true;
-  } catch {}
-  $('consent-close').addEventListener('click', () => {
-    $('consent').hidden = true;
-    try {
-      sessionStorage.setItem('lowsper.consent.closed', '1');
-    } catch {}
-  });
-  $('settings-open-2').addEventListener('click', openSettings);
   $('settings-close').addEventListener('click', closeSettings);
   $('settings').addEventListener('click', (e) => {
     if (e.target === $('settings')) closeSettings(); // clic à côté du panneau
@@ -2638,6 +2598,12 @@
     if (v != null && !$(id).disabled) $(id).checked = v === '1';
     $(id).addEventListener('change', (e) => store.set('lowsper.opt.' + id, e.target.checked ? '1' : '0'));
   }
+  // Nombre de personnes (réglage gardé, vide = automatique) : un plafond pour la distinction des voix
+  $('people').value = store.get('lowsper.opt.people') || '';
+  $('people').addEventListener('input', (e) => {
+    const n = parseInt(e.target.value, 10);
+    store.set('lowsper.opt.people', n >= 2 && n <= 30 ? String(n) : '');
+  });
   $('glossary').value = store.get('lowsper.glossary') || '';
   $('glossary').addEventListener('input', (e) => store.set('lowsper.glossary', e.target.value));
   $('fix-apply').addEventListener('click', applyFix);
@@ -2657,12 +2623,56 @@
     if (e.key === 'Enter') applyFix();
   });
   renderFixes();
-  $('start').addEventListener('click', start);
+  /**
+   * « Démarrer » : la fenêtre « Avant de commencer » explique les trois étapes à venir, sauf si
+   * l'utilisateur a coché « Ne plus afficher ». Le clic sur « Continuer » sert de geste de
+   * l'utilisateur pour le partage d'écran, que le navigateur exige.
+   */
+  function askBeforeStart() {
+    if (app.state !== 'idle' || $('start').disabled) return;
+    if (store.get('lowsper.opt.skipBefore') === '1') return start();
+    $('before-skip').checked = false;
+    $('before').showModal();
+    $('before-continue').focus();
+  }
+  $('start').addEventListener('click', askBeforeStart);
+  $('before-continue').addEventListener('click', () => {
+    if ($('before-skip').checked) {
+      store.set('lowsper.opt.skipBefore', '1');
+      $('show-before').checked = false;
+    }
+    $('before').close();
+    start();
+  });
+  $('before-cancel').addEventListener('click', () => $('before').close());
+  // Paramètres : remettre la fenêtre après « Ne plus afficher »
+  $('show-before').checked = store.get('lowsper.opt.skipBefore') !== '1';
+  $('show-before').addEventListener('change', (e) => store.set('lowsper.opt.skipBefore', e.target.checked ? '0' : '1'));
   // Profils de sortie
   $('export-folder').addEventListener('click', saveToFolder);
-  $('profile').addEventListener('change', () => {
-    L.Notes.select($('profile').value);
-    renderProfileAccess();
+  // « Enregistrer la note dans » : menu des profils (composant commun, menu.js)
+  L.Menu.attach({
+    button: $('place-btn'),
+    menu: $('place-list'),
+    items: () =>
+      L.Notes.list().map((p) => ({
+        value: p.id,
+        label: p.name,
+        sub: p.folderName ? tr('home.inFolder', { folder: p.folderName }) : tr('home.downloads'),
+        checked: p.id === L.Notes.current().id,
+      })),
+    actions: () => [{ id: 'new', label: tr('home.newPlace') }],
+    onSelect: (id) => {
+      L.Notes.select(id);
+      renderPlace();
+      renderProfileAccess();
+    },
+    onAction: () => {
+      // Nouvel emplacement : un nouveau profil, dans les paramètres
+      openSettings();
+      $('prof-new').click();
+      $('prof-title').scrollIntoView({ block: 'start' });
+    },
   });
   $('profile-allow').addEventListener('click', allowProfileFolder);
   $('prof-select').addEventListener('change', () => {
@@ -2899,7 +2909,7 @@
   $('again').addEventListener('click', reset);
   $('next-meeting').addEventListener('click', () => {
     reset();
-    start(); // le clic sert de geste utilisateur pour le partage d'écran
+    askBeforeStart(); // le clic sert de geste utilisateur pour le partage d'écran
   });
   $('pip').addEventListener('click', () => openPip());
   // Flèche de la barre : déplie ou replie la deuxième ligne (dernière phrase, avis)
@@ -2915,10 +2925,12 @@
   });
   $('pip-back').addEventListener('click', closePip);
   $('title').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') start();
+    if (e.key !== 'Enter') return;
+    // Touche consommée : sinon le même appui activerait « Continuer », qui vient de recevoir le focus
+    e.preventDefault();
+    askBeforeStart();
   });
 
-  if ((Number(store.get('lowsper.meetings')) || 0) >= 3) $('howto-idle').open = false;
   checkRecovery();
   L.detectWebGPU().then((gpu) => {
     app.gpu = gpu;

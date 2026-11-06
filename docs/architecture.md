@@ -108,6 +108,7 @@ vérifie à chaque pull request.
 |---|---|---|
 | `tools/test/unit.mjs` | Découpage, assemblage, filtres, voix, couverture, budget de jetons (Node seul) | 16 s |
 | `tools/test/csp.mjs` | Non-fuite réseau : politique, code, navigateur | 15 s |
+| `tools/test/home.mjs` | Accueil : menu « Enregistrer la note dans », fenêtre « Avant de commencer », réglages | 10 s |
 | `tools/test/welcome.mjs` | Écran de bienvenue : matériel simulé, recommandation, menu de langue, installation simulée | 10 s |
 | `tools/test/i18n.mjs` | Interface en anglais sans reste de français, page identique au catalogue français, bascule de langue | 5 s |
 | `tools/test/import.mjs` | Décodage des fichiers importés, 7 formats ; `--long` : 3 h et mémoire | 10 s, 10 min |

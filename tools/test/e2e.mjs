@@ -252,6 +252,10 @@ await page.fill('#glossary', corpusInfo.glossary);
 await page.screenshot({ path: join(out, '2b-parametres.png') });
 await page.click('#settings-close');
 await page.click('#start');
+// « Avant de commencer » : les trois étapes, puis Continuer (le clic sert au partage d'écran)
+await page.waitForSelector('#before[open]');
+if ((await page.$$('#before .steps li')).length !== 3) throw new Error('trois étapes attendues');
+await page.click('#before-continue');
 await page.waitForSelector('#view-rec:not([hidden])');
 console.log(`Réunion simulée pendant ${meetingSeconds} s...`);
 // Panne simulée du moteur au milieu de la réunion : le passage doit être relancé, pas perdu

@@ -187,7 +187,7 @@ await test('menu de langue : au clavier, changement immédiat et mémorisé', as
   await page.focus('#lang-btn');
   await page.keyboard.press('ArrowDown'); // ouvre le menu, sur la langue actuelle
   assert.equal(await page.getAttribute('#lang-btn', 'aria-expanded'), 'true');
-  assert.equal(await page.evaluate(() => document.activeElement.dataset.lang), 'fr');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.value), 'fr');
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
   assert.equal(await page.getAttribute('html', 'lang'), 'en');

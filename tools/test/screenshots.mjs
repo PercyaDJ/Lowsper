@@ -2,7 +2,7 @@
 //
 // Rejoue le corpus synthétique « hebdo » (voix de synthèse, noms inventés) dans la vraie page,
 // avec le vrai moteur, puis capture l'accueil, l'enregistrement, la barre réduite et l'écran de fin
-// (thèmes clair et sombre), l'import d'un fichier, le réglage de langue en anglais et l'écran de
+// (thèmes clair et sombre), la fenêtre « Avant de commencer », l'import d'un fichier, le réglage de langue en anglais et l'écran de
 // bienvenue (matériel simulé), à double résolution. Aucune donnée réelle ne peut y apparaître.
 //
 // Prérequis : node build.mjs --embed whisper-small   (CHROMIUM_PATH si besoin)
@@ -43,6 +43,8 @@ page.on('request', (r) => {
 await page.addInitScript((pcmB64) => {
   // Pas de mini-fenêtre automatique : on capture la page elle-même
   localStorage.setItem('lowsper.opt.autopip', '0');
+  // Réunion fictive à 6 personnes (réglage « Nombre de personnes »)
+  localStorage.setItem('lowsper.opt.people', '6');
   // Le son des participants remplace le partage d'écran (impossible sans écran)
   navigator.mediaDevices.getDisplayMedia = async () => {
     const ctx = new AudioContext();
@@ -67,10 +69,14 @@ await page.click('#settings-open');
 await page.fill('#glossary', corpus.glossary);
 await page.click('#settings-close');
 await page.fill('#title', 'Point hebdo du centre de service');
-await page.fill('#people', '6');
 await page.screenshot({ path: join(out, 'accueil.png') });
 
+// « Avant de commencer », capturée puis passée
 await page.click('#start');
+await page.waitForSelector('#before[open]');
+await page.waitForTimeout(300);
+await page.screenshot({ path: join(out, 'avant.png') });
+await page.click('#before-continue');
 await page.waitForSelector('#view-rec:not([hidden])');
 // Capture dès que le transcript en direct montre quelques interventions
 const t0 = Date.now();
@@ -176,8 +182,6 @@ await welcome.addInitScript(() => {
   Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
   Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
   Object.defineProperty(navigator, 'gpu', { get: () => undefined });
-  // Bandeau d'avertissement fermé : on montre l'écran lui-même
-  sessionStorage.setItem('lowsper.consent.closed', '1');
 });
 await welcome.goto(pathToFileURL(join(welcomeSite, 'Lowsper.html')).href);
 await welcome.waitForSelector('#view-install:not([hidden])');
