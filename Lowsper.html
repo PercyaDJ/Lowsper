@@ -404,64 +404,70 @@
       <button class="btn ghost" id="before-cancel" type="button" data-i18n="before.cancel">Annuler</button>
     </dialog>
 
-    <!-- Pendant la réunion -->
-    <section class="card view" id="view-rec" hidden>
-      <!-- Cœur de l'enregistrement : c'est lui qui passe dans la mini-fenêtre -->
-      <div class="rec-core" id="rec-core">
-        <div class="rec-head">
-          <div class="rec-status" id="rec-status"><span class="rec-dot pulsing"></span><span id="rec-label" data-i18n="rec.recording">Enregistrement</span></div>
-          <div class="timer" id="timer">00:00:00</div>
-        </div>
-
-        <div class="meters">
-          <div class="meter" id="meter-me" title="Vous (micro)" data-i18n-attr="title:rec.meTitle">
-            <span class="who" data-i18n="rec.me">Vous</span>
-            <span class="bar"><i></i></span>
-            <span class="state"></span>
-          </div>
-          <div class="meter" id="meter-others" title="Réunion (son partagé)" data-i18n-attr="title:rec.othersTitle">
-            <span class="who" data-i18n="rec.others">Participants</span>
-            <span class="bar"><i></i></span>
-            <span class="state"></span>
-          </div>
-        </div>
-        <div class="notice" id="rec-notice" hidden></div>
-        <p class="last-line" id="last-line"></p>
-        <div class="queue" id="queue"></div>
-
-        <div class="row actions">
-          <button class="btn ghost" id="pause" title="Mettre en pause / reprendre" data-i18n-attr="title:rec.pauseTitle">
-            <svg class="ico i-pause" viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="2.5" width="3" height="11" rx="1"/><rect x="9.5" y="2.5" width="3" height="11" rx="1"/></svg>
-            <svg class="ico i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2.8v10.4a.6.6 0 0 0 .9.5l8.2-5.2a.6.6 0 0 0 0-1L5.4 2.3a.6.6 0 0 0-.9.5z"/></svg>
-            <span class="lbl" data-i18n="rec.pause">Pause</span>
-          </button>
-          <button class="btn ghost" id="pip" title="Petite fenêtre toujours visible, comme un appel Teams réduit" data-i18n-attr="title:rec.pipTitle">
-            <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="8" y="8" width="5" height="4" rx=".8"/></svg>
-            <span class="lbl" data-i18n="rec.pip">Mini-fenêtre</span>
-          </button>
-          <button class="btn ghost" id="chain" title="Terminer cette réunion et démarrer la suivante tout de suite, sans repartager l'écran" data-i18n-attr="title:rec.chainTitle">
-            <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3.2v9.6a.5.5 0 0 0 .8.4l6.4-4.8a.5.5 0 0 0 0-.8L3.8 2.8a.5.5 0 0 0-.8.4z"/><rect x="11" y="3" width="2" height="10" rx=".8"/></svg>
-            <span class="lbl" data-i18n="rec.chain">Réunion suivante</span>
-          </button>
-          <button class="btn ghost" id="pip-more" title="Afficher ou masquer la dernière phrase" data-i18n-attr="title:rec.moreTitle;aria-label:rec.moreTitle" aria-label="Afficher ou masquer la dernière phrase">
-            <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-          <button class="btn danger" id="stop" title="Terminer la réunion et produire le transcript" data-i18n-attr="title:rec.stopTitle">
-            <span class="sq"></span><span class="lbl" data-i18n="rec.stop">Terminer</span>
-          </button>
-        </div>
-      </div>
-      <div class="pip-placeholder" id="pip-placeholder" hidden>
-        <p data-i18n-html="rec.pipPlaceholder">L'enregistrement est piloté depuis la <strong>mini-fenêtre</strong>.</p>
-        <div class="row center-row">
-          <button class="btn" id="pip-back" data-i18n="rec.pipBack">Revenir ici</button>
-          <!-- Toujours disponible ici, même si la mini-fenêtre ne répond plus -->
-          <button class="btn danger" id="stop-main"><span class="sq"></span> <span data-i18n="rec.stopMain">Terminer la réunion</span></button>
-        </div>
+    <!-- Pendant la réunion (lot R5, decision.md §28) : fenêtre agrandie -->
+    <section class="card view meeting" id="view-rec" hidden>
+      <div class="meet-head">
+        <div class="rec-status" id="rec-status"><span class="rec-dot pulsing"></span><span id="rec-label" data-i18n="rec.recording">Enregistrement</span></div>
+        <div class="timer" id="timer">00:00</div>
+        <input id="meet-title" type="text" maxlength="80" autocomplete="off" spellcheck="false" placeholder="Réunion sans nom" data-i18n-attr="placeholder:meet.untitled;aria-label:meet.name" aria-label="Nom de la réunion">
       </div>
 
-      <div class="feed" id="live" aria-live="polite">
+      <!-- Contrôle d'état, en langage simple -->
+      <div class="group checks">
+        <div class="check-row" id="row-me" data-state="ok">
+          <span class="check-mark" aria-hidden="true"><svg class="i-ok" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><svg class="i-warn" viewBox="0 0 24 24"><path d="M12 6v8M12 18.5v.5"/></svg><svg class="i-idle" viewBox="0 0 24 24"><path d="M7 12h10"/></svg></span>
+          <span class="check-text"><span data-i18n="meet.mic">Votre micro</span><span class="check-status" id="me-status" aria-live="polite"></span></span>
+          <span class="level"><i id="me-level"></i></span>
+        </div>
+        <div class="check-row" id="row-others" data-state="ok">
+          <span class="check-mark" aria-hidden="true"><svg class="i-ok" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><svg class="i-warn" viewBox="0 0 24 24"><path d="M12 6v8M12 18.5v.5"/></svg><svg class="i-idle" viewBox="0 0 24 24"><path d="M7 12h10"/></svg></span>
+          <span class="check-text"><span data-i18n="meet.sound">Son de la réunion</span><span class="check-status" id="others-status" aria-live="polite"></span></span>
+          <span class="level"><i id="others-level"></i></span>
+          <button class="btn small fix-btn" id="others-fix" type="button" hidden data-i18n="meet.howToFix">Comment corriger</button>
+        </div>
+        <div class="check-row" id="row-text" data-state="ok">
+          <span class="check-mark" aria-hidden="true"><svg class="i-ok" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><svg class="i-warn" viewBox="0 0 24 24"><path d="M12 6v8M12 18.5v.5"/></svg><svg class="i-idle" viewBox="0 0 24 24"><path d="M7 12h10"/></svg></span>
+          <span class="check-text"><span data-i18n="meet.text">Texte écrit</span><span class="check-status" id="text-status" aria-live="polite"></span></span>
+        </div>
+      </div>
+      <div class="notice" id="rec-notice" hidden></div>
+
+      <!-- Trois gros boutons ronds légendés -->
+      <div class="big-actions">
+        <button class="round-btn" id="pause" type="button">
+          <span class="round"><svg class="ico i-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/></svg><svg class="ico i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg></span>
+          <span class="lbl" data-i18n="rec.pause">Pause</span>
+        </button>
+        <button class="round-btn" id="pip" type="button" title="Petite fenêtre toujours visible, comme un appel réduit" data-i18n-attr="title:rec.pipTitle">
+          <span class="round"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg></span>
+          <span class="lbl" data-i18n="rec.pip">Réduire</span>
+        </button>
+        <button class="round-btn danger" id="stop" type="button">
+          <span class="round"><span class="sq"></span></span>
+          <span class="lbl" data-i18n="rec.stop">Terminer</span>
+        </button>
+      </div>
+      <button class="linkish chain-link" id="chain" type="button" data-i18n="rec.chain">Commencer une nouvelle réunion sans arrêter</button>
+
+      <!-- Texte en direct, masqué par défaut -->
+      <label class="check live-toggle">
+        <input type="checkbox" id="show-live">
+        <span data-i18n="meet.showText">Afficher le texte pendant la réunion</span>
+      </label>
+      <div class="feed" id="live" aria-live="polite" hidden>
         <p class="placeholder" data-i18n="rec.placeholder">Le transcript apparaîtra ici au fil de la réunion.</p>
+      </div>
+
+      <!-- Mini-barre : déplacée dans la mini-fenêtre (Document Picture-in-Picture, environ
+           248 × 52), ou affichée seule quand la fenêtre de Lowsper est très basse -->
+      <div class="mini-bar" id="mini">
+        <span class="mini-time" id="mini-state" title="Enregistrement" data-i18n-attr="title:rec.recording"><span class="rec-dot"></span><span id="mini-timer">00:00</span></span>
+        <span class="mini-levels">
+          <span class="mini-level" title="Votre micro" data-i18n-attr="title:meet.mic"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg><span class="level"><i id="mini-me"></i></span></span>
+          <span class="mini-level" id="mini-others-row" title="Son de la réunion" data-i18n-attr="title:meet.sound"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg><span class="level"><i id="mini-others"></i></span></span>
+        </span>
+        <button class="mini-btn" id="mini-pause" type="button" aria-label="Pause" title="Pause" data-i18n-attr="aria-label:rec.pause;title:rec.pause"><svg class="ico i-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/></svg><svg class="ico i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg></button>
+        <button class="mini-btn stop" id="mini-stop" type="button" aria-label="Terminer" title="Terminer" data-i18n-attr="aria-label:rec.stop;title:rec.stop"><span class="sq"></span></button>
       </div>
     </section>
 
@@ -551,6 +557,7 @@
   <script src="app/js/i18n.js"></script>
   <script src="app/js/recommend.js"></script>
   <script src="app/js/menu.js"></script>
+  <script src="app/js/meeting.js"></script>
   <script src="app/js/browser.js"></script>
   <script src="app/js/engine.js"></script>
   <script src="app/js/analyzer.js"></script>

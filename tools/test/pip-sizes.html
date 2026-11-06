@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'">
+<title>Lowsper : tailles de la mini-fenêtre (Document Picture-in-Picture)</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 760px; margin: 32px auto; padding: 0 16px; }
+  button { font: inherit; padding: 6px 14px; }
+  pre { background: #f2f4f3; padding: 12px; white-space: pre-wrap; }
+</style>
+<h1>Tailles de la mini-fenêtre</h1>
+<p>
+  Page d'essai pour le lot R5 (decision.md §28). Elle n'écrit rien et ne fait aucune requête
+  réseau. Ouvrez-la dans Chrome, puis dans Edge, depuis le dossier <code>tools/test</code> (double
+  clic), puis cliquez sur le bouton jusqu'à ce qu'il soit grisé : chaque clic ouvre puis referme
+  une petite fenêtre, avec une taille demandée différente (le navigateur exige un clic par
+  ouverture). Copiez enfin le journal en bas de page.
+</p>
+<button id="go" type="button">Mesurer la taille suivante</button>
+<pre id="log"></pre>
+<script>
+  const log = (m) => (document.getElementById('log').textContent += m + '\n');
+  // Tailles demandées : très petites, celle de la maquette (248 × 52), l'actuelle (300 × 48),
+  // grandes. La fenêtre réellement obtenue est relevée (intérieur et extérieur).
+  const SIZES = [[1, 1], [100, 30], [180, 40], [248, 52], [300, 48], [400, 120], [1000, 800], [4000, 3000]];
+  const out = [];
+  log('Navigateur : ' + navigator.userAgent);
+  log('Écran : ' + screen.availWidth + ' × ' + screen.availHeight + ', zoom ' + devicePixelRatio);
+  if (!('documentPictureInPicture' in window)) log('documentPictureInPicture absent');
+  // Une taille par clic : le navigateur exige un geste de l'utilisateur pour chaque ouverture
+  async function measureNext() {
+    const [w, h] = SIZES[out.length];
+    let r;
+    try {
+      const win = await documentPictureInPicture.requestWindow({ width: w, height: h });
+      await new Promise((ok) => setTimeout(ok, 400));
+      r = {
+        demandé: `${w} × ${h}`,
+        intérieur: `${win.innerWidth} × ${win.innerHeight}`,
+        extérieur: `${win.outerWidth} × ${win.outerHeight}`,
+      };
+      win.close();
+    } catch (e) {
+      r = { demandé: `${w} × ${h}`, erreur: e.name + ' : ' + e.message };
+    }
+    out.push(r);
+    log(JSON.stringify(r));
+    if (out.length === SIZES.length) {
+      document.getElementById('go').disabled = true;
+      window.pipSizes = out;
+    }
+  }
+  document.getElementById('go').addEventListener('click', measureNext);
+</script>
+</html>

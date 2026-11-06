@@ -11,7 +11,7 @@ Whisper, distingue les intervenants, et vous donne à la fin un transcript Markd
 
 *English summary: [README.en.md](README.en.md).*
 
-![Lowsper pendant une réunion fictive : transcript en direct, niveaux du micro et des participants](docs/images/enregistrement.png)
+![Lowsper pendant une réunion fictive : chronomètre, contrôle d'état du micro, du son et du texte, transcript en direct](docs/images/enregistrement.png)
 
 ## Pour qui, pour quoi
 
@@ -83,10 +83,21 @@ réunion qui travaille hors ligne.
    Pour les habitués, « Ne plus afficher » supprime cette fenêtre.
 
    ![La fenêtre « Avant de commencer » : prévenir, choisir l'écran avec le son, autoriser le micro](docs/images/avant.png)
-   Lowsper se réduit aussitôt en **mini-fenêtre** : une barre d'une ligne toujours visible (durée,
-   niveaux, pause, fin), comme un appel réduit. La flèche affiche la dernière phrase.
+   Lowsper se réduit aussitôt en **mini-fenêtre** : une petite barre toujours visible (durée,
+   niveau du micro et du son de la réunion, pause, fin), comme un appel réduit. Si le son de la
+   réunion n'arrive pas, son icône devient orange ; le survol explique quoi faire.
 
-   ![La barre réduite : durée, niveaux, pause, mini-fenêtre, réunion suivante, fin](docs/images/barre.png)
+   ![La mini-fenêtre : durée, niveaux du micro et de la réunion, pause, fin](docs/images/barre.png)
+
+   La **fenêtre de Lowsper** (bouton « Réduire » pour revenir à la mini-fenêtre) montre un grand
+   chronomètre, le nom de la réunion (modifiable) et un **contrôle d'état** en langage simple :
+   - **votre micro** : « Je vous entends » ;
+   - **le son de la réunion** : « Le son arrive », ou « Rien ne passe » avec un bouton **« Comment
+     corriger »** qui permet de partager de nouveau le son ;
+   - **le texte écrit** : « À jour », ou le retard en secondes si le PC prend du retard.
+   Le texte en direct est masqué par défaut : l'interrupteur « Afficher le texte pendant la
+   réunion » l'affiche (choix gardé). « Commencer une nouvelle réunion sans arrêter » enchaîne
+   sur la suivante sans repartager l'écran.
 7. En fin de réunion, cliquez sur **« Terminer »** (carré rouge). Le fichier `.md` est enregistré
    dans vos Téléchargements (ou le dossier de votre profil). Nommez les intervenants si vous le
    souhaitez ; **« Copier pour une IA »** copie la note précédée de la consigne choisie (compte
@@ -217,6 +228,13 @@ Cochez le vocabulaire métier correspondant dans les paramètres et ajoutez vos 
 glossaire : sur notre entretien de test en cybersécurité, les sigles bien écrits passent de 6 à 13
 sur 35. Le son d'une visio est compressé : Whisper small y fait nettement plus d'erreurs que sur le
 micro. Sur un PC équipé d'une carte graphique, le modèle « large-v3 turbo » est bien plus précis.
+
+**« Son de la réunion : rien ne passe ».**
+Lowsper n'a entendu personne dans le son partagé depuis 1 minute (ou le partage s'est arrêté).
+Cause la plus fréquente : la case « Partager l'audio » n'était pas cochée, ou ce n'est pas l'écran
+ou l'onglet de la visio qui est partagé. Cliquez sur « Comment corriger », puis partagez de
+nouveau, avec le son. Si vous présentez seul pendant longtemps, l'alerte peut aussi apparaître :
+elle disparaît dès que quelqu'un d'autre parle.
 
 **Où régler le nombre de personnes ?**
 Dans les paramètres, rubrique « Transcription » : **« Nombre de personnes dans vos réunions »**.
@@ -423,7 +441,7 @@ et `decision.md`) :
    strict nécessaire. Spécifications : [docs/refonte.md](docs/refonte.md), plan des lots : [docs/lots.md](docs/lots.md).
    Livré : nouvelles couleurs, thème clair ou sombre (3.5.0) ; interface en français et en
    anglais (lot R2) ; premier lancement guidé avec recommandation du modèle (lot R3) ; nouvel
-   accueil (lot R4). Les lots R2
+   accueil (lot R4) ; réunion avec mini-fenêtre et contrôle d'état (lot R5). Les lots R2
    et suivants seront publiés ensemble avec la 4.0.0.
 2. **Langues parlées multiples et vocabulaires métier élargis**, après mesure de la qualité.
 3. **Mémoire des voix plus fiable** d'une visio à l'autre, après mesure.
@@ -472,6 +490,7 @@ app/css/              styles
 app/js/i18n.js        langue de l'interface : catalogues français et anglais, fonction t()
 app/js/recommend.js   détection du PC et modèle recommandé au premier lancement
 app/js/menu.js        menu dessiné par Lowsper (composant commun, clavier et lecteur d'écran)
+app/js/meeting.js     contrôle d'état de la réunion (micro, son, texte) et ses seuils
 app/js/engine.js      chargement des fichiers, moteur Whisper dans un Worker (glossaire, langue)
 app/js/installer.js   installation du modèle au premier lancement
 app/js/settings.js    réglages copiés dans le dossier (survivent au nettoyage du navigateur)

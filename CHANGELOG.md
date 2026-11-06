@@ -23,6 +23,21 @@ Les détails techniques et les mesures sont dans `decision.md`.
 - Consignes fournies pour « Copier pour une IA » en français et en anglais. Une consigne modifiée
   par l'utilisateur ne change jamais.
 
+### Ajouté (lot R5)
+- Fenêtre de réunion : grand chronomètre, nom de la réunion modifiable, contrôle d'état en langage
+  simple (micro, son de la réunion, texte écrit) avec « Comment corriger », trois gros boutons
+  (Pause, Réduire, Terminer), « Commencer une nouvelle réunion sans arrêter » (decision.md §28).
+- Mini-fenêtre de 248 × 52 : temps, niveaux du micro et du son de la réunion, Pause, Terminer ;
+  icône orange si le son de la réunion n'arrive pas.
+- Page d'essai `tools/test/pip-sizes.html` : tailles acceptées par la mini-fenêtre.
+
+### Modifié (lot R5)
+- Le texte en direct est masqué par défaut pendant la réunion ; un interrupteur l'affiche (choix
+  gardé).
+- La mini-fenêtre ne montre plus la dernière phrase ni les avis.
+- Alerte « Rien ne passe depuis 1 min » quand aucune parole n'arrive du son de la réunion ; pas
+  d'alerte de silence pour le micro.
+
 ### Ajouté (lot R4)
 - Nouvel accueil : un titre, « Nom », « Enregistrer la note dans » (menu dessiné par Lowsper, avec
   le dossier de chaque profil et « Nouvel emplacement… »), « Démarrer » et « Transcrire un fichier

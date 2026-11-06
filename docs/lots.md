@@ -31,7 +31,7 @@ Chaque lot respecte `AGENTS.md`, et en particulier :
 | R2 | Interface en français et en anglais | Non publiée | Livré |
 | R3 | Premier lancement guidé | Non publiée | Livré |
 | R4 | Accueil | Non publiée | Livré |
-| R5 | Réunion : mini-fenêtre et fenêtre agrandie | Non publiée | À faire |
+| R5 | Réunion : mini-fenêtre et fenêtre agrandie | Non publiée | Livré |
 | R6 | Fin de réunion et consignes réécrites | Non publiée | À faire |
 | R7 | Réglages en onglets | Non publiée | À faire |
 | R8 | Langues parlées multiples et vocabulaires métier élargis | Non publiée | À faire |
@@ -113,7 +113,12 @@ Voir `refonte.md` §3.
   de personnes passe dans les réglages.
 - **Tests** : mettre à jour les tests de bout en bout du parcours de réunion.
 
-## R5 : réunion
+## R5 : réunion (livré)
+
+Livré, voir `decision.md` §28. Tailles de la mini-fenêtre mesurées dans Chromium sous Linux
+(écran virtuel) : 248 × 52 respecté, minimum 240 × 52 ; à confirmer dans Chrome et Edge avec
+`tools/test/pip-sizes.html`. Seuils réglés sur les corpus : 60 s de silence du son de la réunion,
+aucune alerte de silence du micro, 30 s de retard du texte.
 
 Voir `refonte.md` §4 et §5.
 - **Avant de coder** : mesurer les tailles minimale et maximale qu'acceptent Chrome et Edge pour
@@ -177,7 +182,7 @@ Voir `refonte.md` §9.
 
 ## Texte pour ouvrir la session suivante
 
-Remplacer `R5` par le lot voulu, et sa ligne d'objectif par celle du tableau.
+Remplacer `R6` par le lot voulu, et sa ligne d'objectif par celle du tableau.
 
 ```text
 Tu travailles sur le dépôt PercyaDJ/Lowsper (application de transcription de réunions 100 %
@@ -187,8 +192,8 @@ Avant tout, lis AGENTS.md (règles non négociables), docs/refonte.md (spécific
 refonte) et docs/lots.md (plan des lots). Les maquettes validées sont sur
 https://claude.ai/artifact/KeT2Rk6qFNieqFozpFJxMx : lis-les si tu as l'outil Artifact.
 
-Ta mission : réaliser le lot R5 de docs/lots.md (réunion : mini-fenêtre et fenêtre
-agrandie), et seulement ce lot. Respecte toutes les règles d'AGENTS.md. Mesure au lieu de supposer, et si
+Ta mission : réaliser le lot R6 de docs/lots.md (fin de réunion et consignes réécrites),
+et seulement ce lot. Respecte toutes les règles d'AGENTS.md. Mesure au lieu de supposer, et si
 un point n'est pas vérifiable, écris-le comme non vérifié.
 
 Si un choix important n'est pas couvert par les spécifications, pose-moi la question avant
