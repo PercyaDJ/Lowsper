@@ -60,7 +60,7 @@ await test('navigateur tel quel : sonde sans erreur ni requête réseau', async 
   assert.equal(states.length, 2);
   console.log('      ' + states.join('\n      '));
   assert.ok(await page.isHidden('#lai-trial'), "pas d'essai proposé sans IA utilisable");
-  assert.match(await page.textContent('#lai-status'), /Copier pour une IA/);
+  assert.match(await page.textContent('#lai-status'), /Obtenir un résumé/);
   assert.deepEqual(errors, []);
   assert.deepEqual(requests, []);
   await context.close();

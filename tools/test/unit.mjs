@@ -1029,17 +1029,76 @@ await test('notes : profils conservés, réglages abîmés ou anciens complété
 });
 
 // --- Consignes pour l'IA ---
-await test('consignes : « Compte rendu de réunion » identique à l’ancien bouton « Copier pour une IA »', () => {
+// Consignes fournies réécrites en prompt système (lot R6, docs/refonte.md §7, decision.md §29)
+await test('consignes : prompt système (rôle, contexte, tâche, règles, transcript), note à la fin', () => {
   store.delete('lowsper.prompts');
   const t = sampleMeeting();
   const p = L.Notes.list()[0];
-  const before =
-    "Voici le transcript automatique d'une réunion (il peut contenir des erreurs de reconnaissance). " +
-    'Rédige un compte rendu structuré en français : contexte et participants identifiables, ' +
-    'points abordés, décisions prises, actions à mener (qui, quoi, échéance), questions ouvertes. ' +
-    "N'invente rien : si un passage est incompréhensible ou ambigu, signale-le.\n\n---\n\n";
-  assert.equal(L.Notes.promptText(t, p), before + t.toMarkdown());
+  const out = L.Notes.promptText(t, p);
+  assert.ok(out.startsWith('# Rôle\nTu rédiges des comptes rendus de réunion exacts et utiles.\n'));
+  assert.ok(out.endsWith('\n# Transcript\n' + t.toMarkdown()), 'la note, inchangée, à la place de {{note}}');
   assert.equal(L.Notes.prompts().length, 3);
+  const order = {
+    fr: ['Rôle', 'Contexte', 'Tâche', 'Règles', 'Transcript'],
+    en: ['Role', 'Context', 'Task', 'Rules', 'Transcript'],
+  };
+  for (const lang of ['fr', 'en'])
+    for (const b of L.Notes.builtinPrompts(lang)) {
+      const heads = b.text.split('\n').filter((l) => l.startsWith('# '));
+      assert.deepEqual(
+        heads,
+        order[lang].map((h) => '# ' + h),
+        `${lang} ${b.id} : structure`
+      );
+      assert.ok(b.text.endsWith('# Transcript\n{{note}}'), `${lang} ${b.id} : transcript à la fin`);
+      // Mêmes règles et même contexte dans les trois consignes : seules les sections changent
+      const rules = (x) => x.slice(x.indexOf('\n# ' + order[lang][3]), x.indexOf('\n# Transcript'));
+      const ctx = (x) => x.slice(x.indexOf('\n- '), x.indexOf('\n# ' + order[lang][2]));
+      const ref = L.Notes.builtinPrompts(lang)[0].text;
+      assert.equal(ctx(b.text), ctx(ref), `${lang} ${b.id} : même contexte`);
+      if (b.id !== 'actions') assert.equal(rules(b.text), rules(ref), `${lang} ${b.id} : mêmes règles`);
+    }
+});
+
+await test('consignes : texte anglais du compte rendu identique à docs/refonte.md §7', async () => {
+  const doc = await readFile(join(here, '..', '..', 'docs', 'refonte.md'), 'utf8');
+  const spec = doc.slice(doc.indexOf('## 7.')).match(/```text\n([\s\S]*?)\n```/)[1];
+  // Le document coupe les lignes longues à 100 caractères : une ligne qui ne commence ni un titre,
+  // ni une liste, ni un paragraphe (après un titre ou une ligne vide) prolonge la précédente.
+  const out = [];
+  for (const line of spec.split('\n')) {
+    const prev = out[out.length - 1];
+    const starts = !line.trim() || /^(#|- |\d+\. |\{\{)/.test(line.trim());
+    if (out.length && !starts && prev && !prev.startsWith('#')) out[out.length - 1] = prev + ' ' + line.trim();
+    else out.push(line);
+  }
+  const joined = out.join('\n');
+  assert.equal(L.i18n.t('prompt.compte-rendu.text', null, 'en'), joined);
+});
+
+await test('consignes : un ancien texte fourni non modifié passe au prompt système, un texte modifié jamais', () => {
+  for (const id of L.Notes.BUILTIN_IDS)
+    for (const old of L.Notes.LEGACY_PROMPTS[id]) {
+      store.set('lowsper.prompts', JSON.stringify([{ id, name: 'x', text: old }]));
+      const p = L.Notes.prompts().find((x) => x.id === id);
+      assert.equal(p.modified, false, id + ' : ancien texte reconnu comme non modifié');
+      assert.equal(p.text, L.i18n.t('prompt.' + id + '.text', null, 'fr'));
+    }
+  // L'ancien texte du compte rendu, tel que le vérifiait ce test avant le lot R6
+  assert.equal(
+    L.Notes.LEGACY_PROMPTS['compte-rendu'][0],
+    "Voici le transcript automatique d'une réunion (il peut contenir des erreurs de reconnaissance). " +
+      'Rédige un compte rendu structuré en français : contexte et participants identifiables, ' +
+      'points abordés, décisions prises, actions à mener (qui, quoi, échéance), questions ouvertes. ' +
+      "N'invente rien : si un passage est incompréhensible ou ambigu, signale-le."
+  );
+  // Ancien texte retouché d'un seul caractère : modifié, donc gardé tel quel
+  const edited = L.Notes.LEGACY_PROMPTS.actions[0] + ' Merci.';
+  store.set('lowsper.prompts', JSON.stringify([{ id: 'actions', name: 'x', text: edited }]));
+  const a = L.Notes.prompts().find((x) => x.id === 'actions');
+  assert.ok(a.modified);
+  assert.equal(a.text, edited);
+  store.delete('lowsper.prompts');
 });
 
 await test('consignes : modifiables, rétablissables, personnelles, variables et place de la note', () => {
@@ -1064,7 +1123,7 @@ await test('consignes : modifiables, rétablissables, personnelles, variables et
   assert.equal(L.Notes.prompts().length, 3);
   // Consigne disparue : repli sur la première
   assert.ok(
-    L.Notes.promptText(t, Object.assign(p, { prompt: id })).startsWith("Voici le transcript automatique d'une réunion")
+    L.Notes.promptText(t, Object.assign(p, { prompt: id })).startsWith('# Rôle\nTu rédiges des comptes rendus')
   );
   store.set('lowsper.prompts', 'abîmé');
   assert.equal(L.Notes.prompts().length, 3);
@@ -1440,12 +1499,12 @@ await test('consignes : fournies dans la langue de l’interface, consigne modif
   try {
     let list = L.Notes.prompts();
     assert.deepEqual([...list.map((p) => p.name)], ['Meeting minutes', 'Call summary', 'Action items']);
-    assert.match(list[0].text, /^Here is the automatic transcript of a meeting/);
+    assert.match(list[0].text, /^# Role\nYou write accurate, useful meeting minutes\./);
     // Texte d'origine français enregistré (version précédente) : non modifié, il suit la langue
     L.Notes.savePrompt('compte-rendu', { text: L.i18n.t('prompt.compte-rendu.text', null, 'fr') });
     list = L.Notes.prompts();
     assert.equal(list[0].modified, false);
-    assert.match(list[0].text, /^Here is the automatic transcript/);
+    assert.match(list[0].text, /^# Role\n/);
     // Consigne modifiée par l'utilisateur : gardée telle quelle dans les deux langues
     L.Notes.savePrompt('actions', { text: 'Mes actions à moi.' });
     assert.equal(L.Notes.prompts().find((p) => p.id === 'actions').text, 'Mes actions à moi.');
@@ -1453,7 +1512,7 @@ await test('consignes : fournies dans la langue de l’interface, consigne modif
     const fr = L.Notes.prompts();
     assert.equal(fr.find((p) => p.id === 'actions').text, 'Mes actions à moi.');
     assert.ok(fr.find((p) => p.id === 'actions').modified);
-    assert.match(fr[0].text, /^Voici le transcript automatique d'une réunion/);
+    assert.match(fr[0].text, /^# Rôle\nTu rédiges/);
     assert.equal(fr[0].name, 'Compte rendu de réunion');
   } finally {
     L.i18n.setLang('fr');

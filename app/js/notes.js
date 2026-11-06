@@ -69,7 +69,7 @@
       links: false,
       front: { enabled: false, fields: ['date', 'duree', 'intervenants', 'source'], tags: '', extra: '' },
       folderName: '',
-      prompt: 'compte-rendu', // consigne proposée par « Copier pour une IA »
+      prompt: 'compte-rendu', // consigne proposée par « Obtenir un résumé »
     };
   }
 
@@ -292,7 +292,7 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Consignes pour l'IA (« Copier pour une IA ») : fournies, modifiables, ou personnelles
+  // Consignes pour l'IA (« Obtenir un résumé ») : fournies, modifiables, ou personnelles
   // ---------------------------------------------------------------------------
   const PROMPTS_KEY = 'lowsper.prompts';
   // Consignes fournies : textes dans le catalogue (i18n.js), en français et en anglais
@@ -306,10 +306,50 @@
     }));
   }
   /**
-   * Texte d'une consigne fournie, dans l'une des langues : un texte enregistré identique à l'un
-   * d'eux n'a pas été modifié par l'utilisateur, il suit donc la langue de l'interface.
+   * Textes d'origine des versions précédentes (3.3.0 à 3.5.0 en français, lot R2 en anglais),
+   * remplacés au lot R6 par un prompt système (decision.md §29). Ils ne sont jamais affichés :
+   * ils servent seulement à reconnaître une consigne que l'utilisateur n'a pas modifiée.
    */
-  const isOriginal = (id, text) => Lowsper.i18n.LANGS.some((l) => tx('prompt.' + id + '.text', null, l) === text);
+  const LEGACY_PROMPTS = {
+    'compte-rendu': [
+      "Voici le transcript automatique d'une réunion (il peut contenir des erreurs de reconnaissance). " +
+        'Rédige un compte rendu structuré en français : contexte et participants identifiables, ' +
+        'points abordés, décisions prises, actions à mener (qui, quoi, échéance), questions ouvertes. ' +
+        "N'invente rien : si un passage est incompréhensible ou ambigu, signale-le.",
+      'Here is the automatic transcript of a meeting (it may contain speech recognition errors). ' +
+        'Write structured minutes in English: context and identifiable participants, ' +
+        'topics discussed, decisions made, action items (who, what, deadline), open questions. ' +
+        'Do not invent anything: if a passage is unclear or ambiguous, say so.',
+    ],
+    'synthese-appel': [
+      "Voici le transcript automatique d'un appel (il peut contenir des erreurs de reconnaissance). " +
+        "Rédige une synthèse courte en français, en quelques lignes : objet de l'appel, points clés, " +
+        'engagements pris de part et d’autre, prochaines étapes et leur date si elle est citée. ' +
+        "N'invente rien : si un passage est incompréhensible ou ambigu, signale-le.",
+      'Here is the automatic transcript of a call (it may contain speech recognition errors). ' +
+        'Write a short summary in English, in a few lines: purpose of the call, key points, ' +
+        'commitments made by each side, next steps and their date if one is mentioned. ' +
+        'Do not invent anything: if a passage is unclear or ambiguous, say so.',
+    ],
+    actions: [
+      "Voici le transcript automatique d'une réunion (il peut contenir des erreurs de reconnaissance). " +
+        'Extrais uniquement les actions à mener, sous forme de tableau : action, responsable, échéance, ' +
+        "phrase du transcript qui la justifie (avec son horodatage). Si le responsable ou l'échéance ne " +
+        "sont pas dits explicitement, écris « non précisé » : n'invente ni nom ni date.",
+      'Here is the automatic transcript of a meeting (it may contain speech recognition errors). ' +
+        'Extract only the action items, as a table: action, owner, deadline, ' +
+        'sentence of the transcript that supports it (with its timestamp). If the owner or the deadline ' +
+        'is not stated explicitly, write “not specified”: never invent a name or a date.',
+    ],
+  };
+  /**
+   * Texte d'origine d'une consigne fournie, dans l'une des langues ou d'une version précédente :
+   * un texte enregistré identique à l'un d'eux n'a pas été modifié par l'utilisateur. Il suit donc
+   * la langue de l'interface et le texte fourni actuel. Un texte modifié ne change jamais.
+   */
+  const isOriginal = (id, text) =>
+    Lowsper.i18n.LANGS.some((l) => tx('prompt.' + id + '.text', null, l) === text) ||
+    (LEGACY_PROMPTS[id] || []).includes(text);
 
   /** Consignes enregistrées : textes modifiés des consignes fournies, et consignes personnelles. */
   function storedPrompts() {
@@ -508,6 +548,7 @@
     folders,
     BUILTIN_IDS,
     builtinPrompts,
+    LEGACY_PROMPTS,
     prompts,
     savePrompt,
     newPrompt,

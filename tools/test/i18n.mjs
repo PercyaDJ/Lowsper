@@ -185,7 +185,10 @@ await test('interface en anglais : note et consignes fournies en anglais', async
   );
   assert.match(r.md, /\*\*\[00:00:01\] You:\*\* Hello everyone\./);
   assert.match(r.file, /^meeting_2026-10-05_17h00_weekly-check-in\.md$/);
-  assert.match(r.prompt, /^Here is the automatic transcript of a meeting/);
+  assert.match(
+    r.prompt,
+    /^# Role\nYou write accurate, useful meeting minutes\.\n[\s\S]*\n# Transcript\n# Meeting transcript/
+  );
   assert.equal(r.profile, 'Default');
   assert.deepEqual(errors, []);
   await context.close();
