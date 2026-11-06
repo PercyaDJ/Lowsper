@@ -18,17 +18,24 @@ Chaque lot respecte `AGENTS.md`, et en particulier :
 
 À la fin de chaque lot, mettre à jour l'état dans le tableau ci-dessous.
 
-| Lot | Contenu | Version visée | État |
+**Versions** (décision du mainteneur) :
+- la refonte est publiée en une seule fois, en version 4.0.0, à la fin du dernier lot ;
+- les lots R2 à R8 ne changent pas la version de `tools/package.json` et ne publient pas de
+  release. Leurs changements s'ajoutent à la section « Non publié » du CHANGELOG ;
+- le dernier lot passe la version à 4.0.0, renomme cette section en `[4.0.0]`, puis le
+  mainteneur publie la release `v4.0.0`.
+
+| Lot | Contenu | Version | État |
 |---|---|---|---|
 | R1 | Fondations visuelles : couleurs, thème, style commun | 3.5.0 | Livré |
-| R2 | Interface en français et en anglais | 3.6.0 | À faire |
-| R3 | Premier lancement guidé | 3.7.0 | À faire |
-| R4 | Accueil | 3.8.0 | À faire |
-| R5 | Réunion : mini-fenêtre et fenêtre agrandie | 3.9.0 | À faire |
-| R6 | Fin de réunion et consignes réécrites | 3.10.0 | À faire |
-| R7 | Réglages en onglets | 3.11.0 | À faire |
-| R8 | Langues parlées multiples et vocabulaires métier élargis | 3.12.0 | À faire |
-| R9 | Mémoire des voix d'une visio à l'autre | 3.13.0 | À faire |
+| R2 | Interface en français et en anglais | Non publiée | À faire |
+| R3 | Premier lancement guidé | Non publiée | À faire |
+| R4 | Accueil | Non publiée | À faire |
+| R5 | Réunion : mini-fenêtre et fenêtre agrandie | Non publiée | À faire |
+| R6 | Fin de réunion et consignes réécrites | Non publiée | À faire |
+| R7 | Réglages en onglets | Non publiée | À faire |
+| R8 | Langues parlées multiples et vocabulaires métier élargis | Non publiée | À faire |
+| R9 | Mémoire des voix d'une visio à l'autre | 4.0.0 | À faire |
 
 ## R1 : fondations visuelles (livré)
 
