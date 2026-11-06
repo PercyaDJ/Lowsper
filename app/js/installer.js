@@ -98,7 +98,10 @@
   Lowsper.pickLowsperFolder = async function () {
     let dir;
     try {
-      dir = await window.showDirectoryPicker({ id: 'lowsper', mode: 'readwrite' });
+      // Le navigateur refuse un chemin libre comme point de départ (seulement un dossier connu ou
+      // déjà autorisé) : Téléchargements, où Lowsper est le plus souvent décompressé, plutôt que
+      // Documents. Avec « id », un dossier déjà choisi une fois reste prioritaire (decision.md §36).
+      dir = await window.showDirectoryPicker({ id: 'lowsper', mode: 'readwrite', startIn: 'downloads' });
     } catch (err) {
       if (err && err.name === 'AbortError') throw installError('CANCELLED', tx('err.cancelled'));
       throw installError('PICKER', tx('err.picker', { error: err.message }));
