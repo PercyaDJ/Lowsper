@@ -144,6 +144,25 @@ d'accueil le signale et un clic suffit.
 
 Déploiement sur un parc (DSI, RSSI) : voir [docs/deploiement.md](docs/deploiement.md).
 
+### Interface en français ou en anglais
+
+Lowsper s'affiche en français si le navigateur est en français, en anglais sinon. Pour changer :
+paramètres, rubrique **Affichage**, **Langue de l'interface**. Le choix est gardé avec vos
+réglages, y compris dans `app\reglages.txt`. La langue se change entre deux réunions, pas pendant.
+
+![Paramètres en anglais : rubrique « Display », thème et langue de l'interface](docs/images/langue.png)
+
+La note suit la langue de l'interface au moment où la réunion commence :
+- **en français**, elle est identique à celle des versions précédentes, au caractère près ;
+- **en anglais**, son en-tête et ses libellés sont traduits (« Speaker 1 », « You »...) et le
+  fichier s'appelle `meeting_...md`.
+
+Dans un profil avec modèle de note, les noms des variables (`{{titre}}`, `{{duree}}`...) et les
+propriétés écrites en tête de note (`duree:`, `intervenants:`...) restent les mêmes dans les deux
+langues : un modèle ou une recherche dans votre base de notes ne casse pas si vous changez de
+langue. Les consignes fournies pour « Copier pour une IA » existent dans les deux langues ; une
+consigne que vous avez modifiée n'est jamais changée.
+
 ## À quoi ressemble le transcript
 
 ```markdown
@@ -168,6 +187,11 @@ Déploiement sur un parc (DSI, RSSI) : voir [docs/deploiement.md](docs/deploieme
 ```
 
 ## Questions fréquentes
+
+**Lowsper s'affiche en anglais alors que je le veux en français (ou l'inverse).**
+Lowsper prend la langue du navigateur. Ouvrez les paramètres (roue crantée), rubrique
+« Affichage » (« Display » en anglais), et choisissez la langue de l'interface. La langue des
+réunions, elle, se règle à part : « Langue parlée ».
 
 **Le téléchargement du modèle échoue au bureau.**
 Le réseau de l'entreprise bloque peut-être Hugging Face. Faites l'installation depuis un autre
@@ -352,6 +376,10 @@ Lowsper reconnaît Brave et affiche ces explications au bon moment.
   voix de synthèse. Le test de vitesse intégré (paramètres) donne la réalité de votre PC.
 - **Navigateurs** : Edge et Chrome. Brave après un réglage (voir la FAQ). Firefox seulement en
   micro seul, avec un modèle déjà installé.
+- **Interface en anglais** : la reconnaissance reste réglée pour le français, l'anglais ou les
+  deux ; les vocabulaires métier sont des listes françaises (leurs termes s'affichent tels quels) ;
+  l'essai de l'IA intégrée du navigateur porte sur une réunion fictive en français. Les messages
+  techniques du navigateur lui-même (erreurs, fenêtres d'autorisation) sont dans sa propre langue.
 - **Fichiers importés** : les formats sans lecteur dédié (FLAC, Vorbis...) sont limités à 25 Mo.
   Les horodatages d'un MP3 ou d'un AAC peuvent être décalés de quelques centièmes de seconde
   (délai propre à ces formats).
@@ -366,7 +394,8 @@ et `decision.md`) :
 1. **Refonte de l'interface** : style unique et épuré, pensé pour les débutants, interface en
    anglais et en français, installation guidée selon la puissance du PC, mini-fenêtre réduite au
    strict nécessaire. Spécifications : [docs/refonte.md](docs/refonte.md), plan des lots : [docs/lots.md](docs/lots.md).
-   Premier lot livré (3.5.0) : nouvelles couleurs, thème clair ou sombre.
+   Livré : nouvelles couleurs, thème clair ou sombre (3.5.0) ; interface en français et en
+   anglais (lot R2, publié avec la 4.0.0).
 2. **Langues parlées multiples et vocabulaires métier élargis**, après mesure de la qualité.
 3. **Mémoire des voix plus fiable** d'une visio à l'autre, après mesure.
 4. **Résumé local** : la piste de l'IA intégrée du navigateur reste à l'étude (`decision.md`
@@ -411,6 +440,7 @@ Structure :
 ```
 Lowsper.html          page à ouvrir (interface + politique de sécurité)
 app/css/              styles
+app/js/i18n.js        langue de l'interface : catalogues français et anglais, fonction t()
 app/js/engine.js      chargement des fichiers, moteur Whisper dans un Worker (glossaire, langue)
 app/js/installer.js   installation du modèle au premier lancement
 app/js/settings.js    réglages copiés dans le dossier (survivent au nettoyage du navigateur)

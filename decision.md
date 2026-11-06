@@ -1394,3 +1394,113 @@ eux-mêmes seront revus lot par lot.
 - Les textes restent en français jusqu'au lot R2.
 - La structure des écrans ne change qu'à partir du lot R3.
 - Le rendu n'a été vérifié que dans Chromium (Playwright), pas dans Edge ni Chrome du commerce.
+
+## 25. Refonte, lot R2 : interface en français et en anglais
+
+**Contexte.** L'interface s'ouvre dans la langue du navigateur, en français ou en anglais, et se
+change dans les réglages (décision du mainteneur, `docs/refonte.md` §1). Jusqu'ici, tous les
+textes étaient écrits en dur dans `Lowsper.html`, dans le JavaScript et même dans deux règles CSS
+(`content:`).
+
+**Options.**
+- **Bibliothèque d'internationalisation** (i18next...) : écartée. Il faudrait l'embarquer
+  (aucun CDN, contrainte n° 7), pour un besoin qui tient en une fonction.
+- **Une page HTML par langue** : écartée. Deux pages à maintenir, et la langue ne pourrait pas
+  changer sans recharger, donc pas après une réunion terminée.
+- **Catalogue maison, un seul fichier** (retenu) : `app/js/i18n.js`, sans dépendance, chargé
+  avant les autres scripts. Il est aussi lu par les tests sans navigateur.
+
+**Mise en œuvre.**
+- **`t(clé, variables, langue)`** : une entrée est une chaîne, où `{nom}` est remplacé, ou une
+  fonction, pour les pluriels (« 2 passages », « 1 passage » ; en anglais, « 1 turn »).
+  Seules les variables fournies sont remplacées : les variables de modèle `{{date}}` restent
+  intactes. Une clé absente se replie sur le français, puis s'affiche telle quelle (erreur
+  visible plutôt que texte vide).
+- **Textes fixes de la page** : `data-i18n` (texte), `data-i18n-html` (texte avec `<strong>`,
+  `<em>`, `<code>`) et `data-i18n-attr` (`placeholder`, `title`, `aria-label`). Le HTML garde le
+  texte français : la page reste lisible sans script. `data-i18n-html` passe par `innerHTML`,
+  mais uniquement avec des textes écrits dans le catalogue, jamais une saisie de l'utilisateur.
+  Aucun élément concerné ne contient d'identifiant (les phrases qui en contenaient ont été
+  découpées), pour que les références gardées par `app.js` restent valables.
+- **Textes calculés** (`app.js`, `notes.js`, `browser.js`, `localai.js`, `installer.js`, et
+  aussi `transcript.js`, `audiofile.js`, `engine.js`, `analyzer.js`, `vocabulary.js`, dont les
+  messages arrivent à l'écran) : appels à `t()`. Les deux textes du CSS sont passés dans le
+  JavaScript (`.auto-note`, `.suspects-label`).
+- **Langue** : le choix mémorisé `lowsper.opt.lang`, sinon `navigator.language` (`fr`, `fr-FR`,
+  `fr-CA`... donnent le français, tout le reste l'anglais). Le choix est copié dans
+  `app/reglages.txt` comme les autres réglages ; `settings.js` réapplique la langue s'il la
+  restaure.
+- **Changement de langue sans rechargement** : `i18n.js` retraduit les textes fixes, puis `app.js`
+  réécrit ses textes calculés (`relabel()`). Il est bloqué pendant une réunion, une finalisation
+  ou un import : les états en cours (minuteur, avis, file d'attente) n'ont pas à être retraduits
+  en vol, et recharger la page perdrait la réunion. Les messages passagers (bulles de 3 à 12 s)
+  restent dans la langue où ils ont été affichés.
+- **Statuts de l'import** : ils servaient à la fois d'état et de libellé (`'échec'`, `'en
+  cours'`...). Ce sont désormais des identifiants (`failed`, `running`...), traduits à
+  l'affichage.
+
+**Note produite.**
+- **Sa langue est celle de l'interface au début de la réunion** (`meta.noteLang`), puis ne bouge
+  plus : changer la langue après la réunion ne réécrit pas, dans l'autre langue, la note déjà
+  enregistrée dans le dossier d'un profil. Une session interrompue sauvegardée par une version
+  précédente (sans `noteLang`) est restaurée en français.
+- **En français, identique au caractère près.** Mesure : l'ancien code (3.5.0, `git show`) et le
+  nouveau ont produit 33 sorties sur 5 réunions fictives (direct avec voix nommées, pause, passage
+  non transcrit, rattrapage, glossaire, vocabulaires ; réunion vide ; participants sans voix ;
+  deux fichiers importés) : notes classiques, noms de fichier, notes à modèle avec toutes les
+  variables et le front matter, les trois consignes, nom du profil par défaut. **0 différence.**
+  Les tests unitaires existants sur la note n'ont pas été modifiés et passent.
+- **En anglais** : en-tête, avertissement, libellés (« You », « Speaker 1 », « Participant »),
+  pauses et passages non transcrits traduits ; fichier `meeting_...md` au lieu de `reunion_...md`
+  (choix du mainteneur). Dates et heures : celles du navigateur s'il est en anglais (`en-US`,
+  `en-GB`...), sinon `en-GB`.
+- **Variables et front matter** : les noms (`{{titre}}`, `{{duree}}`...) et les clés (`duree:`,
+  `intervenants:`, `modele:`) ne changent pas avec la langue (choix du mainteneur). Un modèle de
+  note ou une recherche dans une base de notes reste valable si l'on change de langue ; seules
+  les explications des variables sont traduites.
+- **Consignes pour l'IA** : les trois consignes fournies existent dans les deux langues. Un texte
+  enregistré identique à l'original, dans l'une ou l'autre langue, est considéré comme non
+  modifié et suit la langue de l'interface ; un texte modifié par l'utilisateur ne change jamais.
+  La traduction anglaise reprend les consignes actuelles ; leur réécriture en prompt système est
+  le lot R6.
+- **Profil « Par défaut »** : tant que l'utilisateur ne l'a pas renommé, il s'appelle « Default »
+  en anglais. Les noms donnés par l'utilisateur ne sont jamais traduits.
+
+**Ce qui reste en français, volontairement.**
+- Les termes des vocabulaires métier (contenu, pas interface) : les listes par langue sont le
+  lot R8. Seuls leurs noms sont traduits.
+- L'essai de l'IA intégrée (§23) : réunion fictive, consigne et faits mesurés sont ceux du corpus
+  français, pour rester comparables au banc de §22. L'interface de la sonde et son rapport sont
+  traduits.
+- Le journal technique (clés internes, sans texte de réunion), sauf sa ligne d'en-tête.
+- Les filtres d'hallucinations et de mots courants de `transcript.js` : ils portent sur ce que
+  Whisper produit, pas sur l'interface.
+
+**Mesures.**
+- **Catalogues** : 477 clés par langue, dont 13 pluriels en fonction. Un test unitaire relève
+  chaque clé utilisée dans le code et la page (plus de 400) et vérifie qu'elle existe dans les
+  deux catalogues.
+- **Page** : 155 attributs `data-i18n*`. Un test (`npm run test:i18n`, Chromium) vérifie que le
+  texte français écrit dans `Lowsper.html` est exactement celui du catalogue, qu'en anglais aucun
+  texte ni attribut ne garde de français, que le changement de langue est immédiat et gardé
+  après rechargement, et que la page ne fait aucune requête réseau.
+- **Charge du moteur** (`npm run bench`, 4 cœurs, Whisper small, même machine) : voir le tableau
+  ci-dessous. Le chemin du direct n'est touché que par la mise en forme des textes d'état.
+
+| Passage | Avant (3.5.0) | Après (deux mesures) |
+|---|---|---|
+| 6,2 s de parole | 14 206 ms | 13 971 ms |
+| 25 s de parole, français | 14 456 ms (RTF 0,578) | 14 172 ms (RTF 0,567) ; 14 339 ms (RTF 0,574) |
+| 25 s, détection automatique de la langue | 15 889 ms | 14 782 ms |
+
+  Aucune régression : les écarts (moins de 2 % sur le passage de référence) sont de l'ordre du
+  bruit d'une machine partagée.
+
+**Limites.**
+- **Non vérifié** : un bref affichage du français avant la traduction, au chargement d'une page en
+  anglais. Les scripts sont en fin de page, juste avant le premier affichage habituel ; aucun
+  éclair n'a été vu dans les tests, mais il n'a pas été mesuré.
+- Rendu vérifié dans Chromium (Playwright) seulement, pas dans Edge ni Chrome du commerce.
+- Les textes du navigateur lui-même (fenêtres d'autorisation, sélecteur de dossier, erreurs
+  techniques remontées telles quelles) suivent la langue du navigateur, pas celle de Lowsper.
+- La qualité de la traduction anglaise n'a pas été relue par un anglophone natif.

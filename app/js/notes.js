@@ -22,38 +22,42 @@
   const KEY = 'lowsper.profiles';
   const CURRENT = 'lowsper.profile';
   const DEFAULT_ID = 'defaut';
+  // Texte dans la langue voulue (i18n.js, chargé avant ce fichier)
+  const tx = (key, vars, lang) => Lowsper.t(key, vars, lang);
 
   const DEFAULT_TEMPLATE = '# {{titre}}\n\n{{en_tete}}\n\n## Transcript\n\n{{transcript}}\n';
   const DEFAULT_FILENAME = '{{date}} {{titre}}';
 
-  /** Variables des modèles et des noms de fichier, avec leur explication (affichée dans les paramètres). */
+  /**
+   * Variables des modèles et des noms de fichier, avec leur explication (affichée dans les
+   * paramètres, dans la langue de l'interface). Les noms ne changent jamais avec la langue : un
+   * modèle de note écrit en français reste valable en anglais (decision.md §25).
+   */
   const VARIABLES = [
-    ['titre', 'nom de la réunion, ou du fichier importé'],
-    ['date', 'date de la réunion, AAAA-MM-JJ'],
-    ['date_longue', 'date en toutes lettres (jeudi 5 novembre 2026)'],
-    ['heure', 'heure de début, HHhMM (utilisable dans un nom de fichier)'],
-    ['heure_debut', 'heure de début, HH:MM'],
-    ['duree', 'durée (61 min)'],
-    ['intervenants', 'intervenants, séparés par des virgules'],
-    ['source', 'réunion en direct, ou fichier « nom »'],
-    ['modele', 'modèle de transcription'],
-    ['langue', 'langue parlée'],
-    ['profil', 'nom du profil'],
-    ['en_tete', "lignes d'informations du format classique (date, horaires, couverture...)"],
-    ['avertissement', 'rappel sur la fiabilité de la transcription automatique'],
-    ['transcript', 'les interventions horodatées'],
-    ['transcript_complet', 'tout le format classique de Lowsper'],
-  ];
+    'titre',
+    'date',
+    'date_longue',
+    'heure',
+    'heure_debut',
+    'duree',
+    'intervenants',
+    'source',
+    'modele',
+    'langue',
+    'profil',
+    'en_tete',
+    'avertissement',
+    'transcript',
+    'transcript_complet',
+  ].map((name) => [name, () => tx('var.' + name)]);
   const NAMES = new Set(VARIABLES.map((v) => v[0]));
 
-  // Propriétés proposées dans le front matter (cases à cocher des paramètres)
-  const FRONT_FIELDS = [
-    ['date', 'date'],
-    ['duree', 'durée (minutes)'],
-    ['intervenants', 'intervenants'],
-    ['source', 'source'],
-    ['modele', 'modèle'],
-  ];
+  // Propriétés proposées dans le front matter (cases à cocher des paramètres). Les clés écrites
+  // dans la note (date, duree...) restent les mêmes dans les deux langues.
+  const FRONT_FIELDS = ['date', 'duree', 'intervenants', 'source', 'modele'].map((key) => [
+    key,
+    () => tx('front.' + key),
+  ]);
 
   function defaultProfile() {
     return {
@@ -69,6 +73,9 @@
     };
   }
 
+  // Nom du profil par défaut tant que l'utilisateur ne l'a pas changé : suit la langue de l'interface
+  const DEFAULT_NAMES = new Set(['Par défaut', 'Default']);
+
   function newProfile(name, existing) {
     const ids = new Set((existing || []).map((p) => p.id));
     let id;
@@ -76,7 +83,7 @@
     while (ids.has(id));
     return Object.assign(defaultProfile(), {
       id,
-      name: String(name || 'Nouveau profil').slice(0, 40),
+      name: String(name || tx('prof.new')).slice(0, 40),
       format: 'modele',
       front: { enabled: true, fields: ['date', 'duree', 'intervenants', 'source'], tags: 'reunion', extra: '' },
     });
@@ -89,7 +96,7 @@
     out.front = Object.assign(defaultProfile().front, (p && p.front) || {});
     if (!Array.isArray(out.front.fields)) out.front.fields = [];
     out.format = out.format === 'modele' ? 'modele' : 'classique';
-    out.name = String(out.name || 'Profil').slice(0, 40);
+    out.name = String(out.name || tx('prof.fallbackName')).slice(0, 40);
     return out;
   }
 
@@ -119,6 +126,7 @@
     const profiles = (Array.isArray(stored) ? stored : []).map(normalize);
     // Le profil « Par défaut » existe toujours, en tête
     if (!profiles.some((p) => p.id === DEFAULT_ID)) profiles.unshift(defaultProfile());
+    for (const p of profiles) if (p.id === DEFAULT_ID && DEFAULT_NAMES.has(p.name)) p.name = tx('prof.default');
     return profiles;
   }
 
@@ -150,11 +158,14 @@
     const minutes = m.file
       ? Math.max(1, Math.round((m.file.duration || 0) / 60))
       : Math.max(1, Math.round(((m.endedAt || Date.now()) - m.startedAt) / 60000));
-    const langs = { fr: 'français', en: 'anglais', auto: 'français et anglais' };
+    // Valeurs dans la langue de la note (celle de l'interface au début de la réunion)
+    const lang = t.noteLang ? t.noteLang() : 'fr';
+    const tl = (key, v) => Lowsper.t(key, v, lang);
+    const spoken = ['fr', 'en', 'auto'].includes(m.language) ? tl('note.varLangs.' + m.language) : m.language;
     return {
-      titre: m.title || (m.file ? m.file.name.replace(/\.[^.]+$/, '') : 'Réunion'),
+      titre: m.title || (m.file ? m.file.name.replace(/\.[^.]+$/, '') : tl('note.defaultTitle')),
       date: `${when.getFullYear()}-${pad(when.getMonth() + 1)}-${pad(when.getDate())}`,
-      date_longue: when.toLocaleDateString('fr-FR', {
+      date_longue: when.toLocaleDateString(Lowsper.i18n.locale(lang), {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
@@ -164,9 +175,9 @@
       heure_debut: `${pad(when.getHours())}:${pad(when.getMinutes())}`,
       duree: `${minutes} min`,
       intervenants: t.speakerNames(links).join(', '),
-      source: m.file ? `fichier « ${m.file.name} »` : 'réunion en direct',
+      source: m.file ? tl('note.sourceFile', { name: m.file.name }) : tl('note.sourceLive'),
       modele: m.model || 'Whisper',
-      langue: langs[m.language] || m.language || '',
+      langue: spoken || '',
       profil: profile.name,
       en_tete: parts.header.join('\n'),
       avertissement: parts.notice,
@@ -197,7 +208,7 @@
    * Nom de fichier valide sous Windows (et ailleurs) : ni caractère interdit (< > : " / \ | ? *),
    * ni caractère de contrôle, ni point ou espace final, ni nom réservé (CON, NUL, COM1...).
    */
-  function safeFileName(name) {
+  function safeFileName(name, lang) {
     let base = String(name || '')
       .replace(/\.md$/i, '')
       // eslint-disable-next-line no-control-regex
@@ -208,7 +219,7 @@
       .trim()
       .replace(/[. ]+$/, '');
     if (base.length > 120) base = base.slice(0, 120).replace(/[. ]+$/, '');
-    if (!base) base = 'reunion';
+    if (!base) base = tx('note.fileName', null, lang || 'fr');
     if (RESERVED.test(base.split('.')[0])) base = '_' + base;
     return base + '.md';
   }
@@ -275,7 +286,7 @@
     const body = render(p.template, vars).replace(/\s+$/, '') + '\n';
     const front = frontMatter(p.front, vars);
     return {
-      name: safeFileName(render(p.fileName || DEFAULT_FILENAME, vars)),
+      name: safeFileName(render(p.fileName || DEFAULT_FILENAME, vars), t.noteLang()),
       content: front ? front + '\n' + body : body,
     };
   }
@@ -284,35 +295,21 @@
   // Consignes pour l'IA (« Copier pour une IA ») : fournies, modifiables, ou personnelles
   // ---------------------------------------------------------------------------
   const PROMPTS_KEY = 'lowsper.prompts';
-  const BUILTIN_PROMPTS = [
-    {
-      id: 'compte-rendu',
-      name: 'Compte rendu de réunion',
-      text:
-        "Voici le transcript automatique d'une réunion (il peut contenir des erreurs de reconnaissance). " +
-        'Rédige un compte rendu structuré en français : contexte et participants identifiables, ' +
-        'points abordés, décisions prises, actions à mener (qui, quoi, échéance), questions ouvertes. ' +
-        "N'invente rien : si un passage est incompréhensible ou ambigu, signale-le.",
-    },
-    {
-      id: 'synthese-appel',
-      name: "Synthèse d'appel",
-      text:
-        "Voici le transcript automatique d'un appel (il peut contenir des erreurs de reconnaissance). " +
-        "Rédige une synthèse courte en français, en quelques lignes : objet de l'appel, points clés, " +
-        'engagements pris de part et d’autre, prochaines étapes et leur date si elle est citée. ' +
-        "N'invente rien : si un passage est incompréhensible ou ambigu, signale-le.",
-    },
-    {
-      id: 'actions',
-      name: "Liste d'actions",
-      text:
-        "Voici le transcript automatique d'une réunion (il peut contenir des erreurs de reconnaissance). " +
-        'Extrais uniquement les actions à mener, sous forme de tableau : action, responsable, échéance, ' +
-        "phrase du transcript qui la justifie (avec son horodatage). Si le responsable ou l'échéance ne " +
-        "sont pas dits explicitement, écris « non précisé » : n'invente ni nom ni date.",
-    },
-  ];
+  // Consignes fournies : textes dans le catalogue (i18n.js), en français et en anglais
+  const BUILTIN_IDS = ['compte-rendu', 'synthese-appel', 'actions'];
+  /** Consignes fournies dans une langue (par défaut, celle de l'interface). */
+  function builtinPrompts(lang) {
+    return BUILTIN_IDS.map((id) => ({
+      id,
+      name: tx('prompt.' + id + '.name', null, lang),
+      text: tx('prompt.' + id + '.text', null, lang),
+    }));
+  }
+  /**
+   * Texte d'une consigne fournie, dans l'une des langues : un texte enregistré identique à l'un
+   * d'eux n'a pas été modifié par l'utilisateur, il suit donc la langue de l'interface.
+   */
+  const isOriginal = (id, text) => Lowsper.i18n.LANGS.some((l) => tx('prompt.' + id + '.text', null, l) === text);
 
   /** Consignes enregistrées : textes modifiés des consignes fournies, et consignes personnelles. */
   function storedPrompts() {
@@ -324,22 +321,32 @@
     }
   }
 
-  /** Toutes les consignes : fournies (éventuellement modifiées), puis personnelles. */
+  /**
+   * Toutes les consignes : fournies (éventuellement modifiées), puis personnelles. Une consigne
+   * fournie non modifiée est dans la langue de l'interface ; une consigne modifiée par
+   * l'utilisateur garde son texte, quelle que soit la langue.
+   */
   function prompts() {
     const stored = storedPrompts();
-    const builtin = BUILTIN_PROMPTS.map((b) => {
+    const builtin = builtinPrompts().map((b) => {
       const o = stored.find((p) => p.id === b.id);
-      return Object.assign({}, b, { builtin: true, modified: !!o && o.text !== b.text }, o ? { text: o.text } : {});
+      const modified = !!o && !isOriginal(b.id, o.text);
+      return Object.assign({}, b, { builtin: true, modified }, modified ? { text: o.text } : {});
     });
     const own = stored
-      .filter((p) => !BUILTIN_PROMPTS.some((b) => b.id === p.id))
-      .map((p) => ({ id: p.id, name: String(p.name || 'Consigne').slice(0, 60), text: p.text, builtin: false }));
+      .filter((p) => !BUILTIN_IDS.includes(p.id))
+      .map((p) => ({
+        id: p.id,
+        name: String(p.name || tx('ai.fallbackName')).slice(0, 60),
+        text: p.text,
+        builtin: false,
+      }));
     return [...builtin, ...own];
   }
 
   function savePrompt(id, patch) {
     const stored = storedPrompts();
-    const current = prompts().find((p) => p.id === id) || { id, name: 'Consigne', text: '' };
+    const current = prompts().find((p) => p.id === id) || { id, name: tx('ai.fallbackName'), text: '' };
     const next = { id, name: current.name, text: current.text, ...patch };
     const others = stored.filter((p) => p.id !== id);
     ls.set(PROMPTS_KEY, JSON.stringify([...others, { id: next.id, name: next.name, text: next.text }]));
@@ -347,7 +354,7 @@
 
   function newPrompt(name) {
     const id = 'c' + Math.random().toString(36).slice(2, 8);
-    savePrompt(id, { name: String(name || 'Nouvelle consigne').slice(0, 60), text: BUILTIN_PROMPTS[0].text });
+    savePrompt(id, { name: String(name || tx('ai.new')).slice(0, 60), text: builtinPrompts()[0].text });
     return id;
   }
 
@@ -416,7 +423,7 @@
   async function pickFolder(id) {
     let dir;
     if (typeof root.showDirectoryPicker !== 'function') {
-      const e = new Error(Lowsper.Browser ? Lowsper.Browser.folderMessage('notes') : 'dossier non pris en charge');
+      const e = new Error(Lowsper.Browser ? Lowsper.Browser.folderMessage('notes') : tx('browser.unsupported'));
       e.code = 'unsupported';
       throw e;
     }
@@ -499,7 +506,8 @@
     access,
     writeNote,
     folders,
-    BUILTIN_PROMPTS,
+    BUILTIN_IDS,
+    builtinPrompts,
     prompts,
     savePrompt,
     newPrompt,

@@ -22,6 +22,7 @@ await writeFile(
 <script>window.Lowsper = { assetBase: '../../../app/' };</script>
 <script src="../../../app/manifest.js"></script>
 <script src="../../../app/models/index.txt"></script>
+<script src="../../../app/js/i18n.js"></script>
 <script src="../../../app/js/engine.js"></script>
 <script src="../../../app/js/capture.js"></script>
 <script src="../../../app/js/transcript.js"></script>

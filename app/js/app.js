@@ -9,6 +9,8 @@
   'use strict';
 
   const L = window.Lowsper;
+  // Texte de l'interface dans la langue choisie (i18n.js)
+  const tr = (key, vars) => L.t(key, vars);
   // Les éléments de la mini-fenêtre changent de document : on garde des références directes.
   const cache = new Map();
   const $ = (id) => {
@@ -43,23 +45,25 @@
   // Moteur
   // ---------------------------------------------------------------------------
 
-  function setEngine(state, text) {
+  // État du moteur : gardé pour être réécrit si la langue de l'interface change
+  function setEngine(state, key, vars) {
+    app.engineStatus = { state, key, vars };
     $('engine').dataset.state = state;
-    $('engine-text').textContent = text;
+    $('engine-text').textContent = tr(key, vars);
   }
 
   async function bootEngine() {
     const problem = checkBrowser();
     if (problem) {
       app.engineError = problem;
-      setEngine('error', 'Navigateur non compatible');
+      setEngine('error', 'engine.incompatible');
       toast(problem, 10000);
       return;
     }
     const installed = self.LOWSPER_INSTALLED || [];
     if (!installed.length) {
-      setEngine('idle', 'Modèle à installer');
-      $('model-current').textContent = 'Aucun modèle installé pour l’instant.';
+      setEngine('idle', 'engine.toInstall');
+      $('model-current').textContent = tr('set.noModel');
       showInstall();
       return;
     }
@@ -72,10 +76,10 @@
       renderModelSelect(installed, model.id);
 
       const assets = await L.loadAssets(
-        (r) => setEngine('loading', `Préparation du moteur ${Math.round(r * 100)} %`),
+        (r) => setEngine('loading', 'engine.preparingPct', { pct: Math.round(r * 100) }),
         model.id
       );
-      setEngine('loading', 'Démarrage du moteur');
+      setEngine('loading', 'engine.starting');
 
       // Analyse audio : détection de parole (Silero) et empreintes vocales (WeSpeaker)
       if (assets.analysis) {
@@ -99,7 +103,7 @@
       for (let i = 0; i < app.limits.start; i++) app.workers.push(newWorker(assets));
       await Promise.all(app.workers.map((w) => w.ready));
       app.engineReady = true;
-      setEngine('ready', 'Moteur prêt');
+      setEngine('ready', 'engine.ready');
       pump();
       // Voie rapide de secours (Whisper base), si installé et si le modèle principal est plus lent
       const fastModel = installed.find((m) => m.id === 'whisper-base');
@@ -118,8 +122,7 @@
       if (known) {
         try {
           const k = JSON.parse(known);
-          $('speed-result').textContent =
-            `Dernière mesure : charge estimée ${Math.round(k.load * 100)} % pour une réunion où l'on parle sans arrêt.`;
+          $('speed-result').textContent = tr('speed.last', { pct: Math.round(k.load * 100) });
         } catch {}
       } else if (app.state !== 'recording') {
         speedTest(true);
@@ -127,8 +130,8 @@
     } catch (err) {
       console.error(err);
       app.engineError = String(err.message || err);
-      setEngine('error', 'Moteur indisponible');
-      toast("Le moteur de transcription n'a pas pu démarrer : " + app.engineError, 12000);
+      setEngine('error', 'engine.unavailable');
+      toast(tr('start.engineFailed', { error: app.engineError }), 12000);
     }
   }
 
@@ -230,10 +233,10 @@
 
   function checkBrowser() {
     if (!window.WebAssembly || !window.Worker || !window.Blob) {
-      return 'Ce navigateur est trop ancien. Utilisez Microsoft Edge ou Google Chrome à jour.';
+      return tr('browser.tooOld');
     }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      return "Ce navigateur n'autorise pas l'accès au micro depuis un fichier local. Utilisez Microsoft Edge ou Google Chrome.";
+      return tr('browser.noMic');
     }
     return null;
   }
@@ -302,7 +305,7 @@
     const keepDraft = fast ? job.seg.audio.slice() : null;
     let timer;
     const watchdog = new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error('le moteur ne répond plus')), jobTimeout(job));
+      timer = setTimeout(() => reject(new Error(tr('err.notResponding'))), jobTimeout(job));
     });
     Promise.race([
       w.transcribe(
@@ -395,10 +398,7 @@
     } else {
       app.failed.push(job);
       job.transcript.markGap(job.source, job.seg);
-      if (app.state === 'recording')
-        notice(
-          'Un passage n’a pas pu être transcrit : il sera signalé dans le transcript, et vous pourrez le relancer à la fin.'
-        );
+      if (app.state === 'recording') notice(tr('rec.gap'));
     }
   }
 
@@ -459,12 +459,7 @@
     $('fix-right').value = '';
     $('fix-wrong').focus();
     renderSuspects();
-    toast(
-      (n
-        ? `${n} remplacement${n > 1 ? 's' : ''} dans ce transcript (retéléchargez le fichier). `
-        : 'Mot absent de ce transcript. ') + 'Correction retenue pour les prochaines réunions.',
-      6000
-    );
+    toast(tr('done.fixResult', { n }), 6000);
     // Copie dans le dossier Lowsper (clic = geste de l'utilisateur)
     L.Settings.save({ interactive: true })
       .then(renderSaved)
@@ -476,7 +471,14 @@
     const box = $('fix-suspects');
     box.replaceChildren();
     if (!app.transcript) return;
-    for (const w of app.transcript.suspectWords()) {
+    const words = app.transcript.suspectWords();
+    if (words.length) {
+      const label = document.createElement('span');
+      label.className = 'suspects-label';
+      label.textContent = tr('done.suspects');
+      box.appendChild(label);
+    }
+    for (const w of words) {
       const b = document.createElement('button');
       b.type = 'button';
       b.textContent = w;
@@ -498,7 +500,8 @@
       chip.textContent = `${wrong} → ${right}`;
       const del = document.createElement('button');
       del.type = 'button';
-      del.title = 'Oublier cette correction';
+      del.title = tr('set.fixForget');
+      del.setAttribute('aria-label', tr('set.fixForget') + ' : ' + wrong);
       del.textContent = '×';
       del.addEventListener('click', () => {
         store.set('lowsper.fixes', JSON.stringify(learnedFixes().filter(([w]) => w !== wrong)));
@@ -562,22 +565,18 @@
     const n = pendingCount();
     let text = '';
     if (app.state === 'recording') {
-      if (!app.engineReady && !app.engineError)
-        text = 'Le moteur termine sa préparation, la transcription démarrera dans un instant.';
-      else if (n === 0) text = 'Transcription à jour.';
-      else if (n === 1) text = 'Transcription en cours…';
-      else text = `${n} passages en attente de transcription.`;
+      if (!app.engineReady && !app.engineError) text = tr('queue.preparing');
+      else if (n === 0) text = tr('queue.upToDate');
+      else if (n === 1) text = tr('queue.one');
+      else text = tr('queue.many', { n });
       const load = engineLoad();
-      if (load != null) text += ` Charge du moteur : ${Math.round(load * 100)} %.`;
+      if (load != null) text += tr('queue.load', { pct: Math.round(load * 100) });
       // Retard durable : le PC ne suit pas le rythme de la réunion
       if (n >= 4) {
         app.behindSince = app.behindSince || Date.now();
         if (Date.now() - app.behindSince > 120000 && !app.warnedSlow) {
           app.warnedSlow = true;
-          notice(
-            "Ce PC ne suit pas le rythme de la réunion : rien n'est perdu, mais la fin du transcript arrivera après la réunion. " +
-              'Pour les prochaines fois, installez un modèle plus rapide (Options, « Installer un autre modèle »).'
-          );
+          notice(tr('rec.slow'));
         }
       } else {
         app.behindSince = null;
@@ -586,10 +585,10 @@
     $('queue').textContent = text;
     if (app.state === 'finishing') {
       $('finish-text').textContent = !app.engineReady
-        ? 'Le moteur termine sa préparation…'
+        ? tr('finish.preparing')
         : n > 1
-          ? `${n} passages restants…`
-          : 'Transcription des dernières phrases…';
+          ? tr('finish.left', { n })
+          : tr('finish.last');
     }
   }
 
@@ -600,7 +599,7 @@
   async function start() {
     if (app.state !== 'idle' || $('start').disabled) return;
     if (app.engineError && !app.engineReady) {
-      toast('Le moteur de transcription est indisponible : ' + app.engineError, 8000);
+      toast(tr('start.engineDown', { error: app.engineError }), 8000);
       return;
     }
     const withOthers = $('with-others').checked && !!navigator.mediaDevices.getDisplayMedia;
@@ -630,8 +629,8 @@
       $('start').disabled = false;
       toast(
         micError && micError.name === 'NotAllowedError'
-          ? "L'accès au micro a été refusé. Autorisez-le dans la barre d'adresse puis réessayez."
-          : 'Aucune source audio disponible : ' + ((micError || othersError || {}).message || 'erreur inconnue'),
+          ? tr('start.micDenied')
+          : tr('start.noSource', { error: (micError || othersError || {}).message || tr('start.unknownError') }),
         9000
       );
       return;
@@ -691,9 +690,9 @@
     }
     setMeter('me', mic ? 'on' : 'off');
     setMeter('others', others ? 'on' : 'off');
-    if (!mic) notice('Micro indisponible : seule la voix des participants est transcrite.');
+    if (!mic) notice(tr('rec.noMic'));
     else if (withOthers && !others) explainOthersError(othersError);
-    else if (!withOthers) notice('Seul votre micro est capté (option « participants » désactivée).');
+    else if (!withOthers) notice(tr('rec.micOnly'));
 
     app.timer = setInterval(tick, 100);
     requestWakeLock();
@@ -712,6 +711,7 @@
       sources: [],
       offset: offset || 0,
       profile: L.Notes.current().id, // profil de sortie choisi à l'accueil
+      noteLang: L.i18n.lang(), // langue de la note : celle de l'interface au début de la réunion
     });
     L.Transcript.current = t; // seule la réunion en cours est sauvegardée pour la récupération
     t.onChange(renderLive);
@@ -764,6 +764,7 @@
         duration: 0,
       },
       profile: L.Notes.current().id,
+      noteLang: L.i18n.lang(),
     });
     t.othersBusy = [];
     if (app.voiceAnalyzer && $('distinguish').checked) {
@@ -781,7 +782,7 @@
     const files = [...list].filter((f) => f && f.size > 0);
     if (!files.length || (app.state !== 'idle' && app.state !== 'done')) return;
     if (app.engineError && !app.engineReady) {
-      toast('Le moteur de transcription est indisponible : ' + app.engineError, 8000);
+      toast(tr('start.engineDown', { error: app.engineError }), 8000);
       return;
     }
     if (app.state === 'done') reset();
@@ -790,7 +791,7 @@
     const people = parseInt($('people').value, 10);
     // Le nom de réunion saisi ne vaut que pour un fichier seul ; sinon, chacun garde le sien
     const title = files.length === 1 ? $('title').value.trim() : '';
-    app.imports = files.map((file) => ({ file, status: 'en attente' }));
+    app.imports = files.map((file) => ({ file, status: 'waiting' }));
     app.importAbort = new AbortController();
     app.finished = [];
     app.failed = [];
@@ -800,18 +801,18 @@
     const done = [];
     for (const item of app.imports) {
       if (app.importAbort.signal.aborted) {
-        item.status = 'annulé';
+        item.status = 'cancelled';
         continue;
       }
-      item.status = 'en cours';
+      item.status = 'running';
       renderImport();
       try {
         const t = await transcribeFile(item, people, title, app.importAbort.signal);
-        item.status = 'terminé';
+        item.status = 'done';
         done.push(t);
         await exportNote(t);
       } catch (e) {
-        item.status = e && e.code === 'ABORT' ? 'annulé' : 'échec';
+        item.status = e && e.code === 'ABORT' ? 'cancelled' : 'failed';
         item.error = (e && e.message) || String(e);
         journal('import-échec', {
           format: item.meta && item.meta.format,
@@ -821,11 +822,12 @@
       renderImport();
     }
     releaseWakeLock();
-    const failures = app.imports.filter((i) => i.status === 'échec');
+    const failures = app.imports.filter((i) => i.status === 'failed');
     if (!done.length) {
       setState('idle');
-      if (failures.length) toast(failures.map((i) => `${i.file.name} : ${i.error}`).join('\n'), 12000);
-      else toast('Transcription annulée.', 4000);
+      if (failures.length)
+        toast(failures.map((i) => tr('import.failure', { name: i.file.name, error: i.error })).join('\n'), 12000);
+      else toast(tr('import.cancelledToast'), 4000);
       return;
     }
     // Écran de fin : le dernier fichier transcrit ; les autres restent téléchargeables
@@ -834,15 +836,8 @@
     app.transcript = t;
     L.Transcript.current = t;
     app.finalMarkdown = noteOf(t).content;
-    const paras = t.paragraphs().length;
-    const cov = t.coverageSummary();
-    $('done-info').textContent =
-      `Fichier « ${t.meta.file.name} » : ${L.formatTime(t.meta.file.duration)} d'enregistrement, ` +
-      `${paras} intervention${paras > 1 ? 's' : ''}.` +
-      (cov.missing < 1 ? ' Toute la parole détectée a été transcrite.' : '') +
-      (failures.length
-        ? ` ${failures.length} fichier${failures.length > 1 ? 's' : ''} non transcrit${failures.length > 1 ? 's' : ''} : ${failures.map((i) => `${i.file.name} (${i.error})`).join(' ; ')}`
-        : '');
+    app.doneFailures = failures.map((i) => ({ name: i.file.name, error: i.error }));
+    renderDoneInfo();
     $('preview').textContent = app.finalMarkdown;
     renderExport(t);
     $('next-meeting').hidden = true;
@@ -903,7 +898,7 @@
         // Mémoire bornée : le décodage attend que la transcription rattrape son retard
         while (pendingFor(t) > FILE_AHEAD && !signal.aborted) await new Promise((r) => setTimeout(r, 200));
         if (signal.aborted)
-          throw Object.assign(new Error('Transcription du fichier annulée.'), {
+          throw Object.assign(new Error(tr('import.aborted')), {
             code: 'ABORT',
           });
       }
@@ -916,7 +911,7 @@
         const wait = () => {
           if (signal.aborted)
             reject(
-              Object.assign(new Error('Transcription du fichier annulée.'), {
+              Object.assign(new Error(tr('import.aborted')), {
                 code: 'ABORT',
               })
             );
@@ -927,7 +922,7 @@
       });
       await finalizeMeeting(t, (text) => (item.step = text));
       if (signal.aborted)
-        throw Object.assign(new Error('Transcription du fichier annulée.'), {
+        throw Object.assign(new Error(tr('import.aborted')), {
           code: 'ABORT',
         });
       return t;
@@ -958,42 +953,43 @@
     $('import-bar').style.width = pct + '%';
     $('import-progress').setAttribute('aria-valuenow', String(pct));
     const elapsed = (Date.now() - item.startedAt) / 1000;
-    let text = item.step && item.ratio >= 1 && pendingFor(t) === 0 ? item.step : `${pct} % transcrit`;
-    if (total) text += ` (${L.formatTime(frontier)} sur ${L.formatTime(total)})`;
+    let text = item.step && item.ratio >= 1 && pendingFor(t) === 0 ? item.step : tr('import.pct', { pct });
+    if (total) text += tr('import.position', { at: L.formatTime(frontier), total: L.formatTime(total) });
     if (ratio > 0.03 && elapsed > 20 && ratio < 1) {
       const left = (elapsed / ratio) * (1 - ratio);
-      text += ` · environ ${left < 90 ? Math.round(left) + ' s' : Math.round(left / 60) + ' min'} restantes`;
+      text += tr('import.left', { left: left < 90 ? Math.round(left) + ' s' : Math.round(left / 60) + ' min' });
     }
     $('import-text').textContent = text;
   }
 
   function renderImport() {
     const list = app.imports || [];
-    const i = list.findIndex((x) => x.status === 'en cours');
+    const i = list.findIndex((x) => x.status === 'running');
     const current = i >= 0 ? list[i] : null;
     $('import-current').textContent = current
-      ? `${current.file.name}${list.length > 1 ? ` (fichier ${i + 1} sur ${list.length})` : ''}`
+      ? current.file.name + (list.length > 1 ? tr('import.ofFiles', { i: i + 1, n: list.length }) : '')
       : '';
     if (current) {
       $('import-bar').style.width = '0%';
       $('import-progress').setAttribute('aria-valuenow', '0');
-      $('import-text').textContent = 'Lecture du fichier…';
+      $('import-text').textContent = tr('import.reading');
     }
     const box = $('import-list');
     box.replaceChildren();
     for (const x of list) {
       const li = document.createElement('li');
       if (x === current) li.className = 'current';
-      if (x.status === 'échec') li.className = 'error';
+      if (x.status === 'failed') li.className = 'error';
       const name = document.createElement('span');
       name.textContent = x.file.name;
       const st = document.createElement('span');
       st.className = 'st';
-      st.textContent = x.status === 'échec' ? 'échec : ' + x.error : x.status;
+      st.textContent =
+        x.status === 'failed' ? tr('import.failedWith', { error: x.error }) : tr('import.status.' + x.status);
       li.append(name, st);
       box.appendChild(li);
     }
-    $('import-list').hidden = list.length < 2 && !list.some((x) => x.status === 'échec');
+    $('import-list').hidden = list.length < 2 && !list.some((x) => x.status === 'failed');
   }
 
   // Temps de la réunion en cours (la capture continue d'une réunion à l'autre quand on enchaîne)
@@ -1029,7 +1025,7 @@
         if (!app.transcript.meta.sources.includes(id)) app.transcript.meta.sources.push(id);
       app.pausedAt = null;
       renderLive();
-      toast('Nouvelle réunion démarrée. La note de la précédente sera enregistrée dès qu’elle est prête.', 6000);
+      toast(tr('rec.chained'), 6000);
       finalizeMeeting(old)
         .then(() => {
           // Le son brut de la réunion terminée n'est plus utile : mémoire libérée
@@ -1037,9 +1033,10 @@
           app.finished.push(old);
           return exportNote(old).then((ex) =>
             toast(
-              `Note de la réunion précédente${old.meta.title ? ' « ' + old.meta.title + ' »' : ''} enregistrée ${
-                ex.where === 'dossier' ? `dans « ${ex.folder} »` : 'dans vos Téléchargements'
-              }.`,
+              tr('rec.chainedSaved', {
+                title: old.meta.title,
+                where: ex.where === 'dossier' ? tr('where.folder', { folder: ex.folder }) : tr('where.downloads'),
+              }),
               7000
             )
           );
@@ -1158,10 +1155,10 @@
     // Fichier importé : la détection de parole n'a pas de délai, rien n'a pu échapper en route
     if (!t.meta.file) {
       try {
-        if (onStep) onStep('Vérification : aucune parole oubliée…');
+        if (onStep) onStep(tr('finish.sweep'));
         const n = await sweepMeeting(t);
         if (n) {
-          if (onStep) onStep(`Rattrapage de ${n} passage${n > 1 ? 's' : ''} oublié${n > 1 ? 's' : ''}…`);
+          if (onStep) onStep(tr('finish.sweepN', { n }));
           await settled();
         }
       } catch (e) {
@@ -1172,7 +1169,7 @@
       }
     }
     if (t.tracker) {
-      if (onStep) onStep('Identification des intervenants…');
+      if (onStep) onStep(tr('finish.voices'));
       await new Promise((r) => setTimeout(r, 30)); // laisse l'affichage se mettre à jour
       try {
         const tracker = t.tracker;
@@ -1208,12 +1205,7 @@
         if (app.state !== 'recording' || !app.capture || !app.capture.sources[id]) return;
         app.capture.detach(id);
         setMeter(id, 'off');
-        notice(
-          id === 'others'
-            ? "Le partage audio a été arrêté : la voix des participants n'est plus captée. "
-            : "Le micro a été déconnecté : votre voix n'est plus captée. ",
-          id
-        );
+        notice(id === 'others' ? tr('rec.othersStopped') : tr('rec.micStopped'), id);
       });
     }
   }
@@ -1221,11 +1213,11 @@
   function explainOthersError(err) {
     let msg;
     if (err && err.code === 'NO_AUDIO') {
-      msg = "Le partage ne contient pas de son : la case « Partager l'audio » n'était pas cochée. ";
+      msg = tr('rec.noAudio');
     } else if (err && err.name === 'NotAllowedError') {
-      msg = 'Partage annulé : seule votre voix est captée. ';
+      msg = tr('rec.shareCancelled');
     } else {
-      msg = "Le son des participants n'a pas pu être capté (" + ((err && err.message) || 'erreur inconnue') + '). ';
+      msg = tr('rec.othersFailed', { error: (err && err.message) || tr('start.unknownError') });
     }
     notice(msg, 'others');
   }
@@ -1237,7 +1229,7 @@
       attachSource('others', stream);
       setMeter('others', 'on');
       $('rec-notice').hidden = true;
-      toast('Son des participants capté.');
+      toast(tr('rec.othersCaptured'));
     } catch (err) {
       explainOthersError(err);
     }
@@ -1248,7 +1240,7 @@
     el.textContent = text;
     if (retryFor === 'others' && navigator.mediaDevices.getDisplayMedia) {
       const b = document.createElement('button');
-      b.textContent = 'Partager le son des participants';
+      b.textContent = tr('rec.shareOthers');
       b.addEventListener('click', retryOthers);
       el.appendChild(b);
     }
@@ -1263,11 +1255,11 @@
     if (mode === 'off') {
       if (id === 'others' && navigator.mediaDevices.getDisplayMedia) {
         const b = document.createElement('button');
-        b.textContent = 'non capté, activer';
+        b.textContent = tr('rec.offActivate');
         b.addEventListener('click', retryOthers);
         state.appendChild(b);
       } else {
-        state.textContent = 'non capté';
+        state.textContent = tr('rec.off');
       }
     }
   }
@@ -1296,9 +1288,7 @@
       });
       if (lag > 30 && !app.warnedLag) {
         app.warnedLag = true;
-        notice(
-          'PC très chargé : la détection de parole prend du retard. Rien n’est perdu : le son est gardé et sera rattrapé.'
-        );
+        notice(tr('rec.lag'));
       }
     }
     for (const id of ['me', 'others']) {
@@ -1306,8 +1296,13 @@
       const on = !!app.capture.sources[id];
       el.querySelector('.bar i').style.width = on ? Math.round(app.capture.level(id) * 100) + '%' : '0';
       el.classList.toggle('speaking', on && app.capture.isSpeaking(id));
-      if (on) el.querySelector('.state').textContent = app.capture.isSpeaking(id) ? 'parle' : '';
+      if (on) el.querySelector('.state').textContent = app.capture.isSpeaking(id) ? tr('rec.speaking') : '';
     }
+  }
+
+  function renderPauseLabels(paused) {
+    $('pause').querySelector('.lbl').textContent = paused ? tr('rec.resume') : tr('rec.pause');
+    $('rec-label').textContent = paused ? tr('rec.paused') : tr('rec.recording');
   }
 
   function togglePause() {
@@ -1320,9 +1315,8 @@
       app.transcript.addPause(app.pausedAt, meetingNow());
       app.pausedAt = null;
     }
-    $('pause').querySelector('.lbl').textContent = paused ? 'Reprendre' : 'Pause';
+    renderPauseLabels(paused);
     $('pause').classList.toggle('paused', paused);
-    $('rec-label').textContent = paused ? 'En pause' : 'Enregistrement';
     $('rec-status').classList.toggle('paused', paused);
   }
 
@@ -1335,7 +1329,7 @@
       box.innerHTML = '';
       const p = document.createElement('p');
       p.className = 'placeholder';
-      p.textContent = 'Le transcript apparaîtra ici au fil de la réunion.';
+      p.textContent = tr('rec.placeholder');
       box.appendChild(p);
       return;
     }
@@ -1344,21 +1338,23 @@
       const p = document.createElement('p');
       if (para.draft) {
         p.className = 'draft';
-        p.title = 'Transcription rapide provisoire : la version précise arrive dès que le moteur est disponible.';
+        p.title = tr('rec.draftTitle');
       }
       const t = document.createElement('span');
       t.className = 't';
       t.textContent = L.formatTime(para.start);
       const s = document.createElement('span');
       s.className = 's ' + para.source;
-      s.textContent = app.transcript.speakerName(para) + ' :';
+      s.textContent = tr('rec.speaker', { name: app.transcript.speakerName(para) });
       p.append(t, s, document.createTextNode(para.text));
       frag.appendChild(p);
     }
     box.replaceChildren(frag);
     if (nearBottom) box.scrollTop = box.scrollHeight;
     const lastPara = paras[paras.length - 1];
-    $('last-line').textContent = lastPara ? `${app.transcript.speakerName(lastPara)} : ${lastPara.text}` : '';
+    $('last-line').textContent = lastPara
+      ? tr('rec.lastLine', { name: app.transcript.speakerName(lastPara), text: lastPara.text })
+      : '';
   }
 
   // ---------------------------------------------------------------------------
@@ -1398,19 +1394,8 @@
     await finalizeMeeting(app.transcript, (text) => ($('finish-text').textContent = text));
     journal('couverture', app.transcript.coverageSummary());
     app.finalMarkdown = noteOf(app.transcript).content;
-    const paras = app.transcript.paragraphs().length;
-    const minutes = Math.max(1, Math.round((app.transcript.meta.endedAt - app.transcript.meta.startedAt) / 60000));
-    const echo = app.transcript.meta.echoRemoved || 0;
-    const cov = app.transcript.coverageSummary();
-    $('done-info').textContent =
-      `${minutes} min de réunion, ${paras} intervention${paras > 1 ? 's' : ''}.` +
-      (cov.missing < 1 ? ' Toute la parole détectée a été transcrite.' : '') +
-      (app.transcript.meta.recovered >= 1
-        ? ` (dont ${Math.round(app.transcript.meta.recovered)} s rattrapées en fin de réunion).`
-        : '') +
-      (echo
-        ? ` ${echo} phrase${echo > 1 ? 's' : ''} du micro retirée${echo > 1 ? 's' : ''} : écho des haut-parleurs, pas votre voix.`
-        : '');
+    app.doneFailures = [];
+    renderDoneInfo();
     $('preview').textContent = app.finalMarkdown;
     renderVoices();
     renderPrompts();
@@ -1424,6 +1409,35 @@
     if (app.transcript === ended) renderExport(ended);
   }
 
+  // Écran de fin : résumé de la réunion ou du fichier (réécrit si la langue change)
+  function renderDoneInfo() {
+    const t = app.transcript;
+    if (!t) return;
+    const paras = t.paragraphs().length;
+    const cov = t.coverageSummary();
+    const covered = cov.missing < 1 ? tr('done.allCovered') : '';
+    if (t.meta.file) {
+      const failures = app.doneFailures || [];
+      $('done-info').textContent =
+        tr('done.file', { name: t.meta.file.name, dur: L.formatTime(t.meta.file.duration), n: paras }) +
+        covered +
+        (failures.length
+          ? tr('done.filesFailed', {
+              n: failures.length,
+              list: failures.map((f) => tr('done.fileFailed', f)).join(tr('done.listSep')),
+            })
+          : '');
+      return;
+    }
+    const minutes = Math.max(1, Math.round((t.meta.endedAt - t.meta.startedAt) / 60000));
+    const echo = t.meta.echoRemoved || 0;
+    $('done-info').textContent =
+      tr('done.meeting', { min: minutes, n: paras }) +
+      covered +
+      (t.meta.recovered >= 1 ? tr('done.recovered', { s: Math.round(t.meta.recovered) }) : '') +
+      (echo ? tr('done.echo', { n: echo }) : '');
+  }
+
   // Écran de fin : suivi de la retranscription des passages « rapides »
   function renderDrafts() {
     const t = app.transcript;
@@ -1431,18 +1445,14 @@
     if (!t || app.state !== 'done') return;
     const n = t.draftCount();
     if (n) {
-      box.textContent =
-        `${n} passage${n > 1 ? 's ont été transcrits' : ' a été transcrit'} en mode rapide pendant la réunion pour garder le direct. ` +
-        'Leur version précise est en cours de calcul…';
+      box.textContent = tr('done.drafts', { n });
       box.hidden = false;
       app.improvedPending = true;
     } else if (app.improvedPending) {
       app.improvedPending = false;
       refreshNote(t);
-      box.textContent =
-        t.export && t.export.where === 'dossier'
-          ? 'Tous les passages ont maintenant leur version précise : la note du dossier est mise à jour.'
-          : 'Tous les passages ont maintenant leur version précise. Retéléchargez le fichier pour avoir la version finale.';
+      app.draftsDone = true;
+      box.textContent = t.export && t.export.where === 'dossier' ? tr('done.draftsFolder') : tr('done.draftsDownload');
       box.hidden = false;
     } else {
       box.hidden = true;
@@ -1458,8 +1468,10 @@
       b.type = 'button';
       const d = new Date(t.meta.startedAt);
       b.textContent =
-        (t.meta.title || 'Réunion') + ' · ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-      b.title = 'Télécharger à nouveau';
+        (t.meta.title || tr('meeting.untitled')) +
+        ' · ' +
+        d.toLocaleTimeString(L.i18n.locale(), { hour: '2-digit', minute: '2-digit' });
+      b.title = tr('done.downloadAgain');
       b.addEventListener('click', () => {
         const n = noteOf(t);
         download(n.content, n.name);
@@ -1477,13 +1489,11 @@
     const pending = app.failed.length;
     if (gaps) {
       const cov = t.coverageSummary();
-      $('gaps-text').textContent =
-        `${gaps} passage${gaps > 1 ? 's' : ''} (${Math.round(cov.missing)} s de parole) n'${gaps > 1 ? 'ont' : 'a'} pas pu être transcrit${gaps > 1 ? 's' : ''}. ` +
-        'Ils sont signalés dans le transcript.';
+      $('gaps-text').textContent = tr('done.gaps', { n: gaps, s: Math.round(cov.missing) });
       $('gaps-retry').hidden = !pending;
       $('gaps').hidden = false;
     } else if (app.gapsShown) {
-      $('gaps-text').textContent = 'Tous les passages ont finalement été transcrits. Retéléchargez le fichier.';
+      $('gaps-text').textContent = tr('done.gapsAll');
       $('gaps-retry').hidden = true;
       $('gaps').hidden = false;
     } else {
@@ -1499,7 +1509,7 @@
       app.queue.push(j);
     }
     $('gaps-retry').hidden = true;
-    $('gaps-text').textContent = 'Nouvel essai en cours…';
+    $('gaps-text').textContent = tr('done.retrying');
     pump();
   }
 
@@ -1518,12 +1528,13 @@
       label.textContent = v.label;
       const small = document.createElement('small');
       const talk = v.seconds < 90 ? `${Math.round(v.seconds)} s` : `${Math.round(v.seconds / 60)} min`;
-      small.textContent = `${talk} de parole · dès ${L.formatTime(v.at)}`;
+      small.textContent = tr('voice.talk', { talk, at: L.formatTime(v.at) });
       label.appendChild(small);
       const input = document.createElement('input');
       input.type = 'text';
       input.maxLength = 60;
-      input.placeholder = 'Nom (facultatif)';
+      input.placeholder = tr('voice.name');
+      input.setAttribute('aria-label', v.label);
       input.value = (t.meta.names && t.meta.names[v.voice]) || '';
       input.addEventListener('input', () => {
         t.nameVoice(v.voice, input.value);
@@ -1540,12 +1551,12 @@
       if ((t.meta.recognized || []).includes(v.voice)) {
         const b = document.createElement('span');
         b.className = 'badge auto';
-        b.textContent = 'reconnu';
+        b.textContent = tr('voice.recognized');
         label.appendChild(b);
       }
       const sample = document.createElement('div');
       sample.className = 'vsample';
-      sample.textContent = '« ' + v.sample + ' »';
+      sample.textContent = tr('voice.sample', { text: v.sample });
       sample.title = v.sample;
       row.append(label, input, sample);
       box.appendChild(row);
@@ -1563,14 +1574,14 @@
     $('title').value = '';
     $('people').value = '';
     $('start').disabled = false;
-    $('pause').querySelector('.lbl').textContent = 'Pause';
+    renderPauseLabels(false);
     $('pause').classList.remove('paused');
-    $('rec-label').textContent = 'Enregistrement';
     $('rec-status').classList.remove('paused');
     $('rec-notice').hidden = true;
     $('timer').textContent = '00:00:00';
     $('last-line').textContent = '';
     app.improvedPending = false;
+    app.draftsDone = false;
     $('next-meeting').hidden = false;
     setState('idle');
   }
@@ -1595,6 +1606,10 @@
     $('view-import').hidden = state !== 'importing';
     $('view-finish').hidden = state !== 'finishing';
     $('view-done').hidden = state !== 'done';
+    // Langue de l'interface : changeable seulement quand rien ne tourne (textes en cours stables)
+    const busy = state === 'recording' || state === 'finishing' || state === 'importing';
+    $('ui-lang').disabled = busy;
+    $('ui-lang-busy').hidden = !busy;
     updateQueue();
   }
 
@@ -1672,7 +1687,7 @@
     const box = $('export-info');
     const btn = $('export-folder');
     const hm = (ms) =>
-      new Date(ms).toLocaleTimeString('fr-FR', {
+      new Date(ms).toLocaleTimeString(L.i18n.locale(), {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
@@ -1680,22 +1695,27 @@
     const profile = profileOf(t);
     btn.hidden = true;
     if (ex.where === 'dossier') {
-      box.textContent = `Note enregistrée dans le dossier « ${ex.folder} » (profil « ${ex.profile} ») : ${ex.savedAs}. Elle est mise à jour à chaque modification ci-dessous (dernière : ${hm(ex.at)}).`;
+      box.textContent = tr('export.folder', {
+        folder: ex.folder,
+        profile: profile.name,
+        file: ex.savedAs,
+        at: hm(ex.at),
+      });
     } else if (ex.where === 'telechargements') {
-      box.textContent = `Note enregistrée dans vos Téléchargements : ${ex.savedAs}.`;
+      box.textContent = tr('export.downloads', { file: ex.savedAs });
       if (ex.pending === 'a-demander' || ex.pending === 'oublie') {
         btn.textContent =
           ex.pending === 'oublie'
-            ? `Désigner à nouveau le dossier « ${profile.folderName} » et y enregistrer la note`
-            : `Enregistrer aussi dans le dossier « ${profile.folderName} »`;
+            ? tr('export.repick', { folder: profile.folderName })
+            : tr('export.alsoFolder', { folder: profile.folderName });
         btn.hidden = false;
         box.textContent +=
           ex.pending === 'oublie'
-            ? ` Le navigateur a oublié l'accès au dossier du profil « ${profile.name} » (données de navigation effacées ?).`
-            : ` Le navigateur demande votre accord pour écrire dans le dossier du profil « ${profile.name} ».`;
+            ? tr('export.forgotten', { profile: profile.name })
+            : tr('export.ask', { profile: profile.name });
       }
     } else box.textContent = '';
-    if (ex.error) box.textContent += ` Écriture dans le dossier impossible : ${ex.error}`;
+    if (ex.error) box.textContent += tr('export.writeError', { error: ex.error });
     box.hidden = !box.textContent;
   }
 
@@ -1710,10 +1730,9 @@
         updateProfile(profile.id, { folderName: name });
       }
       const ex = await exportNote(t, { interactive: true });
-      if (ex.where !== 'dossier')
-        toast("L'accès au dossier n'a pas été accordé : la note reste dans vos Téléchargements.", 6000);
+      if (ex.where !== 'dossier') toast(tr('export.denied'), 6000);
     } catch (e) {
-      toast(e.code === 'unsupported' ? e.message : "Impossible d'enregistrer dans ce dossier : " + e.message, 8000);
+      toast(e.code === 'unsupported' ? e.message : tr('export.failed', { error: e.message }), 8000);
     }
     renderExport(t);
     renderProfileAccess();
@@ -1726,7 +1745,7 @@
       ...list.map((p) => {
         const o = document.createElement('option');
         o.value = p.id;
-        o.textContent = p.name + (p.modified ? ' (modifiée)' : '');
+        o.textContent = p.name + (p.modified ? tr('ai.modified') : '');
         return o;
       })
     );
@@ -1741,7 +1760,7 @@
     $('ai-name').value = p.name;
     $('ai-name').disabled = p.builtin;
     $('ai-text').value = p.text;
-    $('ai-remove').textContent = p.builtin ? 'Rétablir le texte d’origine' : 'Supprimer cette consigne';
+    $('ai-remove').textContent = p.builtin ? tr('ai.restore') : tr('ai.delete');
     $('ai-remove').disabled = p.builtin && !p.modified;
     const prof = L.Notes.list().find((x) => x.id === app.editProfileId);
     if (prof) fillPromptSelect($('prof-prompt'), prof.prompt);
@@ -1760,7 +1779,7 @@
       ...profiles.map((p) => {
         const o = document.createElement('option');
         o.value = p.id;
-        o.textContent = p.name + (p.folderName ? ` (dossier « ${p.folderName} »)` : '');
+        o.textContent = p.name + (p.folderName ? tr('prof.inFolder', { folder: p.folderName }) : '');
         return o;
       })
     );
@@ -1770,11 +1789,12 @@
   // Exemple de nom de fichier, sur une réunion fictive
   function sampleTranscript() {
     const t = new L.Transcript({
-      title: 'Point hebdo',
+      title: tr('sample.title'),
       startedAt: Date.now() - 3600000,
       endedAt: Date.now(),
       sources: ['me', 'others'],
       model: app.modelLabel,
+      noteLang: L.i18n.lang(),
     });
     return t;
   }
@@ -1789,7 +1809,9 @@
     const p = profiles.find((x) => x.id === app.editProfileId);
     $('prof-delete').disabled = p.id === L.Notes.DEFAULT_ID;
     $('prof-name').value = p.name;
-    $('prof-folder').textContent = p.folderName ? `Dossier « ${p.folderName} »` : 'Vos Téléchargements';
+    $('prof-folder').textContent = p.folderName
+      ? tr('prof.folderNamed', { folder: p.folderName })
+      : tr('prof.downloads');
     $('prof-folder-clear').hidden = !p.folderName;
     $('prof-classic').checked = p.format === 'classique';
     $('prof-custom').hidden = p.format === 'classique';
@@ -1814,7 +1836,7 @@
           });
         });
         const sp = document.createElement('span');
-        sp.textContent = label;
+        sp.textContent = label();
         l.append(c, sp);
         return l;
       })
@@ -1832,13 +1854,12 @@
   function renderProfileHints(p) {
     const warn = [];
     const unknown = [...L.Notes.unknownVariables(p.template), ...L.Notes.unknownVariables(p.fileName)];
-    if (unknown.length)
-      warn.push(`Variable inconnue, laissée telle quelle : ${unknown.map((v) => `{{${v}}}`).join(', ')}.`);
+    if (unknown.length) warn.push(tr('prof.unknownVars', { list: unknown.map((v) => `{{${v}}}`).join(', ') }));
     const bad = L.Notes.badExtraLines(p.front.extra);
-    if (bad.length) warn.push(`Champ libre ignoré (il faut « clé: valeur ») : ${bad.join(' ; ')}.`);
+    if (bad.length) warn.push(tr('prof.badExtra', { list: bad.join(tr('done.listSep')) }));
     $('prof-warn').textContent = warn.join(' ');
     $('prof-filename-example').textContent =
-      p.format === 'classique' ? '' : 'Exemple : ' + L.Notes.note(sampleTranscript(), p).name;
+      p.format === 'classique' ? '' : tr('prof.example', { name: L.Notes.note(sampleTranscript(), p).name });
   }
 
   // Champs texte de l'éditeur : enregistrés à chaque frappe
@@ -1864,13 +1885,11 @@
     const box = $('profile-access');
     app.profileAccess = acc.state;
     if (acc.state === 'a-demander') {
-      $('profile-access-text').textContent =
-        `Les notes du profil « ${p.name} » vont dans le dossier « ${p.folderName} » : le navigateur demande votre accord.`;
-      $('profile-allow').textContent = 'Autoriser maintenant';
+      $('profile-access-text').textContent = tr('prof.access.ask', { name: p.name, folder: p.folderName });
+      $('profile-allow').textContent = tr('prof.access.allow');
     } else if (acc.state === 'oublie') {
-      $('profile-access-text').textContent =
-        `Le navigateur a oublié le dossier « ${p.folderName} » du profil « ${p.name} » (données de navigation effacées ?). En attendant, les notes vont dans vos Téléchargements.`;
-      $('profile-allow').textContent = 'Désigner à nouveau le dossier';
+      $('profile-access-text').textContent = tr('prof.access.forgotten', { name: p.name, folder: p.folderName });
+      $('profile-allow').textContent = tr('prof.access.repick');
     }
     box.hidden = !(acc.state === 'a-demander' || acc.state === 'oublie');
   }
@@ -1883,7 +1902,7 @@
         if (name) updateProfile(p.id, { folderName: name });
       } else await L.Notes.access(p, true);
     } catch (e) {
-      toast(e.code === 'unsupported' ? e.message : "Impossible d'utiliser ce dossier : " + e.message, 8000);
+      toast(e.code === 'unsupported' ? e.message : tr('prof.folderError', { error: e.message }), 8000);
     }
     renderProfiles();
   }
@@ -1910,7 +1929,7 @@
       document.execCommand('copy');
       ta.remove();
     }
-    toast('Copié dans le presse-papiers.');
+    toast(tr('done.copied'));
   }
 
   let toastTimer = null;
@@ -1944,15 +1963,26 @@
     }
   });
 
+  function renderRecovery() {
+    const saved = app.recovered;
+    if (!saved) return;
+    const d = new Date(saved.meta.startedAt);
+    const last = saved.lines[saved.lines.length - 1];
+    const loc = L.i18n.locale();
+    $('recover-info').textContent = tr('recover.info', {
+      date: d.toLocaleDateString(loc),
+      time: d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }),
+      min: Math.max(1, Math.round((last ? last.end : 0) / 60)),
+    });
+  }
+
   // Session interrompue (navigateur fermé pendant une réunion)
   function checkRecovery() {
     const saved = L.Transcript.loadUnfinished();
     if (!saved) return;
-    const d = new Date(saved.meta.startedAt);
     const last = saved.lines[saved.lines.length - 1];
-    $('recover-info').textContent =
-      `${d.toLocaleDateString('fr-FR')} à ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}, ` +
-      `${Math.max(1, Math.round((last ? last.end : 0) / 60))} min transcrites`;
+    app.recovered = saved;
+    renderRecovery();
     $('recover').hidden = false;
     $('recover-download').addEventListener('click', () => {
       saved.meta.endedAt = saved.meta.startedAt + Math.round((last ? last.end : 0) * 1000);
@@ -1971,11 +2001,11 @@
 
   async function speedTest(auto) {
     if (!app.engineReady || !app.workers.length) {
-      if (!auto) toast('Le moteur n’est pas encore prêt.');
+      if (!auto) toast(tr('speed.notReady'));
       return;
     }
     const out = $('speed-result');
-    out.textContent = 'Mesure en cours (quelques secondes à une minute)…';
+    out.textContent = tr('speed.measuring');
     $('speed-test').disabled = true;
     try {
       const b = await app.workers[0].bench();
@@ -1984,25 +2014,22 @@
       const perMin = Math.round(load * 60);
       const model = app.modelLabel;
       let advice;
-      if (load <= 0.5) advice = 'Très confortable : la transcription suivra la réunion en direct.';
-      else if (load <= 0.9)
-        advice = 'Correct : la transcription suit la réunion, avec un léger décalage quand ça parle beaucoup.';
-      else if (load <= 1.3)
-        advice =
-          "Juste : lors d'échanges très denses, la transcription prendra du retard puis le rattrapera dans les silences.";
-      else
-        advice = app.fastWorkers.length
-          ? 'Lors des échanges denses, la voie rapide prendra le relais pour garder le direct, et les passages concernés seront retranscrits précisément ensuite.'
-          : 'Trop lent pour suivre en direct : installez Whisper base (Options, « Installer un autre modèle ») pour activer la voie rapide, ou choisissez un modèle plus rapide.';
-      out.textContent =
-        `${model} : environ ${perMin} s de calcul par minute de parole continue ` +
-        `(charge estimée ${Math.round(load * 100)} % avec ${n} moteur${n > 1 ? 's' : ''}` +
-        (app.limits.boost > n ? `, ${app.limits.boost} en renfort` : '') +
-        (app.fastWorkers.length ? ', plus la voie rapide en secours' : '') +
-        `). ${advice}`;
+      if (load <= 0.5) advice = tr('speed.comfortable');
+      else if (load <= 0.9) advice = tr('speed.ok');
+      else if (load <= 1.3) advice = tr('speed.tight');
+      else advice = app.fastWorkers.length ? tr('speed.fastLane') : tr('speed.tooSlow');
+      out.textContent = tr('speed.result', {
+        model,
+        perMin,
+        pct: Math.round(load * 100),
+        n,
+        boost: app.limits.boost > n ? app.limits.boost : 0,
+        fast: app.fastWorkers.length > 0,
+        advice,
+      });
       store.set('lowsper.speed.' + app.modelId, JSON.stringify({ load, at: Date.now() }));
     } catch (e) {
-      out.textContent = 'Mesure impossible : ' + e.message;
+      out.textContent = tr('speed.failed', { error: e.message });
     } finally {
       $('speed-test').disabled = false;
     }
@@ -2022,8 +2049,8 @@
     $('memory-days').value = String(m.keepDays);
     $('memory-clear').disabled = !m.count;
     $('memory-list').textContent = m.count
-      ? `${m.count} voix mémorisée${m.count > 1 ? 's' : ''} : ${m.names().join(', ')}.`
-      : 'Aucune voix mémorisée pour l’instant. Nommez les intervenants à la fin d’une réunion.';
+      ? tr('memory.list', { n: m.count, names: m.names().join(', ') })
+      : tr('memory.none');
   }
 
   // ---------------------------------------------------------------------------
@@ -2037,11 +2064,7 @@
     const quiet = opts && opts.quiet;
     if (app.pip || app.state !== 'recording') return;
     if (!('documentPictureInPicture' in window)) {
-      if (!quiet)
-        toast(
-          'Ce navigateur ne propose pas de mini-fenêtre. Astuce : réduisez la hauteur de la fenêtre de Lowsper, elle devient une simple barre.',
-          7000
-        );
+      if (!quiet) toast(tr('pip.unsupported'), 7000);
       return;
     }
     let win;
@@ -2053,7 +2076,7 @@
         height: 48,
       });
     } catch (e) {
-      if (!quiet) toast("La mini-fenêtre n'a pas pu s'ouvrir : " + e.message, 6000);
+      if (!quiet) toast(tr('pip.failed', { error: e.message }), 6000);
       return;
     }
     // Même feuille de style (fichier local : autorisé par la politique de sécurité)
@@ -2062,6 +2085,7 @@
     link.href = new URL('app/css/lowsper.css', location.href).href;
     win.document.head.appendChild(link);
     win.document.title = 'Lowsper';
+    win.document.documentElement.lang = L.i18n.lang();
     L.Theme.apply(L.Theme.stored(), win.document);
     win.document.body.className = 'pip mini' + (document.body.classList.contains('expanded') ? ' expanded' : '');
     win.document.body.appendChild($('rec-core'));
@@ -2149,21 +2173,28 @@
         b.textContent = text;
         title.appendChild(b);
       };
-      if (m.recommended) badge('recommandé');
-      if (isInstalled) badge('installé', 'auto');
-      if (needsGpu) badge('carte graphique');
+      if (m.recommended) badge(tr('install.recommended'));
+      if (isInstalled) badge(tr('install.installed'), 'auto');
+      if (needsGpu) badge(tr('install.gpu'));
       const size = document.createElement('span');
       size.className = 'size';
-      size.textContent = `${mb} Mo`;
+      size.textContent = tr('install.size', { mb });
       const desc = document.createElement('span');
       desc.className = 'desc';
+      // Description traduite si le catalogue la connaît, sinon celle du manifeste
+      const key = 'model.desc.' + m.id;
       desc.textContent =
-        (m.description || '') +
+        (L.t(key) !== key ? tr(key) : m.description || '') +
         (gpuMissing
-          ? ' Aucune carte graphique compatible détectée sur ce PC : inutilisable ici, utile seulement pour copier le dossier Lowsper vers un PC équipé.'
+          ? tr('install.noGpu')
           : needsGpu
-            ? ` Carte détectée : ${app.gpu.description || app.gpu.vendor || 'compatible'}.`
+            ? tr('install.gpuFound', { name: app.gpu.description || app.gpu.vendor || tr('install.gpuCompatible') })
             : '');
+      // Mention affichée quand Whisper base est ajouté d'office (voie rapide de secours)
+      const auto = document.createElement('span');
+      auto.className = 'auto-note';
+      auto.textContent = tr('install.autoAdded');
+      desc.appendChild(auto);
       label.append(input, title, size, desc);
       box.appendChild(label);
     });
@@ -2207,10 +2238,10 @@
     const btn = $('install');
     btn.disabled = !list.length || app.installing;
     btn.textContent = !list.length
-      ? 'Cochez au moins un modèle'
+      ? tr('install.pickOne')
       : list.length === 1
-        ? `Installer ${list[0].label} (${mb} Mo)`
-        : `Installer ${list.length} modèles (${mb} Mo)`;
+        ? tr('install.one', { label: list[0].label, mb })
+        : tr('install.many', { n: list.length, mb });
   }
 
   async function install() {
@@ -2243,9 +2274,9 @@
     app.installing = true;
     $('install').disabled = true;
     document.querySelectorAll('input[name="model-choice"]').forEach((i) => (i.disabled = true));
-    $('install').textContent = 'Installation en cours…';
+    $('install').textContent = tr('install.running');
     $('install-progress').hidden = false;
-    setEngine('loading', 'Téléchargement du modèle');
+    setEngine('loading', 'engine.downloading');
     const t0 = performance.now();
     try {
       const grand = list.reduce((n, m) => n + m.files.reduce((k, f) => k + f.size, 0), 0);
@@ -2258,8 +2289,12 @@
           const speed = done / 1e6 / Math.max(secs, 0.1);
           const left = speed > 0 ? Math.round((grand - done) / 1e6 / speed) : 0;
           $('install-text').textContent =
-            `${Math.round(done / 1e6)} / ${Math.round(grand / 1e6)} Mo · ${speed.toFixed(1)} Mo/s` +
-            (left > 2 ? ` · environ ${left > 90 ? Math.round(left / 60) + ' min' : left + ' s'} restantes` : '') +
+            tr('install.progress', {
+              done: Math.round(done / 1e6),
+              total: Math.round(grand / 1e6),
+              speed: speed.toFixed(1),
+            }) +
+            (left > 2 ? tr('install.left', { left: left > 90 ? Math.round(left / 60) + ' min' : left + ' s' }) : '') +
             (list.length > 1 ? ` · ${m.label}` : '');
         });
         before += m.files.reduce((k, f) => k + f.size, 0);
@@ -2275,7 +2310,7 @@
           catalog.find((m) => nowInstalled.includes(m.id) && usable(m));
         if (first) store.set('lowsper.model', first.id);
       }
-      $('install-text').textContent = list.length > 1 ? 'Modèles installés. Démarrage…' : 'Modèle installé. Démarrage…';
+      $('install-text').textContent = list.length > 1 ? tr('install.doneMany') : tr('install.doneOne');
       app.installing = false;
       setTimeout(() => location.reload(), 400);
     } catch (e) {
@@ -2284,13 +2319,9 @@
       $('install').disabled = false;
       showInstall(); // réaffiche les cases (et ce qui a déjà été installé)
       $('install-progress').hidden = true;
-      setEngine('error', 'Installation interrompue');
+      setEngine('error', 'engine.installStopped');
       let msg = e.message || String(e);
-      if (e.code === 'NETWORK' || e.code === 'HTTP') {
-        msg +=
-          " Le réseau de l'entreprise bloque peut-être ce site. Essayez depuis un autre réseau (partage de connexion, domicile), " +
-          "ou copiez le dossier Lowsper d'un collègue qui l'a déjà installé.";
-      }
+      if (e.code === 'NETWORK' || e.code === 'HTTP') msg += tr('install.network');
       err.textContent = msg;
       err.hidden = false;
     }
@@ -2307,9 +2338,10 @@
       sel.appendChild(o);
     }
     $('model-field').hidden = installed.length < 2;
-    $('model-current').textContent =
-      `Modèle utilisé : ${(installed.find((m) => m.id === current) || installed[0]).label}. ` +
-      `Installés sur ce poste : ${installed.map((m) => m.label).join(', ')}.`;
+    $('model-current').textContent = tr('set.modelCurrent', {
+      current: (installed.find((m) => m.id === current) || installed[0]).label,
+      list: installed.map((m) => m.label).join(', '),
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -2319,7 +2351,7 @@
   if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
     $('with-others').checked = false;
     $('with-others').disabled = true;
-    $('with-others').parentElement.title = "Ce navigateur ne permet pas de capter le son d'une autre application.";
+    $('with-others').parentElement.title = tr('set.withOthersUnsupported');
   }
 
   $('install').addEventListener('click', install);
@@ -2329,7 +2361,7 @@
     const mode = L.Theme.effective();
     const btn = $('theme-toggle');
     btn.dataset.mode = mode;
-    btn.setAttribute('aria-label', mode === 'dark' ? 'Passer en thème clair' : 'Passer en thème sombre');
+    btn.setAttribute('aria-label', mode === 'dark' ? tr('theme.toLight') : tr('theme.toDark'));
     $('theme').value = L.Theme.stored();
     if (app.pip) L.Theme.apply(L.Theme.stored(), app.pip.document);
   }
@@ -2348,6 +2380,58 @@
   }
   renderTheme();
 
+  // Langue de l'interface (i18n.js) : réglage « Affichage », choix mémorisé (lowsper.opt.lang)
+  $('ui-lang').value = L.i18n.lang();
+  $('ui-lang').addEventListener('change', (e) => L.i18n.setLang(e.target.value));
+  /**
+   * Réécrit les textes calculés par ce fichier dans la nouvelle langue. Les textes fixes de la
+   * page sont déjà traduits par i18n.js. La note d'une réunion garde la langue qu'elle avait au
+   * début (meta.noteLang) : seule l'interface change.
+   */
+  function relabel() {
+    $('ui-lang').value = L.i18n.lang();
+    if (app.pip) L.i18n.apply(app.pip.document);
+    if (app.engineStatus) setEngine(app.engineStatus.state, app.engineStatus.key, app.engineStatus.vars);
+    renderTheme();
+    renderSaved();
+    renderMemory();
+    renderFixes();
+    renderVariables();
+    renderProfiles();
+    renderPrompts();
+    renderLocalAI(!!lai.abort);
+    if (lai.status) $('lai-status').textContent = tr(lai.status);
+    for (const el of document.querySelectorAll('#vocab-list [data-vocab]'))
+      el.querySelector('span').textContent = L.Vocabulary.label(el.dataset.vocab);
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia)
+      $('with-others').parentElement.title = tr('set.withOthersUnsupported');
+    const installed = self.LOWSPER_INSTALLED || [];
+    if (installed.length && app.modelId) renderModelSelect(installed, app.modelId);
+    else $('model-current').textContent = tr('set.noModel');
+    if (app.modelLabel) $('foot-model').textContent = app.modelLabel;
+    const known = app.modelId && store.get('lowsper.speed.' + app.modelId);
+    if (known) {
+      try {
+        $('speed-result').textContent = tr('speed.last', { pct: Math.round(JSON.parse(known).load * 100) });
+      } catch {}
+    }
+    renderPauseLabels(false);
+    if (app.state === 'install') showInstall();
+    if (app.state === 'done' && app.transcript) {
+      renderDoneInfo();
+      renderExport(app.transcript);
+      renderVoices();
+      renderSuspects();
+      renderGaps();
+      renderFinished();
+      if (app.draftsDone) app.improvedPending = true;
+      renderDrafts();
+    }
+    if (!$('recover').hidden) renderRecovery();
+    updateQueue();
+  }
+  L.i18n.onChange(relabel);
+
   $('power').value = store.get('lowsper.power') || 'balanced';
   $('power').addEventListener('change', (e) => {
     store.set('lowsper.power', e.target.value);
@@ -2355,14 +2439,7 @@
     pump();
   });
   $('memory-on').addEventListener('change', (e) => {
-    if (
-      e.target.checked &&
-      !confirm(
-        'Mémoriser les voix ?\n\nUne empreinte vocale est une donnée biométrique (RGPD). ' +
-          "Ne l'activez qu'avec l'accord des personnes concernées. Les empreintes restent uniquement sur ce poste " +
-          'et sont effacées automatiquement après la durée choisie.'
-      )
-    ) {
+    if (e.target.checked && !confirm(tr('memory.confirm'))) {
       e.target.checked = false;
       return;
     }
@@ -2374,17 +2451,17 @@
     renderMemory();
   });
   $('memory-clear').addEventListener('click', () => {
-    if (!confirm('Effacer définitivement toutes les voix mémorisées ?')) return;
+    if (!confirm(tr('memory.clearConfirm'))) return;
     app.memory.clear();
     renderMemory();
-    toast('Voix mémorisées effacées.');
+    toast(tr('memory.cleared'));
   });
   renderMemory();
   $('install-back').addEventListener('click', () => setState('idle'));
   $('add-model').addEventListener('click', () => {
     closeSettings();
     if (app.state === 'recording' || app.state === 'finishing') {
-      toast('Terminez la réunion en cours avant d’installer un modèle.');
+      toast(tr('install.busy'));
       return;
     }
     showInstall();
@@ -2412,7 +2489,7 @@
   $('settings-keep').addEventListener('click', async () => {
     try {
       const r = await L.Settings.save({ interactive: true, force: true });
-      if (r === 'saved') toast('Réglages conservés dans le dossier Lowsper.');
+      if (r === 'saved') toast(tr('set.kept'));
     } catch (e) {
       if (e.code !== 'CANCELLED') toast(e.message, 7000);
     }
@@ -2423,26 +2500,20 @@
     const line = $('settings-saved');
     if (st.savedAt) {
       const d = new Date(st.savedAt);
-      line.textContent =
-        'Réglages copiés dans le dossier Lowsper (' +
-        d.toLocaleDateString('fr-FR') +
-        ' ' +
-        d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) +
-        ') : ils survivent à un nettoyage du navigateur.' +
-        (st.dirty ? ' Les dernières modifications seront copiées à la fermeture de ce panneau.' : '');
+      const loc = L.i18n.locale();
+      line.textContent = tr('set.savedLine', {
+        when: d.toLocaleDateString(loc) + ' ' + d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }),
+        dirty: st.dirty,
+      });
       $('settings-keep').hidden = true;
     } else {
-      line.textContent =
-        'Vos réglages sont gardés par le navigateur. Certains postes d’entreprise les effacent à la fermeture : conservez-les aussi dans le dossier Lowsper.';
+      line.textContent = tr('set.notSaved');
       $('settings-keep').hidden = false;
     }
   }
   renderSaved();
   if (L.Settings.status().restored.length) {
-    toast(
-      'Vos réglages (sigles, préférences) ont été restaurés depuis le dossier Lowsper : le navigateur les avait effacés.',
-      7000
-    );
+    toast(tr('set.restored'), 7000);
   }
   $('settings-open').addEventListener('click', openSettings);
   // Bandeau d'avertissement : fermé pour cette session, il revient à chaque ouverture de Lowsper
@@ -2471,7 +2542,8 @@
     label.className = 'check';
     label.title = p.terms;
     label.innerHTML = '<input type="checkbox"><span></span>';
-    label.querySelector('span').textContent = p.label;
+    label.querySelector('span').textContent = L.Vocabulary.label(id);
+    label.dataset.vocab = id;
     const box = label.querySelector('input');
     box.value = id;
     box.checked = vocabSaved.includes(id);
@@ -2495,7 +2567,7 @@
     const d = new Date();
     const pad = (n) => String(n).padStart(2, '0');
     const name = `lowsper-journal_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}h${pad(d.getMinutes())}.txt`;
-    const head = 'Journal technique de Lowsper : aucun texte de réunion, uniquement le fonctionnement du logiciel.\n\n';
+    const head = tr('done.journalHead');
     download(head + app.journalLines.join('\n') + '\n', name);
   });
   $('set-fix-add').addEventListener('click', addFixFromSettings);
@@ -2519,7 +2591,7 @@
     renderProfiles();
   });
   $('prof-new').addEventListener('click', () => {
-    const p = L.Notes.newProfile('Nouveau profil', L.Notes.list());
+    const p = L.Notes.newProfile(tr('prof.new'), L.Notes.list());
     L.Notes.saveAll([...L.Notes.list(), p]);
     app.editProfileId = p.id;
     renderProfiles();
@@ -2527,12 +2599,7 @@
   });
   $('prof-delete').addEventListener('click', async () => {
     const p = L.Notes.list().find((x) => x.id === app.editProfileId);
-    if (
-      !p ||
-      p.id === L.Notes.DEFAULT_ID ||
-      !confirm(`Supprimer le profil « ${p.name} » ? Les notes déjà enregistrées restent dans leur dossier.`)
-    )
-      return;
+    if (!p || p.id === L.Notes.DEFAULT_ID || !confirm(tr('prof.deleteConfirm', { name: p.name }))) return;
     await L.Notes.forgetFolder(p.id);
     L.Notes.saveAll(L.Notes.list().filter((x) => x.id !== p.id));
     if (L.Notes.current().id === p.id) L.Notes.select(L.Notes.DEFAULT_ID);
@@ -2544,7 +2611,7 @@
       const name = await L.Notes.pickFolder(app.editProfileId);
       if (name) updateProfile(app.editProfileId, { folderName: name });
     } catch (e) {
-      toast(e.code === 'unsupported' ? e.message : "Impossible d'utiliser ce dossier : " + e.message, 8000);
+      toast(e.code === 'unsupported' ? e.message : tr('prof.folderError', { error: e.message }), 8000);
     }
     renderProfiles();
   });
@@ -2574,19 +2641,19 @@
     renderPrompts();
   });
   $('ai-new').addEventListener('click', () => {
-    app.editPromptId = L.Notes.newPrompt('Nouvelle consigne');
+    app.editPromptId = L.Notes.newPrompt(tr('ai.new'));
     renderPrompts();
     $('ai-name').select();
   });
   $('ai-remove').addEventListener('click', () => {
     const p = L.Notes.prompts().find((x) => x.id === app.editPromptId);
-    if (!p.builtin && !confirm(`Supprimer la consigne « ${p.name} » ?`)) return;
+    if (!p.builtin && !confirm(tr('ai.deleteConfirm', { name: p.name }))) return;
     L.Notes.removePrompt(p.id);
     renderPrompts();
   });
   $('ai-name').addEventListener('input', () => {
     L.Notes.savePrompt(app.editPromptId, {
-      name: $('ai-name').value.trim() || 'Consigne',
+      name: $('ai-name').value.trim() || tr('ai.fallbackName'),
     });
     fillPromptSelect($('ai-select'), app.editPromptId);
   });
@@ -2613,9 +2680,9 @@
     for (const s of lai.states) {
       const li = document.createElement('li');
       const b = document.createElement('strong');
-      b.textContent = s.name + ' : ';
+      b.textContent = tr('rec.speaker', { name: L.LocalAI.apiName(s.id) }) + ' ';
       li.appendChild(b);
-      const explain = L.LocalAI.STATES[s.state] || `réponse inattendue du navigateur (« ${s.state} »)`;
+      const explain = L.LocalAI.stateText(s.state);
       li.appendChild(document.createTextNode(explain + (s.detail ? ` (${s.detail})` : '')));
       li.className = L.LocalAI.usable(s.state) ? 'ok' : 'ko';
       ul.appendChild(li);
@@ -2631,38 +2698,31 @@
     if (results) $('lai-out').textContent = laiReport().split('\n').slice(2).join('\n');
   }
   $('lai-probe').addEventListener('click', async () => {
-    $('lai-status').textContent = 'Vérification…';
+    $('lai-status').textContent = tr('lai.checking');
     lai.trials = {};
     renderLocalAI(true);
     lai.states = await L.LocalAI.probe();
     const any = lai.states.some((s) => L.LocalAI.usable(s.state));
-    $('lai-status').textContent = any
-      ? 'Le navigateur déclare pouvoir travailler en français sur ce PC. L’essai dira ce que vaut le résultat.'
-      : 'L’IA intégrée n’est pas utilisable ici. « Copier pour une IA » reste disponible.';
+    lai.status = any ? 'lai.usableHere' : 'lai.notUsable';
+    $('lai-status').textContent = tr(lai.status);
     renderLocalAI(false);
   });
   $('lai-trial').addEventListener('click', async () => {
     const todo = lai.states.filter((s) => L.LocalAI.usable(s.state));
-    if (
-      todo.some((s) => s.state !== 'available') &&
-      !confirm(
-        'Le navigateur doit d’abord télécharger son modèle de langage. Ce téléchargement est fait par le navigateur, pas par Lowsper, et demande au moins 22 Go d’espace libre (documentation de Chrome). Continuer ?'
-      )
-    )
-      return;
+    if (todo.some((s) => s.state !== 'available') && !confirm(tr('lai.downloadConfirm'))) return;
     lai.abort = new AbortController();
     lai.trials = {};
     renderLocalAI(true);
     for (const s of todo) {
       if (lai.abort.signal.aborted) break;
-      $('lai-status').textContent = `${s.name} : rédaction du compte rendu de la réunion fictive…`;
+      $('lai-status').textContent = tr('lai.writing', { name: L.LocalAI.apiName(s.id) });
       try {
         lai.trials[s.id] = await L.LocalAI.trial(s.id, {
           signal: lai.abort.signal,
           onProgress: (f) => {
             $('lai-progress').hidden = f >= 1;
             $('lai-progress').value = f;
-            $('lai-status').textContent = `Téléchargement du modèle par le navigateur : ${Math.round(f * 100)} %`;
+            $('lai-status').textContent = tr('lai.downloadPct', { pct: Math.round(f * 100) });
           },
         });
       } catch (e) {
@@ -2675,9 +2735,8 @@
     }
     const aborted = lai.abort.signal.aborted;
     lai.abort = null;
-    $('lai-status').textContent = aborted
-      ? 'Essai arrêté.'
-      : 'Essai terminé. « Copier le rapport » ne contient que la réunion fictive et l’état du navigateur.';
+    lai.status = aborted ? 'lai.stopped' : 'lai.done';
+    $('lai-status').textContent = tr(lai.status);
     renderLocalAI(false);
   });
   $('lai-stop').addEventListener('click', () => lai.abort && lai.abort.abort());
@@ -2686,7 +2745,7 @@
     updateProfile(app.editProfileId, { links: $('prof-links').checked })
   );
   bindProfileField('prof-name', (p, el) => ({
-    name: el.value.trim() || 'Profil',
+    name: el.value.trim() || tr('prof.fallbackName'),
   }));
   bindProfileField('prof-filename', (p, el) => ({ fileName: el.value }));
   bindProfileField('prof-template', (p, el) => ({ template: el.value }));
@@ -2703,18 +2762,20 @@
     });
     renderProfiles();
   });
-  {
+  function renderVariables() {
     const dl = $('prof-vars');
+    dl.replaceChildren();
     for (const [name, desc] of L.Notes.VARIABLES) {
       const dt = document.createElement('dt');
       const code = document.createElement('code');
       code.textContent = `{{${name}}}`;
       dt.appendChild(code);
       const dd = document.createElement('dd');
-      dd.textContent = desc;
+      dd.textContent = desc();
       dl.append(dt, dd);
     }
   }
+  renderVariables();
   renderProfiles();
   renderPrompts();
   // Import : bouton, sélection de fichiers, glisser-déposer (n'importe où dans la page)
@@ -2726,7 +2787,7 @@
   });
   $('import-cancel').addEventListener('click', () => {
     if (app.importAbort) app.importAbort.abort();
-    $('import-text').textContent = 'Annulation…';
+    $('import-text').textContent = tr('import.cancelling');
   });
   const canDrop = () => app.state === 'idle' || app.state === 'done';
   document.addEventListener('dragover', (e) => {

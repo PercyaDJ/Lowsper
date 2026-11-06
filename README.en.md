@@ -9,7 +9,9 @@ Lowsper captures your microphone and the meeting audio (Teams, Zoom, Meet...), t
 Whisper, tells speakers apart, and gives you a timestamped Markdown transcript at the end, ready to
 hand to an AI for meeting minutes. Neither audio nor text ever leaves the computer.
 
-The interface and the full documentation are in French: see [README.md](README.md).
+The interface is in English or French, following the browser language (it can be changed in
+Settings, « Display », « App language »). The full documentation is in French: see
+[README.md](README.md).
 
 ![Lowsper during a fictional meeting: live transcript, microphone and participant levels](docs/images/enregistrement.png)
 
@@ -37,12 +39,16 @@ The interface and the full documentation are in French: see [README.md](README.m
 1. Download `Lowsper-X.Y.Z.zip` from the [latest release](https://github.com/PercyaDJ/Lowsper/releases/latest)
    and unzip it.
 2. Open `Lowsper.html` in Edge or Chrome.
-3. First launch only: pick a model, click « Installer » and select the Lowsper folder. The model
+3. First launch only: pick a model, click « Install » and select the Lowsper folder. The model
    (about 250 MB for Whisper small) is downloaded once and stored next to the page.
-4. Click « Démarrer l'enregistrement », share your screen **with audio**, allow the microphone.
-5. Click « Terminer »: the `.md` transcript lands in your Downloads folder.
+4. Click « Start recording », share your screen **with audio**, allow the microphone.
+5. Click « Stop »: the `.md` transcript lands in your Downloads folder.
 
-Recognition is tuned for French (with an English and an automatic French/English mode).
+Recognition is tuned for French (with an English and an automatic French/English mode). The note
+follows the app language when the meeting starts: in English, its header and labels are
+translated (« Speaker 1 », « You »...) and the file is named `meeting_...md`. Note template
+variables and front matter keys keep the same names in both languages. The built-in domain
+vocabularies are French lists for now.
 
 ## Learn more
 

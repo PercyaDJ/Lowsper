@@ -533,7 +533,8 @@ body.mini:not(.expanded) .rec-core:has(.notice:not([hidden])) #pip-more { color:
 .consent-close:hover { opacity: 1; background: color-mix(in srgb, var(--warn-ink) 12%, transparent); }
 .consent-close:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
 .consent-close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-.model-opt.auto .desc::after { content: " Ajouté automatiquement : il sert de voie rapide de secours quand le PC prend du retard."; color: var(--link); }
+.model-opt .auto-note { display: none; color: var(--link); }
+.model-opt.auto .auto-note { display: inline; }
 
 /* Nom de la réunion + nombre de personnes */
 .field-row { display: flex; gap: 12px; align-items: flex-end; }
@@ -556,7 +557,7 @@ input[type="number"]:focus { border-color: var(--accent); }
 .fix-chip button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 6px; }
 .fix-chips.suspects { margin-top: 10px; }
 .fix-chips.suspects:empty { display: none; }
-.fix-chips.suspects::before { content: 'À vérifier :'; color: var(--muted); font-size: 12.5px; align-self: center; }
+.fix-chips.suspects .suspects-label { color: var(--muted); font-size: 12.5px; align-self: center; }
 .fix-chips.suspects button { font: inherit; font-size: 12.5px; padding: 2px 10px; border: 1px solid var(--border); border-radius: 99px; background: var(--surface); cursor: pointer; color: var(--text); }
 .finished { margin: 12px 0 0; display: grid; gap: 6px; }
 .finished .fine { margin: 0; }

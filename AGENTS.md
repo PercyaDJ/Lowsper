@@ -27,9 +27,11 @@ Une modification qui affaiblit l'une d'elles est refusée, quelle qu'en soit la 
    Vaut aussi pour les fichiers importés : lus, traités, libérés.
 4. **Navigateurs cibles** : Edge et Chrome récents. Firefox en mode dégradé, documenté.
 5. **Langues** : documentation en français (résumé en anglais dans `README.en.md`). Interface
-   en français et en anglais, selon la langue du navigateur (décision du mainteneur,
-   `docs/refonte.md` §1) ; jusqu'à la livraison du lot R2, elle reste en français. Ton clair et
-   sobre, sans émoji.
+   en français et en anglais, selon la langue du navigateur ou le réglage « Langue de
+   l'interface » (`docs/refonte.md` §1, `decision.md` §25). Tout texte affiché passe par le
+   catalogue `app/js/i18n.js`, dans les deux langues : jamais de texte en dur dans le HTML sans
+   attribut `data-i18n`, ni dans le JavaScript sans `t()`, ni dans le CSS. La note en français
+   reste identique au caractère près. Ton clair et sobre, sans émoji.
 6. **Licence MIT** conservée. Toute dépendance nouvelle : licence vérifiée, ajoutée à
    `app/engine/THIRD_PARTY_LICENSES.txt` (via `tools/build.mjs`) et au README.
 7. **Aucune dépendance chargée depuis un CDN.** Tout ce qui s'exécute est dans le dossier.
@@ -106,11 +108,14 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Captures d'écran de la documentation (après `--embed`, 5 min) | `node test/screenshots.mjs` |
 | Qualité sur corpus réaliste | `node test/eval-hebdo.mjs whisper-small` |
 | Sonde de l'IA intégrée, page en `file://`, fausse IA (20 s, Chromium) | `npm run test:localai` |
+| Interface en français et en anglais : catalogue, page, bascule (5 s, Chromium) | `npm run test:i18n` |
 | Étude du résumé local (modèles dans `.cache/llm`, decision.md §22) | `node test/eval-summary.mjs <modèle> [--dtype=q8\|q4] [--sanity] [--long]` |
 
 Chromium : si Playwright ne trouve pas son navigateur, définissez `CHROMIUM_PATH`. Le test de
 décodage a besoin d'un navigateur qui lit l'AAC et le MP3 (Google Chrome en CI). Les tests e2e
 utilisent les modèles de `tools/.cache` (environ 330 Mo) et un faux serveur Hugging Face local.
+Ils imposent le français (`locale: 'fr-FR'` du contexte Playwright) : leurs vérifications portent
+sur les textes français. Un nouveau test de navigateur fait de même, ou vérifie les deux langues.
 
 Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis relire et commiter
 `tools/models.lock.json`. Jamais de révision `main` dans le verrou.
@@ -121,6 +126,7 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 |---|---|
 | `Lowsper.html` | Page à ouvrir : interface et politique de sécurité (CSP) |
 | `app/js/theme.js` | Thème clair ou sombre (système par défaut, choix mémorisé), chargé dans `<head>` |
+| `app/js/i18n.js` | Langue de l'interface : catalogues `fr` et `en`, `t(clé, variables)`, attributs `data-i18n`, chargé avant les autres scripts |
 | `app/js/browser.js` | Reconnaissance du navigateur (Brave, Edge, Chrome, Firefox) et messages quand l'écriture dans un dossier est impossible |
 | `app/js/engine.js` | Chargement des fichiers embarqués, moteur Whisper dans un Worker (glossaire, langue, reprise, boucles) |
 | `app/js/analyzer.js` | Détection de parole (Silero) et empreintes vocales (WeSpeaker), dans des Workers |

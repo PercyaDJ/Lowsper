@@ -24,6 +24,9 @@
   // Au-delà, un fichier dans un format sans lecteur dédié n'est pas décodé d'un bloc (mémoire)
   const FALLBACK_MAX_BYTES = 25 * 1024 * 1024;
 
+  // Message dans la langue de l'interface (i18n.js) ; sans catalogue (page de test), la clé seule
+  const tx = (key, vars) => (Lowsper.t ? Lowsper.t(key, vars) : key);
+
   function fail(code, message) {
     const e = new Error(message);
     e.code = code;
@@ -88,9 +91,9 @@
         if (tag === 0xfffe && b.length >= 26) tag = v.getUint16(24, true); // WAVE_FORMAT_EXTENSIBLE
         fmt = { tag, channels: v.getUint16(2, true), sampleRate: v.getUint32(4, true), bits: v.getUint16(14, true) };
       } else if (id === 'data') {
-        if (!fmt) throw fail('FORMAT', 'Fichier WAV incomplet (description du son absente).');
+        if (!fmt) throw fail('FORMAT', tx('audio.wavNoFmt'));
         if (!((fmt.tag === 1 && [8, 16, 24, 32].includes(fmt.bits)) || (fmt.tag === 3 && fmt.bits === 32))) {
-          throw fail('CODEC', 'Ce fichier WAV utilise un codage compressé non pris en charge.');
+          throw fail('CODEC', tx('audio.wavCodec'));
         }
         // Taille nulle ou maximale : enregistrement interrompu, on lit jusqu'à la fin du fichier
         const start = p + 8;
@@ -109,7 +112,7 @@
       }
       p += 8 + size + (size & 1);
     }
-    throw fail('FORMAT', 'Fichier WAV sans données audio.');
+    throw fail('FORMAT', tx('audio.wavNoData'));
   }
 
   /** Échantillons PCM entrelacés -> Float32 mono. */
@@ -185,7 +188,7 @@
         duration: await estimateDuration(src, start + p, mp3Frame),
       };
     }
-    throw fail('FORMAT', 'Aucune trame MP3 lisible dans ce fichier.');
+    throw fail('FORMAT', tx('audio.noMp3'));
   }
 
   // ---------------------------------------------------------------------------
@@ -222,7 +225,7 @@
         duration: await estimateDuration(src, p, adtsFrame),
       };
     }
-    throw fail('FORMAT', 'Aucune trame AAC lisible dans ce fichier.');
+    throw fail('FORMAT', tx('audio.noAac'));
   }
 
   /**
@@ -333,7 +336,7 @@
       if (size < 8) break;
       p += size;
     }
-    if (!moov) throw fail('FORMAT', 'Fichier MP4 incomplet (index absent) : enregistrement interrompu ?');
+    if (!moov) throw fail('FORMAT', tx('audio.mp4NoIndex'));
     const v = new DataView(moov.buffer, moov.byteOffset, moov.byteLength);
     const child = (box, type) => boxesIn(moov, box.body, box.end).find((x) => x.type === type);
     const path = (box, types) => types.reduce((b, t) => b && child(b, t), box);
@@ -355,18 +358,18 @@
         const h = path(t, ['mdia', 'hdlr']);
         return h && ascii(moov, h.body + 8, 4) === 'soun';
       });
-    if (!trak) throw fail('FORMAT', 'Ce fichier ne contient pas de piste audio.');
+    if (!trak) throw fail('FORMAT', tx('audio.noTrack'));
     const stbl = path(trak, ['mdia', 'minf', 'stbl']);
     const stsd = child(stbl, 'stsd');
     const entry = boxesIn(moov, stsd.body + 8, stsd.end)[0];
     if (!entry || entry.type !== 'mp4a') {
-      throw fail('CODEC', `Codage audio « ${entry ? entry.type : '?'} » non pris en charge dans ce fichier MP4.`);
+      throw fail('CODEC', tx('audio.mp4Codec', { type: entry ? entry.type : '?' }));
     }
     const channels = v.getUint16(entry.body + 16);
     const sampleRate = v.getUint32(entry.body + 24) >>> 16;
     const esds = boxesIn(moov, entry.body + 28, entry.end).find((x) => x.type === 'esds');
     const config = esds && aacConfig(moov, esds);
-    if (!config) throw fail('CODEC', 'Configuration AAC introuvable dans ce fichier.');
+    if (!config) throw fail('CODEC', tx('audio.noAacConfig'));
 
     const stsz = child(stbl, 'stsz');
     const stco = child(stbl, 'stco') || child(stbl, 'co64');
@@ -464,7 +467,7 @@
     let partial = [];
     while (pos + 27 <= src.size) {
       const h = await src.read(pos, 27);
-      if (ascii(h, 0, 4) !== 'OggS') throw fail('FORMAT', 'Page Ogg illisible : fichier abîmé ?');
+      if (ascii(h, 0, 4) !== 'OggS') throw fail('FORMAT', tx('audio.oggBad'));
       const nseg = h[26];
       const table = await src.read(pos + 27, nseg);
       let body = 0;
@@ -646,7 +649,7 @@
         pos += hdr;
         continue;
       }
-      if (unknown) throw fail('FORMAT', 'Fichier WebM abîmé (élément de taille inconnue).');
+      if (unknown) throw fail('FORMAT', tx('audio.webmBad'));
       const len = size[0];
       if (!WANTED.has(id[0])) {
         pos += hdr + len;
@@ -691,7 +694,7 @@
       }
       if (current && current.type === 2 && current.codec && !track) track = current;
     }
-    if (!track) throw fail('FORMAT', 'Ce fichier WebM ne contient pas de piste audio.');
+    if (!track) throw fail('FORMAT', tx('audio.webmNoTrack'));
     if (track.codec !== 'A_OPUS') return { fallback: true };
     return {
       codec: 'opus',
@@ -714,7 +717,7 @@
         const tn = vint(d, 0, false);
         if (!tn || tn[0] !== trackNumber) continue;
         const rel = new DataView(d.buffer, d.byteOffset + tn[1]).getInt16(0);
-        if (d[tn[1] + 2] & 0x06) throw fail('CODEC', 'Fichier WebM à blocs groupés (« lacing ») non pris en charge.');
+        if (d[tn[1] + 2] & 0x06) throw fail('CODEC', tx('audio.webmLacing'));
         const t = ((cluster + rel) * scale) / 1000;
         if (t >= from) batch.push({ data: d.subarray(tn[1] + 3), timestamp: t });
         if (batch.length >= 500) {
@@ -791,7 +794,7 @@
       method: info.pcm ? 'pcm' : info.fallback ? 'complet' : 'webcodecs',
     };
     const check = () => {
-      if (o.signal && o.signal.aborted) throw fail('ABORT', 'Transcription du fichier annulée.');
+      if (o.signal && o.signal.aborted) throw fail('ABORT', tx('import.aborted'));
     };
 
     if (info.pcm) {
@@ -823,10 +826,7 @@
     }
     if (useFallback) {
       if (file.size > FALLBACK_MAX_BYTES) {
-        throw fail(
-          'TROP_LONG',
-          'Ce format n’est lu que pour des fichiers courts (25 Mo au plus) : convertissez-le en MP3 ou M4A, ou découpez-le.'
-        );
+        throw fail('TROP_LONG', tx('audio.tooLong'));
       }
       meta.method = 'complet';
       if (o.onInfo) o.onInfo(meta);
@@ -836,10 +836,7 @@
         const ctx = new OfflineAudioContext(1, 1, RATE);
         buffer = await ctx.decodeAudioData(await file.arrayBuffer());
       } catch (e) {
-        throw fail(
-          'CODEC',
-          'Format audio non reconnu par ce navigateur. Formats lus : WAV, MP3, M4A/AAC, OGG/Opus, WebM.'
-        );
+        throw fail('CODEC', tx('audio.unknownFormat'));
       }
       meta.duration = buffer.duration;
       if (o.onInfo) o.onInfo(meta);
@@ -875,7 +872,7 @@
     });
     decoder.configure(config);
     const take = () => {
-      if (failure) throw fail('CODEC', 'Le décodeur du navigateur a échoué sur ce fichier : ' + failure.message);
+      if (failure) throw fail('CODEC', tx('audio.decoderFailed', { error: failure.message }));
       if (!ready.length) return null;
       const n = ready.reduce((s, x) => s + x.length, 0);
       const out = new Float32Array(n);

@@ -27,9 +27,8 @@
   /** Le navigateur sait-il écrire dans un dossier choisi par l'utilisateur ? */
   const canWriteFolder = (scope = root) => typeof scope.showDirectoryPicker === 'function';
 
-  const BRAVE_FLAG =
-    "Brave bloque par défaut l'écriture dans un dossier. Pour l'autoriser : ouvrez brave://flags, " +
-    'cherchez « File System Access », choisissez « Enabled », puis relancez Brave.';
+  // Messages dans la langue de l'interface (i18n.js, chargé avant ce fichier)
+  const tx = (key, vars) => Lowsper.t(key, vars);
 
   /**
    * Message quand l'écriture dans un dossier est impossible. purpose : 'model' (installer le
@@ -37,25 +36,9 @@
    */
   function folderMessage(purpose, nav) {
     const browser = name(nav);
-    if (purpose === 'notes') {
-      if (browser === 'Brave') return BRAVE_FLAG + ' En attendant, les notes vont dans les Téléchargements.';
-      if (browser === 'Firefox')
-        return 'Firefox ne sait pas écrire dans un dossier choisi : les notes vont dans les Téléchargements.';
-      return (
-        'Ce navigateur ne sait pas écrire dans un dossier choisi : les notes vont dans les Téléchargements. ' +
-        'Pour les envoyer dans un dossier, ouvrez Lowsper.html avec Microsoft Edge ou Google Chrome.'
-      );
-    }
-    if (browser === 'Brave')
-      return (
-        BRAVE_FLAG + ' Autre solution : installez le modèle une fois avec Microsoft Edge, puis revenez dans Brave.'
-      );
-    if (browser === 'Firefox')
-      return (
-        'Firefox ne sait pas enregistrer le modèle dans un dossier. Installez-le une fois avec Microsoft Edge ' +
-        "ou Google Chrome ; Firefox pourra ensuite transcrire le micro seul (pas le son d'une visio)."
-      );
-    return "Ce navigateur ne permet pas d'enregistrer le modèle dans un dossier. Ouvrez Lowsper.html avec Microsoft Edge ou Google Chrome.";
+    const which = browser === 'Brave' ? 'brave' : browser === 'Firefox' ? 'firefox' : 'other';
+    const area = purpose === 'notes' ? 'notes' : 'model';
+    return tx(`browser.${area}.${which}`, { flag: tx('browser.braveFlag') });
   }
 
   Lowsper.Browser = { name, canWriteFolder, folderMessage };

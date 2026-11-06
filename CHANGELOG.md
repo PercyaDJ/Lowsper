@@ -13,6 +13,26 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+### Ajouté
+- Interface en français et en anglais (lot R2) : Lowsper prend la langue du navigateur, et le
+  réglage « Langue de l'interface » (paramètres, « Affichage ») la change sans recharger. Le
+  choix est gardé avec les autres réglages, y compris dans `app/reglages.txt` (decision.md §25).
+- Note en anglais quand l'interface est en anglais au début de la réunion : en-tête et libellés
+  traduits (« Speaker 1 », « You »...), fichier `meeting_...md`. Les noms des variables de
+  modèle et les clés du front matter ne changent pas.
+- Consignes fournies pour « Copier pour une IA » en français et en anglais. Une consigne modifiée
+  par l'utilisateur ne change jamais.
+
+### Modifié
+- La note en français reste identique au caractère près (vérifié sur 33 sorties de 5 réunions
+  fictives, ancien et nouveau code).
+- La langue de l'interface ne se change pas pendant une réunion, une finalisation ou un import.
+
+### Tests
+- `npm run test:i18n` (aussi en CI) : catalogue complet dans les deux langues, texte de la page
+  identique au catalogue français, aucun reste de français en anglais, bascule de langue.
+- Les tests de bout en bout et les captures imposent le français (`locale: 'fr-FR'`).
+
 ## [3.5.0] - 2026-11-05
 
 ### Modifié

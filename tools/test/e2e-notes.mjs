@@ -25,7 +25,12 @@ const fixtures = join(here, 'fixtures', 'import');
 await mkdir(out, { recursive: true });
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
-const context = await browser.newContext({ acceptDownloads: true, viewport: { width: 900, height: 1000 } });
+const context = await browser.newContext({
+  // Interface en français : les vérifications portent sur les textes français (decision.md §25)
+  locale: 'fr-FR',
+  acceptDownloads: true,
+  viewport: { width: 900, height: 1000 },
+});
 const page = await context.newPage();
 const network = [];
 page.on('request', (r) => {

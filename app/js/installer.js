@@ -16,6 +16,7 @@
   'use strict';
 
   const Lowsper = (window.Lowsper = window.Lowsper || {});
+  const tx = (key, vars) => Lowsper.t(key, vars);
   const CHUNK = 24 * 1024 * 1024; // même découpage que tools/build.mjs
 
   /** Dossier de la page ouverte, lisible par l'utilisateur (ex. C:\Users\...\Lowsper). */
@@ -72,21 +73,21 @@
       res = await fetch(url, { signal, cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' });
     } catch (err) {
       if (signal && signal.aborted) throw err;
-      throw installError('NETWORK', 'Hugging Face est injoignable depuis ce réseau.');
+      throw installError('NETWORK', tx('err.hfUnreachable'));
     }
-    if (!res.ok) throw installError('HTTP', `Téléchargement refusé (HTTP ${res.status}).`);
+    if (!res.ok) throw installError('HTTP', tx('err.http', { status: res.status }));
     const out = new Uint8Array(size);
     let offset = 0;
     const reader = res.body.getReader();
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
-      if (offset + value.length > size) throw installError('SIZE', 'Fichier plus gros que prévu.');
+      if (offset + value.length > size) throw installError('SIZE', tx('err.tooBig'));
       out.set(value, offset);
       offset += value.length;
       onBytes(value.length);
     }
-    if (offset !== size) throw installError('SIZE', 'Téléchargement incomplet.');
+    if (offset !== size) throw installError('SIZE', tx('err.incomplete'));
     return out;
   }
 
@@ -99,16 +100,13 @@
     try {
       dir = await window.showDirectoryPicker({ id: 'lowsper', mode: 'readwrite' });
     } catch (err) {
-      if (err && err.name === 'AbortError') throw installError('CANCELLED', 'Sélection annulée.');
-      throw installError('PICKER', "Le navigateur n'autorise pas l'accès à ce dossier : " + err.message);
+      if (err && err.name === 'AbortError') throw installError('CANCELLED', tx('err.cancelled'));
+      throw installError('PICKER', tx('err.picker', { error: err.message }));
     }
     try {
       await dir.getFileHandle('Lowsper.html');
     } catch {
-      throw installError(
-        'WRONG_FOLDER',
-        'Ce dossier ne contient pas Lowsper.html. Choisissez le dossier Lowsper lui-même (celui où se trouve Lowsper.html).'
-      );
+      throw installError('WRONG_FOLDER', tx('err.wrongFolder'));
     }
     // Vérifie que c'est bien le dossier de CETTE page (et pas une autre copie de Lowsper) :
     // on y écrit un petit fichier, puis on essaie de le relire depuis la page.
@@ -129,18 +127,14 @@
         setTimeout(() => resolve(false), 5000);
       });
     } catch (e) {
-      throw installError('PICKER', "Impossible d'écrire dans ce dossier : " + e.message);
+      throw installError('PICKER', tx('err.cannotWrite', { error: e.message }));
     } finally {
       try {
         if (models) await models.removeEntry(name);
       } catch {}
     }
     if (!same) {
-      throw installError(
-        'OTHER_COPY',
-        'Ce dossier est une autre copie de Lowsper que celle ouverte dans cette page. ' +
-          `Choisissez le dossier qui contient la page actuellement ouverte : ${Lowsper.pageFolder()}`
-      );
+      throw installError('OTHER_COPY', tx('err.otherCopy', { folder: Lowsper.pageFolder() }));
     }
     return dir;
   };
@@ -171,7 +165,7 @@
         signal
       );
       if ((await sha256(bytes)) !== f.sha256) {
-        throw installError('CHECKSUM', `Fichier altéré ou inattendu : ${f.path}. Installation annulée.`);
+        throw installError('CHECKSUM', tx('err.checksum', { path: f.path }));
       }
       if (f.path.endsWith('.json')) {
         texts[f.path] = new TextDecoder().decode(bytes);

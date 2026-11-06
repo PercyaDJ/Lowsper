@@ -135,7 +135,8 @@
         e.data.ok ? p.resolve(e.data) : p.reject(new Error(e.data.error));
       };
       this.worker.onerror = (e) => {
-        const err = new Error("Erreur de l'analyse audio : " + (e.message || 'inconnue'));
+        const tx = (key, vars) => (Lowsper.t ? Lowsper.t(key, vars) : key);
+        const err = new Error(tx('err.analyzer', { error: e.message || tx('err.unknown') }));
         for (const p of this.pending.values()) p.reject(err);
         this.pending.clear();
       };
