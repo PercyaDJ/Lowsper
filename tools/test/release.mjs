@@ -50,7 +50,15 @@ const tracked = execFileSync('git', ['ls-files'], { cwd: root, encoding: 'utf8' 
 const files = selectFiles(tracked);
 
 await test("le paquet contient la page, app/ et les documents de l'utilisateur", () => {
-  for (const f of ['Lowsper.html', 'LICENSE', 'README.md', 'SECURITY.md', 'app/manifest.js', 'app/js/app.js']) {
+  for (const f of [
+    'Lowsper.html',
+    'LICENSE',
+    'README.md',
+    'SECURITY.md',
+    'app/manifest.js',
+    'app/js/app.js',
+    'app/js/i18n.js',
+  ]) {
     assert.ok(files.includes(f), f + ' manquant');
   }
   assert.ok(

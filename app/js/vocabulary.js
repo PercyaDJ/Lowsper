@@ -138,5 +138,15 @@
     return parts.join(' ');
   }
 
-  Lowsper.Vocabulary = { PRESETS, merge, fix, prompt, replaceWord };
+  /**
+   * Nom d'un vocabulaire dans une langue (catalogue i18n.js). Les termes eux-mêmes ne changent
+   * pas : ce sont ceux des réunions, en français pour l'instant.
+   */
+  function label(id, lang) {
+    const key = 'vocab.' + id;
+    const text = Lowsper.t ? Lowsper.t(key, null, lang) : key;
+    return text === key && PRESETS[id] ? PRESETS[id].label : text;
+  }
+
+  Lowsper.Vocabulary = { PRESETS, label, merge, fix, prompt, replaceWord };
 })();

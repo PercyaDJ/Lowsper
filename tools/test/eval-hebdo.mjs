@@ -44,6 +44,7 @@ await writeFile(join(out, 'hebdo-pcm.js'), `window.HEBDO=${JSON.stringify(pcm)};
 const scripts = [
   'manifest.js',
   'models/index.txt',
+  'js/i18n.js',
   'js/engine.js',
   'js/analyzer.js',
   'js/capture.js',

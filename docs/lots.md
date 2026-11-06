@@ -28,7 +28,7 @@ Chaque lot respecte `AGENTS.md`, et en particulier :
 | Lot | Contenu | Version | État |
 |---|---|---|---|
 | R1 | Fondations visuelles : couleurs, thème, style commun | 3.5.0 | Livré |
-| R2 | Interface en français et en anglais | Non publiée | À faire |
+| R2 | Interface en français et en anglais | Non publiée | Livré |
 | R3 | Premier lancement guidé | Non publiée | À faire |
 | R4 | Accueil | Non publiée | À faire |
 | R5 | Réunion : mini-fenêtre et fenêtre agrandie | Non publiée | À faire |
@@ -43,7 +43,13 @@ Neutres teintés de vert, clairs ou sombres. Le thème suit le système, avec un
 l'en-tête et le réglage « Affichage ». La police est celle du système. Boutons en pilule, cases à
 cocher en interrupteurs, réglages en listes groupées. Voir `decision.md` §24.
 
-## R2 : interface en français et en anglais
+## R2 : interface en français et en anglais (livré)
+
+Livré tel que décrit ci-dessous, voir `decision.md` §25. Choix du mainteneur en cours de lot :
+les noms des variables de modèle et les clés du front matter restent les mêmes dans les deux
+langues ; en anglais, le fichier du format classique s'appelle `meeting_...md`. La note prend la
+langue de l'interface au début de la réunion. Restent en français, volontairement : les termes
+des vocabulaires métier (lot R8) et l'essai de l'IA intégrée sur la réunion fictive française.
 
 - **Catalogue** : `app/js/i18n.js`, avec une fonction `t(clé, variables)` et deux catalogues
   complets (`fr`, `en`).
@@ -160,7 +166,7 @@ Voir `refonte.md` §9.
 
 ## Texte pour ouvrir la session suivante
 
-Remplacer `R2` par le lot voulu, et sa ligne d'objectif par celle du tableau.
+Remplacer `R3` par le lot voulu, et sa ligne d'objectif par celle du tableau.
 
 ```text
 Tu travailles sur le dépôt PercyaDJ/Lowsper (application de transcription de réunions 100 %
@@ -170,7 +176,7 @@ Avant tout, lis AGENTS.md (règles non négociables), docs/refonte.md (spécific
 refonte) et docs/lots.md (plan des lots). Les maquettes validées sont sur
 https://claude.ai/artifact/KeT2Rk6qFNieqFozpFJxMx : lis-les si tu as l'outil Artifact.
 
-Ta mission : réaliser le lot R2 de docs/lots.md (interface en français et en anglais), et
+Ta mission : réaliser le lot R3 de docs/lots.md (premier lancement guidé), et
 seulement ce lot. Respecte toutes les règles d'AGENTS.md. Mesure au lieu de supposer, et si
 un point n'est pas vérifiable, écris-le comme non vérifié.
 

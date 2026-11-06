@@ -18,6 +18,9 @@
 
   const root = typeof window !== 'undefined' ? window : globalThis;
   const Lowsper = (root.Lowsper = root.Lowsper || {});
+  // Textes affichés et rapport : langue de l'interface. L'essai, lui, reste en français : la
+  // réunion fictive et les faits mesurés sont ceux du corpus français (decision.md §22 et §25).
+  const tx = (key, vars) => Lowsper.t(key, vars);
 
   // Réunion fictive « hebdo » (tools/test/corpus/hebdo.truth.json) : [début en s, qui, texte].
   // Un test unitaire vérifie qu'elle reste identique au corpus.
@@ -139,29 +142,22 @@
   const APIS = [
     {
       id: 'summarizer',
-      name: 'Résumé (Summarizer)',
       global: 'Summarizer',
       options: SUMMARIZER_OPTIONS,
     },
     {
       id: 'prompt',
-      name: 'Modèle de langage (Prompt API)',
       global: 'LanguageModel',
       options: PROMPT_OPTIONS,
     },
   ];
 
-  /** Explication d'un état, pour l'utilisateur. */
-  const STATES = {
-    absent: 'absente de ce navigateur (ou bloquée pour une page ouverte depuis le disque)',
-    unavailable:
-      "indisponible sur ce PC : matériel insuffisant, espace disque, langue non prise en charge ou désactivée par l'entreprise",
-    downloadable: "utilisable, mais le navigateur doit d'abord télécharger son modèle",
-    downloading: 'le navigateur télécharge son modèle',
-    available: 'disponible',
-    timeout: 'pas de réponse du navigateur en 10 s',
-    error: 'erreur',
-  };
+  /** États connus ; leur explication est dans le catalogue (lai.state.*). */
+  const STATES = ['absent', 'unavailable', 'downloadable', 'downloading', 'available', 'timeout', 'error'];
+  /** Explication d'un état, pour l'utilisateur, dans la langue de l'interface. */
+  const stateText = (state) => (STATES.includes(state) ? tx('lai.state.' + state) : tx('lai.unexpected', { state }));
+  /** Nom d'une interface, dans la langue de l'interface. */
+  const apiName = (id) => tx('lai.api.' + id);
   const usable = (state) => state === 'available' || state === 'downloadable' || state === 'downloading';
 
   function withTimeout(promise, ms) {
@@ -179,7 +175,7 @@
     const out = [];
     for (const api of APIS) {
       const Api = scope[api.global];
-      const r = { id: api.id, name: api.name, state: 'absent', detail: '' };
+      const r = { id: api.id, name: apiName(api.id), state: 'absent', detail: '' };
       if (Api && typeof Api.availability === 'function') {
         try {
           const v = await withTimeout(Promise.resolve(Api.availability(api.options)), timeoutMs);
@@ -240,24 +236,26 @@
 
   /** Rapport en texte brut, à copier : ne contient que l'exemple fictif et l'état du navigateur. */
   function report({ probe: states = [], trials = {}, browser = '', userAgent = '', protocol = '', secure = null }) {
-    const lines = ["Sonde de l'IA intégrée du navigateur (Lowsper)", ''];
-    if (browser) lines.push(`Navigateur détecté : ${browser}`);
-    lines.push(`Identification : ${userAgent}`);
+    const lines = [tx('lai.report.title'), ''];
+    if (browser) lines.push(tx('lai.report.browser', { browser }));
+    lines.push(tx('lai.report.ua', { ua: userAgent }));
     lines.push(
-      `Page : ${protocol}${secure === null ? '' : secure ? ', contexte sécurisé' : ', contexte non sécurisé'}`
+      tx('lai.report.page', { protocol }) +
+        (secure === null ? '' : secure ? tx('lai.report.secure') : tx('lai.report.insecure'))
     );
-    for (const s of states) lines.push(`${s.name} : ${s.state}${s.detail ? ' (' + s.detail + ')' : ''}`);
+    for (const s of states)
+      lines.push(tx('rec.speaker', { name: s.name }) + ` ${s.state}${s.detail ? ' (' + s.detail + ')' : ''}`);
     for (const s of states) {
       const t = trials[s.id];
       if (!t) continue;
-      lines.push('', `--- Essai : ${s.name} ---`);
+      lines.push('', tx('lai.report.trial', { name: s.name }));
       if (t.error) {
-        lines.push(`Erreur : ${t.error}`);
+        lines.push(tx('lai.report.error', { error: t.error }));
         continue;
       }
-      lines.push(`Préparation : ${(t.createMs / 1000).toFixed(1)} s ; rédaction : ${(t.runMs / 1000).toFixed(1)} s`);
-      lines.push(`Faits retrouvés : ${t.facts.found.length}/${FACTS.length}`);
-      if (t.facts.missing.length) lines.push(`Manquants : ${t.facts.missing.join(' ; ')}`);
+      lines.push(tx('lai.report.times', { create: (t.createMs / 1000).toFixed(1), run: (t.runMs / 1000).toFixed(1) }));
+      lines.push(tx('lai.report.facts', { found: t.facts.found.length, total: FACTS.length }));
+      if (t.facts.missing.length) lines.push(tx('lai.report.missing', { list: t.facts.missing.join(' ; ') }));
       lines.push('', t.text);
     }
     return lines.join('\n');
@@ -270,6 +268,8 @@
     FACTS,
     STATES,
     APIS,
+    stateText,
+    apiName,
     usable,
     sampleTranscript,
     checkFacts,

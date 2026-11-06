@@ -29,7 +29,8 @@ async function test(name, fn) {
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 
 async function open(fake) {
-  const context = await browser.newContext();
+  // Interface en français : les vérifications portent sur les textes français (decision.md §25)
+  const context = await browser.newContext({ locale: 'fr-FR' });
   const page = await context.newPage();
   const errors = [];
   const requests = [];

@@ -94,6 +94,7 @@ vérifie à chaque pull request.
 | Lire un nouveau format de fichier | `app/js/audiofile.js` |
 | Changer le décodage Whisper, le contexte, les relances internes | `app/js/engine.js` |
 | Changer la file, les moteurs, l'interface | `app/js/app.js`, `Lowsper.html`, `app/css/lowsper.css` |
+| Ajouter ou changer un texte affiché (français et anglais) | `app/js/i18n.js` (les deux catalogues), puis `data-i18n` dans `Lowsper.html` ou `t()` dans le code |
 | Changer le Markdown, les filtres, les sigles | `app/js/transcript.js` |
 | Ajouter un vocabulaire métier | `app/js/vocabulary.js` |
 | Changer le format des notes, ajouter une variable de modèle | `app/js/notes.js` (et `parts()` dans `transcript.js`) |
@@ -106,6 +107,7 @@ vérifie à chaque pull request.
 |---|---|---|
 | `tools/test/unit.mjs` | Découpage, assemblage, filtres, voix, couverture, budget de jetons (Node seul) | 16 s |
 | `tools/test/csp.mjs` | Non-fuite réseau : politique, code, navigateur | 15 s |
+| `tools/test/i18n.mjs` | Interface en anglais sans reste de français, page identique au catalogue français, bascule de langue | 5 s |
 | `tools/test/import.mjs` | Décodage des fichiers importés, 7 formats ; `--long` : 3 h et mémoire | 10 s, 10 min |
 | `tools/test/e2e-import.mjs` | Import dans la vraie page : file, en-tête, voix, échec, annulation | 3 min |
 | `tools/test/e2e-notes.mjs` | Profils de sortie : éditeur, dossier oublié, écriture, mise à jour, repli | 5 min |

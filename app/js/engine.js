@@ -14,6 +14,8 @@
   'use strict';
 
   const Lowsper = (window.Lowsper = window.Lowsper || {});
+  // Message dans la langue de l'interface (i18n.js) ; sans catalogue (bancs de mesure), la clé seule
+  const tx = (key, vars) => (Lowsper.t ? Lowsper.t(key, vars) : key + (vars ? ' ' + JSON.stringify(vars) : ''));
   if (!Lowsper.assetBase) Lowsper.assetBase = 'app/';
 
   // ---------------------------------------------------------------------------
@@ -29,7 +31,7 @@
         s.remove();
         resolve();
       };
-      s.onerror = () => reject(new Error('Fichier introuvable : ' + Lowsper.assetBase + src));
+      s.onerror = () => reject(new Error(tx('err.fileMissing', { src: Lowsper.assetBase + src })));
       document.head.appendChild(s);
     });
   }
@@ -39,7 +41,7 @@
     const store = self.LOWSPER_ASSETS || {};
     const value = store[key];
     delete store[key]; // libère la mémoire occupée par la chaîne base64
-    if (value === undefined) throw new Error('Contenu manquant : ' + src);
+    if (value === undefined) throw new Error(tx('err.contentMissing', { src }));
     return value;
   }
 
@@ -75,10 +77,10 @@
     if (assetsCache.has(cacheKey)) return assetsCache.get(cacheKey);
     const assetsPromise = (async () => {
       const manifest = self.LOWSPER_MANIFEST;
-      if (!manifest) throw new Error('app/manifest.js introuvable : le dossier est incomplet.');
+      if (!manifest) throw new Error(tx('err.noManifest'));
       const installed = self.LOWSPER_INSTALLED || [];
       const model = installed.find((m) => m.id === modelId) || installed[0];
-      if (!model) throw new Error('Aucun modèle installé.');
+      if (!model) throw new Error(tx('err.noModel'));
       const device = model.device === 'webgpu' ? 'webgpu' : 'wasm';
       const runtimes = manifest.runtimes || {
         cpu: { src: manifest.runtime.src, bytes: manifest.runtime.bytes, wasm: manifest.wasm },
@@ -602,7 +604,7 @@
         e.data.ok ? p.resolve(e.data) : p.reject(new Error(e.data.error));
       };
       this.worker.onerror = (e) => {
-        const err = new Error('Erreur du moteur : ' + (e.message || 'inconnue'));
+        const err = new Error(tx('err.engine', { error: e.message || tx('err.unknown') }));
         for (const p of this.pending.values()) p.reject(err);
         this.pending.clear();
       };

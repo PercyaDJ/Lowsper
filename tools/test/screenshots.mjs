@@ -2,8 +2,8 @@
 //
 // Rejoue le corpus synthétique « hebdo » (voix de synthèse, noms inventés) dans la vraie page,
 // avec le vrai moteur, puis capture l'accueil, l'enregistrement, la barre réduite et l'écran de fin
-// (thèmes clair et sombre) et l'import d'un fichier, à double résolution. Aucune donnée réelle
-// ne peut y apparaître.
+// (thèmes clair et sombre), l'import d'un fichier et le réglage de langue en anglais, à double
+// résolution. Aucune donnée réelle ne peut y apparaître.
 //
 // Prérequis : node build.mjs --embed whisper-small   (CHROMIUM_PATH si besoin)
 // Usage : node test/screenshots.mjs
@@ -29,7 +29,12 @@ const browser = await chromium.launch({
     '--autoplay-policy=no-user-gesture-required',
   ],
 });
-const context = await browser.newContext({ viewport: { width: 900, height: 760 }, deviceScaleFactor: 2 });
+const context = await browser.newContext({
+  // Captures de la documentation française
+  locale: 'fr-FR',
+  viewport: { width: 900, height: 760 },
+  deviceScaleFactor: 2,
+});
 const page = await context.newPage();
 const network = [];
 page.on('request', (r) => {
@@ -143,6 +148,19 @@ await page.evaluate(() => {
 });
 await page.waitForTimeout(300);
 await page.locator('#settings').screenshot({ path: join(out, 'sonde-ia.png') });
+
+// Langue de l'interface : bascule en anglais, rubrique « Display » des paramètres
+await page.selectOption('#ui-lang', 'en');
+await page.evaluate(() => {
+  const title = document.getElementById('look-title');
+  title.scrollIntoView({ block: 'start' });
+  let box = title.parentElement;
+  while (box && box.scrollHeight <= box.clientHeight) box = box.parentElement;
+  if (box) box.scrollTop -= 90;
+});
+await page.waitForTimeout(300);
+await page.locator('#settings').screenshot({ path: join(out, 'langue.png') });
+await page.selectOption('#ui-lang', 'fr');
 await page.click('#settings-close');
 await browser.close();
 

@@ -15,10 +15,11 @@
   const Lowsper = (window.Lowsper = window.Lowsper || {});
   const STORAGE_KEY = 'lowsper.session.v1';
 
-  const SPEAKERS = {
-    me: 'Vous',
-    others: 'Participants',
-  };
+  // Libellés des deux sources, dans la langue de la note (i18n.js)
+  const SPEAKER_KEYS = { me: 'note.me', others: 'note.others' };
+  const sourceName = (source, lang) => (SPEAKER_KEYS[source] ? Lowsper.t(SPEAKER_KEYS[source], null, lang) : source);
+  // Compatibilité : libellés français, comme avant
+  const SPEAKERS = { me: 'Vous', others: 'Participants' };
 
   // Phrases que Whisper invente sur du silence ou de la musique (issues de ses données
   // d'entraînement : sous-titres de vidéos). Comparaison sur le texte normalisé.
@@ -253,6 +254,8 @@
           startedAt: Date.now(),
           endedAt: null,
           language: 'fr',
+          // Langue de la note (en-tête, libellés) : celle de l'interface quand la réunion commence
+          noteLang: Lowsper.i18n ? Lowsper.i18n.lang() : 'fr',
           model: '',
           sources: [],
           pauses: [],
@@ -261,6 +264,16 @@
       );
       this.lines = []; // { source, start, end, text }
       this.listeners = new Set();
+    }
+
+    /** Langue de la note : 'fr' ou 'en'. */
+    noteLang() {
+      return this.meta.noteLang === 'en' ? 'en' : 'fr';
+    }
+
+    /** Texte du catalogue dans la langue de la note. */
+    tl(key, vars) {
+      return Lowsper.t(key, vars, this.noteLang());
     }
 
     onChange(fn) {
@@ -511,12 +524,12 @@
     /** Nom affiché : « Vous », « Intervenant n » (ordre d'apparition) ou « Participant(s) ». */
     /** Nom affiché d'un intervenant. links : un nom donné à la main devient un lien [[Nom]]. */
     speakerName(item, links) {
-      if (item.source !== 'others') return SPEAKERS[item.source] || item.source;
-      if (item.voice == null) return this.hasVoices() ? 'Participant' : SPEAKERS.others;
+      if (item.source !== 'others') return sourceName(item.source, this.noteLang());
+      if (item.voice == null) return this.hasVoices() ? this.tl('note.participant') : this.tl('note.others');
       const named = this.meta.names && this.meta.names[item.voice];
       // Caractères qui casseraient un lien de note ([[...]], |, #, ^) retirés du nom
       if (named) return links ? `[[${named.replace(/[[\]|#^]/g, '').trim()}]]` : named;
-      return 'Intervenant ' + (this.voiceOrder().indexOf(item.voice) + 1);
+      return this.tl('note.speaker', { n: this.voiceOrder().indexOf(item.voice) + 1 });
     }
 
     /** Voix dans leur ordre d'apparition. */
@@ -534,7 +547,7 @@
         const sample = lines.find((l) => l.text.split(' ').length >= 5) || lines[0];
         return {
           voice,
-          label: 'Intervenant ' + (i + 1),
+          label: this.tl('note.speaker', { n: i + 1 }),
           seconds,
           sample: sample ? sample.text : '',
           at: lines[0].start,
@@ -610,27 +623,28 @@
     parts(options) {
       const links = !!(options && options.links);
       const m = this.meta;
+      const lang = this.noteLang();
+      const tl = (key, vars) => Lowsper.t(key, vars, lang);
+      const loc = Lowsper.i18n.locale(lang);
       const start = new Date(m.startedAt);
       const end = m.endedAt ? new Date(m.endedAt) : new Date();
       const durationMin = Math.max(1, Math.round((end - start) / 60000));
-      const date = start.toLocaleDateString('fr-FR', {
+      const date = start.toLocaleDateString(loc, {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
         year: 'numeric',
       });
-      const hm = (d) => d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-      const langs = { fr: 'français', en: 'anglais', auto: 'français et anglais (détection automatique)' };
-      const sources = m.sources
-        .map((s) => (s === 'me' ? 'micro (« Vous »)' : 'audio partagé (« Participants »)'))
-        .join(', ');
+      const hm = (d) => d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
+      const spoken = ['fr', 'en', 'auto'].includes(m.language) ? tl('note.langs.' + m.language) : m.language;
+      const sources = m.sources.map((s) => (s === 'me' ? tl('note.srcMe') : tl('note.srcOthers'))).join(', ');
 
       const out = [];
-      const title = `# Transcript de réunion${m.title ? ' : ' + m.title : ''}`;
+      const title = tl('note.title', { title: m.title });
       if (m.file) {
         // Enregistrement importé : on ne dit que ce que le fichier permet de savoir
         const day = (ms) =>
-          new Date(ms).toLocaleString('fr-FR', {
+          new Date(ms).toLocaleString(loc, {
             weekday: 'long',
             day: 'numeric',
             month: 'long',
@@ -638,77 +652,62 @@
             hour: '2-digit',
             minute: '2-digit',
           });
-        out.push(`- **Source** : fichier « ${m.file.name} »`);
-        if (m.file.recordedAt)
-          out.push(`- **Enregistré le** : ${day(m.file.recordedAt)} (date inscrite dans le fichier)`);
-        else if (m.file.modifiedAt)
-          out.push(
-            `- **Date du fichier** : ${day(m.file.modifiedAt)} (dernière modification, pas forcément le jour de l'enregistrement)`
-          );
-        out.push(`- **Durée** : ${fmtDur(m.file.duration || 0)}`);
-        out.push(`- **Importé le** : ${day(m.startedAt)}`);
-        if (m.people) out.push(`- **Participants** : ${m.people} personnes`);
+        out.push(tl('note.file', { name: m.file.name }));
+        if (m.file.recordedAt) out.push(tl('note.recordedAt', { day: day(m.file.recordedAt) }));
+        else if (m.file.modifiedAt) out.push(tl('note.fileDate', { day: day(m.file.modifiedAt) }));
+        out.push(tl('note.duration', { dur: fmtDur(m.file.duration || 0) }));
+        out.push(tl('note.importedAt', { day: day(m.startedAt) }));
+        if (m.people) out.push(tl('note.peopleFile', { n: m.people }));
       } else {
-        out.push(`- **Date** : ${date}`);
-        out.push(`- **Horaires** : ${hm(start)} à ${hm(end)} (${durationMin} min)`);
-        out.push(`- **Sources** : ${sources || 'aucune'}`);
-        if (m.people) out.push(`- **Participants** : ${m.people} personnes (vous compris)`);
+        out.push(tl('note.date', { date }));
+        out.push(tl('note.hours', { from: hm(start), to: hm(end), min: durationMin }));
+        out.push(tl('note.sources', { sources: sources || tl('note.noSource') }));
+        if (m.people) out.push(tl('note.people', { n: m.people }));
       }
-      out.push(`- **Langue** : ${langs[m.language] || m.language}`);
-      out.push(`- **Transcription** : ${m.model || 'Whisper'}, exécuté localement par Lowsper (hors ligne)`);
+      out.push(tl('note.language', { lang: spoken }));
+      out.push(tl('note.model', { model: m.model || 'Whisper' }));
       const cov = this.coverageSummary();
       if (cov.speech > 0) {
         out.push(
           cov.missing < 1
-            ? '- **Couverture** : toute la parole détectée a été transcrite'
-            : `- **Couverture** : ${Math.round(cov.ratio * 100)} % de la parole détectée transcrite ; ${fmtDur(cov.missing)} de parole n'ont pas pu l'être (passages signalés ci-dessous)`
+            ? tl('note.coverageAll')
+            : tl('note.coverage', { pct: Math.round(cov.ratio * 100), missing: fmtDur(cov.missing) })
         );
       }
-      if (m.recovered >= 1)
-        out.push(
-          `- **Rattrapage** : ${fmtDur(m.recovered)} de parole manquée en direct, retrouvée et transcrite en fin de réunion`
-        );
-      if (m.glossary)
-        out.push(
-          `- **Vocabulaire de référence** (sigles et noms propres attendus) : ${m.glossary.replace(/\s+/g, ' ')}`
-        );
+      if (m.recovered >= 1) out.push(tl('note.recovered', { dur: fmtDur(m.recovered) }));
+      if (m.glossary) out.push(tl('note.glossary', { glossary: m.glossary.replace(/\s+/g, ' ') }));
       const vocab = (m.vocab || [])
-        .map((id) => Lowsper.Vocabulary && Lowsper.Vocabulary.PRESETS[id] && Lowsper.Vocabulary.PRESETS[id].label)
-        .filter(Boolean);
-      if (vocab.length) out.push(`- **Domaine** : ${vocab.join(', ').toLowerCase()}`);
+        .filter((id) => Lowsper.Vocabulary && Lowsper.Vocabulary.PRESETS[id])
+        .map((id) => Lowsper.Vocabulary.label(id, lang));
+      if (vocab.length) out.push(tl('note.vocab', { list: vocab.join(', ').toLowerCase() }));
       const header = out.splice(0);
       const notice =
-        '> Transcription automatique : elle peut contenir des erreurs de reconnaissance. ' +
-        (m.file ? '' : '« Vous » désigne la personne qui enregistre (micro). ') +
+        tl('note.notice') +
+        (m.file ? '' : tl('note.noticeMe')) +
         (this.hasVoices()
-          ? (m.file
-              ? "Les intervenants sont les voix distinctes détectées automatiquement dans l'enregistrement "
-              : "Les autres intervenants sont les voix distinctes détectées automatiquement dans l'audio de la réunion ") +
+          ? (m.file ? tl('note.noticeVoicesFile') : tl('note.noticeVoices')) +
             (this.meta.names && Object.keys(this.meta.names).length
-              ? '(certaines nommées à la main après la réunion, les autres numérotées « Intervenant n ») : '
-              : '(« Intervenant 1, 2... », noms réels inconnus, ils peuvent souvent se déduire des échanges) : ') +
-            'deux personnes à la voix proche peuvent partager un numéro, et une même personne peut en recevoir deux. ' +
-            'Les phrases trop courtes pour identifier la voix sont notées « Participant ». '
+              ? tl('note.noticeNamed')
+              : tl('note.noticeNumbered')) +
+            tl('note.noticeLimits')
           : m.file
-            ? "« Participants » regroupe toutes les voix de l'enregistrement, sans distinction de personne. "
-            : "« Participants » regroupe toutes les autres voix entendues via l'audio de la réunion, sans distinction de personne. ") +
-        'Les horodatages [hh:mm:ss] sont relatifs au début de l’enregistrement.';
+            ? tl('note.noticeAllFile')
+            : tl('note.noticeAll')) +
+        tl('note.noticeTimes');
 
       const events = this.paragraphs().map((p) => ({ t: p.start, p }));
       for (const pause of m.pauses) events.push({ t: pause.from, pause });
       for (const gap of m.gaps || []) events.push({ t: gap.start, gap });
       events.sort((a, b) => a.t - b.t);
 
-      if (!events.length) out.push('_Aucune parole détectée._');
+      if (!events.length) out.push(tl('note.noSpeech'));
       for (const e of events) {
         if (e.pause) {
-          out.push(`_[${fmt(e.pause.from)} à ${fmt(e.pause.to)}] Enregistrement en pause._`);
+          out.push(tl('note.pause', { from: fmt(e.pause.from), to: fmt(e.pause.to) }));
         } else if (e.gap) {
-          out.push(
-            `_[${fmt(e.gap.start)} à ${fmt(e.gap.end)}] Passage non transcrit (${SPEAKERS[e.gap.source] || e.gap.source}) : le moteur a échoué sur ce passage._`
-          );
+          out.push(tl('note.gap', { from: fmt(e.gap.start), to: fmt(e.gap.end), who: sourceName(e.gap.source, lang) }));
         } else {
-          out.push(`**[${fmt(e.p.start)}] ${this.speakerName(e.p, links)} :** ${e.p.text}`);
+          out.push(tl('note.line', { t: fmt(e.p.start), name: this.speakerName(e.p, links), text: e.p.text }));
         }
         out.push('');
       }
@@ -740,7 +739,7 @@
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '')
         .slice(0, 50);
-      return `reunion_${stamp}${slug ? '_' + slug : ''}.md`;
+      return `${this.tl('note.fileName')}_${stamp}${slug ? '_' + slug : ''}.md`;
     }
 
     // --- Sauvegarde locale (survit à un plantage ou une fermeture accidentelle) ---
@@ -766,6 +765,8 @@
         if (!raw) return null;
         const data = JSON.parse(raw);
         if (!data || !data.meta || data.meta.endedAt || !data.lines || !data.lines.length) return null;
+        // Session sauvegardée par une version sans langue de note : elle était en français
+        if (!data.meta.noteLang) data.meta.noteLang = 'fr';
         const t = new Transcript(data.meta);
         t.lines = data.lines;
         return t;

@@ -48,6 +48,8 @@ const browser = await chromium.launch({
 // IGNORE_TLS=1 : uniquement pour un environnement de test dont le navigateur headless ne connaît
 // pas l'autorité de certification. L'intégrité reste garantie par la vérification SHA-256.
 const context = await browser.newContext({
+  // Interface en français : les vérifications portent sur les textes français (decision.md §25)
+  locale: 'fr-FR',
   acceptDownloads: true,
   viewport: { width: 900, height: 1000 },
   ignoreHTTPSErrors: !!process.env.IGNORE_TLS,

@@ -22,8 +22,8 @@
 <body>
   <div class="consent" id="consent" role="note">
     <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
-    <p><strong>Prévenez les participants</strong> avant de lancer l'enregistrement : la réunion va être transcrite. Tout est traité sur cet ordinateur, ni le son ni le texte ne sont envoyés sur Internet.</p>
-    <button class="consent-close" id="consent-close" type="button" aria-label="Fermer l'avertissement" title="Fermer (il réapparaîtra à la prochaine ouverture)">
+    <p data-i18n-html="consent.text"><strong>Prévenez les participants</strong> avant de lancer l'enregistrement : la réunion va être transcrite. Tout est traité sur cet ordinateur, ni le son ni le texte ne sont envoyés sur Internet.</p>
+    <button class="consent-close" id="consent-close" type="button" aria-label="Fermer l'avertissement" title="Fermer (il réapparaîtra à la prochaine ouverture)" data-i18n-attr="aria-label:consent.close;title:consent.closeTitle">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
     </button>
   </div>
@@ -35,13 +35,13 @@
     </div>
     <div class="top-right">
       <div class="engine" id="engine" data-state="loading">
-        <span class="dot"></span><span id="engine-text">Préparation du moteur</span>
+        <span class="dot"></span><span id="engine-text" data-i18n="engine.preparing">Préparation du moteur</span>
       </div>
-      <button class="icon-btn" id="theme-toggle" type="button" aria-label="Passer en thème sombre" title="Thème clair ou sombre">
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="Passer en thème sombre" title="Thème clair ou sombre" data-i18n-attr="title:theme.title">
         <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
         <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
       </button>
-      <button class="icon-btn gear" id="settings-open" type="button" aria-label="Paramètres" title="Paramètres">
+      <button class="icon-btn gear" id="settings-open" type="button" aria-label="Paramètres" title="Paramètres" data-i18n-attr="aria-label:settings.title;title:settings.title">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
     </div>
@@ -51,215 +51,223 @@
   <!-- Paramètres (roue crantée) -->
   <dialog class="settings" id="settings" aria-labelledby="settings-title">
     <div class="settings-head">
-      <h2 id="settings-title">Paramètres</h2>
-      <button class="icon-btn" id="settings-close" type="button" aria-label="Fermer les paramètres">
+      <h2 id="settings-title" data-i18n="settings.title">Paramètres</h2>
+      <button class="icon-btn" id="settings-close" type="button" aria-label="Fermer les paramètres" data-i18n-attr="aria-label:settings.close">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
     </div>
     <div class="settings-body">
       <section>
-        <h3>Transcription</h3>
+        <h3 data-i18n="set.transcription">Transcription</h3>
         <label class="field inline">
-            <span>Langue parlée</span>
+            <span data-i18n="set.language">Langue parlée</span>
             <select id="language">
-              <option value="fr" selected>Français</option>
-              <option value="en">Anglais</option>
-              <option value="auto">Français et anglais (détection automatique)</option>
+              <option value="fr" selected data-i18n="set.language.fr">Français</option>
+              <option value="en" data-i18n="set.language.en">Anglais</option>
+              <option value="auto" data-i18n="set.language.auto">Français et anglais (détection automatique)</option>
             </select>
           </label>
         <label class="field inline">
-            <span>Sigles et noms propres de vos réunions <em>(aide la reconnaissance, conservé sur ce poste)</em></span>
-            <textarea id="glossary" rows="3" spellcheck="false" placeholder="Ex. RSSI, COMEX, KPI, RGPD, NIS 2, projet Atlas, Mme Durand"></textarea>
+            <span data-i18n-html="set.glossary">Sigles et noms propres de vos réunions <em>(aide la reconnaissance, conservé sur ce poste)</em></span>
+            <textarea id="glossary" rows="3" spellcheck="false" placeholder="Ex. RSSI, COMEX, KPI, RGPD, NIS 2, projet Atlas, Mme Durand" data-i18n-attr="placeholder:set.glossaryPlaceholder"></textarea>
           </label>
         <div class="field inline">
-            <span>Vocabulaire métier intégré <em>(sigles et termes du domaine, en plus des vôtres)</em></span>
+            <span data-i18n-html="set.vocab">Vocabulaire métier intégré <em>(sigles et termes du domaine, en plus des vôtres)</em></span>
             <div class="vocab-list" id="vocab-list"></div>
           </div>
         <label class="check">
             <input type="checkbox" id="with-others" checked>
-            <span>Capter aussi le son des participants (partage d'écran)</span>
+            <span data-i18n="set.withOthers">Capter aussi le son des participants (partage d'écran)</span>
           </label>
         <label class="check">
             <input type="checkbox" id="distinguish" checked>
-            <span>Distinguer les intervenants (Intervenant 1, 2, 3...)</span>
+            <span data-i18n="set.distinguish">Distinguer les intervenants (Intervenant 1, 2, 3...)</span>
           </label>
         <label class="check">
             <input type="checkbox" id="autopip" checked>
-            <span>Réduire Lowsper en mini-fenêtre dès le début de l'enregistrement</span>
+            <span data-i18n="set.autopip">Réduire Lowsper en mini-fenêtre dès le début de l'enregistrement</span>
           </label>
         <div class="field inline" id="fixes-field">
-            <span>Mots que Whisper déforme <em>(corrigés automatiquement dans chaque transcript)</em></span>
+            <span data-i18n-html="set.fixes">Mots que Whisper déforme <em>(corrigés automatiquement dans chaque transcript)</em></span>
             <div class="fixer-row">
-              <input id="set-fix-wrong" type="text" maxlength="80" placeholder="Mal reconnu (ex. Kalmar)" autocomplete="off" spellcheck="false">
+              <input id="set-fix-wrong" type="text" maxlength="80" placeholder="Mal reconnu (ex. Kalmar)" data-i18n-attr="placeholder:set.fixWrong" autocomplete="off" spellcheck="false">
               <span class="arrow" aria-hidden="true">→</span>
-              <input id="set-fix-right" type="text" maxlength="80" placeholder="Bonne écriture (ex. CALMAR)" autocomplete="off" spellcheck="false">
-              <button class="btn small" id="set-fix-add" type="button">Ajouter</button>
+              <input id="set-fix-right" type="text" maxlength="80" placeholder="Bonne écriture (ex. CALMAR)" data-i18n-attr="placeholder:set.fixRight" autocomplete="off" spellcheck="false">
+              <button class="btn small" id="set-fix-add" type="button" data-i18n="set.fixAdd">Ajouter</button>
             </div>
             <div class="fix-chips" id="fix-chips"></div>
           </div>
         <p class="fine saved-line" id="settings-saved"></p>
-        <button class="btn ghost small" id="settings-keep" hidden>Conserver mes réglages dans le dossier Lowsper</button>
+        <button class="btn ghost small" id="settings-keep" hidden data-i18n="set.keep">Conserver mes réglages dans le dossier Lowsper</button>
       </section>
       <section aria-labelledby="prof-title">
-        <h3 id="prof-title">Profils de sortie</h3>
-        <p class="fine">Où et sous quelle forme arrive la note de chaque réunion, par exemple directement dans votre base de notes. Le profil se choisit sur l'écran d'accueil.</p>
+        <h3 id="prof-title" data-i18n="prof.title">Profils de sortie</h3>
+        <p class="fine" data-i18n="prof.intro">Où et sous quelle forme arrive la note de chaque réunion, par exemple directement dans votre base de notes. Le profil se choisit sur l'écran d'accueil.</p>
         <div class="row prof-row">
           <label class="field inline compact">
-            <span>Profil à modifier</span>
+            <span data-i18n="prof.edit">Profil à modifier</span>
             <select id="prof-select"></select>
           </label>
-          <button class="btn small" id="prof-new" type="button">Nouveau profil</button>
-          <button class="btn ghost small" id="prof-delete" type="button">Supprimer ce profil</button>
+          <button class="btn small" id="prof-new" type="button" data-i18n="prof.new">Nouveau profil</button>
+          <button class="btn ghost small" id="prof-delete" type="button" data-i18n="prof.delete">Supprimer ce profil</button>
         </div>
         <label class="field inline">
-          <span>Nom du profil</span>
+          <span data-i18n="prof.name">Nom du profil</span>
           <input id="prof-name" type="text" maxlength="40" autocomplete="off">
         </label>
         <div class="field inline">
-          <span id="prof-folder-label">Dossier de destination</span>
+          <span id="prof-folder-label" data-i18n="prof.folder">Dossier de destination</span>
           <div class="row prof-row" role="group" aria-labelledby="prof-folder-label">
             <span class="prof-folder" id="prof-folder"></span>
-            <button class="btn small" id="prof-folder-pick" type="button">Choisir le dossier</button>
-            <button class="btn ghost small" id="prof-folder-clear" type="button">Revenir aux Téléchargements</button>
+            <button class="btn small" id="prof-folder-pick" type="button" data-i18n="prof.folderPick">Choisir le dossier</button>
+            <button class="btn ghost small" id="prof-folder-clear" type="button" data-i18n="prof.folderClear">Revenir aux Téléchargements</button>
           </div>
-          <span class="fine">Un dossier synchronisé en ligne (stockage en ligne, synchronisation de votre base de notes) fera quitter la note de cet ordinateur.</span>
+          <span class="fine" data-i18n="prof.syncWarning">Un dossier synchronisé en ligne (stockage en ligne, synchronisation de votre base de notes) fera quitter la note de cet ordinateur.</span>
         </div>
         <label class="field inline">
-          <span>Consigne proposée par « Copier pour une IA »</span>
+          <span data-i18n="prof.prompt">Consigne proposée par « Copier pour une IA »</span>
           <select id="prof-prompt"></select>
         </label>
         <label class="check">
           <input type="checkbox" id="prof-classic">
-          <span>Format classique de Lowsper (sans modèle ni propriétés)</span>
+          <span data-i18n="prof.classic">Format classique de Lowsper (sans modèle ni propriétés)</span>
         </label>
         <div id="prof-custom">
           <label class="field inline">
-            <span>Nom du fichier <em>(variables possibles, ex. {{date}} {{titre}})</em></span>
+            <span data-i18n-html="prof.fileName">Nom du fichier <em>(variables possibles, ex. {{date}} {{titre}})</em></span>
             <input id="prof-filename" type="text" maxlength="160" spellcheck="false" autocomplete="off">
           </label>
           <p class="fine" id="prof-filename-example"></p>
           <fieldset class="prof-front">
-            <legend>Propriétés en tête de note (front matter)</legend>
+            <legend data-i18n="prof.front">Propriétés en tête de note (front matter)</legend>
             <label class="check">
               <input type="checkbox" id="prof-front">
-              <span>Ajouter des propriétés</span>
+              <span data-i18n="prof.frontOn">Ajouter des propriétés</span>
             </label>
             <div class="prof-fields" id="prof-front-fields"></div>
             <label class="field inline">
-              <span>Étiquettes, séparées par des virgules</span>
+              <span data-i18n="prof.tags">Étiquettes, séparées par des virgules</span>
               <input id="prof-tags" type="text" maxlength="200" spellcheck="false" autocomplete="off">
             </label>
             <label class="field inline">
-              <span>Champs libres, un par ligne <em>(clé: valeur ; variables possibles)</em></span>
+              <span data-i18n-html="prof.extra">Champs libres, un par ligne <em>(clé: valeur ; variables possibles)</em></span>
               <textarea id="prof-extra" rows="2" spellcheck="false"></textarea>
             </label>
           </fieldset>
           <label class="check">
             <input type="checkbox" id="prof-links">
-            <span>Écrire les intervenants nommés en liens <code>[[Nom]]</code></span>
+            <span data-i18n-html="prof.links">Écrire les intervenants nommés en liens <code>[[Nom]]</code></span>
           </label>
           <label class="field inline">
-            <span>Modèle de note</span>
+            <span data-i18n="prof.template">Modèle de note</span>
             <textarea id="prof-template" rows="7" spellcheck="false"></textarea>
           </label>
           <p class="fine prof-warn" id="prof-warn" role="status"></p>
           <div class="row prof-row">
-            <button class="btn ghost small" id="prof-template-reset" type="button">Rétablir le modèle par défaut</button>
+            <button class="btn ghost small" id="prof-template-reset" type="button" data-i18n="prof.templateReset">Rétablir le modèle par défaut</button>
           </div>
           <details class="prof-vars">
-            <summary>Variables disponibles</summary>
+            <summary data-i18n="prof.vars">Variables disponibles</summary>
             <dl id="prof-vars"></dl>
           </details>
         </div>
       </section>
       <section aria-labelledby="ai-title">
-        <h3 id="ai-title">Consignes pour l'IA</h3>
-        <p class="fine">Texte placé devant la note par « Copier pour une IA », pour demander un compte rendu à l'assistant de votre choix. Variables possibles, comme dans les modèles de note ; <code>{{note}}</code> place la note ailleurs qu'à la fin.</p>
+        <h3 id="ai-title" data-i18n="ai.title">Consignes pour l'IA</h3>
+        <p class="fine" data-i18n-html="ai.intro">Texte placé devant la note par « Copier pour une IA », pour demander un compte rendu à l'assistant de votre choix. Variables possibles, comme dans les modèles de note ; <code>{{note}}</code> place la note ailleurs qu'à la fin.</p>
         <div class="row prof-row">
           <label class="field inline compact">
-            <span>Consigne à modifier</span>
+            <span data-i18n="ai.edit">Consigne à modifier</span>
             <select id="ai-select"></select>
           </label>
-          <button class="btn small" id="ai-new" type="button">Nouvelle consigne</button>
+          <button class="btn small" id="ai-new" type="button" data-i18n="ai.new">Nouvelle consigne</button>
           <button class="btn ghost small" id="ai-remove" type="button"></button>
         </div>
         <label class="field inline">
-          <span>Nom</span>
+          <span data-i18n="ai.name">Nom</span>
           <input id="ai-name" type="text" maxlength="60" autocomplete="off">
         </label>
         <label class="field inline">
-          <span>Texte de la consigne</span>
+          <span data-i18n="ai.text">Texte de la consigne</span>
           <textarea id="ai-text" rows="5"></textarea>
         </label>
       </section>
       <section aria-labelledby="lai-title">
-        <h3 id="lai-title">IA intégrée du navigateur (expérimental)</h3>
-        <p class="fine">Chrome et Edge récents peuvent embarquer un petit modèle de langage qui rédige des résumés sur le PC, sans service en ligne, si le matériel le permet. La vérification ne télécharge rien et ne lit aucun de vos transcripts ; l'essai porte sur une réunion fictive.</p>
+        <h3 id="lai-title" data-i18n="lai.title">IA intégrée du navigateur (expérimental)</h3>
+        <p class="fine" data-i18n="lai.intro">Chrome et Edge récents peuvent embarquer un petit modèle de langage qui rédige des résumés sur le PC, sans service en ligne, si le matériel le permet. La vérification ne télécharge rien et ne lit aucun de vos transcripts ; l'essai porte sur une réunion fictive.</p>
         <div class="row lai-row">
-          <button class="btn small" id="lai-probe" type="button">Vérifier ce PC</button>
-          <button class="btn small" id="lai-trial" type="button" hidden>Essayer sur une réunion fictive</button>
-          <button class="btn ghost small" id="lai-stop" type="button" hidden>Arrêter</button>
-          <button class="btn ghost small" id="lai-copy" type="button" hidden>Copier le rapport</button>
+          <button class="btn small" id="lai-probe" type="button" data-i18n="lai.probe">Vérifier ce PC</button>
+          <button class="btn small" id="lai-trial" type="button" hidden data-i18n="lai.trial">Essayer sur une réunion fictive</button>
+          <button class="btn ghost small" id="lai-stop" type="button" hidden data-i18n="lai.stop">Arrêter</button>
+          <button class="btn ghost small" id="lai-copy" type="button" hidden data-i18n="lai.copy">Copier le rapport</button>
         </div>
         <ul class="lai-states" id="lai-states" aria-live="polite"></ul>
-        <progress id="lai-progress" max="1" value="0" hidden aria-label="Téléchargement du modèle par le navigateur"></progress>
+        <progress id="lai-progress" max="1" value="0" hidden aria-label="Téléchargement du modèle par le navigateur" data-i18n-attr="aria-label:lai.progress"></progress>
         <p class="fine" id="lai-status" aria-live="polite"></p>
         <pre class="lai-out" id="lai-out" tabindex="0" hidden></pre>
       </section>
       <section aria-labelledby="look-title">
-        <h3 id="look-title">Affichage</h3>
+        <h3 id="look-title" data-i18n="set.look">Affichage</h3>
         <label class="field inline">
-          <span>Thème</span>
+          <span data-i18n="set.theme">Thème</span>
           <select id="theme">
-            <option value="auto">Automatique (comme le système)</option>
-            <option value="light">Clair</option>
-            <option value="dark">Sombre</option>
+            <option value="auto" data-i18n="set.theme.auto">Automatique (comme le système)</option>
+            <option value="light" data-i18n="set.theme.light">Clair</option>
+            <option value="dark" data-i18n="set.theme.dark">Sombre</option>
           </select>
         </label>
+        <label class="field inline">
+          <span data-i18n="set.uiLang">Langue de l'interface</span>
+          <select id="ui-lang">
+            <option value="fr" lang="fr">Français</option>
+            <option value="en" lang="en">English</option>
+          </select>
+        </label>
+        <p class="fine" id="ui-lang-busy" data-i18n="set.uiLangBusy" hidden>La langue se change en dehors d’une réunion ou d’une transcription en cours.</p>
       </section>
       <section>
-        <h3>Modèle</h3>
+        <h3 data-i18n="set.model">Modèle</h3>
         <p class="fine" id="model-current"></p>
         <label class="field inline" id="model-field" hidden>
-            <span>Modèle de transcription</span>
+            <span data-i18n="set.modelSelect">Modèle de transcription</span>
             <select id="model"></select>
           </label>
-        <button class="btn small" id="add-model" type="button">Installer ou ajouter des modèles</button>
+        <button class="btn small" id="add-model" type="button" data-i18n="set.addModel">Installer ou ajouter des modèles</button>
       </section>
       <section>
-        <h3>Performance</h3>
+        <h3 data-i18n="set.perf">Performance</h3>
         <label class="field inline">
-            <span>Puissance de calcul <em>(part du processeur utilisée pour transcrire)</em></span>
+            <span data-i18n-html="set.power">Puissance de calcul <em>(part du processeur utilisée pour transcrire)</em></span>
             <select id="power">
-              <option value="eco">Économe : 1 cœur, la transcription peut prendre du retard</option>
-              <option value="balanced" selected>Équilibrée : laisse de la marge à Teams, Office... (conseillé)</option>
-              <option value="max">Maximale : le plus de direct possible, PC plus sollicité</option>
+              <option value="eco" data-i18n="set.power.eco">Économe : 1 cœur, la transcription peut prendre du retard</option>
+              <option value="balanced" selected data-i18n="set.power.balanced">Équilibrée : laisse de la marge à Teams, Office... (conseillé)</option>
+              <option value="max" data-i18n="set.power.max">Maximale : le plus de direct possible, PC plus sollicité</option>
             </select>
           </label>
         <div class="speed">
-            <button class="linkish" id="speed-test" type="button">Mesurer la vitesse de ce PC avec le modèle actuel</button>
+            <button class="linkish" id="speed-test" type="button" data-i18n="set.speedTest">Mesurer la vitesse de ce PC avec le modèle actuel</button>
             <p class="fine" id="speed-result"></p>
           </div>
       </section>
       <section>
-        <h3>Voix des intervenants</h3>
+        <h3 data-i18n="set.voices">Voix des intervenants</h3>
         <div class="memory">
             <label class="check">
               <input type="checkbox" id="memory-on">
-              <span>Mémoriser les voix des intervenants que je nomme, pour les reconnaître aux réunions suivantes</span>
+              <span data-i18n="set.memory">Mémoriser les voix des intervenants que je nomme, pour les reconnaître aux réunions suivantes</span>
             </label>
             <div class="memory-details" id="memory-details" hidden>
-              <p class="fine">Une empreinte vocale est une donnée biométrique : à n'activer qu'avec l'accord des personnes concernées. Seule une empreinte (une suite de nombres, pas d'enregistrement) est conservée, uniquement sur ce poste.</p>
+              <p class="fine" data-i18n="set.memoryWarn">Une empreinte vocale est une donnée biométrique : à n'activer qu'avec l'accord des personnes concernées. Seule une empreinte (une suite de nombres, pas d'enregistrement) est conservée, uniquement sur ce poste.</p>
               <div class="row">
                 <label class="field inline compact">
-                  <span>Effacement automatique</span>
+                  <span data-i18n="set.memoryDays">Effacement automatique</span>
                   <select id="memory-days">
-                    <option value="30">après 1 mois</option>
-                    <option value="90">après 3 mois</option>
-                    <option value="180">après 6 mois</option>
+                    <option value="30" data-i18n="set.memoryDays.30">après 1 mois</option>
+                    <option value="90" data-i18n="set.memoryDays.90">après 3 mois</option>
+                    <option value="180" data-i18n="set.memoryDays.180">après 6 mois</option>
                   </select>
                 </label>
-                <button class="btn ghost small" id="memory-clear" type="button">Effacer les voix mémorisées</button>
+                <button class="btn ghost small" id="memory-clear" type="button" data-i18n="set.memoryClear">Effacer les voix mémorisées</button>
               </div>
               <p class="fine" id="memory-list"></p>
             </div>
@@ -271,61 +279,61 @@
   <main>
     <!-- Session précédente interrompue -->
     <section class="recover card" id="recover" hidden>
-      <p><strong>Une réunion précédente n'a pas été terminée</strong> (<span id="recover-info"></span>). Son transcript a été sauvegardé.</p>
+      <p><strong data-i18n="recover.title">Une réunion précédente n'a pas été terminée</strong> (<span id="recover-info"></span>). <span data-i18n="recover.saved">Son transcript a été sauvegardé.</span></p>
       <div class="row">
-        <button class="btn" id="recover-download">Télécharger ce transcript</button>
-        <button class="btn ghost" id="recover-dismiss">Ignorer</button>
+        <button class="btn" id="recover-download" data-i18n="recover.download">Télécharger ce transcript</button>
+        <button class="btn ghost" id="recover-dismiss" data-i18n="recover.dismiss">Ignorer</button>
       </div>
     </section>
 
     <!-- Premier lancement : installation du modèle -->
     <section class="card view" id="view-install" hidden>
-      <h1>Première utilisation</h1>
-      <p class="lead">Lowsper a besoin d'un modèle de reconnaissance vocale. Il est téléchargé <strong>une seule fois</strong>, puis enregistré dans le dossier Lowsper, à côté de ce fichier. Ensuite, tout fonctionne hors ligne. Vous pouvez en installer plusieurs et passer de l'un à l'autre dans les paramètres.</p>
+      <h1 data-i18n="install.title">Première utilisation</h1>
+      <p class="lead" data-i18n-html="install.lead">Lowsper a besoin d'un modèle de reconnaissance vocale. Il est téléchargé <strong>une seule fois</strong>, puis enregistré dans le dossier Lowsper, à côté de ce fichier. Ensuite, tout fonctionne hors ligne. Vous pouvez en installer plusieurs et passer de l'un à l'autre dans les paramètres.</p>
 
-      <div class="notice" id="temp-warning" hidden>
+      <div class="notice" id="temp-warning" hidden data-i18n-html="install.temp">
         <strong>Lowsper semble ouvert directement depuis le fichier zip.</strong> Windows le place alors dans un dossier temporaire, et le modèle serait à retélécharger à chaque fois.
         Fermez cette page, faites un clic droit sur le zip, « Extraire tout », puis ouvrez Lowsper.html depuis le dossier extrait.
       </div>
-      <p class="fine folder">Dossier de cette page : <code id="page-folder"></code></p>
+      <p class="fine folder"><span data-i18n="install.folder">Dossier de cette page :</span> <code id="page-folder"></code></p>
 
       <div class="models" id="model-choices"></div>
 
-      <button class="btn primary big" id="install">Installer le modèle</button>
-      <button class="btn ghost" id="install-back" hidden>Retour</button>
+      <button class="btn primary big" id="install" data-i18n="install.button">Installer le modèle</button>
+      <button class="btn ghost" id="install-back" hidden data-i18n="install.back">Retour</button>
 
       <div class="progress" id="install-progress" hidden>
         <div class="progress-bar"><i id="install-bar"></i></div>
-        <p class="progress-text" id="install-text">Préparation…</p>
+        <p class="progress-text" id="install-text" data-i18n="install.preparing">Préparation…</p>
       </div>
       <div class="notice" id="install-error" hidden></div>
 
       <ol class="howto">
-        <li>Cochez le ou les modèles voulus, puis cliquez sur <strong>Installer</strong>.</li>
-        <li>Sélectionnez le <strong>dossier Lowsper</strong> (celui qui contient Lowsper.html), puis acceptez que Lowsper y enregistre des fichiers.</li>
-        <li>Patientez pendant le téléchargement (une à quelques minutes selon la connexion). Ne fermez pas la page.</li>
+        <li data-i18n-html="install.step1">Cochez le ou les modèles voulus, puis cliquez sur <strong>Installer</strong>.</li>
+        <li data-i18n-html="install.step2">Sélectionnez le <strong>dossier Lowsper</strong> (celui qui contient Lowsper.html), puis acceptez que Lowsper y enregistre des fichiers.</li>
+        <li data-i18n="install.step3">Patientez pendant le téléchargement (une à quelques minutes selon la connexion). Ne fermez pas la page.</li>
       </ol>
-      <p class="fine"><strong>Vous aviez déjà installé le modèle</strong> dans une version précédente de Lowsper ? Inutile de le retélécharger : copiez le dossier <code>app\models</code> de l'ancien dossier Lowsper dans celui-ci (remplacez le dossier existant), puis rechargez la page (F5).</p>
-      <p class="fine">Le téléchargement se fait depuis Hugging Face (huggingface.co), à une version figée, et chaque fichier est vérifié par empreinte numérique. Pour équiper un poste sans accès à Internet, copiez le dossier Lowsper d'un poste déjà installé.</p>
+      <p class="fine" data-i18n-html="install.already"><strong>Vous aviez déjà installé le modèle</strong> dans une version précédente de Lowsper ? Inutile de le retélécharger : copiez le dossier <code>app\models</code> de l'ancien dossier Lowsper dans celui-ci (remplacez le dossier existant), puis rechargez la page (F5).</p>
+      <p class="fine" data-i18n="install.source">Le téléchargement se fait depuis Hugging Face (huggingface.co), à une version figée, et chaque fichier est vérifié par empreinte numérique. Pour équiper un poste sans accès à Internet, copiez le dossier Lowsper d'un poste déjà installé.</p>
     </section>
 
     <!-- Avant la réunion -->
     <section class="card view" id="view-idle">
-      <h1>Transcrire une réunion</h1>
-      <p class="lead">Lancez l'enregistrement en début de réunion, arrêtez-le à la fin : vous récupérez un transcript Markdown horodaté.</p>
+      <h1 data-i18n="idle.title">Transcrire une réunion</h1>
+      <p class="lead" data-i18n="idle.lead">Lancez l'enregistrement en début de réunion, arrêtez-le à la fin : vous récupérez un transcript Markdown horodaté.</p>
 
       <div class="field-row">
         <label class="field grow">
-          <span>Nom de la réunion <em>(facultatif)</em></span>
-          <input id="title" type="text" maxlength="80" placeholder="Ex. Point hebdo projet" autocomplete="off">
+          <span data-i18n-html="idle.name">Nom de la réunion <em>(facultatif)</em></span>
+          <input id="title" type="text" maxlength="80" placeholder="Ex. Point hebdo projet" data-i18n-attr="placeholder:idle.namePlaceholder" autocomplete="off">
         </label>
         <label class="field people">
-          <span>Personnes</span>
-          <input id="people" type="number" min="2" max="30" step="1" inputmode="numeric" placeholder="Auto" title="Nombre de personnes, vous compris (2 pour un tête-à-tête). Facultatif : aide Lowsper à distinguer les intervenants.">
+          <span data-i18n="idle.people">Personnes</span>
+          <input id="people" type="number" min="2" max="30" step="1" inputmode="numeric" placeholder="Auto" title="Nombre de personnes, vous compris (2 pour un tête-à-tête). Facultatif : aide Lowsper à distinguer les intervenants." data-i18n-attr="title:idle.peopleTitle">
         </label>
         <label class="field profile-field" id="profile-field" hidden>
-          <span>Profil</span>
-          <select id="profile" title="Où et sous quelle forme arrive la note (paramètres, « Profils de sortie »)"></select>
+          <span data-i18n="prof.homeLabel">Profil</span>
+          <select id="profile" title="Où et sous quelle forme arrive la note (paramètres, « Profils de sortie »)" data-i18n-attr="title:prof.homeTitle"></select>
         </label>
       </div>
       <p class="fine profile-access" id="profile-access" hidden>
@@ -334,29 +342,29 @@
       </p>
 
       <button class="btn primary big" id="start">
-        <span class="rec-dot"></span> Démarrer l'enregistrement
+        <span class="rec-dot"></span> <span data-i18n="idle.start">Démarrer l'enregistrement</span>
       </button>
 
       <!-- Enregistrement fait ailleurs (dictaphone, téléphone) : même moteur que le direct -->
       <div class="import-zone" id="import-zone">
         <button class="btn" id="import-pick" type="button">
           <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8m0 0L5 7m3 3 3-3M3 12.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Transcrire un fichier
+          <span data-i18n="idle.import">Transcrire un fichier</span>
         </button>
-        <span class="fine" id="import-hint">ou glissez ici un ou plusieurs enregistrements (WAV, MP3, M4A, AAC, OGG, WebM). Le fichier est lu sur ce poste, jamais copié ni envoyé.</span>
+        <span class="fine" id="import-hint" data-i18n="idle.importHint">ou glissez ici un ou plusieurs enregistrements (WAV, MP3, M4A, AAC, OGG, WebM). Le fichier est lu sur ce poste, jamais copié ni envoyé.</span>
         <input type="file" id="import-input" multiple accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.opus,.webm,.flac" hidden>
       </div>
 
 
-      <p class="fine settings-hint">Langue, sigles, modèle, puissance : <button class="linkish" id="settings-open-2" type="button">paramètres</button> (roue crantée en haut à droite).</p>
+      <p class="fine settings-hint"><span data-i18n="idle.settingsHint">Langue, sigles, modèle, puissance :</span> <button class="linkish" id="settings-open-2" type="button" data-i18n="idle.settingsLink">paramètres</button> <span data-i18n="idle.settingsWhere">(roue crantée en haut à droite).</span></p>
 
       <details class="howto-box" id="howto-idle" open>
-      <summary>Comment ça marche ?</summary>
+      <summary data-i18n="idle.howto">Comment ça marche ?</summary>
       <ol class="howto">
-        <li>Votre navigateur va proposer un <strong>partage d'écran</strong> : choisissez l'écran entier (ou l'onglet de la réunion) et <strong>cochez « Partager l'audio »</strong>. Rien n'est filmé ni enregistré, seul le son est utilisé.</li>
-        <li>Autorisez ensuite le <strong>micro</strong>.</li>
-        <li>Avec un casque, le résultat est plus propre (le micro ne réentend pas les participants).</li>
-        <li>Lowsper se réduit en <strong>mini-fenêtre</strong>, toujours visible, comme un appel Teams.</li>
+        <li data-i18n-html="idle.howto1">Votre navigateur va proposer un <strong>partage d'écran</strong> : choisissez l'écran entier (ou l'onglet de la réunion) et <strong>cochez « Partager l'audio »</strong>. Rien n'est filmé ni enregistré, seul le son est utilisé.</li>
+        <li data-i18n-html="idle.howto2">Autorisez ensuite le <strong>micro</strong>.</li>
+        <li data-i18n="idle.howto3">Avec un casque, le résultat est plus propre (le micro ne réentend pas les participants).</li>
+        <li data-i18n-html="idle.howto4">Lowsper se réduit en <strong>mini-fenêtre</strong>, toujours visible, comme un appel Teams.</li>
       </ol>
       </details>
     </section>
@@ -366,18 +374,18 @@
       <!-- Cœur de l'enregistrement : c'est lui qui passe dans la mini-fenêtre -->
       <div class="rec-core" id="rec-core">
         <div class="rec-head">
-          <div class="rec-status" id="rec-status"><span class="rec-dot pulsing"></span><span id="rec-label">Enregistrement</span></div>
+          <div class="rec-status" id="rec-status"><span class="rec-dot pulsing"></span><span id="rec-label" data-i18n="rec.recording">Enregistrement</span></div>
           <div class="timer" id="timer">00:00:00</div>
         </div>
 
         <div class="meters">
-          <div class="meter" id="meter-me" title="Vous (micro)">
-            <span class="who" data-short="Vous">Vous</span>
+          <div class="meter" id="meter-me" title="Vous (micro)" data-i18n-attr="title:rec.meTitle">
+            <span class="who" data-i18n="rec.me">Vous</span>
             <span class="bar"><i></i></span>
             <span class="state"></span>
           </div>
-          <div class="meter" id="meter-others" title="Réunion (son partagé)">
-            <span class="who" data-short="Réunion">Participants</span>
+          <div class="meter" id="meter-others" title="Réunion (son partagé)" data-i18n-attr="title:rec.othersTitle">
+            <span class="who" data-i18n="rec.others">Participants</span>
             <span class="bar"><i></i></span>
             <span class="state"></span>
           </div>
@@ -387,105 +395,105 @@
         <div class="queue" id="queue"></div>
 
         <div class="row actions">
-          <button class="btn ghost" id="pause" title="Mettre en pause / reprendre">
+          <button class="btn ghost" id="pause" title="Mettre en pause / reprendre" data-i18n-attr="title:rec.pauseTitle">
             <svg class="ico i-pause" viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="2.5" width="3" height="11" rx="1"/><rect x="9.5" y="2.5" width="3" height="11" rx="1"/></svg>
             <svg class="ico i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2.8v10.4a.6.6 0 0 0 .9.5l8.2-5.2a.6.6 0 0 0 0-1L5.4 2.3a.6.6 0 0 0-.9.5z"/></svg>
-            <span class="lbl">Pause</span>
+            <span class="lbl" data-i18n="rec.pause">Pause</span>
           </button>
-          <button class="btn ghost" id="pip" title="Petite fenêtre toujours visible, comme un appel Teams réduit">
+          <button class="btn ghost" id="pip" title="Petite fenêtre toujours visible, comme un appel Teams réduit" data-i18n-attr="title:rec.pipTitle">
             <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="8" y="8" width="5" height="4" rx=".8"/></svg>
-            <span class="lbl">Mini-fenêtre</span>
+            <span class="lbl" data-i18n="rec.pip">Mini-fenêtre</span>
           </button>
-          <button class="btn ghost" id="chain" title="Terminer cette réunion et démarrer la suivante tout de suite, sans repartager l'écran">
+          <button class="btn ghost" id="chain" title="Terminer cette réunion et démarrer la suivante tout de suite, sans repartager l'écran" data-i18n-attr="title:rec.chainTitle">
             <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3.2v9.6a.5.5 0 0 0 .8.4l6.4-4.8a.5.5 0 0 0 0-.8L3.8 2.8a.5.5 0 0 0-.8.4z"/><rect x="11" y="3" width="2" height="10" rx=".8"/></svg>
-            <span class="lbl">Réunion suivante</span>
+            <span class="lbl" data-i18n="rec.chain">Réunion suivante</span>
           </button>
-          <button class="btn ghost" id="pip-more" title="Afficher ou masquer la dernière phrase">
+          <button class="btn ghost" id="pip-more" title="Afficher ou masquer la dernière phrase" data-i18n-attr="title:rec.moreTitle;aria-label:rec.moreTitle" aria-label="Afficher ou masquer la dernière phrase">
             <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <button class="btn danger" id="stop" title="Terminer la réunion et produire le transcript">
-            <span class="sq"></span><span class="lbl">Terminer</span>
+          <button class="btn danger" id="stop" title="Terminer la réunion et produire le transcript" data-i18n-attr="title:rec.stopTitle">
+            <span class="sq"></span><span class="lbl" data-i18n="rec.stop">Terminer</span>
           </button>
         </div>
       </div>
       <div class="pip-placeholder" id="pip-placeholder" hidden>
-        <p>L'enregistrement est piloté depuis la <strong>mini-fenêtre</strong>.</p>
+        <p data-i18n-html="rec.pipPlaceholder">L'enregistrement est piloté depuis la <strong>mini-fenêtre</strong>.</p>
         <div class="row center-row">
-          <button class="btn" id="pip-back">Revenir ici</button>
+          <button class="btn" id="pip-back" data-i18n="rec.pipBack">Revenir ici</button>
           <!-- Toujours disponible ici, même si la mini-fenêtre ne répond plus -->
-          <button class="btn danger" id="stop-main"><span class="sq"></span> Terminer la réunion</button>
+          <button class="btn danger" id="stop-main"><span class="sq"></span> <span data-i18n="rec.stopMain">Terminer la réunion</span></button>
         </div>
       </div>
 
       <div class="feed" id="live" aria-live="polite">
-        <p class="placeholder">Le transcript apparaîtra ici au fil de la réunion.</p>
+        <p class="placeholder" data-i18n="rec.placeholder">Le transcript apparaîtra ici au fil de la réunion.</p>
       </div>
     </section>
 
     <!-- Transcription de fichiers importés -->
     <section class="card view" id="view-import" hidden aria-labelledby="import-title">
-      <h2 id="import-title">Transcription de fichiers</h2>
+      <h2 id="import-title" data-i18n="import.title">Transcription de fichiers</h2>
       <p class="lead" id="import-current"></p>
       <div class="progress">
         <div class="progress-bar" id="import-progress" role="progressbar" aria-labelledby="import-current" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="import-bar"></i></div>
-        <p class="progress-text" id="import-text" aria-live="polite">Préparation…</p>
+        <p class="progress-text" id="import-text" aria-live="polite" data-i18n="install.preparing">Préparation…</p>
       </div>
       <ol class="import-list" id="import-list"></ol>
       <div class="row">
-        <button class="btn danger" id="import-cancel" type="button">Annuler</button>
+        <button class="btn danger" id="import-cancel" type="button" data-i18n="import.cancel">Annuler</button>
       </div>
-      <p class="fine">Chaque transcript est enregistré dans vos Téléchargements dès que son fichier est terminé. Le son n'est jamais écrit sur le disque : il est lu par morceaux depuis votre fichier, puis oublié.</p>
+      <p class="fine" data-i18n="import.privacy">Chaque transcript est enregistré dans vos Téléchargements dès que son fichier est terminé. Le son n'est jamais écrit sur le disque : il est lu par morceaux depuis votre fichier, puis oublié.</p>
     </section>
 
     <!-- Finalisation -->
     <section class="card view center" id="view-finish" hidden>
       <div class="spinner"></div>
-      <h2>Finalisation du transcript</h2>
-      <p class="lead" id="finish-text">Transcription des dernières phrases…</p>
+      <h2 data-i18n="finish.title">Finalisation du transcript</h2>
+      <p class="lead" id="finish-text" data-i18n="finish.last">Transcription des dernières phrases…</p>
     </section>
 
     <!-- Résultat -->
     <section class="card view" id="view-done" hidden>
-      <h2>Transcript prêt</h2>
+      <h2 data-i18n="done.title">Transcript prêt</h2>
       <p class="lead" id="done-info"></p>
       <div class="export-row">
         <p class="fine" id="export-info" role="status" hidden></p>
         <button class="btn small" id="export-folder" type="button" hidden></button>
       </div>
       <div class="row">
-        <button class="btn primary" id="download">Télécharger le fichier .md</button>
-        <button class="btn" id="copy">Copier</button>
+        <button class="btn primary" id="download" data-i18n="done.download">Télécharger le fichier .md</button>
+        <button class="btn" id="copy" data-i18n="done.copy">Copier</button>
         <span class="ai-copy">
-          <select id="ai-choice" aria-label="Consigne pour l'IA"></select>
-          <button class="btn" id="copy-ai" title="Copie la note précédée de la consigne choisie, à coller dans l'assistant de votre choix">Copier pour une IA</button>
+          <select id="ai-choice" aria-label="Consigne pour l'IA" data-i18n-attr="aria-label:ai.choice"></select>
+          <button class="btn" id="copy-ai" title="Copie la note précédée de la consigne choisie, à coller dans l'assistant de votre choix" data-i18n-attr="title:done.copyAiTitle" data-i18n="done.copyAi">Copier pour une IA</button>
         </span>
       </div>
       <div class="finished" id="finished" hidden>
-        <span class="fine">Réunions précédentes de cette session (déjà dans vos Téléchargements) :</span>
+        <span class="fine" data-i18n="done.finished">Réunions précédentes de cette session (déjà dans vos Téléchargements) :</span>
         <div class="fix-chips" id="finished-list"></div>
       </div>
       <div class="notice soft" id="drafts" hidden></div>
-      <div class="notice" id="gaps" hidden><span id="gaps-text"></span> <button class="btn small" id="gaps-retry" type="button">Réessayer ces passages</button></div>
+      <div class="notice" id="gaps" hidden><span id="gaps-text"></span> <button class="btn small" id="gaps-retry" type="button" data-i18n="done.retry">Réessayer ces passages</button></div>
       <div class="voices" id="voices" hidden>
-        <h3>Intervenants détectés</h3>
-        <p class="fine">Donnez un nom aux voix que vous reconnaissez : le transcript est mis à jour (pensez à le retélécharger).</p>
+        <h3 data-i18n="done.voices">Intervenants détectés</h3>
+        <p class="fine" data-i18n="done.voicesHint">Donnez un nom aux voix que vous reconnaissez : le transcript est mis à jour (pensez à le retélécharger).</p>
         <div id="voice-list"></div>
       </div>
       <details class="fixer" id="fixer">
-        <summary>Corriger un mot mal reconnu, partout et pour les prochaines réunions</summary>
+        <summary data-i18n="done.fixer">Corriger un mot mal reconnu, partout et pour les prochaines réunions</summary>
         <div class="fixer-row">
-          <input id="fix-wrong" type="text" maxlength="80" placeholder="Mal reconnu (ex. Mira Bello)" autocomplete="off" spellcheck="false">
+          <input id="fix-wrong" type="text" maxlength="80" placeholder="Mal reconnu (ex. Mira Bello)" data-i18n-attr="placeholder:done.fixWrong" autocomplete="off" spellcheck="false">
           <span class="arrow" aria-hidden="true">→</span>
-          <input id="fix-right" type="text" maxlength="80" placeholder="Bonne écriture" autocomplete="off" spellcheck="false">
-          <button class="btn small" id="fix-apply">Corriger</button>
+          <input id="fix-right" type="text" maxlength="80" placeholder="Bonne écriture" data-i18n-attr="placeholder:done.fixRight" autocomplete="off" spellcheck="false">
+          <button class="btn small" id="fix-apply" data-i18n="done.fixApply">Corriger</button>
         </div>
         <div class="fix-chips suspects" id="fix-suspects"></div>
-        <p class="fine">Lowsper retient la correction : elle s'appliquera toute seule aux réunions suivantes, et le bon mot rejoint vos sigles et noms propres.</p>
+        <p class="fine" data-i18n="done.fixHint">Lowsper retient la correction : elle s'appliquera toute seule aux réunions suivantes, et le bon mot rejoint vos sigles et noms propres.</p>
       </details>
       <div class="row next">
-        <button class="btn primary-soft" id="next-meeting"><span class="rec-dot"></span> Démarrer la réunion suivante</button>
-        <button class="btn ghost" id="again">Retour à l'accueil</button>
-        <button class="btn ghost small" id="journal-dl" type="button" title="Fonctionnement du logiciel pendant la réunion (aucun texte) : utile si quelque chose s'est mal passé">Journal technique</button>
+        <button class="btn primary-soft" id="next-meeting"><span class="rec-dot"></span> <span data-i18n="done.next">Démarrer la réunion suivante</span></button>
+        <button class="btn ghost" id="again" data-i18n="done.again">Retour à l'accueil</button>
+        <button class="btn ghost small" id="journal-dl" type="button" title="Fonctionnement du logiciel pendant la réunion (aucun texte) : utile si quelque chose s'est mal passé" data-i18n-attr="title:done.journalTitle" data-i18n="done.journal">Journal technique</button>
       </div>
       <pre class="preview" id="preview"></pre>
     </section>
@@ -494,16 +502,18 @@
   </main>
 
   <footer class="foot">
-    <span id="foot-model">Modèle local</span> · transcription 100 % locale · ni le son ni le texte ne quittent ce poste
+    <span id="foot-model" data-i18n="foot.model">Modèle local</span><span data-i18n="foot.text"> · transcription 100 % locale · ni le son ni le texte ne quittent ce poste</span>
   </footer>
 
-  <noscript><p class="card">Lowsper a besoin de JavaScript pour fonctionner.</p></noscript>
+  <noscript><p class="card">Lowsper a besoin de JavaScript pour fonctionner. <span lang="en">Lowsper needs JavaScript to work.</span></p></noscript>
 
   <script src="app/manifest.js"></script>
   <!-- Modèles installés (absent tant que le modèle n'a pas été téléchargé) -->
   <script src="app/models/index.txt"></script>
   <!-- Copie des réglages dans le dossier (absente tant qu'elle n'a pas été écrite) -->
   <script src="app/reglages.txt"></script>
+  <!-- Langue de l'interface : appliquée avant les autres scripts -->
+  <script src="app/js/i18n.js"></script>
   <script src="app/js/browser.js"></script>
   <script src="app/js/engine.js"></script>
   <script src="app/js/analyzer.js"></script>

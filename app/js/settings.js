@@ -70,8 +70,9 @@
     return restored;
   }
   restore();
-  // Thème retrouvé dans le dossier : l'appliquer tout de suite
+  // Thème et langue retrouvés dans le dossier : les appliquer tout de suite
   if (Lowsper.Theme) Lowsper.Theme.apply();
+  if (Lowsper.i18n) Lowsper.i18n.reload();
 
   let lastWritten = file ? JSON.stringify(file.data) : null;
   let handle = null; // dossier Lowsper (FileSystemDirectoryHandle)

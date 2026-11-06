@@ -22,8 +22,11 @@ const sandbox = {
 };
 sandbox.window = sandbox;
 sandbox.self = sandbox;
+// Navigateur en français : les vérifications ci-dessous portent sur l'interface française
+sandbox.navigator = { language: 'fr-FR' };
 vm.createContext(sandbox);
 for (const f of [
+  'i18n.js',
   'browser.js',
   'engine.js',
   'capture.js',
@@ -1193,6 +1196,165 @@ await test('notes : dossier impossible dans ce navigateur, message clair', async
   );
   delete sandbox.navigator;
   if (saved) sandbox.showDirectoryPicker = saved;
+});
+
+// --- Langue de l'interface (decision.md §25) ---
+await test('langue : celle du navigateur, fr* en français, tout le reste en anglais', () => {
+  const I = L.i18n;
+  assert.equal(I.detect({ language: 'fr-FR' }), 'fr');
+  assert.equal(I.detect({ language: 'fr-CA' }), 'fr');
+  assert.equal(I.detect({ language: 'fr' }), 'fr');
+  assert.equal(I.detect({ language: 'en-US' }), 'en');
+  assert.equal(I.detect({ language: 'de-DE' }), 'en');
+  assert.equal(I.detect({ language: 'frr' }), 'en', 'frison du Nord : pas du français');
+  assert.equal(I.detect(undefined), 'en');
+  assert.equal(I.lang(), 'fr');
+  assert.equal(I.locale('fr'), 'fr-FR');
+  // Variables {nom} remplacées ; variables de modèle {{date}} laissées telles quelles
+  assert.equal(I.t('prof.example', { name: 'x.md' }), 'Exemple : x.md');
+  assert.match(I.t('prof.fileName'), /\{\{date\}\} \{\{titre\}\}/);
+  assert.equal(I.t('clé.inconnue'), 'clé.inconnue', 'clé absente : visible');
+});
+
+await test('langue : chaque clé utilisée dans le code et la page existe dans les deux catalogues', async () => {
+  const { readdir } = await import('node:fs/promises');
+  const used = new Set();
+  for (const f of await readdir(appJs)) {
+    if (!f.endsWith('.js') || f === 'i18n.js') continue;
+    const code = await readFile(join(appJs, f), 'utf8');
+    // Préfixes de clés composées (« 'var.' + nom ») : vérifiés plus bas, famille par famille
+    for (const m of code.matchAll(/\b(?:tr|tx|tl|L\.t|Lowsper\.t)\(\s*'([\w.-]+)'/g))
+      if (!m[1].endsWith('.')) used.add(m[1]);
+    for (const m of code.matchAll(/setEngine\('\w+', '([\w.-]+)'/g)) used.add(m[1]);
+  }
+  const html = await readFile(join(appJs, '..', '..', 'Lowsper.html'), 'utf8');
+  for (const m of html.matchAll(/data-i18n(?:-html)?="([\w.-]+)"/g)) used.add(m[1]);
+  for (const m of html.matchAll(/data-i18n-attr="([^"]+)"/g))
+    for (const pair of m[1].split(';')) used.add(pair.split(':')[1]);
+  // Clés composées dans le code
+  for (const s of ['waiting', 'cancelled', 'running', 'done', 'failed']) used.add('import.status.' + s);
+  for (const [name] of L.Notes.VARIABLES) used.add('var.' + name);
+  for (const [key] of L.Notes.FRONT_FIELDS) used.add('front.' + key);
+  for (const id of L.Notes.BUILTIN_IDS) used.add(`prompt.${id}.name`).add(`prompt.${id}.text`);
+  for (const s of L.LocalAI.STATES) used.add('lai.state.' + s);
+  for (const a of L.LocalAI.APIS) used.add('lai.api.' + a.id);
+  for (const id of Object.keys(L.Vocabulary.PRESETS)) used.add('vocab.' + id);
+  for (const l of ['fr', 'en', 'auto']) used.add('note.langs.' + l).add('note.varLangs.' + l);
+  for (const area of ['notes', 'model'])
+    for (const b of ['brave', 'firefox', 'other']) used.add(`browser.${area}.${b}`);
+  assert.ok(used.size > 400, `${used.size} clés trouvées seulement`);
+  const { fr, en } = L.i18n.CATALOGS;
+  assert.deepEqual(
+    [...used].filter((k) => !(k in fr) || !(k in en)),
+    []
+  );
+  assert.deepEqual([...L.i18n.missing()], []);
+});
+
+await test('langue : descriptions des modèles, en français identiques au manifeste, traduites', async () => {
+  const box = {};
+  box.self = box;
+  vm.createContext(box);
+  vm.runInContext(await readFile(join(appJs, '..', 'manifest.js'), 'utf8'), box);
+  const catalog = box.LOWSPER_MANIFEST.catalog;
+  assert.ok(catalog.length >= 3);
+  for (const m of catalog) {
+    assert.equal(L.i18n.t('model.desc.' + m.id, null, 'fr'), m.description, m.id);
+    assert.notEqual(L.i18n.t('model.desc.' + m.id, null, 'en'), 'model.desc.' + m.id, m.id);
+  }
+});
+
+await test('note en anglais : en-tête, libellés et nom de fichier traduits', () => {
+  L.i18n.setLang('en');
+  try {
+    const t = new L.Transcript({
+      title: 'Budget review',
+      startedAt: new Date(2026, 9, 5, 17, 0).getTime(),
+      endedAt: new Date(2026, 9, 5, 18, 1).getTime(),
+      sources: ['me', 'others'],
+      language: 'auto',
+      people: 3,
+    });
+    assert.equal(t.meta.noteLang, 'en', 'langue de l’interface au début de la réunion');
+    t.addSegment('me', seg(1, 4), { chunks: [{ from: 0, to: 3, text: 'Hello everyone.' }] });
+    t.addSegment('others', seg(5, 12), { chunks: [{ from: 0, to: 4, text: 'Hi, shall we start?' }] }, [
+      { voice: 4, key: 0 },
+    ]);
+    t.addPause(30, 60);
+    const md = t.toMarkdown();
+    assert.match(md, /^# Meeting transcript: Budget review\n/);
+    assert.match(md, /- \*\*Time\*\*: .+ to .+ \(61 min\)/);
+    assert.match(md, /- \*\*Participants\*\*: 3 people \(including you\)/);
+    assert.match(md, /- \*\*Language\*\*: French and English \(automatic detection\)/);
+    assert.match(md, /\*\*\[00:00:01\] You:\*\* Hello everyone\./);
+    assert.match(md, /\*\*\[00:00:05\] Speaker 1:\*\* Hi, shall we start\?/);
+    assert.match(md, /_\[00:00:30 to 00:01:00\] Recording paused\._/);
+    assert.ok(!/Intervenant|Vous|Enregistrement|réunion/.test(md), 'aucun libellé français');
+    assert.match(t.fileName(), /^meeting_2026-10-05_17h00_budget-review\.md$/);
+    // Profil avec modèle : variables et clés du front matter inchangées, valeurs en anglais
+    const p = L.Notes.newProfile('Work', []);
+    const n = L.Notes.note(t, p);
+    assert.match(n.content, /^---\ndate: 2026-10-05\nduree: 61\nintervenants:\n {2}- "You"\n {2}- "Speaker 1"\n/);
+    assert.match(n.content, /source: "live meeting"/);
+    assert.equal(L.Notes.safeFileName('', 'en'), 'meeting.md');
+    // Une réunion commencée en français reste en français, même si l'interface passe en anglais
+    const fr = new L.Transcript({ noteLang: 'fr', sources: ['me'] });
+    fr.addSegment('me', seg(1, 3), { chunks: [{ from: 0, to: 2, text: 'Bonjour.' }] });
+    assert.match(fr.toMarkdown(), /^# Transcript de réunion\n[\s\S]*\] Vous :\*\* Bonjour\./);
+  } finally {
+    L.i18n.setLang('fr');
+    store.delete('lowsper.opt.lang');
+  }
+});
+
+await test('consignes : fournies dans la langue de l’interface, consigne modifiée jamais changée', () => {
+  store.delete('lowsper.prompts');
+  L.i18n.setLang('en');
+  try {
+    let list = L.Notes.prompts();
+    assert.deepEqual([...list.map((p) => p.name)], ['Meeting minutes', 'Call summary', 'Action items']);
+    assert.match(list[0].text, /^Here is the automatic transcript of a meeting/);
+    // Texte d'origine français enregistré (version précédente) : non modifié, il suit la langue
+    L.Notes.savePrompt('compte-rendu', { text: L.i18n.t('prompt.compte-rendu.text', null, 'fr') });
+    list = L.Notes.prompts();
+    assert.equal(list[0].modified, false);
+    assert.match(list[0].text, /^Here is the automatic transcript/);
+    // Consigne modifiée par l'utilisateur : gardée telle quelle dans les deux langues
+    L.Notes.savePrompt('actions', { text: 'Mes actions à moi.' });
+    assert.equal(L.Notes.prompts().find((p) => p.id === 'actions').text, 'Mes actions à moi.');
+    L.i18n.setLang('fr');
+    const fr = L.Notes.prompts();
+    assert.equal(fr.find((p) => p.id === 'actions').text, 'Mes actions à moi.');
+    assert.ok(fr.find((p) => p.id === 'actions').modified);
+    assert.match(fr[0].text, /^Voici le transcript automatique d'une réunion/);
+    assert.equal(fr[0].name, 'Compte rendu de réunion');
+  } finally {
+    L.i18n.setLang('fr');
+    store.delete('lowsper.opt.lang');
+    store.delete('lowsper.prompts');
+  }
+});
+
+await test('langue : profil par défaut, navigateur et sonde traduits, noms donnés gardés', () => {
+  store.delete('lowsper.profiles');
+  L.i18n.setLang('en');
+  try {
+    assert.equal(L.Notes.list()[0].name, 'Default');
+    L.Notes.saveAll(L.Notes.list()); // le nom traduit enregistré ne gêne pas le retour au français
+    L.Notes.saveAll([Object.assign(L.Notes.newProfile('Travail', []), { id: 'w' }), ...L.Notes.list()]);
+    assert.equal(L.Notes.list().find((p) => p.id === 'w').name, 'Travail', 'nom donné par l’utilisateur');
+    assert.match(L.Browser.folderMessage('notes', { userAgent: 'Firefox/140.0' }), /^Firefox cannot write/);
+    assert.equal(L.LocalAI.stateText('available'), 'available');
+    assert.match(L.LocalAI.stateText('bizarre'), /unexpected answer from the browser \(“bizarre”\)/);
+    assert.equal(L.Vocabulary.label('cyber'), 'Cybersecurity');
+    L.i18n.setLang('fr');
+    assert.equal(L.Notes.list().find((p) => p.id === 'defaut').name, 'Par défaut');
+    assert.equal(L.Vocabulary.label('cyber'), 'Cybersécurité');
+  } finally {
+    L.i18n.setLang('fr');
+    store.delete('lowsper.opt.lang');
+    store.delete('lowsper.profiles');
+  }
 });
 
 await test('thème : suit le système, choix clair ou sombre gardé, retour à automatique', async () => {
