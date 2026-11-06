@@ -125,8 +125,16 @@ const example = await page.textContent('#prof-filename-example');
 await page.screenshot({ path: join(out, 'notes-parametres.png'), fullPage: true });
 await page.click('#settings-close');
 check(/Exemple : \d{4}-\d\d-\d\d Point hebdo\.md/.test(example), 'exemple de nom de fichier', example);
-check(await page.isVisible('#profile-field'), "choix du profil visible sur l'accueil (deux profils)");
-await page.selectOption('#profile', { label: 'Travail (dossier « Coffre-notes »)' });
+// Accueil : « Enregistrer la note dans », menu dessiné par Lowsper (menu.js)
+await page.click('#place-btn');
+const places = await page.$$eval('#place-list [role="menuitemradio"]', (b) => b.map((x) => x.textContent));
+check(
+  places.length === 2 && places.some((t) => /Travail.*Dossier « Coffre-notes »/.test(t)),
+  "choix du profil sur l'accueil, avec son dossier",
+  places.join(' | ')
+);
+await page.click('#place-list [role="menuitemradio"]:has-text("Travail")');
+check((await page.textContent('#place-current')) === 'Travail', 'profil choisi affiché sur l’accueil');
 
 // 2. Rechargement : le profil reste, l'accès au dossier est oublié
 await page.reload();
@@ -218,7 +226,8 @@ check(downloads.length === 1, 'pas de second téléchargement');
 
 // 5. Profil « Par défaut » : format classique, Téléchargements
 await page.click('#again');
-await page.selectOption('#profile', { label: 'Par défaut' });
+await page.click('#place-btn');
+await page.click('#place-list [role="menuitemradio"]:has-text("Par défaut")');
 await importFile('extrait.mp3', '');
 await page.waitForTimeout(500);
 const d = downloads[downloads.length - 1];

@@ -43,8 +43,10 @@ Settings, « Display », « App language »). The full documentation is in Frenc
    graphics card) and ticks the model « Best for this PC ». Click « Download and install » and
    select the Lowsper folder shown on screen. The model (80 to 330 MB) is downloaded once and
    stored next to the page.
-4. Click « Start recording », share your screen **with audio**, allow the microphone.
-5. Click « Stop »: the `.md` transcript lands in your Downloads folder.
+4. On the home screen, name the meeting (optional), choose where to « Save note to », and click
+   « Start ». The « Before you start » window recalls the three steps: tell the other people,
+   share your screen **with audio**, allow the microphone.
+5. Click « Stop »: the `.md` transcript lands in your Downloads folder (or your profile folder).
 
 Recognition is tuned for French (with an English and an automatic French/English mode). The note
 follows the app language when the meeting starts: in English, its header and labels are

@@ -23,6 +23,19 @@ Les détails techniques et les mesures sont dans `decision.md`.
 - Consignes fournies pour « Copier pour une IA » en français et en anglais. Une consigne modifiée
   par l'utilisateur ne change jamais.
 
+### Ajouté (lot R4)
+- Nouvel accueil : un titre, « Nom », « Enregistrer la note dans » (menu dessiné par Lowsper, avec
+  le dossier de chaque profil et « Nouvel emplacement… »), « Démarrer » et « Transcrire un fichier
+  audio » (decision.md §27).
+- Fenêtre « Avant de commencer » : prévenir les participants, choisir l'écran avec le son,
+  autoriser le micro ; « Ne plus afficher », réversible dans les paramètres.
+- Pastille « Reste sur ce PC » dans l'en-tête.
+
+### Modifié (lot R4)
+- Le bandeau jaune permanent et « Comment ça marche ? » disparaissent de l'accueil.
+- Le nombre de personnes passe dans les paramètres (« Nombre de personnes dans vos réunions ») :
+  vide par défaut, gardé d'une réunion à l'autre. C'est un plafond pour la distinction des voix.
+
 ### Ajouté (lot R3)
 - Écran de bienvenue au premier lancement : ce que Lowsper détecte sur le PC (processeurs,
   mémoire, carte graphique), le modèle « Le meilleur pour ce PC » coché d'office, les modèles
@@ -46,6 +59,8 @@ Les détails techniques et les mesures sont dans `decision.md`.
 - `npm run test:i18n` (aussi en CI) : catalogue complet dans les deux langues, texte de la page
   identique au catalogue français, aucun reste de français en anglais, bascule de langue.
 - Les tests de bout en bout et les captures imposent le français (`locale: 'fr-FR'`).
+- `npm run test:home` (aussi en CI) : accueil, menu au clavier, fenêtre « Avant de commencer »,
+  nombre de personnes dans les paramètres.
 - `npm run test:welcome` (aussi en CI) : écran de bienvenue avec matériel simulé, recommandation,
   menu de langue au clavier, modèles téléchargés et dossier choisi une seule fois.
 

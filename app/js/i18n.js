@@ -32,10 +32,6 @@
   // ---------------------------------------------------------------------------
   const fr = {
     // --- Page : bandeau, en-tête ---
-    'consent.text':
-      "<strong>Prévenez les participants</strong> avant de lancer l'enregistrement : la réunion va être transcrite. Tout est traité sur cet ordinateur, ni le son ni le texte ne sont envoyés sur Internet.",
-    'consent.close': "Fermer l'avertissement",
-    'consent.closeTitle': 'Fermer (il réapparaîtra à la prochaine ouverture)',
     'engine.preparing': 'Préparation du moteur',
     'engine.preparingPct': 'Préparation du moteur {pct} %',
     'engine.starting': 'Démarrage du moteur',
@@ -64,6 +60,7 @@
     'set.withOthersUnsupported': "Ce navigateur ne permet pas de capter le son d'une autre application.",
     'set.distinguish': 'Distinguer les intervenants (Intervenant 1, 2, 3...)',
     'set.autopip': "Réduire Lowsper en mini-fenêtre dès le début de l'enregistrement",
+    'set.showBefore': 'Afficher « Avant de commencer » avant chaque réunion',
     'set.fixes': 'Mots que Whisper déforme <em>(corrigés automatiquement dans chaque transcript)</em>',
     'set.fixWrong': 'Mal reconnu (ex. Kalmar)',
     'set.fixRight': 'Bonne écriture (ex. CALMAR)',
@@ -119,9 +116,6 @@
       'Le navigateur a oublié le dossier « {folder} » du profil « {name} » (données de navigation effacées ?). En attendant, les notes vont dans vos Téléchargements.',
     'prof.access.repick': 'Désigner à nouveau le dossier',
     'prof.folderError': "Impossible d'utiliser ce dossier : {error}",
-    'prof.homeLabel': 'Profil',
-    'prof.homeTitle': 'Où et sous quelle forme arrive la note (paramètres, « Profils de sortie »)',
-
     // Variables des modèles (notes.js)
     'var.titre': 'nom de la réunion, ou du fichier importé',
     'var.date': 'date de la réunion, AAAA-MM-JJ',
@@ -380,29 +374,33 @@
     'browser.unsupported': 'dossier non pris en charge',
 
     // --- Accueil ---
-    'idle.title': 'Transcrire une réunion',
-    'idle.lead':
-      "Lancez l'enregistrement en début de réunion, arrêtez-le à la fin : vous récupérez un transcript Markdown horodaté.",
-    'idle.name': 'Nom de la réunion <em>(facultatif)</em>',
-    'idle.namePlaceholder': 'Ex. Point hebdo projet',
-    'idle.people': 'Personnes',
-    'idle.peopleTitle':
-      'Nombre de personnes, vous compris (2 pour un tête-à-tête). Facultatif : aide Lowsper à distinguer les intervenants.',
-    'idle.start': "Démarrer l'enregistrement",
-    'idle.import': 'Transcrire un fichier',
-    'idle.importHint':
-      'ou glissez ici un ou plusieurs enregistrements (WAV, MP3, M4A, AAC, OGG, WebM). Le fichier est lu sur ce poste, jamais copié ni envoyé.',
-    'idle.settingsHint': 'Langue, sigles, modèle, puissance :',
-    'idle.settingsLink': 'paramètres',
-    'idle.settingsWhere': '(roue crantée en haut à droite).',
-    'idle.howto': 'Comment ça marche ?',
-    'idle.howto1':
-      "Votre navigateur va proposer un <strong>partage d'écran</strong> : choisissez l'écran entier (ou l'onglet de la réunion) et <strong>cochez « Partager l'audio »</strong>. Rien n'est filmé ni enregistré, seul le son est utilisé.",
-    'idle.howto2': 'Autorisez ensuite le <strong>micro</strong>.',
-    'idle.howto3': 'Avec un casque, le résultat est plus propre (le micro ne réentend pas les participants).',
-    'idle.howto4': 'Lowsper se réduit en <strong>mini-fenêtre</strong>, toujours visible, comme un appel Teams.',
-
     // --- Démarrage de la réunion ---
+    'home.title': 'Enregistrer une réunion',
+    'home.lead': 'Lowsper écrit ce qui se dit, pendant que vous participez.',
+    'home.name': 'Nom',
+    'home.namePlaceholder': 'Facultatif',
+    'home.saveTo': 'Enregistrer la note dans',
+    'home.inFolder': 'Dossier « {folder} »',
+    'home.downloads': 'Vos Téléchargements',
+    'home.newPlace': 'Nouvel emplacement…',
+    'home.start': 'Démarrer',
+    'home.import': 'Transcrire un fichier audio',
+    'home.privacy': 'Reste sur ce PC',
+    'home.privacyTitle': 'Ni le son ni le texte ne quittent cet ordinateur',
+    'before.title': 'Avant de commencer',
+    'before.tell': 'Prévenez les autres participants',
+    'before.tellSub': 'Dites-leur que la réunion est transcrite. Tout reste sur cet ordinateur.',
+    'before.screen': "Choisissez l'écran de la réunion",
+    'before.screenSub': "Puis cochez « Partager l'audio ». Rien n'est filmé.",
+    'before.mic': 'Autorisez le micro',
+    'before.micSub': 'Lowsper se réduit ensuite en petite fenêtre.',
+    'before.skip': 'Ne plus afficher',
+    'before.continue': 'Continuer',
+    'before.cancel': 'Annuler',
+    'set.people': 'Nombre de personnes dans vos réunions, vous compris',
+    'set.peopleAuto': 'Automatique',
+    'set.peopleHelp':
+      "Laissez vide pour que Lowsper compte les voix lui-même. Ce nombre est gardé pour les réunions suivantes, et c'est un plafond : trop bas, des voix différentes sont regroupées.",
     'start.engineDown': 'Le moteur de transcription est indisponible : {error}',
     'start.engineFailed': "Le moteur de transcription n'a pas pu démarrer : {error}",
     'start.micDenied': "L'accès au micro a été refusé. Autorisez-le dans la barre d'adresse puis réessayez.",
@@ -656,10 +654,6 @@
   // Catalogue anglais : anglais simple, phrases courtes, aucun terme technique inutile.
   // ---------------------------------------------------------------------------
   const en = {
-    'consent.text':
-      '<strong>Tell the other people</strong> before you start recording: the meeting will be transcribed. Everything is processed on this computer, neither the sound nor the text is sent over the Internet.',
-    'consent.close': 'Close the warning',
-    'consent.closeTitle': 'Close (it will be back next time you open Lowsper)',
     'engine.preparing': 'Preparing the engine',
     'engine.preparingPct': 'Preparing the engine {pct}%',
     'engine.starting': 'Starting the engine',
@@ -687,6 +681,7 @@
     'set.withOthersUnsupported': 'This browser cannot capture the sound of another app.',
     'set.distinguish': 'Tell speakers apart (Speaker 1, 2, 3...)',
     'set.autopip': 'Shrink Lowsper to a small window when recording starts',
+    'set.showBefore': 'Show “Before you start” before each meeting',
     'set.fixes': 'Words Whisper gets wrong <em>(fixed automatically in every transcript)</em>',
     'set.fixWrong': 'Misheard (e.g. Kalmar)',
     'set.fixRight': 'Correct spelling (e.g. CALMAR)',
@@ -741,9 +736,6 @@
       'The browser forgot the folder “{folder}” of the profile “{name}” (browsing data erased?). Until then, notes go to your Downloads.',
     'prof.access.repick': 'Choose the folder again',
     'prof.folderError': 'This folder cannot be used: {error}',
-    'prof.homeLabel': 'Profile',
-    'prof.homeTitle': 'Where the note goes and what it looks like (settings, “Output profiles”)',
-
     'var.titre': 'name of the meeting, or of the imported file',
     'var.date': 'date of the meeting, YYYY-MM-DD',
     'var.date_longue': 'date in words (Thursday 5 November 2026)',
@@ -986,28 +978,32 @@
       'This browser cannot save the model in a folder. Open Lowsper.html with Microsoft Edge or Google Chrome.',
     'browser.unsupported': 'folder not supported',
 
-    'idle.title': 'Transcribe a meeting',
-    'idle.lead':
-      'Start recording when the meeting begins, stop it at the end: you get a timestamped Markdown transcript.',
-    'idle.name': 'Meeting name <em>(optional)</em>',
-    'idle.namePlaceholder': 'e.g. Weekly project check-in',
-    'idle.people': 'People',
-    'idle.peopleTitle':
-      'Number of people, you included (2 for a one-to-one). Optional: helps Lowsper tell speakers apart.',
-    'idle.start': 'Start recording',
-    'idle.import': 'Transcribe a file',
-    'idle.importHint':
-      'or drop one or more recordings here (WAV, MP3, M4A, AAC, OGG, WebM). The file is read on this PC, never copied or sent.',
-    'idle.settingsHint': 'Language, acronyms, model, power:',
-    'idle.settingsLink': 'settings',
-    'idle.settingsWhere': '(gear at the top right).',
-    'idle.howto': 'How does it work?',
-    'idle.howto1':
-      'Your browser will offer to <strong>share your screen</strong>: choose the entire screen (or the meeting tab) and <strong>tick “Share audio”</strong>. Nothing is filmed or recorded, only the sound is used.',
-    'idle.howto2': 'Then allow the <strong>microphone</strong>.',
-    'idle.howto3': 'With a headset, the result is cleaner (the microphone does not pick up the other people again).',
-    'idle.howto4': 'Lowsper shrinks to a <strong>small window</strong>, always visible, like a Teams call.',
-
+    'home.title': 'Record a meeting',
+    'home.lead': 'Lowsper writes down what is said, while you take part.',
+    'home.name': 'Name',
+    'home.namePlaceholder': 'Optional',
+    'home.saveTo': 'Save note to',
+    'home.inFolder': 'Folder “{folder}”',
+    'home.downloads': 'Your Downloads folder',
+    'home.newPlace': 'New place…',
+    'home.start': 'Start',
+    'home.import': 'Transcribe an audio file',
+    'home.privacy': 'Stays on this PC',
+    'home.privacyTitle': 'Neither the sound nor the text leaves this computer',
+    'before.title': 'Before you start',
+    'before.tell': 'Tell the other people',
+    'before.tellSub': 'Let them know the meeting is being transcribed. Everything stays on this computer.',
+    'before.screen': 'Pick the meeting screen',
+    'before.screenSub': 'Then tick “Share audio”. Nothing is filmed.',
+    'before.mic': 'Allow the microphone',
+    'before.micSub': 'Lowsper then shrinks to a small window.',
+    'before.skip': "Don't show again",
+    'before.continue': 'Continue',
+    'before.cancel': 'Cancel',
+    'set.people': 'Number of people in your meetings, you included',
+    'set.peopleAuto': 'Automatic',
+    'set.peopleHelp':
+      'Leave empty to let Lowsper count the voices itself. This number is kept for the next meetings, and it is a limit: too low, and different voices are grouped together.',
     'start.engineDown': 'The transcription engine is unavailable: {error}',
     'start.engineFailed': 'The transcription engine could not start: {error}',
     'start.micDenied': 'Microphone access was refused. Allow it in the address bar, then try again.',

@@ -70,11 +70,19 @@ réunion qui travaille hors ligne.
    Mme Durand`). Tout est mémorisé, et copié dans le dossier Lowsper pour survivre à un nettoyage
    du navigateur. Donnez aussi un **nom à chaque réunion** (« Entretien Ombrelune ») :
    Lowsper le fournit au moteur, les noms propres qu'il contient sont alors bien écrits.
-5. **Prévenez les participants** que la réunion est transcrite.
-6. Cliquez sur **« Démarrer l'enregistrement »** :
+5. Sur l'**accueil**, donnez un **nom** à la réunion (facultatif) et choisissez où **enregistrer
+   la note** (menu : vos Téléchargements, ou le dossier d'un profil ; « Nouvel emplacement… » en
+   crée un). Cliquez sur **« Démarrer »**.
+
+   ![Accueil : nom de la réunion, emplacement de la note, Démarrer](docs/images/accueil.png)
+6. La fenêtre **« Avant de commencer »** rappelle les trois étapes ; cliquez sur **« Continuer »** :
+   - **prévenez les participants** que la réunion est transcrite ;
    - le navigateur propose un **partage d'écran** : choisissez l'écran entier (ou l'onglet de la
      réunion) et **cochez « Partager l'audio »**. Seul le son est utilisé, rien n'est filmé ;
    - autorisez le **micro**.
+   Pour les habitués, « Ne plus afficher » supprime cette fenêtre.
+
+   ![La fenêtre « Avant de commencer » : prévenir, choisir l'écran avec le son, autoriser le micro](docs/images/avant.png)
    Lowsper se réduit aussitôt en **mini-fenêtre** : une barre d'une ligne toujours visible (durée,
    niveaux, pause, fin), comme un appel réduit. La flèche affiche la dernière phrase.
 
@@ -101,13 +109,13 @@ Conseils :
 ### Transcrire un enregistrement fait ailleurs
 
 Un dictaphone, un téléphone, une réunion enregistrée par un autre outil : sur l'écran d'accueil,
-cliquez sur **« Transcrire un fichier »**, ou glissez un ou plusieurs fichiers dans la page.
+cliquez sur **« Transcrire un fichier audio »**, ou glissez un ou plusieurs fichiers dans la page.
 
 - Formats : **WAV, MP3, M4A/AAC, OGG/Opus, WebM**, de quelques secondes à plusieurs heures. Les
   autres formats que le navigateur sait lire (FLAC par exemple) sont acceptés jusqu'à 25 Mo.
 - Même chaîne que le direct : détection de parole, intervenants distingués, glossaire,
-  vocabulaires et corrections retenues. Le champ « Personnes » indique le nombre de voix de
-  l'enregistrement ; le nom de la réunion vaut pour un fichier seul.
+  vocabulaires et corrections retenues. Le réglage « Nombre de personnes » (paramètres) indique le
+  nombre de voix de l'enregistrement ; le nom de la réunion vaut pour un fichier seul.
 - Une barre indique l'avancement et le temps restant estimé ; « Annuler » arrête proprement.
   Chaque transcript arrive dans vos Téléchargements dès que son fichier est terminé, daté du jour
   de l'enregistrement quand le fichier le précise.
@@ -120,7 +128,8 @@ cliquez sur **« Transcrire un fichier »**, ou glissez un ou plusieurs fichiers
 
 Un **profil de sortie** dit où et sous quelle forme arrive la note d'une réunion. Créez-en autant
 que de contextes (« Personnel », « Travail »...) dans les paramètres, section **« Profils de
-sortie »**, puis choisissez le profil sur l'écran d'accueil avant la réunion.
+sortie »**, puis choisissez-le sur l'accueil, ligne **« Enregistrer la note dans »**, avant la
+réunion.
 
 - **Dossier de destination** : choisi une fois (par exemple le dossier de votre base Obsidian).
   La note y est écrite dès la fin de la réunion ; sans dossier, elle va dans vos Téléchargements.
@@ -208,6 +217,16 @@ Cochez le vocabulaire métier correspondant dans les paramètres et ajoutez vos 
 glossaire : sur notre entretien de test en cybersécurité, les sigles bien écrits passent de 6 à 13
 sur 35. Le son d'une visio est compressé : Whisper small y fait nettement plus d'erreurs que sur le
 micro. Sur un PC équipé d'une carte graphique, le modèle « large-v3 turbo » est bien plus précis.
+
+**Où régler le nombre de personnes ?**
+Dans les paramètres, rubrique « Transcription » : **« Nombre de personnes dans vos réunions »**.
+Laissez-le vide (automatique) dans la plupart des cas. C'est un plafond, gardé d'une réunion à
+l'autre : s'il est trop bas pour une réunion, des voix différentes sont regroupées sous un même
+intervenant.
+
+**La fenêtre « Avant de commencer » a disparu.**
+Vous avez coché « Ne plus afficher ». Pour la retrouver : paramètres, rubrique « Transcription »,
+**« Afficher « Avant de commencer » avant chaque réunion »**.
 
 **Quel modèle choisir ?**
 Celui que l'écran de bienvenue marque **« Le meilleur pour ce PC »** : Lowsper le choisit d'après le
@@ -403,7 +422,8 @@ et `decision.md`) :
    anglais et en français, installation guidée selon la puissance du PC, mini-fenêtre réduite au
    strict nécessaire. Spécifications : [docs/refonte.md](docs/refonte.md), plan des lots : [docs/lots.md](docs/lots.md).
    Livré : nouvelles couleurs, thème clair ou sombre (3.5.0) ; interface en français et en
-   anglais (lot R2) ; premier lancement guidé avec recommandation du modèle (lot R3). Les lots R2
+   anglais (lot R2) ; premier lancement guidé avec recommandation du modèle (lot R3) ; nouvel
+   accueil (lot R4). Les lots R2
    et suivants seront publiés ensemble avec la 4.0.0.
 2. **Langues parlées multiples et vocabulaires métier élargis**, après mesure de la qualité.
 3. **Mémoire des voix plus fiable** d'une visio à l'autre, après mesure.
@@ -451,6 +471,7 @@ Lowsper.html          page à ouvrir (interface + politique de sécurité)
 app/css/              styles
 app/js/i18n.js        langue de l'interface : catalogues français et anglais, fonction t()
 app/js/recommend.js   détection du PC et modèle recommandé au premier lancement
+app/js/menu.js        menu dessiné par Lowsper (composant commun, clavier et lecteur d'écran)
 app/js/engine.js      chargement des fichiers, moteur Whisper dans un Worker (glossaire, langue)
 app/js/installer.js   installation du modèle au premier lancement
 app/js/settings.js    réglages copiés dans le dossier (survivent au nettoyage du navigateur)
