@@ -183,7 +183,9 @@ await welcome.goto(pathToFileURL(join(welcomeSite, 'Lowsper.html')).href);
 await welcome.waitForSelector('#view-install:not([hidden])');
 await welcome.waitForFunction(() => !/…/.test(document.getElementById('hw-chips').textContent));
 // Chemin d'exemple, sans rien de la machine de capture
-await welcome.evaluate(() => (document.getElementById('page-folder').textContent = 'C:\\Users\\vous\\Documents\\Lowsper'));
+await welcome.evaluate(
+  () => (document.getElementById('page-folder').textContent = 'C:\\Users\\vous\\Documents\\Lowsper')
+);
 await welcome.evaluate(() => (document.getElementById('temp-warning').hidden = true));
 await welcome.screenshot({ path: join(out, 'bienvenue.png'), fullPage: true });
 await welcome.close();

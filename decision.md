@@ -1593,6 +1593,10 @@ développement n'affiche pas cette fenêtre. Page d'essai pour le mainteneur :
 - `npm run test:e2e` : choisit Whisper small explicitement (ses vérifications de qualité portent
   sur small), et vérifie que le recommandé est le seul coché.
 
+**Charge du moteur en direct** (`npm run bench`, Whisper small, même machine) : le nombre de
+moteurs est maintenant calculé par `recommend.js`, avec la même formule. Passage de 25 s :
+14 172 ms et 14 339 ms avant (lot R2), **14 274 ms (RTF 0,571)** après. Aucune régression.
+
 **Limites.**
 - Mesures sur une seule machine, lente : règle provisoire (voir plus haut).
 - Vitesse sur carte graphique toujours non mesurée.
