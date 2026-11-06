@@ -462,7 +462,7 @@
             this.useWorklet = true;
             break;
           } catch (e) {
-            console.info('AudioWorklet refusé pour ' + url.slice(0, 5), e);
+            console.info('AudioWorklet refusé pour %s', url.slice(0, 5), e);
           }
         }
         URL.revokeObjectURL(urls[1]);
