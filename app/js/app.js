@@ -366,7 +366,7 @@
   // le passage repart en tête de file. Après 3 essais, il est mis de côté avec son audio et
   // signalé dans le transcript ; « Réessayer » sur l'écran de fin le relance.
   function jobFailed(w, job, err) {
-    console.error('Passage non transcrit, essai ' + ((job.attempts || 0) + 1), err);
+    console.error('Passage non transcrit, essai %d', (job.attempts || 0) + 1, err);
     journal('échec', {
       source: job.source,
       essai: (job.attempts || 0) + 1,

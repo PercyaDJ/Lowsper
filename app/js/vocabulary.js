@@ -82,12 +82,17 @@
   }
 
   // Expression d'un mot ou groupe de mots entier, sans tenir compte de la casse ni des accents
-  // proches (« mira bello », « Mira Bello »).
+  // proches (« mira bello », « Mira Bello »). Une suite d'espaces et de tirets qui contient une
+  // espace devient un seul séparateur [\s-]+ : un séparateur n'est jamais collé à un tiret
+  // littéral, sinon « a - - b » faisait exploser le temps de calcul (ReDoS, decision.md §33).
   function wordPattern(wrong) {
     const esc = String(wrong)
       .trim()
-      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      .replace(/\s+/g, '[\\s-]+');
+      .split(/[\s-]*\s[\s-]*/)
+      .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('[\\s-]+');
+    // Mot échappé et séparateurs bornés par des lettres : pas de retour arrière exponentiel
+    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
     return new RegExp('(^|[^\\p{L}\\p{N}])(' + esc + ')(?![\\p{L}\\p{N}])', 'giu');
   }
 

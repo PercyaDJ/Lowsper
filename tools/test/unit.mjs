@@ -469,6 +469,24 @@ await test('entretien : lettres étirées, hésitations seules et phrases répé
   assert.equal(L.collapseRepeats(natural), natural);
 });
 
+await test('correction d’un mot : pas de ReDoS, mêmes correspondances (decision.md §33)', () => {
+  const V = L.Vocabulary;
+  // Comportement gardé : espace = espace ou tiret, tiret du mot gardé tel quel, mot entier
+  assert.equal(
+    V.replaceWord('La société Mira-Bello signe.', 'mira bello', 'MIRABELLO').text,
+    'La société MIRABELLO signe.'
+  );
+  assert.equal(V.replaceWord('Jean Pierre et Jean-Pierre', 'Jean-Pierre', 'J.-P.').text, 'Jean Pierre et J.-P.');
+  assert.equal(V.replaceWord('voir a - b ici', 'a - b', 'X').text, 'voir X ici');
+  assert.equal(V.replaceWord('Kalmarade', 'Kalmar', 'CALMAR').count, 0, 'mot entier seulement');
+  // Saisie piégée (avant : 8 s pour 200 répétitions, puis le blocage de la page)
+  const text = 'a' + ' -'.repeat(5000) + ' c';
+  const t0 = Date.now();
+  V.replaceWord(text, 'a' + ' -'.repeat(6) + ' b', 'X');
+  L.fixCase('aaa' + ' -'.repeat(5000) + ' ccc', 'aaa' + ' -'.repeat(6) + ' bbb');
+  assert.ok(Date.now() - t0 < 500, `${Date.now() - t0} ms`);
+});
+
 await test('entretien : vocabulaire cybersécurité, déformations connues corrigées', () => {
   const t = new L.Transcript({ glossary: 'Ombrelune', vocab: ['cyber'] });
   const seg = { start: 0, end: 30, speech: 30 };
