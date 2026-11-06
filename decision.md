@@ -2142,3 +2142,194 @@ du §32 avait manqué les tirets collés aux séparateurs.
 **Après correction.** Semgrep 1.177.0 relancé sur le dépôt avec la configuration du workflow :
 voir le compte rendu de la pull request. Lysbor reçoit le nouveau rapport au prochain passage du
 workflow (il se déclenche à la fusion, les workflows ayant changé).
+
+## 34. Refonte, lot R8 : langues parlées multiples, qualité mesurée avant de proposer une langue
+
+**Contexte.** La langue parlée se choisissait entre trois valeurs (français, anglais, les deux).
+Besoin (`docs/refonte.md` §8.1) : des réunions en anglais, espagnol, mandarin, japonais..., parfois
+mélangées, avec une liste à cocher. Le moteur savait déjà reconnaître la langue d'un passage parmi
+une liste (§9), mais l'application ne lui donnait que français et anglais.
+
+**Défaut trouvé en début de lot (4.0.0).** Depuis le lot R7, la langue parlée n'était plus lue :
+`createTranscript` lisait `$('language').value` sur la liste dessinée par Lowsper (un `div`, sans
+`value`). La langue de la réunion valait donc `undefined` : le moteur transcrivait toujours en
+français (valeur par défaut du Worker), un anglais forcé était transcrit en français, et la note
+écrivait « Langue : undefined ». Corrigé par le nouveau réglage ; test unitaire (la note d'une
+session sans langue écrit « français », comme ce que le moteur a réellement fait).
+
+**Méthode de mesure.**
+- **Corpus** `tools/test/corpus/langs.json` : la même réunion fictive de dix phrases (budget,
+  livraison, planning, compte rendu), sans nom réel, traduite dans les douze langues de la maquette.
+  Nombres écrits en lettres ou évités.
+- **Voix** : Piper (`rhasspy/piper-voices`, révision figée `e7229f7d`), deux voix en alternance
+  quand la langue en a deux (une seule en arabe, japonais, coréen). Audio régénéré par
+  `corpus/make-langs.py` dans `tools/.cache/langs` (environ 20 Mo, non versionné).
+  Piper et ses voix ne servent qu'à fabriquer cet audio de test : ni versionnés, ni distribués,
+  aucune dépendance nouvelle pour l'utilisateur (comme pour les corpus français du §15.1).
+- **Banc** `tools/test/eval-langs.mjs` : le vrai moteur de Lowsper (`engine.js`, Whisper small,
+  Chromium), chaque phrase seule avec 0,3 s de silence autour ; détection parmi les douze langues,
+  et transcription avec la langue imposée. Taux d'erreur par mot après normalisation (casse,
+  ponctuation ; formes de l'alif et voyelles brèves en arabe), par caractère pour le mandarin et le
+  japonais, écrits sans espaces.
+
+**Mesures (Whisper small, 10 phrases par langue).**
+
+| Langue | Erreur | Détection parmi 12 | Décision |
+|---|---|---|---|
+| Anglais | 0,9 % | 10/10 | proposée |
+| Espagnol | 3,6 % | 10/10 | proposée |
+| Allemand | 4,7 % | 10/10 | proposée |
+| Portugais | 6,3 % | 10/10 | proposée |
+| Français | 7,0 % | 10/10 | proposée |
+| Arabe | 7,3 % | 10/10 | proposée |
+| Japonais | 7,9 % (caractères) | 10/10 | proposée |
+| Néerlandais | 8,5 % | 10/10 | proposée |
+| Mandarin | 15,4 % (caractères) | 10/10 | mise en garde |
+| Italien | 18,6 % | 10/10 | mise en garde |
+| Coréen | 21,0 % | 10/10 | mise en garde |
+| Hindi | 50,4 % | 10/10 | pas proposée |
+
+**Seuil (choix du mainteneur).** Erreur d'au plus 10 % : proposée. De 10 à 25 % : proposée avec la
+mention « reconnaissance moins fiable ». Au-delà : pas proposée. Le hindi n'apparaît donc pas ;
+il reviendra si une mesure meilleure le justifie (autre modèle, autres voix).
+
+**Lecture des chiffres.**
+- **Voix de synthèse, propres** : une vraie réunion (son de visio, accents, bruit) sera moins bonne.
+  Le classement compte plus que la valeur.
+- **Mandarin** : une part des erreurs n'en est pas. Avec l'une des voix, Whisper écrit en
+  caractères traditionnels (我們) au lieu des simplifiés (我们), compté comme faux.
+- **Italien** : l'écart vient en partie de la voix (26,5 % avec l'une, 11,7 % avec l'autre).
+- **Coréen** : l'erreur par mot est sévère pour une langue où un mot réunit plusieurs éléments.
+- **Détection** : 120 phrases sur 120 reconnues dans la bonne langue parmi les douze. Ce sont des
+  phrases de 3 à 8 s ; **non mesuré** : un passage très court (« oui », « d'accord »).
+- **Coût** : la détection est une seule étape du décodeur sur la sortie de l'encodeur déjà
+  calculée, quel que soit le nombre de langues cochées (§9). D'où, avec l'accord du mainteneur,
+  **aucune limite** au nombre de langues cochées ; le texte sous la liste conseille de n'en cocher
+  pas plus que nécessaire.
+
+**Mise en œuvre.**
+- `app/js/languages.js` : liste des onze langues proposées, avec leur qualité ; réglage
+  `lowsper.languages` (« fr,en »). **Rétrocompatibilité** : tant qu'il n'existe pas, l'ancien
+  `lowsper.language` est lu (« fr », « en », « auto » = français et anglais), y compris depuis un
+  `app/reglages.txt` d'une version précédente ; aucune migration écrite, rien n'est perdu. Au moins
+  une langue reste cochée.
+- **Interface** (choix du mainteneur) : le nom dans la langue elle-même (« Español », « 日本語 »),
+  traduit dessous dans la langue de l'interface s'il diffère. L'attribut `lang` (et `dir="auto"`
+  pour l'arabe) ne porte que sur le nom natif, pour les lecteurs d'écran.
+- **Moteur** : une seule langue cochée, elle est imposée (comme avant) ; plusieurs, le moteur
+  reconnaît celle du passage. Le contexte peut être un objet par langue : le Worker prend celui de
+  la langue reconnue (les termes d'une liste espagnole n'aident pas un passage en français).
+- **Note** : les trois réglages d'avant gardent exactement leur texte (« français », « français et
+  anglais (détection automatique) ») ; sinon, liste des langues (« français, anglais et espagnol
+  (détection automatique) »).
+
+**Charge du moteur** (`npm run bench`, 4 fils, Whisper small, même machine, deux passages).
+
+| Passage | Avant | Après |
+|---|---|---|
+| 6,2 s de parole | 15 292 ms ; 14 550 ms | 13 742 ms ; 13 562 ms |
+| 25 s de parole, français | 15 045 ms (RTF 0,602) ; 13 644 ms (RTF 0,546) | 13 737 ms (RTF 0,549) ; 13 784 ms (RTF 0,551) |
+| 25 s, détection automatique | 15 389 ms ; 14 975 ms | 14 345 ms ; 14 737 ms |
+
+Aucune régression : les écarts sont du bruit de machine partagée.
+
+**Limites.**
+- **Non traité** : la détection des boucles et le contrôle « texte trop court » du moteur comptent
+  des mots séparés par des espaces ; en mandarin et en japonais, une boucle sans espace n'est
+  arrêtée que par le budget de jetons. Non observé sur ce corpus de phrases courtes.
+- Les filtres d'hallucinations et de mots courants (`transcript.js`) restent pensés pour le
+  français et l'anglais.
+- Les noms des langues n'ont pas été relus par des locuteurs natifs.
+
+## 35. Refonte, lot R8 : vocabulaires métier élargis, par langue, et contexte partagé
+
+**Contexte.** Trois vocabulaires (cybersécurité, informatique, gestion de projet), en français.
+Besoin (`refonte.md` §8.4) : neuf domaines de plus, des listes par langue, un format simple pour
+en proposer. Contrainte : Whisper ne garde que 200 jetons de contexte, moins pour un long passage
+(`decodePlan`, §17.8), en coupant par le début.
+
+**Mesure de départ.** Taille en jetons Whisper de chaque liste française : 74 à 183 (cybersécurité
+183 à elle seule). Deux listes cochées dépassent déjà le budget ; avec l'ancienne règle (listes
+bout à bout dans l'ordre du catalogue, glossaire personnel à la fin), la première liste était
+rognée, et avec trois ou plus, seule la dernière survivait.
+
+**Listes.** `app/js/vocabularies.js`, fichier de données seul : douze domaines (cybersécurité,
+informatique et cloud, gestion de projet, santé, juridique, finance et comptabilité, ressources
+humaines, éducation, commerce et marketing, secteur public, ingénierie et industrie, immobilier),
+de 23 à 49 termes, en français et en anglais (choix du mainteneur : les autres langues restent
+ouvertes aux contributions, format dans `CONTRIBUTING.md`). Une langue sans liste n'a que les mots
+à reconnaître de l'utilisateur, jamais les termes d'une autre langue. Termes génériques seulement.
+**Exception gardée** (choix du mainteneur) : les listes françaises d'origine contiennent des noms
+de produits (Teams, SharePoint, ServiceNow...) ; elles sont conservées telles quelles, dans le même
+ordre, pour ne rien changer aux réunions déjà réglées. Les nouvelles listes n'en contiennent pas.
+Les corrections de déformations restent celles réellement observées (cybersécurité, informatique,
+en français) : aucune n'est inventée pour les nouvelles listes.
+
+**Mesure de plusieurs listes cochées.** Corpus `corpus/vocab-fr.json` : huit phrases fictives par
+domaine (santé, juridique, finance), 44 termes pris au début, au milieu et à la fin des listes ;
+voix Piper françaises ; banc `tools/test/eval-vocab.mjs`, contextes construits avec le vrai
+découpage en jetons de Whisper. Terme compté bien écrit sans tenir compte de la casse ni des
+accents (la correction de casse les rétablit ensuite).
+
+| Contexte | Termes bien écrits | Domaine le moins bien servi |
+|---|---|---|
+| Aucune liste | 26/44 | finance 7/15 |
+| La liste du domaine seule | 37/44 | finance 12/15 |
+| 3 listes bout à bout (règle 4.0) | 32/44 | santé 10/14 (1 terme sur 14 resté dans le contexte) |
+| 3 listes, part égale du budget | 35/44 | finance 11/15 |
+| 3 listes en alternance | 35/44 | finance 11/15 |
+| 12 listes bout à bout | 29/44 | finance 9/15 |
+| 12 listes, part égale | 31/44 | finance 9/15 |
+| 12 listes en alternance | 30/44 | finance 9/15 |
+
+**Règle retenue (choix du mainteneur) : l'alternance.** Un terme de chaque liste cochée à tour de
+rôle, les premiers (les plus utiles) à la fin. Le moteur coupant par le début, chaque liste garde
+ses meilleurs termes quelle que soit la place restante, y compris pour un long passage, sans
+compter les jetons dans la page (la part égale donne le même score mais demande cette estimation).
+Ordre du contexte : vocabulaires alternés, nom de la réunion, glossaire personnel, texte
+précédent. Sans vocabulaire, le contexte est identique à celui de la 4.0. Les termes déjà dans le
+glossaire personnel sont omis des listes.
+
+**Pas de plafond** (choix du mainteneur) : avec douze listes, on retombe presque au niveau
+« aucune liste » ; le texte sous la liste conseille de ne cocher que ses domaines.
+
+**Après la transcription**, le glossaire complet (toutes les listes cochées dans les langues
+parlées, sans limite de longueur) sert comme avant à la casse, aux sigles et au filtre des
+hallucinations.
+
+**Correction de casse : majuscule de début de phrase.** `fixCase` réécrit un terme du glossaire
+dans sa forme exacte ; un terme en minuscules (« planning ») abaissait la majuscule d'un début de
+phrase (« Planning validé » devenait « planning validé »). Avec des listes plus longues, l'effet
+grandissait ; la majuscule initiale est désormais gardée. Test unitaire.
+
+**Expressions construites à partir des listes (§33).** Seules deux expressions sont construites
+dynamiquement : `wordPattern` (corrections de l'utilisateur, inchangé) et `fixCase`, par où passent
+désormais les 792 termes des listes. Terme échappé, espaces en `\s+` seul, jamais collé à un
+caractère qu'il peut absorber. Mesure (Node.js 22, les 792 termes sur des textes piégés de 10 000 à
+20 000 caractères : suites « - - - », espaces, « -the » répété, « P& », apostrophes, chiffres) :
+de 12 à 23 ms par texte ; sur la suite de tirets, 11, 13 puis 22 ms quand le texte double (coût
+linéaire ; le tout premier appel prend environ 560 ms, compilation des 792 expressions). Test
+unitaire sur ces saisies.
+
+**Limites.**
+- 24 phrases et 44 termes, une mesure par condition : un écart de 1 ou 2 termes n'est pas
+  significatif. 4 à 11 listes cochées n'ont pas été mesurées.
+- Listes anglaises non mesurées (corpus français seulement) et non relues par un anglophone.
+- Les voix de synthèse prononcent parfois mal un sigle (« CHU ») : la mesure compare des contextes
+  entre eux, pas une qualité absolue.
+
+## 36. Écran de bienvenue : retours du mainteneur sur la 4.0.0
+
+Observé par le mainteneur dans Brave et Chrome sous Windows (6 novembre 2026), corrigé dans le
+même lot à sa demande, en commits séparés.
+- **La fenêtre de choix du dossier s'ouvrait sur Documents.** Elle ne peut pas s'ouvrir sur le
+  dossier de la page : `showDirectoryPicker` n'accepte comme point de départ qu'un dossier connu ou
+  déjà autorisé (§26), pas le chemin lu dans l'adresse de la page. Elle s'ouvre désormais sur
+  Téléchargements (`startIn: 'downloads'`), où Lowsper est le plus souvent décompressé ; un dossier
+  déjà choisi une fois reste prioritaire (`id`). Vérifié par le test de bout en bout (option
+  demandée) ; l'effet dans Chrome et Edge du commerce reste à confirmer par le mainteneur.
+- **La page se décalait** quand « Déjà installé ailleurs » faisait apparaître la barre de
+  défilement : sa place est désormais réservée (`scrollbar-gutter: stable`).
+- **Non changé** : la recommandation ne retient jamais un modèle « carte graphique », faute de
+  mesure de sa vitesse (§26) ; le mainteneur mesurera d'abord sur son PC (16 fils, 32 Go, carte
+  graphique). Le choix d'un seul modèle est celui du lot R3.

@@ -1,0 +1,45 @@
+{
+  "about": "Corpus synthétique des vocabulaires métier (lot R8, decision.md §35) : huit phrases fictives par domaine, chacune avec des termes de la liste française du domaine (app/js/vocabularies.js), pris au début, au milieu et à la fin de la liste. Sert à mesurer si un terme est bien écrit selon les listes données à Whisper. Audio généré par make-langs.py vocab.",
+  "voices": ["fr_FR-siwis-medium", "fr_FR-tom-medium"],
+  "domains": {
+    "sante": {
+      "lines": [
+        "Le CHU a transmis le dossier à l'ARS la semaine dernière.",
+        "Le patient sort de l'EHPAD et sera suivi en HAD.",
+        "Le SAMU a été appelé avant l'arrivée de l'équipe.",
+        "Il faut vérifier la posologie et les comorbidités avant la prescription.",
+        "Le codage PMSI détermine le financement à la T2A.",
+        "L'anamnèse a permis de suspecter une iatrogénie médicamenteuse.",
+        "La pharmacovigilance doit être informée de cet effet indésirable.",
+        "Le DMP facilite le parcours de soins entre la ville et l'hôpital."
+      ],
+      "terms": ["CHU", "ARS", "EHPAD", "HAD", "SAMU", "posologie", "comorbidités", "PMSI", "T2A", "anamnèse", "iatrogénie", "pharmacovigilance", "DMP", "parcours de soins"]
+    },
+    "juridique": {
+      "lines": [
+        "Le DPO doit prévenir la CNIL en cas de violation du RGPD.",
+        "Les CGV et le NDA ont été signés hier.",
+        "Envoyez un extrait Kbis avec la mise en demeure.",
+        "L'avocat propose un référé plutôt qu'une assignation au fond.",
+        "L'avenant ajoute une clause résolutoire au contrat.",
+        "Le salarié a saisi les prud'hommes en septembre.",
+        "Le commissaire de justice déposera l'acte au greffe.",
+        "Nos conclusions seront communiquées vendredi."
+      ],
+      "terms": ["DPO", "CNIL", "RGPD", "CGV", "NDA", "Kbis", "mise en demeure", "référé", "assignation", "avenant", "clause résolutoire", "prud'hommes", "commissaire de justice", "greffe", "conclusions"]
+    },
+    "finance": {
+      "lines": [
+        "L'EBITDA progresse mais le BFR se dégrade.",
+        "La CAF couvre largement les CAPEX prévus.",
+        "Les comptes sont établis selon le PCG et non les IFRS.",
+        "Il faut transmettre le FEC au CAC avant la fin du mois.",
+        "Le DSO a augmenté, nous envisageons l'affacturage des créances.",
+        "Le rapprochement bancaire de mars n'est pas terminé.",
+        "La liasse fiscale et la déclaration de TVA sont prêtes.",
+        "Les OPEX restent stables par rapport au budget."
+      ],
+      "terms": ["EBITDA", "BFR", "CAF", "CAPEX", "PCG", "IFRS", "FEC", "CAC", "DSO", "affacturage", "créances", "rapprochement bancaire", "liasse fiscale", "TVA", "OPEX"]
+    }
+  }
+}

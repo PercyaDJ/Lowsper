@@ -81,6 +81,9 @@
 [hidden] { display: none !important; }
 
 html, body { margin: 0; }
+/* Place de la barre de défilement réservée : la page centrée ne se décale plus quand elle apparaît
+   (« Déjà installé ailleurs », écran de bienvenue ; retour du mainteneur, 4.0.0) */
+html { scrollbar-gutter: stable; }
 body {
   background: var(--bg);
   color: var(--text);

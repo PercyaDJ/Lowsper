@@ -177,7 +177,11 @@ await page.addInitScript((NOWRITE) => {
       };
     },
   });
-  window.showDirectoryPicker = async () => dir('.');
+  window.showDirectoryPicker = async (opts) => {
+    // Point de départ demandé au navigateur (gardé : la page redémarre après l'installation)
+    sessionStorage.setItem('test.picker', JSON.stringify(opts || {}));
+    return dir('.');
+  };
   window.__NOWRITE = NOWRITE;
   // Un vrai dossier est gardé par IndexedDB d'un lancement à l'autre ; ce faux dossier ne peut pas
   // l'être : il est redonné après le rechargement qui suit l'installation, accord compris
@@ -257,8 +261,10 @@ await page.screenshot({ path: join(out, '2-accueil.png') });
 await page.fill('#title', 'Test automatique');
 await page.click('#settings-open'); // roue crantée
 await page.waitForSelector('#settings[open]');
+// Deux langues cochées (lot R8) : le moteur reconnaît celle de chaque passage, avec un contexte
+// par langue ; la réunion du corpus est en français
 await page.click('[data-open="language"]');
-await page.click('#language [data-value="fr"]');
+await page.click('#language [data-value="en"]');
 await page.click('#page-language [data-back]');
 await page.click('[data-open="glossary"]');
 await page.fill('#glossary', corpusInfo.glossary);
@@ -457,11 +463,17 @@ if (twoVoices.length >= 2) {
 await page.emulateMedia({ colorScheme: 'dark' });
 await page.waitForTimeout(500);
 await page.screenshot({ path: join(out, '5-termine-sombre.png'), fullPage: true });
+const pickerOptions = JSON.parse(await page.evaluate(() => sessionStorage.getItem('test.picker') || 'null'));
 await browser.close();
 
 const checks = [
   ['installation du modèle', served > 50e6],
+  ['choix du dossier : ouvert sur Téléchargements', !!pickerOptions && pickerOptions.startIn === 'downloads'],
   ['titre', firstMd.startsWith('# Transcript de réunion : Test automatique')],
+  [
+    'deux langues parlées, détection automatique',
+    md.includes('- **Langue** : français et anglais (détection automatique)'),
+  ],
   ["glossaire dans l'en-tête", md.includes('ServiceNow, P1') && firstMd.includes('ServiceNow, P1')],
   ['horodatage', /\*\*\[00:00:\d\d\] /.test(md)],
   ['voix micro (Vous)', /\] Vous :\*\*/.test(firstMd + md)],

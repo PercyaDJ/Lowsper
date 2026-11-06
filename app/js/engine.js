@@ -265,16 +265,20 @@
 
     // Glossaire -> jetons du « prompt » Whisper (contexte précédent). Whisper imite
     // l'orthographe de ce contexte : les sigles listés sont écrits correctement.
-    let promptCache = { text: null, ids: [] };
+    // Quelques contextes gardés (un par langue parlée quand la réunion en mélange plusieurs)
+    const promptCache = new Map();
     function promptIds(text) {
       text = (text || '').trim();
       if (!text) return [];
-      if (promptCache.text !== text) {
+      let ids = promptCache.get(text);
+      if (!ids) {
         const encoded = asr.tokenizer.encode(' ' + text, { add_special_tokens: false });
         // Whisper limite le contexte à la moitié de sa fenêtre (224 jetons)
-        promptCache = { text, ids: encoded.slice(-200) };
+        ids = encoded.slice(-200);
+        if (promptCache.size >= 8) promptCache.delete(promptCache.keys().next().value);
+        promptCache.set(text, ids);
       }
-      return promptCache.ids;
+      return ids;
     }
 
     async function encode(features) {
@@ -367,7 +371,9 @@
       const features = (await asr.processor(audio)).input_features;
       const encoderOutputs = await encode(features);
       const language = Array.isArray(msg.language) ? await detect(encoderOutputs, msg.language) : msg.language || 'fr';
-      const prompt = promptIds(msg.prompt);
+      // Contexte : un texte, ou un texte par langue parlée (celui de la langue reconnue)
+      const text = msg.prompt && typeof msg.prompt === 'object' ? msg.prompt[language] : msg.prompt;
+      const prompt = promptIds(text);
 
       let chunks = await decode(features, encoderOutputs, language, prompt, seconds, msg.maxTokens, 0);
       let q = quality(chunks, seconds);

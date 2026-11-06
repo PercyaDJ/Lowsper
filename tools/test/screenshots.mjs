@@ -139,6 +139,20 @@ await page.waitForSelector('#view-idle:not([hidden])', { timeout: 120000 });
 await page.click('#settings-open');
 await page.waitForTimeout(300);
 await page.locator('#settings').screenshot({ path: join(out, 'reglages.png') });
+// Langues parlées (lot R8) : français et anglais cochés, réunions mixtes
+await page.click('[data-open="language"]');
+await page.click('#language [data-value="en"]');
+await page.waitForTimeout(300);
+await page.locator('#settings').screenshot({ path: join(out, 'langues-parlees.png') });
+await page.click('#language [data-value="en"]');
+await page.click('#page-language [data-back]');
+// Vocabulaires métier : deux domaines cochés
+await page.click('[data-open="vocab"]');
+for (const id of ['sante', 'juridique']) await page.click(`#vocab-list [data-value="${id}"]`);
+await page.waitForTimeout(300);
+await page.locator('#settings').screenshot({ path: join(out, 'vocabulaires.png') });
+for (const id of ['sante', 'juridique']) await page.click(`#vocab-list [data-value="${id}"]`);
+await page.click('#page-vocab [data-back]');
 await page.click('#tab-notes');
 await page.click('#prof-new');
 await page.keyboard.type('Travail');

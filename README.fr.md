@@ -45,15 +45,17 @@ confiée à une IA pour le compte rendu. Ni le son ni le texte ne quittent l'ord
 
 - **Transcription en direct** du micro et du son partagé de la réunion, intervenants distingués.
 - **Mots à reconnaître** (noms, sigles) et **corrections automatiques** des mots mal compris,
-  gardés d'une réunion à l'autre ; vocabulaires métier intégrés.
+  gardés d'une réunion à l'autre ; douze vocabulaires métier intégrés, en français et en anglais.
 - **Emplacements** : chacun est un dossier et un format de note. « Pour les applications de
   notes » ajoute des propriétés et des liens `[[Nom]]` lisibles par des applications comme
   Obsidian.
 - **Fichiers audio** (WAV, MP3, M4A, OGG, WebM), même de plusieurs heures, avec le même moteur.
 - **Paramètres** en trois onglets, gardés dans le dossier Lowsper ; export et import pour les
   déplacer vers un autre PC.
-- **Interface en français ou en anglais**, selon le navigateur. La reconnaissance est réglée pour
-  le français, l'anglais, ou les deux.
+- **Langues parlées** : cochez celles de vos réunions (français, anglais, espagnol, allemand,
+  portugais, néerlandais, arabe, japonais ; mandarin, italien et coréen moins fiables), Lowsper
+  reconnaît celle de chaque passage. **Interface en français ou en anglais**, selon le
+  navigateur.
 
 ## Bon à savoir
 

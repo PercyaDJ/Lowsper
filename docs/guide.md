@@ -66,7 +66,8 @@ réunion qui travaille hors ligne.
 
    ![Écran de bienvenue : détection du PC, modèle recommandé, dossier, un seul bouton](images/bienvenue.png)
 4. Dans les **paramètres** (roue crantée en haut à droite), onglet **Transcription** : ouvrez
-   **« Vocabulaire métier »** et cochez le vôtre (cybersécurité, informatique, gestion de projet),
+   **« Langues parlées dans mes réunions »** et cochez chaque langue de vos réunions, puis
+   **« Vocabulaire métier »** et cochez votre domaine (santé, juridique, finance, informatique...),
    puis **« Mots à reconnaître »** et entrez une fois pour toutes les sigles et noms de vos réunions
    (ex. `Ombrelune, projet Atlas, Mme Durand`). Tout est mémorisé, et copié dans le dossier Lowsper
    pour survivre à un nettoyage du navigateur. Donnez aussi un **nom à chaque réunion** (« Entretien
@@ -189,7 +190,7 @@ d'accueil le signale et un clic suffit.
 ### Les paramètres
 
 Trois onglets ; chaque élément à choix ouvre un sous-écran (« ‹ Paramètres » ou Échap pour revenir).
-- **Transcription** : langue de l'interface, langue parlée, mots à reconnaître, corrections
+- **Transcription** : langue de l'interface, langues parlées, mots à reconnaître, corrections
   automatiques, vocabulaire métier, options de la réunion.
 - **Notes et compte rendu** : emplacements, dossier, format de la note, consigne de « Obtenir un
   résumé » et éditeur des consignes.
@@ -213,6 +214,38 @@ l'accès à un dossier choisi est à redonner sur l'autre PC.
 ![Paramètres, onglet Avancé : modèle, vitesse, thème, voix, sauvegarde, IA intégrée, journal](images/reglages-avance.png)
 
 Déploiement sur un parc (DSI, RSSI) : voir [docs/deploiement.md](deploiement.md).
+
+### Langues parlées dans vos réunions
+
+Paramètres, onglet **Transcription**, **« Langues parlées dans mes réunions »** : cochez chaque
+langue parlée. Si plusieurs sont cochées, Lowsper reconnaît la langue de chaque passage et la
+transcrit dans cette langue (une réunion qui passe du français à l'anglais reste juste). Une seule
+langue cochée donne le résultat le plus sûr : ne cochez que celles qui sont vraiment parlées.
+
+![Paramètres : liste des langues parlées, français et anglais cochés](images/langues-parlees.png)
+
+Onze langues sont proposées, après une mesure de la qualité de la reconnaissance (Whisper small,
+voix de synthèse, `decision.md` §34) : français, anglais, espagnol, allemand, portugais,
+néerlandais, arabe et japonais ; mandarin, italien et coréen portent la mention « reconnaissance
+moins fiable » (de 15 à 21 % d'erreurs mesurées, contre 1 à 9 % pour les autres). Le hindi, trop
+mal reconnu, n'est pas proposé.
+
+### Vocabulaires métier
+
+Paramètres, onglet **Transcription**, **« Vocabulaire métier »** : douze domaines (cybersécurité,
+informatique et cloud, gestion de projet, santé, juridique, finance et comptabilité, ressources
+humaines, éducation, commerce et marketing, secteur public, ingénierie et industrie, immobilier).
+Leurs sigles et termes habituels sont donnés à Whisper, dans la langue parlée : chaque domaine a
+une liste en français et une en anglais ; pour une autre langue, seuls vos « Mots à reconnaître »
+sont donnés.
+
+![Paramètres : vocabulaires métier, santé et juridique cochés](images/vocabulaires.png)
+
+Cochez seulement vos domaines. Whisper ne lit qu'un contexte court (environ quarante sigles) :
+avec plusieurs listes, chacune garde ses termes les plus utiles, mais plus il y en a, moins
+chacune a de place. Avec une liste, 37 termes métier sur 44 sont bien écrits dans notre mesure ;
+avec trois, 35 ; avec les douze, 30, presque comme sans liste (26). Vos « Mots à reconnaître »
+passent toujours en priorité. Pour proposer un domaine ou une langue : `CONTRIBUTING.md`.
 
 ### Interface en français ou en anglais
 
@@ -259,9 +292,18 @@ consigne que vous avez modifiée n'est jamais changée.
 ## Questions fréquentes
 
 **Lowsper s'affiche en anglais alors que je le veux en français (ou l'inverse).**
-Lowsper prend la langue du navigateur. Ouvrez les paramètres (roue crantée), rubrique
-« Affichage » (« Display » en anglais), et choisissez la langue de l'interface. La langue des
-réunions, elle, se règle à part : « Langue parlée ».
+Lowsper prend la langue du navigateur. Ouvrez les paramètres (roue crantée), onglet
+« Transcription », et choisissez la langue de l'interface. Les langues des réunions, elles, se
+règlent à part : « Langues parlées dans mes réunions ».
+
+**Ma réunion en anglais a été transcrite en français (version 4.0.0).**
+C'était un défaut de la 4.0.0 : la langue parlée choisie n'était plus prise en compte, et la note
+indiquait « Langue : undefined ». Corrigé en 4.1.0 ; votre réglage est relu tel quel.
+
+**Plusieurs langues dans la même réunion ?**
+Cochez-les toutes dans « Langues parlées dans mes réunions » : Lowsper reconnaît la langue de
+chaque passage. Sur des phrases de 3 à 8 secondes, il ne s'est jamais trompé dans notre mesure,
+même en choisissant parmi douze langues ; sur un passage très court (« oui »), ce n'est pas mesuré.
 
 **Le téléchargement du modèle échoue au bureau.**
 Le réseau de l'entreprise bloque peut-être Hugging Face. Faites l'installation depuis un autre
@@ -485,9 +527,11 @@ Lowsper reconnaît Brave et affiche ces explications au bon moment.
   voix de synthèse. Le test de vitesse intégré (paramètres) donne la réalité de votre PC.
 - **Navigateurs** : Edge et Chrome. Brave après un réglage (voir la FAQ). Firefox seulement en
   micro seul, avec un modèle déjà installé.
-- **Interface en anglais** : la reconnaissance reste réglée pour le français, l'anglais ou les
-  deux ; les vocabulaires métier sont des listes françaises (leurs termes s'affichent tels quels) ;
-  l'essai de l'IA intégrée du navigateur porte sur une réunion fictive en français. Les messages
+- **Langues parlées** : qualité mesurée sur des voix de synthèse, pas sur de vraies réunions. En
+  mandarin, Whisper écrit parfois en caractères traditionnels. Les vocabulaires métier n'existent
+  qu'en français et en anglais. Les filtres de phrases parasites restent pensés pour le français
+  et l'anglais.
+- **Interface en anglais** : l'essai de l'IA intégrée du navigateur porte sur une réunion fictive en français. Les messages
   techniques du navigateur lui-même (erreurs, fenêtres d'autorisation) sont dans sa propre langue.
 - **Fichiers importés** : les formats sans lecteur dédié (FLAC, Vorbis...) sont limités à 25 Mo.
   Les horodatages d'un MP3 ou d'un AAC peuvent être décalés de quelques centièmes de seconde
@@ -509,10 +553,10 @@ et `decision.md`) :
    Livré : nouvelles couleurs, thème clair ou sombre (3.5.0) ; interface en français et en
    anglais (lot R2) ; premier lancement guidé avec recommandation du modèle (lot R3) ; nouvel
    accueil (lot R4) ; réunion avec mini-fenêtre et contrôle d'état (lot R5) ; fin de réunion
-   (lot R6) ; paramètres en onglets (lot R7). Les lots R2 à R7 forment la version 4.0.0.
-2. **Langues parlées multiples et vocabulaires métier élargis**, après mesure de la qualité.
-3. **Mémoire des voix plus fiable** d'une visio à l'autre, après mesure.
-4. **Résumé local** : la piste de l'IA intégrée du navigateur reste à l'étude (`decision.md`
+   (lot R6) ; paramètres en onglets (lot R7). Les lots R2 à R7 forment la version 4.0.0 ; les
+   langues parlées multiples et les vocabulaires élargis (lot R8), la version 4.1.0.
+2. **Mémoire des voix plus fiable** d'une visio à l'autre, après mesure.
+3. **Résumé local** : la piste de l'IA intégrée du navigateur reste à l'étude (`decision.md`
    §22 et §23). D'ici là, « Obtenir un résumé » reste la voie recommandée.
 
 Une idée, un problème ? Ouvrez une [issue](https://github.com/PercyaDJ/Lowsper/issues/new/choose),
@@ -564,7 +608,9 @@ app/js/settings.js    réglages copiés dans le dossier (survivent au nettoyage 
 app/js/analyzer.js    détection de parole (Silero) et empreintes vocales (WeSpeaker), dans un Worker
 app/js/speakers.js    distinction et regroupement des intervenants
 app/js/capture.js     capture micro / partage d'écran, détection de parole, découpage
-app/js/vocabulary.js  vocabulaires métier intégrés et contexte donné au moteur
+app/js/languages.js   langues parlées proposées, ancien réglage relu, nom des langues dans la note
+app/js/vocabularies.js listes des vocabulaires métier, par domaine et par langue
+app/js/vocabulary.js  vocabulaires métier : corrections, termes alternés, contexte donné au moteur
 app/js/transcript.js  assemblage, sigles, anti-écho, filtres, Markdown, sauvegarde
 app/js/app.js         contrôleur de l'interface
 app/engine/           runtime transformers.js + ONNX Runtime (généré)

@@ -45,11 +45,13 @@ const scripts = [
   'manifest.js',
   'models/index.txt',
   'js/i18n.js',
+  'js/languages.js',
   'js/engine.js',
   'js/analyzer.js',
   'js/capture.js',
   'js/transcript.js',
   'js/speakers.js',
+  'js/vocabularies.js',
   'js/vocabulary.js',
 ]
   .map((s) => `<script src="../../../app/${s}"></script>`)
@@ -89,7 +91,8 @@ window.runHebdo = async (modelId, glossary, opts) => {
   for (const { ch, b } of queue) {
     {
       const keep = b.audio.slice();
-      const prompt = V ? V.prompt({ title: opts.title, glossary: transcript.fullGlossary(), context: opts.context ? transcript.contextFor(ch, b.start) : '' }) : glossary;
+      // Même contexte que l'application (app.js, promptFor) : vocabulaires alternés, nom, glossaire
+      const prompt = V ? V.prompt({ vocab: transcript.promptVocab('fr'), title: opts.title, glossary: transcript.meta.glossary, context: opts.context ? transcript.contextFor(ch, b.start) : '' }) : glossary;
       const r = await tr.transcribe(b.audio, 'fr', prompt, (b.map || []).map((m) => m.at));
       ms += r.ms;
       blocks.push({ ch, dur: +(keep.length / 16000).toFixed(1), ms: Math.round(r.ms), capped: r.capped, retried: r.retried });

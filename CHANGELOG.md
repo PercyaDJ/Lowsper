@@ -13,6 +13,43 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [4.1.0] - 2026-11-06
+
+Langues parlées multiples et vocabulaires métier élargis (lot R8). Rien à faire en passant à cette
+version : copiez `app\models`, `app\reglages.txt` et `Notes` comme d'habitude ; l'ancien réglage
+de langue parlée est relu tel quel.
+
+### Ajouté
+- **Plusieurs langues parlées** : « Langues parlées dans mes réunions » devient une liste à
+  cocher. Lowsper reconnaît la langue de chaque passage parmi celles cochées. Onze langues
+  proposées après mesure sur un corpus synthétique (decision.md §34) : français, anglais, espagnol,
+  allemand, portugais, néerlandais, arabe, japonais, et, avec la mention « reconnaissance moins
+  fiable », mandarin, italien et coréen. Chaque langue est écrite dans sa propre langue
+  (« Español », « 日本語 »), traduite dessous.
+- **Neuf vocabulaires métier** : santé, juridique, finance et comptabilité, ressources humaines,
+  éducation, commerce et marketing, secteur public, ingénierie et industrie, immobilier, en plus
+  des trois existants. Tous en français et en anglais ; chaque passage reçoit les termes de sa
+  langue. Format pour en proposer d'autres dans `CONTRIBUTING.md`.
+- Bancs de mesure `eval-langs` et `eval-vocab`, corpus synthétiques multilingues (voix Piper).
+
+### Modifié
+- **Plusieurs vocabulaires cochés** : leurs termes sont alternés dans le contexte donné à Whisper,
+  si bien que chacun garde ses meilleurs termes. Avant, la dernière liste du catalogue prenait
+  toute la place et la première était presque effacée (mesure : 35 termes sur 44 bien écrits au
+  lieu de 32, decision.md §35).
+- La correction de casse garde la majuscule d'un début de phrase (« Planning validé » ne devient
+  plus « planning validé »).
+- Actions GitHub des workflows passées sur Node.js 24 (`actions/checkout` v7.0.1,
+  `actions/setup-node` v7.1.0), toujours figées sur leur empreinte : Node.js 20 est déprécié sur
+  les machines de GitHub.
+
+### Corrigé
+- **La langue parlée choisie n'était plus prise en compte depuis la 4.0.0** : Lowsper transcrivait
+  toujours en français, même réglé sur l'anglais, et la note indiquait « Langue : undefined ».
+- Écran de bienvenue : la fenêtre de choix du dossier Lowsper s'ouvre sur Téléchargements, et non
+  plus sur Documents ; la page ne se décale plus quand la barre de défilement apparaît
+  (« Déjà installé ailleurs »).
+
 ### Sécurité
 - Correction d'un blocage de la page (ReDoS) : une correction de mot mêlant espaces et tirets
   (« a - - - - b »), saisie à la main ou venue d'un fichier de réglages importé, pouvait figer
@@ -22,11 +59,6 @@ Les détails techniques et les mesures sont dans `decision.md`.
 - Résultats Lysbor traités : deux messages de console à format constant ; trois faux positifs
   justifiés et marqués dans le code (icône intégrée à la page, expression du glossaire mesurée
   sans risque).
-
-### Modifié
-- Actions GitHub des workflows passées sur Node.js 24 (`actions/checkout` v7.0.1,
-  `actions/setup-node` v7.1.0), toujours figées sur leur empreinte : Node.js 20 est déprécié sur
-  les machines de GitHub.
 
 ## [4.0.0] - 2026-11-06
 

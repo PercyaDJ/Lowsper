@@ -288,7 +288,8 @@
     app.inFlight++;
     app.running.add(job);
     const t = job.transcript;
-    const lang = t.meta.language === 'auto' ? ['fr', 'en'] : t.meta.language;
+    // Une langue imposée, ou la liste où le moteur reconnaît celle du passage (languages.js)
+    const lang = L.Languages.forEngine(t.meta.language);
     const tracker = job.source === 'others' ? t.tracker : null;
     job.dur = job.seg.audio.length / 16000;
     // L'audio du passage reste dans la file tant qu'il n'est pas transcrit : le moteur reçoit
@@ -512,16 +513,26 @@
     if ($('v-fixes')) renderSettingsValues();
   }
 
+  // Langues parlées cochées (languages.js : lit aussi l'ancien réglage « lowsper.language »)
+  function spokenLanguages() {
+    return L.Languages.read((k) => store.get(k));
+  }
+
   function selectedVocab() {
     return (store.get('lowsper.vocab') || '').split(',').filter((id) => id && L.Vocabulary.PRESETS[id]);
   }
 
-  // Contexte donné à Whisper : nom de la réunion, vocabulaires métier et glossaire (vocabulary.js)
-  function promptFor(t, job) {
-    return L.Vocabulary.prompt({
-      title: t.meta.title,
-      glossary: t.fullGlossary(),
-    });
+  // Contexte donné à Whisper : vocabulaires métier, nom de la réunion et glossaire (vocabulary.js).
+  // Plusieurs langues parlées : un contexte par langue, le moteur prend celui de la langue
+  // reconnue (les termes d'une liste espagnole n'aident pas un passage en français).
+  function promptFor(t) {
+    const one = (lang) =>
+      L.Vocabulary.prompt({ vocab: t.promptVocab(lang), title: t.meta.title, glossary: t.meta.glossary });
+    const langs = t.spokenLanguages();
+    if (langs.length === 1) return one(langs[0]);
+    const byLang = {};
+    for (const lang of langs) byLang[lang] = one(lang);
+    return byLang;
   }
 
   // Regroupement des voix en cours de réunion (toutes les 45 s environ) : l'affichage en
@@ -706,7 +717,7 @@
     const t = new L.Transcript({
       title,
       startedAt: Date.now(),
-      language: $('language').value,
+      language: spokenLanguages(),
       glossary: $('glossary').value.trim(),
       vocab: selectedVocab(),
       fixes: learnedFixes(),
@@ -752,7 +763,7 @@
     const t = new L.Transcript({
       title: title || file.name.replace(/\.[^.]+$/, ''),
       startedAt: Date.now(),
-      language: $('language').value,
+      language: spokenLanguages(),
       glossary: $('glossary').value.trim(),
       vocab: selectedVocab(),
       fixes: learnedFixes(),
@@ -2702,8 +2713,9 @@
   // --- Paramètres : trois onglets, listes groupées, sous-écrans (panel.js, decision.md §30) ---
   // Valeur affichée à droite d'une ligne : le choix actuel, ou un nombre
   function renderSettingsValues() {
-    const lang = store.get('lowsper.language') || 'fr';
-    $('v-language').textContent = tr('set.language.' + lang);
+    const langs = spokenLanguages();
+    $('v-language').textContent =
+      langs.length > 2 ? tr('set.selectedCount', { n: langs.length }) : langs.map((c) => tr('lang.' + c)).join(', ');
     const terms = ($('glossary').value || '')
       .split(/[,;\n]+/)
       .map((x) => x.trim())
@@ -2719,14 +2731,26 @@
     $('v-power').textContent = tr('power.' + (store.get('lowsper.power') || 'balanced'));
   }
 
-  // Langue parlée : liste dessinée par Lowsper (la liste à cocher multiple arrive au lot R8)
+  // Langues parlées : liste à cocher (languages.js). Le moteur reconnaît celle de chaque passage
+  // parmi les langues cochées ; il en faut au moins une.
   function renderLanguage() {
-    const cur = store.get('lowsper.language') || 'fr';
-    L.Panel.choices($('language'), {
-      options: ['fr', 'en', 'auto'].map((v) => ({ value: v, label: tr('set.language.' + v) })),
-      value: ['fr', 'en', 'auto'].includes(cur) ? cur : 'fr',
-      onPick: (v) => {
-        store.set('lowsper.language', v);
+    const langs = spokenLanguages();
+    L.Panel.checklist($('language'), {
+      // Nom dans la langue elle-même (« Español »), et dessous dans celle de l'interface s'il diffère
+      options: L.Languages.LIST.map((l) => {
+        const label = tr('lang.native.' + l.code);
+        const name = tr('lang.' + l.code);
+        const sub = l.quality === 'warn' ? tr('set.langWarn', { lang: name }) : name !== label ? name : '';
+        return { value: l.code, label, lang: l.code, sub };
+      }),
+      values: langs,
+      onToggle: (code, on) => {
+        const set = new Set(spokenLanguages());
+        if (on) set.add(code);
+        else set.delete(code);
+        if (!set.size) toast(tr('set.langKeepOne'), 4000);
+        else L.Languages.write((k, v) => store.set(k, v), [...set]);
+        renderLanguage();
         renderSettingsValues();
       },
     });
