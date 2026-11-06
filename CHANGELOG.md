@@ -23,6 +23,20 @@ Les détails techniques et les mesures sont dans `decision.md`.
 - Consignes fournies pour « Copier pour une IA » en français et en anglais. Une consigne modifiée
   par l'utilisateur ne change jamais.
 
+### Ajouté (lot R3)
+- Écran de bienvenue au premier lancement : ce que Lowsper détecte sur le PC (processeurs,
+  mémoire, carte graphique), le modèle « Le meilleur pour ce PC » coché d'office, les modèles
+  inutilisables grisés avec leur raison, le dossier affiché, un seul bouton « Télécharger et
+  installer ». La langue se choisit dans l'en-tête de cet écran (decision.md §26).
+- Banc `npm run bench -- --cores` : vitesse de chaque modèle selon le nombre de moteurs.
+
+### Modifié (lot R3)
+- Un seul modèle se choisit à la fois (Whisper base reste ajouté d'office avec Whisper small, en
+  secours). Recommandation : Whisper small à partir de 5 processeurs logiques et 4 Go de mémoire,
+  Whisper base en dessous ; règle provisoire, mesurée sur une seule machine.
+- Changement visible : un modèle « carte graphique » ne s'installe plus sur un PC sans carte
+  compatible (il est grisé). Pour équiper un PC qui en a une, installez depuis ce PC.
+
 ### Modifié
 - La note en français reste identique au caractère près (vérifié sur 33 sorties de 5 réunions
   fictives, ancien et nouveau code).
@@ -32,6 +46,8 @@ Les détails techniques et les mesures sont dans `decision.md`.
 - `npm run test:i18n` (aussi en CI) : catalogue complet dans les deux langues, texte de la page
   identique au catalogue français, aucun reste de français en anglais, bascule de langue.
 - Les tests de bout en bout et les captures imposent le français (`locale: 'fr-FR'`).
+- `npm run test:welcome` (aussi en CI) : écran de bienvenue avec matériel simulé, recommandation,
+  menu de langue au clavier, modèles téléchargés et dossier choisi une seule fois.
 
 ## [3.5.0] - 2026-11-05
 

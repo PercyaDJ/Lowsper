@@ -284,36 +284,45 @@
     'recover.info': '{date} à {time}, {min} min transcrites',
 
     // --- Installation du modèle ---
-    'install.title': 'Première utilisation',
-    'install.lead':
-      "Lowsper a besoin d'un modèle de reconnaissance vocale. Il est téléchargé <strong>une seule fois</strong>, puis enregistré dans le dossier Lowsper, à côté de ce fichier. Ensuite, tout fonctionne hors ligne. Vous pouvez en installer plusieurs et passer de l'un à l'autre dans les paramètres.",
     'install.temp':
       '<strong>Lowsper semble ouvert directement depuis le fichier zip.</strong> Windows le place alors dans un dossier temporaire, et le modèle serait à retélécharger à chaque fois.\n        Fermez cette page, faites un clic droit sur le zip, « Extraire tout », puis ouvrez Lowsper.html depuis le dossier extrait.',
-    'install.folder': 'Dossier de cette page :',
-    'install.button': 'Installer le modèle',
+    'install.title': 'Bienvenue dans Lowsper',
+    'install.lead':
+      'Une dernière étape : télécharger la reconnaissance vocale. Une seule fois, ensuite tout fonctionne hors ligne.',
+    'install.titleAdd': 'Ajouter un modèle',
+    'install.leadAdd': 'Le modèle choisi est téléchargé une fois, puis rangé à côté des autres.',
+    'install.detected': 'Détecté sur ce PC',
+    'install.threads': (v) => `${v.n} processeur${s(v.n)} logique${s(v.n)}`,
+    'install.memory': '{n} Go de mémoire ou plus',
+    'install.gpuYes': 'Carte graphique trouvée',
+    'install.gpuNo': 'Aucune carte graphique trouvée',
+    'install.gpuChecking': 'Recherche d’une carte graphique…',
+    'install.choose': 'Choisir un modèle',
+    'install.best': 'Le meilleur pour ce PC',
+    'install.installed': 'installé',
+    'install.reasonGpu': 'Demande une carte graphique : aucune trouvée sur ce PC.',
+    'install.withBackup': 'Inclut un modèle de secours plus rapide.',
+    'install.size': '{mb} Mo',
+    'install.savedNext': 'Enregistré à côté de Lowsper.html',
+    'install.button': 'Télécharger et installer',
+    'install.cta': 'Télécharger et installer ({mb} Mo)',
+    'install.nothing': 'Tous les modèles utilisables sont déjà installés',
+    'install.hint': 'Votre navigateur va ouvrir une fenêtre : choisissez ce dossier, puis validez.',
+    'install.more': 'Déjà installé ailleurs, ou PC sans Internet ?',
+    'model.label.whisper-small': 'Whisper small',
+    'model.label.whisper-small-gpu': 'Whisper small (carte graphique)',
+    'model.label.whisper-turbo': 'Whisper large-v3 turbo',
+    'model.label.whisper-base': 'Whisper base',
+    'model.short.whisper-small': 'Précis.',
+    'model.short.whisper-small-gpu': 'Le même que Whisper small, calculé par la carte graphique.',
+    'model.short.whisper-turbo': 'Le plus précis.',
+    'model.short.whisper-base': 'Plus rapide, moins précis. Pour les PC anciens ou très chargés.',
     'install.back': 'Retour',
     'install.preparing': 'Préparation…',
-    'install.step1': 'Cochez le ou les modèles voulus, puis cliquez sur <strong>Installer</strong>.',
-    'install.step2':
-      'Sélectionnez le <strong>dossier Lowsper</strong> (celui qui contient Lowsper.html), puis acceptez que Lowsper y enregistre des fichiers.',
-    'install.step3':
-      'Patientez pendant le téléchargement (une à quelques minutes selon la connexion). Ne fermez pas la page.',
     'install.already':
       "<strong>Vous aviez déjà installé le modèle</strong> dans une version précédente de Lowsper ? Inutile de le retélécharger : copiez le dossier <code>app\\models</code> de l'ancien dossier Lowsper dans celui-ci (remplacez le dossier existant), puis rechargez la page (F5).",
     'install.source':
       "Le téléchargement se fait depuis Hugging Face (huggingface.co), à une version figée, et chaque fichier est vérifié par empreinte numérique. Pour équiper un poste sans accès à Internet, copiez le dossier Lowsper d'un poste déjà installé.",
-    'install.recommended': 'recommandé',
-    'install.installed': 'installé',
-    'install.gpu': 'carte graphique',
-    'install.size': '{mb} Mo',
-    'install.noGpu':
-      ' Aucune carte graphique compatible détectée sur ce PC : inutilisable ici, utile seulement pour copier le dossier Lowsper vers un PC équipé.',
-    'install.gpuFound': ' Carte détectée : {name}.',
-    'install.gpuCompatible': 'compatible',
-    'install.autoAdded': ' Ajouté automatiquement : il sert de voie rapide de secours quand le PC prend du retard.',
-    'install.pickOne': 'Cochez au moins un modèle',
-    'install.one': 'Installer {label} ({mb} Mo)',
-    'install.many': 'Installer {n} modèles ({mb} Mo)',
     'install.running': 'Installation en cours…',
     'install.progress': '{done} / {total} Mo · {speed} Mo/s',
     'install.left': ' · environ {left} restantes',
@@ -323,15 +332,6 @@
       " Le réseau de l'entreprise bloque peut-être ce site. Essayez depuis un autre réseau (partage de connexion, domicile), " +
       "ou copiez le dossier Lowsper d'un collègue qui l'a déjà installé.",
     'install.busy': 'Terminez la réunion en cours avant d’installer un modèle.',
-    'model.desc.whisper-small':
-      'Précis en français, retrouve bien les sigles grâce au glossaire. Pour un PC portable récent.',
-    'model.desc.whisper-small-gpu':
-      'Même modèle que Whisper small, calculé par la carte graphique : bien plus rapide si le PC en a une correcte.',
-    'model.desc.whisper-turbo':
-      'Le plus précis (noms propres, sigles, voix difficiles). Utilise la carte graphique : réservé aux PC compatibles.',
-    'model.desc.whisper-base':
-      'Environ 3 fois plus rapide mais nettement moins précis. Pour un PC ancien ou très chargé.',
-
     // --- Erreurs de l'installateur (installer.js) ---
     'err.hfUnreachable': 'Hugging Face est injoignable depuis ce réseau.',
     'err.http': 'Téléchargement refusé (HTTP {status}).',
@@ -897,36 +897,44 @@
     'recover.dismiss': 'Ignore',
     'recover.info': '{date} at {time}, {min} min transcribed',
 
-    'install.title': 'First use',
-    'install.lead':
-      'Lowsper needs a speech recognition model. It is downloaded <strong>only once</strong>, then saved in the Lowsper folder, next to this file. After that, everything works offline. You can install several and switch between them in the settings.',
     'install.temp':
       '<strong>Lowsper seems to be opened straight from the zip file.</strong> Windows then puts it in a temporary folder, and the model would have to be downloaded again every time.\n        Close this page, right-click the zip, choose “Extract All”, then open Lowsper.html from the extracted folder.',
-    'install.folder': 'Folder of this page:',
-    'install.button': 'Install the model',
+    'install.title': 'Welcome to Lowsper',
+    'install.lead': 'One last step: download the speech recognition. Only once, then everything works offline.',
+    'install.titleAdd': 'Add a model',
+    'install.leadAdd': 'The chosen model is downloaded once, then stored next to the others.',
+    'install.detected': 'Found on this PC',
+    'install.threads': (v) => `${v.n} logical processor${sEn(v.n)}`,
+    'install.memory': '{n} GB of memory or more',
+    'install.gpuYes': 'Graphics card found',
+    'install.gpuNo': 'No graphics card found',
+    'install.gpuChecking': 'Looking for a graphics card…',
+    'install.choose': 'Choose a model',
+    'install.best': 'Best for this PC',
+    'install.installed': 'installed',
+    'install.reasonGpu': 'Needs a graphics card: none found on this PC.',
+    'install.withBackup': 'Includes a faster backup model.',
+    'install.size': '{mb} MB',
+    'install.savedNext': 'Saved next to Lowsper.html',
+    'install.button': 'Download and install',
+    'install.cta': 'Download and install ({mb} MB)',
+    'install.nothing': 'All usable models are already installed',
+    'install.hint': 'Your browser will open a window: choose this folder, then confirm.',
+    'install.more': 'Installed elsewhere already, or PC without Internet?',
+    'model.label.whisper-small': 'Whisper small',
+    'model.label.whisper-small-gpu': 'Whisper small (graphics card)',
+    'model.label.whisper-turbo': 'Whisper large-v3 turbo',
+    'model.label.whisper-base': 'Whisper base',
+    'model.short.whisper-small': 'Accurate.',
+    'model.short.whisper-small-gpu': 'Same as Whisper small, run by the graphics card.',
+    'model.short.whisper-turbo': 'The most accurate.',
+    'model.short.whisper-base': 'Faster, less accurate. For older or very busy PCs.',
     'install.back': 'Back',
     'install.preparing': 'Preparing…',
-    'install.step1': 'Tick the model or models you want, then click <strong>Install</strong>.',
-    'install.step2':
-      'Select the <strong>Lowsper folder</strong> (the one that contains Lowsper.html), then allow Lowsper to save files in it.',
-    'install.step3':
-      'Wait for the download (one to a few minutes, depending on the connection). Do not close the page.',
     'install.already':
       '<strong>You already installed the model</strong> with an earlier version of Lowsper? No need to download it again: copy the <code>app\\models</code> folder from the old Lowsper folder into this one (replace the existing folder), then reload the page (F5).',
     'install.source':
       'The download comes from Hugging Face (huggingface.co), at a fixed version, and every file is checked with a digital fingerprint. To set up a PC without Internet access, copy the Lowsper folder of a PC where it is already installed.',
-    'install.recommended': 'recommended',
-    'install.installed': 'installed',
-    'install.gpu': 'graphics card',
-    'install.size': '{mb} MB',
-    'install.noGpu':
-      ' No compatible graphics card found on this PC: it cannot be used here, only to copy the Lowsper folder to a PC that has one.',
-    'install.gpuFound': ' Card found: {name}.',
-    'install.gpuCompatible': 'compatible',
-    'install.autoAdded': ' Added automatically: it is the backup fast lane when the PC falls behind.',
-    'install.pickOne': 'Tick at least one model',
-    'install.one': 'Install {label} ({mb} MB)',
-    'install.many': 'Install {n} models ({mb} MB)',
     'install.running': 'Installing…',
     'install.progress': '{done} / {total} MB · {speed} MB/s',
     'install.left': ' · about {left} left',
@@ -936,13 +944,6 @@
       ' Your organization’s network may block this site. Try another network (phone hotspot, home), ' +
       'or copy the Lowsper folder of a colleague who already installed it.',
     'install.busy': 'Finish the current meeting before installing a model.',
-    'model.desc.whisper-small': 'Accurate in French, gets acronyms right thanks to the glossary. For a recent laptop.',
-    'model.desc.whisper-small-gpu':
-      'Same model as Whisper small, run by the graphics card: much faster if the PC has a decent one.',
-    'model.desc.whisper-turbo':
-      'The most accurate (names, acronyms, difficult voices). Uses the graphics card: only for compatible PCs.',
-    'model.desc.whisper-base': 'About 3 times faster but clearly less accurate. For an older or very busy PC.',
-
     'err.hfUnreachable': 'Hugging Face cannot be reached from this network.',
     'err.http': 'Download refused (HTTP {status}).',
     'err.tooBig': 'File larger than expected.',

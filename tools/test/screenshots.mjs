@@ -2,13 +2,13 @@
 //
 // Rejoue le corpus synthétique « hebdo » (voix de synthèse, noms inventés) dans la vraie page,
 // avec le vrai moteur, puis capture l'accueil, l'enregistrement, la barre réduite et l'écran de fin
-// (thèmes clair et sombre), l'import d'un fichier et le réglage de langue en anglais, à double
-// résolution. Aucune donnée réelle ne peut y apparaître.
+// (thèmes clair et sombre), l'import d'un fichier, le réglage de langue en anglais et l'écran de
+// bienvenue (matériel simulé), à double résolution. Aucune donnée réelle ne peut y apparaître.
 //
 // Prérequis : node build.mjs --embed whisper-small   (CHROMIUM_PATH si besoin)
 // Usage : node test/screenshots.mjs
 import { chromium } from 'playwright-core';
-import { mkdir, readFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -162,6 +162,33 @@ await page.waitForTimeout(300);
 await page.locator('#settings').screenshot({ path: join(out, 'langue.png') });
 await page.selectOption('#ui-lang', 'fr');
 await page.click('#settings-close');
+
+// Écran de bienvenue (premier lancement) : copie du dossier sans modèle, PC simulé à 8 fils,
+// 8 Go et sans carte graphique (configuration courante d'un portable de bureau)
+const welcomeSite = join(here, 'output', 'shots-welcome');
+await rm(welcomeSite, { recursive: true, force: true });
+await mkdir(join(welcomeSite, 'app', 'models'), { recursive: true });
+await cp(join(root, 'Lowsper.html'), join(welcomeSite, 'Lowsper.html'));
+for (const d of ['css', 'js']) await cp(join(root, 'app', d), join(welcomeSite, 'app', d), { recursive: true });
+await cp(join(root, 'app', 'manifest.js'), join(welcomeSite, 'app', 'manifest.js'));
+const welcome = await context.newPage();
+await welcome.addInitScript(() => {
+  Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
+  Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
+  Object.defineProperty(navigator, 'gpu', { get: () => undefined });
+  // Bandeau d'avertissement fermé : on montre l'écran lui-même
+  sessionStorage.setItem('lowsper.consent.closed', '1');
+});
+await welcome.goto(pathToFileURL(join(welcomeSite, 'Lowsper.html')).href);
+await welcome.waitForSelector('#view-install:not([hidden])');
+await welcome.waitForFunction(() => !/…/.test(document.getElementById('hw-chips').textContent));
+// Chemin d'exemple, sans rien de la machine de capture
+await welcome.evaluate(
+  () => (document.getElementById('page-folder').textContent = 'C:\\Users\\vous\\Documents\\Lowsper')
+);
+await welcome.evaluate(() => (document.getElementById('temp-warning').hidden = true));
+await welcome.screenshot({ path: join(out, 'bienvenue.png'), fullPage: true });
+await welcome.close();
 await browser.close();
 
 if (network.length) {

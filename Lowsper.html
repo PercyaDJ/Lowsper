@@ -34,6 +34,17 @@
       <span>Lowsper</span>
     </div>
     <div class="top-right">
+      <!-- Langue, sur l'écran de bienvenue : menu dessiné par Lowsper -->
+      <div class="lang-menu" id="lang-menu" hidden>
+        <button class="pill-btn" id="lang-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="lang-list" data-i18n-attr="title:set.uiLang" title="Langue de l'interface">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+          <span id="lang-current" lang="fr">Français</span>
+        </button>
+        <div class="menu" id="lang-list" role="menu" hidden data-i18n-attr="aria-label:set.uiLang" aria-label="Langue de l'interface">
+          <button type="button" role="menuitemradio" data-lang="fr" lang="fr" aria-checked="true"><span class="check" aria-hidden="true">✓</span>Français</button>
+          <button type="button" role="menuitemradio" data-lang="en" lang="en" aria-checked="false"><span class="check" aria-hidden="true">✓</span>English</button>
+        </div>
+      </div>
       <div class="engine" id="engine" data-state="loading">
         <span class="dot"></span><span id="engine-text" data-i18n="engine.preparing">Préparation du moteur</span>
       </div>
@@ -286,20 +297,32 @@
       </div>
     </section>
 
-    <!-- Premier lancement : installation du modèle -->
-    <section class="card view" id="view-install" hidden>
-      <h1 data-i18n="install.title">Première utilisation</h1>
-      <p class="lead" data-i18n-html="install.lead">Lowsper a besoin d'un modèle de reconnaissance vocale. Il est téléchargé <strong>une seule fois</strong>, puis enregistré dans le dossier Lowsper, à côté de ce fichier. Ensuite, tout fonctionne hors ligne. Vous pouvez en installer plusieurs et passer de l'un à l'autre dans les paramètres.</p>
+    <!-- Premier lancement : bienvenue, choix du modèle, installation (decision.md §26) -->
+    <section class="card view welcome" id="view-install" hidden aria-labelledby="install-title">
+      <h1 id="install-title" data-i18n="install.title">Bienvenue dans Lowsper</h1>
+      <p class="lead" data-i18n="install.lead">Une dernière étape : télécharger la reconnaissance vocale. Une seule fois, ensuite tout fonctionne hors ligne.</p>
 
       <div class="notice" id="temp-warning" hidden data-i18n-html="install.temp">
         <strong>Lowsper semble ouvert directement depuis le fichier zip.</strong> Windows le place alors dans un dossier temporaire, et le modèle serait à retélécharger à chaque fois.
         Fermez cette page, faites un clic droit sur le zip, « Extraire tout », puis ouvrez Lowsper.html depuis le dossier extrait.
       </div>
-      <p class="fine folder"><span data-i18n="install.folder">Dossier de cette page :</span> <code id="page-folder"></code></p>
 
-      <div class="models" id="model-choices"></div>
+      <!-- Ce que Lowsper a détecté sur ce PC -->
+      <ul class="hw-chips" id="hw-chips" data-i18n-attr="aria-label:install.detected" aria-label="Détecté sur ce PC"></ul>
 
-      <button class="btn primary big" id="install" data-i18n="install.button">Installer le modèle</button>
+      <h2 class="group-title" id="model-title" data-i18n="install.choose">Choisir un modèle</h2>
+      <div class="group model-list" id="model-choices" role="radiogroup" aria-labelledby="model-title"></div>
+
+      <div class="group folder-box">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <div>
+          <span class="fine" data-i18n="install.savedNext">Enregistré à côté de Lowsper.html</span>
+          <code id="page-folder"></code>
+        </div>
+      </div>
+
+      <button class="btn primary big" id="install" data-i18n="install.button">Télécharger et installer</button>
+      <p class="fine install-hint" id="install-hint" data-i18n="install.hint">Votre navigateur va ouvrir une fenêtre : choisissez ce dossier, puis validez.</p>
       <button class="btn ghost" id="install-back" hidden data-i18n="install.back">Retour</button>
 
       <div class="progress" id="install-progress" hidden>
@@ -308,13 +331,11 @@
       </div>
       <div class="notice" id="install-error" hidden></div>
 
-      <ol class="howto">
-        <li data-i18n-html="install.step1">Cochez le ou les modèles voulus, puis cliquez sur <strong>Installer</strong>.</li>
-        <li data-i18n-html="install.step2">Sélectionnez le <strong>dossier Lowsper</strong> (celui qui contient Lowsper.html), puis acceptez que Lowsper y enregistre des fichiers.</li>
-        <li data-i18n="install.step3">Patientez pendant le téléchargement (une à quelques minutes selon la connexion). Ne fermez pas la page.</li>
-      </ol>
-      <p class="fine" data-i18n-html="install.already"><strong>Vous aviez déjà installé le modèle</strong> dans une version précédente de Lowsper ? Inutile de le retélécharger : copiez le dossier <code>app\models</code> de l'ancien dossier Lowsper dans celui-ci (remplacez le dossier existant), puis rechargez la page (F5).</p>
-      <p class="fine" data-i18n="install.source">Le téléchargement se fait depuis Hugging Face (huggingface.co), à une version figée, et chaque fichier est vérifié par empreinte numérique. Pour équiper un poste sans accès à Internet, copiez le dossier Lowsper d'un poste déjà installé.</p>
+      <details class="howto-box">
+        <summary data-i18n="install.more">Déjà installé ailleurs, ou PC sans Internet ?</summary>
+        <p class="fine" data-i18n-html="install.already"><strong>Vous aviez déjà installé le modèle</strong> dans une version précédente de Lowsper ? Inutile de le retélécharger : copiez le dossier <code>app\models</code> de l'ancien dossier Lowsper dans celui-ci (remplacez le dossier existant), puis rechargez la page (F5).</p>
+        <p class="fine" data-i18n="install.source">Le téléchargement se fait depuis Hugging Face (huggingface.co), à une version figée, et chaque fichier est vérifié par empreinte numérique. Pour équiper un poste sans accès à Internet, copiez le dossier Lowsper d'un poste déjà installé.</p>
+      </details>
     </section>
 
     <!-- Avant la réunion -->
@@ -514,6 +535,7 @@
   <script src="app/reglages.txt"></script>
   <!-- Langue de l'interface : appliquée avant les autres scripts -->
   <script src="app/js/i18n.js"></script>
+  <script src="app/js/recommend.js"></script>
   <script src="app/js/browser.js"></script>
   <script src="app/js/engine.js"></script>
   <script src="app/js/analyzer.js"></script>
