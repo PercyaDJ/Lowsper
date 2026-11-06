@@ -21,10 +21,21 @@
   const Lowsper = (window.Lowsper = window.Lowsper || {});
 
   // Ordre d'affichage. quality : 'ok' (proposée), 'warn' (proposée avec une mise en garde).
-  // Mesures et seuil : decision.md §34.
+  // Seuil (choix du mainteneur) : erreur de Whisper small sur le corpus synthétique d'au plus
+  // 10 % : proposée ; de 10 à 25 % : mise en garde ; au-delà : pas proposée (hindi, 50 %).
+  // Mesures : decision.md §34. err : taux d'erreur mesuré (par caractère pour zh et ja).
   const LIST = [
-    { code: 'fr', quality: 'ok' },
-    { code: 'en', quality: 'ok' },
+    { code: 'fr', quality: 'ok', err: 7.0 },
+    { code: 'en', quality: 'ok', err: 0.9 },
+    { code: 'es', quality: 'ok', err: 3.6 },
+    { code: 'de', quality: 'ok', err: 4.7 },
+    { code: 'it', quality: 'warn', err: 18.6 },
+    { code: 'pt', quality: 'ok', err: 6.3 },
+    { code: 'nl', quality: 'ok', err: 8.5 },
+    { code: 'ar', quality: 'ok', err: 7.3 },
+    { code: 'zh', quality: 'warn', err: 15.4 },
+    { code: 'ja', quality: 'ok', err: 7.9 },
+    { code: 'ko', quality: 'warn', err: 21.0 },
   ];
   const CODES = LIST.map((l) => l.code);
   const KEY = 'lowsper.languages';

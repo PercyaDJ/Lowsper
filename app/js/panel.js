@@ -127,7 +127,10 @@
     label.textContent = it.label;
     // Nom écrit dans sa propre langue (« Español ») : la langue est celle du nom seul, pas du
     // sous-libellé, traduit dans la langue de l'interface (lecteurs d'écran)
-    if (it.lang) label.lang = it.lang;
+    if (it.lang) {
+      label.lang = it.lang;
+      label.dir = 'auto'; // arabe : écrit de droite à gauche
+    }
     text.appendChild(label);
     if (it.sub) {
       const sub = doc.createElement('span');
