@@ -1340,3 +1340,57 @@ pour Firefox, inutilement radical pour Brave. Désormais `app/js/browser.js` rec
 Firefox et donne la marche à suivre, à l'installation comme au choix du dossier d'un profil (qui
 affichait jusque-là l'erreur technique du navigateur). Brave n'est pas ajouté aux navigateurs
 cibles : il n'est pas testé en CI.
+
+## 24. Refonte, lot R1 : fondations visuelles (3.5.0)
+
+**Contexte.** La refonte de l'interface (`docs/refonte.md`, plan dans `docs/lots.md`) commence par
+ce que tous les écrans partagent : couleurs, thème et style des éléments communs. Les écrans
+eux-mêmes seront revus lot par lot.
+
+**Choix validés par le mainteneur, sur maquettes.**
+- **Palette** : neutres légèrement teintés de vert, sans couleur vive. Une première version plus
+  saturée a été jugée « trop pétante » et écartée.
+- **Thème sombre** : gris très foncé teinté de vert sapin, pas du noir pur.
+- **Thème** : celui du système par défaut, avec un bouton clair/sombre dans l'en-tête et un
+  réglage « Affichage » (automatique, clair, sombre).
+
+**Mise en œuvre.**
+- **Jetons de couleur** :
+  - sur `:root` pour le clair ;
+  - deux blocs identiques pour le sombre : `@media (prefers-color-scheme: dark)` gardé par
+    `:root:not([data-theme="light"])`, puis `:root[data-theme="dark"]`. Le choix explicite
+    l'emporte ainsi dans les deux sens.
+- **`app/js/theme.js`** :
+  - chargé dans `<head>`, avant l'affichage, pour éviter un éclair de la mauvaise couleur ;
+  - pose `data-theme` d'après `lowsper.opt.theme`. Revenir au thème du système remet le choix sur
+    « automatique », pour que le système soit de nouveau suivi ;
+  - le choix est copié dans `app/reglages.txt` comme les autres réglages, puis réappliqué si le
+    navigateur l'avait perdu ;
+  - la mini-fenêtre reçoit le même thème.
+- **Style commun** :
+  - police système : SF Pro sur Mac, Segoe UI Variable sous Windows. Aucune police n'est
+    embarquée, et SF Pro ne peut pas l'être (licence) ;
+  - texte de base en 16 px ;
+  - boutons en pilule ;
+  - champs sans bordure, sur fond teinté ;
+  - cases à cocher dessinées en interrupteurs : même élément, même clavier, même lecteur
+    d'écran ;
+  - réglages en listes groupées : une carte par rubrique ;
+  - logo vert sauge.
+- **Aucun changement de comportement.** Les éléments et identifiants sont inchangés, et tous les
+  tests de bout en bout passent sans modification.
+
+**Contrastes mesurés** (rapport WCAG ; 4,5 minimum pour le texte courant) :
+
+| Usage | Clair | Sombre |
+|---|---|---|
+| Texte secondaire sur fond | 5,59 (`#5a655f` sur `#f4f6f5`) | 8,11 (`#a5b1aa` sur `#121815`) |
+| Texte secondaire sur carte | 6,07 | 7,40 |
+| Lien sur carte | 6,56 (`#3a6651` sur blanc) | 8,77 (`#9cc7b1` sur `#1a211d`) |
+| Texte blanc sur bouton principal | 6,09 (`#3f6b56`) | 6,09 |
+| Texte blanc sur bouton rouge | 6,54 (`#b3261e`) | 6,54 |
+
+**Limites.**
+- Les textes restent en français jusqu'au lot R2.
+- La structure des écrans ne change qu'à partir du lot R3.
+- Le rendu n'a été vérifié que dans Chromium (Playwright), pas dans Edge ni Chrome du commerce.

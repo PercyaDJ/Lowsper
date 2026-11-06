@@ -2062,6 +2062,7 @@
     link.href = new URL('app/css/lowsper.css', location.href).href;
     win.document.head.appendChild(link);
     win.document.title = 'Lowsper';
+    L.Theme.apply(L.Theme.stored(), win.document);
     win.document.body.className = 'pip mini' + (document.body.classList.contains('expanded') ? ' expanded' : '');
     win.document.body.appendChild($('rec-core'));
     $('pip-placeholder').hidden = false;
@@ -2323,6 +2324,30 @@
 
   $('install').addEventListener('click', install);
   $('speed-test').addEventListener('click', () => speedTest(false));
+  // Thème clair / sombre : bouton de l'en-tête et réglage « Affichage »
+  function renderTheme() {
+    const mode = L.Theme.effective();
+    const btn = $('theme-toggle');
+    btn.dataset.mode = mode;
+    btn.setAttribute('aria-label', mode === 'dark' ? 'Passer en thème clair' : 'Passer en thème sombre');
+    $('theme').value = L.Theme.stored();
+    if (app.pip) L.Theme.apply(L.Theme.stored(), app.pip.document);
+  }
+  $('theme-toggle').addEventListener('click', () => {
+    L.Theme.toggle();
+    renderTheme();
+  });
+  $('theme').addEventListener('change', (e) => {
+    L.Theme.set(e.target.value);
+    renderTheme();
+  });
+  try {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', renderTheme);
+  } catch {
+    /* navigateur ancien : le thème suit au prochain lancement */
+  }
+  renderTheme();
+
   $('power').value = store.get('lowsper.power') || 'balanced';
   $('power').addEventListener('change', (e) => {
     store.set('lowsper.power', e.target.value);
