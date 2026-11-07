@@ -14,6 +14,15 @@ Les détails techniques et les mesures sont dans `decision.md`.
 ## [Non publié]
 
 ### Ajouté
+- **Vocabulaire métier « IA et informatique »** (« AI and computing » en anglais), à cocher dans
+  Paramètres, Transcription, Vocabulaire métier : IA, LLM, carte graphique, GPU, RAM, prompt, RAG,
+  fine-tuning, et quelques langages et logiciels libres très courants (Python, Linux, Git...).
+  Mesuré sur un corpus fictif en français : 24 termes sur 31 bien écrits avec la liste, contre 15
+  sans (decision.md §44). Les vocabulaires déjà cochés ne changent pas.
+- Outils de mesure (développeurs) : `eval-vocab.mjs --corpus=vocab-ia` (corpus « IA et
+  informatique », français et anglais) ; `eval-separation.mjs --model=convtasnet` et
+  `export-convtasnet.py`, étude d'une séparation des voix plus légère que MossFormer2, non intégrée
+  (decision.md §44).
 - Outils de mesure (développeurs) : le banc `tools/test/eval-summary.mjs` mesure les modèles
   Qwen3 et peut ne donner au modèle que le compte rendu extractif (`--extrait`). Étude du lot C3 :
   aucun compte rendu rédigé par une IA locale n'est intégré, le seul modèle qui tient dans le

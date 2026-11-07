@@ -9,7 +9,9 @@
 //      la meilleure des deux pistes.
 // Prérequis : modèle de séparation dans tools/.cache/sep/model.int8.onnx (révision figée, voir
 // decision.md §39), Whisper small dans tools/.cache/models (npm run fetch-all), corpus généré.
-// Usage : node test/eval-separation.mjs [--teams] [--max=N]
+// Avec --model=convtasnet (decision.md §44) : ConvTasNet (Asteroid, 5 millions de paramètres,
+// 16 kHz, CC-BY-SA 4.0), exporté par test/export-convtasnet.py dans tools/.cache/sep-convtasnet.
+// Usage : node test/eval-separation.mjs [--teams] [--max=N] [--model=mossformer2|convtasnet]
 import { chromium } from 'playwright-core';
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -22,6 +24,12 @@ const tools = join(here, '..');
 const RATE = 16000;
 const teams = process.argv.includes('--teams');
 const max = Number((process.argv.find((a) => a.startsWith('--max=')) || '').split('=')[1]) || Infinity;
+const MODELS = {
+  mossformer2: { name: 'MossFormer2', dir: 'sep', file: 'model.int8.onnx' },
+  convtasnet: { name: 'ConvTasNet', dir: 'sep-convtasnet', file: 'model.onnx' },
+};
+const choice = MODELS[(process.argv.find((a) => a.startsWith('--model=')) || '--model=mossformer2').slice(8)];
+if (!choice) throw new Error('modèle inconnu : mossformer2 ou convtasnet');
 
 const truth = JSON.parse(await readFile(join(here, 'corpus', 'simultane.truth.json'), 'utf8'));
 const wav = await readFile(join(here, 'corpus', `simultane-others${teams ? '-teams' : ''}.wav`));
@@ -46,15 +54,15 @@ const cases = pairs.slice(0, max).map((p) => {
 
 // --- Séparation dans Chromium (ONNX Runtime Web, WebAssembly, un seul fil) ---
 const roots = {
-  '/sep/': join(tools, '.cache', 'sep'),
+  '/sep/': join(tools, '.cache', choice.dir),
   '/ort/': join(tools, 'node_modules', 'onnxruntime-web', 'dist'),
 };
 const types = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.wasm': 'application/wasm' };
-const page = `<!doctype html><meta charset="utf-8"><script src="/ort/ort.min.js"></script><script>
+const page = `<!doctype html><script>window.MODEL_FILE = '/sep/${choice.file}';</script><meta charset="utf-8"><script src="/ort/ort.min.js"></script><script>
 window.separate = async (clips) => {
   ort.env.wasm.numThreads = 1;
   const t0 = performance.now();
-  const session = await ort.InferenceSession.create('/sep/model.int8.onnx', { executionProviders: ['wasm'] });
+  const session = await ort.InferenceSession.create(window.MODEL_FILE, { executionProviders: ['wasm'] });
   const loadMs = performance.now() - t0;
   const out = [];
   for (const c of clips) {
@@ -170,7 +178,7 @@ for (const kind of [...new Set(rows.map((r) => r.kind)), 'tous']) {
     'même piste': sel.filter((r) => r.sameTrack).length,
   });
 }
-console.log(`Séparation de deux voix (MossFormer2, WebAssembly un fil), son ${teams ? 'de visio' : 'propre'}`);
+console.log(`Séparation de deux voix (${choice.name}, WebAssembly un fil), son ${teams ? 'de visio' : 'propre'}`);
 console.table(table);
 console.log(
   `Chargement du modèle : ${(sep.loadMs / 1000).toFixed(1)} s ; calcul : ${(sepMs / 1000).toFixed(1)} s pour ` +

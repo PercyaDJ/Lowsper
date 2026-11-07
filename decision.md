@@ -2919,3 +2919,72 @@ Un rapport sans invention ouvrirait un lot à part ; sinon, la piste sera close 
 mesure sur le portable de référence ni sur WebGPU (pas de carte graphique ici, et le portable de
 référence n'en a pas). Le relevé automatique des nombres inventés compte aussi les horodatages
 recopiés : seule la lecture des textes fait foi.
+
+## 44. Étude : vocabulaire « IA et informatique » et séparation des voix plus légère
+
+**Contexte.** Feuille de route du 7 novembre 2026 (`docs/lots.md`, lot « Étude »). Deux points
+laissés ouverts par le §39 : sur un son de qualité, les erreurs de Whisper portent surtout sur le
+jargon de l'IA et de l'informatique (« IA », « LLM », « carte graphique », « RAM », noms de
+logiciels, point 1) ; la séparation des voix par MossFormer2 était 20 fois plus lente que la parole
+(point 4). Machine de développement à 4 cœurs, sans carte graphique, voix de synthèse.
+
+### 1. Vocabulaire « IA et informatique »
+
+**Options.** Compléter la liste « Informatique et cloud » (`it`), ou créer un treizième domaine.
+**Choix du mainteneur** : un nouveau domaine `ia` (« IA et informatique », « AI and computing »),
+la liste `it` restant identique (réunions déjà réglées, §35). Contenu (choix du mainteneur) :
+termes génériques, plus des langages et logiciels libres très courants (Python, JavaScript,
+TypeScript, Linux, Git, PostgreSQL, PyTorch), jamais une marque d'éditeur commercial : exception
+à la règle des listes (`CONTRIBUTING.md`), limitée à ce domaine. Les logiciels commerciaux ou
+propres à une entreprise passent par les « Mots à reconnaître ». 39 termes en français, 37 en
+anglais (`app/js/vocabularies.js`), du plus utile au moins utile ; aucune correction automatique
+ajoutée (les déformations vues ci-dessous viennent des voix de synthèse, pas de vraies réunions).
+
+**Mesure.** Corpus `tools/test/corpus/vocab-ia.json` : douze phrases fictives par langue (français :
+voix Piper siwis et tom ; anglais : lessac et alan ; piper-tts 1.8.0), 31 occurrences de termes
+par langue. Banc `eval-vocab.mjs --corpus=vocab-ia` : contextes construits par les fonctions de
+Lowsper (`Vocabulary.alternate`, `Vocabulary.prompt`), terme compté comme mot entier (« IA »
+n'est pas trouvé dans « via »), sans tenir compte de la casse ni des accents. Whisper small.
+
+| Listes cochées | Français : termes | Français : erreur par mot | Anglais : termes | Anglais : erreur par mot |
+|---|---|---|---|---|
+| Aucune | 15/31 | 23,4 % | 29/31 | 6,8 % |
+| Informatique et cloud (seule possibilité avant ce lot) | 16/31 | 24,1 % | 29/31 | 5,1 % |
+| IA et informatique | **24/31** | **13,9 %** | 30/31 | 3,4 % |
+| IA + informatique et cloud | 23/31 | 16,1 % | 30/31 | 3,4 % |
+| IA + informatique + cybersécurité | 22/31 | 16,8 % | 30/31 | 3,4 % |
+
+Termes encore manqués en français avec la liste : « carte graphique » (« 100 quart de
+graphique »), « gigaoctet » (« gigactets »), « API » (« l'appi »), « Git » et « PostgreSQL »
+(« le dépogis et la base posture SQL »), « AI Act » et « machine learning », prononcés à la
+française par la voix de synthèse. En anglais, seul « PostgreSQL » reste manqué.
+
+**Lecture.** En français, la liste corrige la moitié des termes manqués et divise presque par deux
+l'erreur par mot de ces phrases ; en anglais, Whisper connaît déjà ce jargon, le gain est faible.
+Cocher d'autres listes avec celle-ci coûte un ou deux termes (place partagée, §35).
+
+**Direct.** Aucune ligne de code du chemin du direct ne change : le domaine est une donnée de plus,
+et le contexte reste plafonné à 200 jetons comme avec les douze autres listes. Pas de mesure
+`npm run bench` pour ce point (rien à comparer).
+
+**Limites.** Phrases et liste écrites ensemble (corpus de réglage, pas à l'aveugle) ; une mesure
+par condition ; voix de synthèse, dont la prononciation des sigles anglais en français est
+approximative. Non vérifié : de vraies réunions, et le portable de référence.
+
+### 2. Séparation des voix plus légère que MossFormer2
+
+**Candidat.** ConvTasNet (Asteroid, 5 066 929 paramètres, 20 Mo en 32 bits, deux voix, 16 kHz),
+entraîné sur Libri2Mix « sep_clean » (`JorisCos/ConvTasNet_Libri2Mix_sepclean_16k`, révision
+`e1ef95ab7a037950f3a606b9a56760cf94701d3d`, licence **CC-BY-SA 4.0**). Exporté en ONNX par
+`tools/test/export-convtasnet.py` (poids lus avec `torch.load(weights_only=True)`, aucun code du
+fichier exécuté). Mesuré par `eval-separation.mjs --model=convtasnet`, dans les mêmes conditions
+que MossFormer2 : Chromium, ONNX Runtime Web en WebAssembly, un seul fil, puis Whisper small sur
+le mélange et sur chaque piste.
+
+**Corpus.** « Paroles simultanées » (§39), régénéré : les sons n'étant pas versionnés et
+`make-overlap.py` ne retombant pas au centième près sur `simultane.truth.json` du dépôt
+(bibliothèques de synthèse d'une autre version), les deux modèles sont mesurés sur le **même** son
+régénéré ; le fichier du dépôt n'est pas modifié. 24 chevauchements côté participants (le §39 en
+mesurait 4 avec MossFormer2), découpés aux bornes connues des répliques, plus 0,5 s.
+
+MESURES_SEPARATION

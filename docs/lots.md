@@ -55,7 +55,19 @@ sans carte graphique, 16 Go, Edge ou Chrome. Pas de discussion avec la réunion 
 | C1 | Compte rendu extractif : décisions, actions, questions ouvertes, recopiées mot pour mot avec leur horodatage en haut de la note, transcript complet dessous ; français et anglais ; mesuré sur un corpus fictif | Livré |
 | C2 | Notes rapides tapées pendant la réunion, reprises dans la note ; consigne « e-mail de suivi » | Livré (4.4.0) |
 | C3 | Compte rendu rédigé par une IA locale, seulement là où une mesure sur le portable de référence le valide | Étudié : rien d'intégré |
-| Étude | Séparation des voix plus légère ; vocabulaire « IA et informatique » | À étudier |
+| Étude | Séparation des voix plus légère ; vocabulaire « IA et informatique » | Livré : vocabulaire intégré, séparation étudiée |
+
+## Étude : vocabulaire « IA et informatique » et séparation des voix plus légère (livré)
+
+Voir `decision.md` §44. Choix du mainteneur en cours de lot : un treizième domaine « IA et
+informatique » (`ia`), la liste « Informatique et cloud » restant inchangée ; termes génériques et
+quelques langages et logiciels libres très courants (Python, Linux, Git...), jamais une marque
+d'éditeur commercial. Mesuré sur un corpus fictif (`corpus/vocab-ia.json`, douze phrases par
+langue) : en français, 15 termes sur 31 bien écrits sans liste, 24 avec ; en anglais, 29 puis 30.
+Séparation des voix : ConvTasNet (5 millions de paramètres) mesuré sur le corpus « paroles
+simultanées », environ 40 fois plus rapide que MossFormer2 ; rien n'est intégré (voir §44 pour
+les gains, les limites et la suite proposée). Le chemin du direct n'a pas changé (données
+seulement). Non vérifié : de vraies réunions, et le portable de référence.
 
 ## C3 : compte rendu rédigé par une IA locale (étudié, rien d'intégré)
 
