@@ -1,0 +1,1324 @@
+{
+  "about": "Corpus aveugle du compte rendu extractif, écrit sans voir les règles de détection.",
+  "meetings": [
+    {
+      "id": "fr-aveugle-hopital",
+      "lang": "fr",
+      "split": "aveugle",
+      "title": "Planning du service de médecine",
+      "speakers": {
+        "Vous": {
+          "voice": "fr_FR-tom-medium",
+          "channel": "me"
+        },
+        "Martine": {
+          "voice": "fr_FR-siwis-medium",
+          "channel": "others"
+        },
+        "Karim": {
+          "voice": "fr_FR-upmc-medium",
+          "speaker": 0,
+          "channel": "others"
+        },
+        "Élodie": {
+          "voice": "fr_FR-mls-medium",
+          "speaker": 23,
+          "channel": "others"
+        }
+      },
+      "lines": [
+        {
+          "who": "Martine",
+          "text": "Bon, on peut commencer ? Karim, tu m'entends bien ?"
+        },
+        {
+          "who": "Karim",
+          "text": "Oui, oui, je t'entends, c'est bon."
+        },
+        {
+          "who": "Martine",
+          "text": "Alors, premier point, le planning des congés d'été. Je vous rappelle qu'on avait acté en mars que personne ne part plus de trois semaines d'affilée."
+        },
+        {
+          "who": "Élodie",
+          "text": "Oui, et du coup pour juillet, on est vraiment justes en infirmières de nuit."
+        },
+        {
+          "who": "Vous",
+          "text": "Moi je propose qu'on fasse appel à l'intérim dès la première semaine de juillet."
+        },
+        {
+          "who": "Martine",
+          "text": "Non, l'intérim, on oublie, le budget ne le permet pas cette année. On va plutôt ouvrir des heures supplémentaires sur la base du volontariat.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "Non, l'intérim, on oublie, le budget ne le permet pas cette année."
+            },
+            {
+              "kind": "decision",
+              "text": "On va plutôt ouvrir des heures supplémentaires sur la base du volontariat."
+            }
+          ]
+        },
+        {
+          "who": "Karim",
+          "text": "D'accord. Et qui fait le tableau des volontaires ?"
+        },
+        {
+          "who": "Élodie",
+          "text": "Je m'en occupe, je l'affiche en salle de soins d'ici vendredi.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Je m'en occupe, je l'affiche en salle de soins d'ici vendredi."
+            }
+          ]
+        },
+        {
+          "who": "Martine",
+          "text": "Parfait, merci Élodie."
+        },
+        {
+          "who": "Karim",
+          "text": "Deuxième chose, le chariot d'urgence du couloir B, il manque toujours le défibrillateur de rechange."
+        },
+        {
+          "who": "Martine",
+          "text": "Ah oui, ça traîne depuis un mois, ça. Karim, tu relances le biomédical aujourd'hui, s'il te plaît.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Karim, tu relances le biomédical aujourd'hui, s'il te plaît."
+            }
+          ]
+        },
+        {
+          "who": "Karim",
+          "text": "Ça marche.",
+          "marks": [
+            {
+              "kind": "neutral",
+              "text": "Ça marche."
+            }
+          ]
+        },
+        {
+          "who": "Vous",
+          "text": "Et est-ce qu'on sait quand les nouveaux lits électriques doivent arriver ?",
+          "marks": [
+            {
+              "kind": "question",
+              "text": "Et est-ce qu'on sait quand les nouveaux lits électriques doivent arriver ?"
+            }
+          ]
+        },
+        {
+          "who": "Martine",
+          "text": "Aucune idée, honnêtement, j'ai demandé trois fois."
+        },
+        {
+          "who": "Élodie",
+          "text": "Ce serait bien qu'un jour quelqu'un range enfin la réserve, on ne trouve plus rien."
+        },
+        {
+          "who": "Martine",
+          "text": "Bon. Pour les transmissions du matin, on passe à sept heures moins le quart au lieu de sept heures, à partir du premier juin.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "Pour les transmissions du matin, on passe à sept heures moins le quart au lieu de sept heures, à partir du premier juin."
+            }
+          ]
+        },
+        {
+          "who": "Karim",
+          "text": "Ça me va. Mais si jamais l'équipe de nuit n'est pas d'accord, on fait comment ?"
+        },
+        {
+          "who": "Martine",
+          "text": "S'ils ne sont pas d'accord, on en rediscutera, mais pour l'instant on part là-dessus."
+        },
+        {
+          "who": "Vous",
+          "text": "Je préviens l'équipe de nuit ce soir à la relève, comme ça c'est fait.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Je préviens l'équipe de nuit ce soir à la relève, comme ça c'est fait."
+            }
+          ]
+        },
+        {
+          "who": "Élodie",
+          "text": "Autre sujet, la formation sur les pompes à perfusion. Elle est prévue quand, au final ?"
+        },
+        {
+          "who": "Martine",
+          "text": "On la cale le jeudi douze juin, de quatorze à seize heures.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "On la cale le jeudi douze juin, de quatorze à seize heures."
+            }
+          ]
+        },
+        {
+          "who": "Karim",
+          "text": "Il faudrait que quelqu'un réserve la salle."
+        },
+        {
+          "who": "Vous",
+          "text": "Je peux réserver la salle, oui, pas de souci.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Je peux réserver la salle, oui, pas de souci."
+            }
+          ]
+        },
+        {
+          "who": "Élodie",
+          "text": "Et pour les étudiants qui arrivent en septembre, on les met en binôme avec qui ? On n'a pas encore tranché, je crois.",
+          "marks": [
+            {
+              "kind": "question",
+              "text": "Et pour les étudiants qui arrivent en septembre, on les met en binôme avec qui ?"
+            }
+          ]
+        },
+        {
+          "who": "Martine",
+          "text": "Non, effectivement, on verra ça la prochaine fois."
+        },
+        {
+          "who": "Karim",
+          "text": "Dernière chose, est-ce que la réunion de service du mois prochain est toujours le mardi ?"
+        },
+        {
+          "who": "Martine",
+          "text": "Oui, toujours le mardi, rien ne change."
+        },
+        {
+          "who": "Vous",
+          "text": "Je récapitule : heures supplémentaires au volontariat, transmissions à sept heures moins le quart, formation le douze juin, Élodie fait le tableau et Karim relance le biomédical.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "Je récapitule : heures supplémentaires au volontariat, transmissions à sept heures moins le quart, formation le douze juin, Élodie fait le tableau et Karim relance le biomédical.",
+              "also": [
+                "action"
+              ]
+            }
+          ]
+        },
+        {
+          "who": "Martine",
+          "text": "C'est ça. Merci à tous, bonne journée."
+        }
+      ]
+    },
+    {
+      "id": "fr-aveugle-parents",
+      "lang": "fr",
+      "split": "aveugle",
+      "title": "Conseil des parents d'élèves",
+      "speakers": {
+        "Vous": {
+          "voice": "fr_FR-tom-medium",
+          "channel": "me"
+        },
+        "Sandrine": {
+          "voice": "fr_FR-upmc-medium",
+          "speaker": 1,
+          "channel": "others"
+        },
+        "Thierry": {
+          "voice": "fr_FR-mls-medium",
+          "speaker": 41,
+          "channel": "others"
+        },
+        "Nadia": {
+          "voice": "fr_FR-mls-medium",
+          "speaker": 86,
+          "channel": "others"
+        }
+      },
+      "lines": [
+        {
+          "who": "Sandrine",
+          "text": "Bonsoir à tous, merci d'être venus malgré la pluie."
+        },
+        {
+          "who": "Thierry",
+          "text": "Attendez, je n'ai pas de son. Vous me voyez, là ?"
+        },
+        {
+          "who": "Nadia",
+          "text": "Oui, on te voit, ça y est, ça marche."
+        },
+        {
+          "who": "Sandrine",
+          "text": "Bien. Premier point, la kermesse de fin d'année. Il faut fixer une date."
+        },
+        {
+          "who": "Thierry",
+          "text": "Le samedi vingt-huit juin, ça arrangerait pas mal de familles, non ?"
+        },
+        {
+          "who": "Nadia",
+          "text": "Ou alors le vingt et un, mais il y a déjà le tournoi de foot du quartier ce jour-là."
+        },
+        {
+          "who": "Sandrine",
+          "text": "Bon, va pour le vingt-huit. Tout le monde est d'accord ? Parfait.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "Bon, va pour le vingt-huit."
+            }
+          ]
+        },
+        {
+          "who": "Vous",
+          "text": "Pour les stands, je veux bien prendre en charge la buvette, avec mon mari.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Pour les stands, je veux bien prendre en charge la buvette, avec mon mari."
+            }
+          ]
+        },
+        {
+          "who": "Thierry",
+          "text": "Moi je peux m'occuper de la pêche à la ligne, comme l'an dernier.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Moi je peux m'occuper de la pêche à la ligne, comme l'an dernier."
+            }
+          ]
+        },
+        {
+          "who": "Sandrine",
+          "text": "Super. Nadia, tu pourrais contacter la mairie pour les tables et les barnums ?",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Nadia, tu pourrais contacter la mairie pour les tables et les barnums ?"
+            }
+          ]
+        },
+        {
+          "who": "Nadia",
+          "text": "Oui, je les appelle lundi.",
+          "marks": [
+            {
+              "kind": "neutral",
+              "text": "Oui, je les appelle lundi."
+            }
+          ]
+        },
+        {
+          "who": "Thierry",
+          "text": "Deuxième point, la cantine. Plusieurs parents se plaignent des portions."
+        },
+        {
+          "who": "Vous",
+          "text": "On pourrait demander une rencontre avec le prestataire, peut-être ?"
+        },
+        {
+          "who": "Sandrine",
+          "text": "Je pense que c'est plus efficace d'écrire d'abord au directeur. Donc on fait un courrier commun, signé par le conseil.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "Donc on fait un courrier commun, signé par le conseil."
+            }
+          ]
+        },
+        {
+          "who": "Nadia",
+          "text": "Qui le rédige, ce courrier ?"
+        },
+        {
+          "who": "Vous",
+          "text": "Je m'y colle, je vous envoie un brouillon d'ici mercredi.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Je m'y colle, je vous envoie un brouillon d'ici mercredi."
+            }
+          ]
+        },
+        {
+          "who": "Thierry",
+          "text": "Et est-ce que la mairie compte vraiment fermer une classe de cours préparatoire l'an prochain ? Personne n'a d'information officielle là-dessus.",
+          "marks": [
+            {
+              "kind": "question",
+              "text": "Et est-ce que la mairie compte vraiment fermer une classe de cours préparatoire l'an prochain ?"
+            }
+          ]
+        },
+        {
+          "who": "Sandrine",
+          "text": "Non, rien d'officiel pour l'instant, ce sont des rumeurs."
+        },
+        {
+          "who": "Nadia",
+          "text": "Si elle ferme, il faudra qu'on se mobilise, mais bon, on n'en est pas là."
+        },
+        {
+          "who": "Sandrine",
+          "text": "Troisième point, les sorties scolaires. L'an dernier, on avait décidé de financer la moitié du bus, je le rappelle."
+        },
+        {
+          "who": "Thierry",
+          "text": "Cette année on reste sur la moitié ?"
+        },
+        {
+          "who": "Sandrine",
+          "text": "Non, cette année on monte aux deux tiers, la trésorerie le permet.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "Non, cette année on monte aux deux tiers, la trésorerie le permet."
+            }
+          ]
+        },
+        {
+          "who": "Nadia",
+          "text": "Il faudrait vraiment refaire le site du conseil, il est vieillot."
+        },
+        {
+          "who": "Vous",
+          "text": "Oui, un jour, quand on aura le temps."
+        },
+        {
+          "who": "Thierry",
+          "text": "On sait combien de parents bénévoles on aura pour encadrer la sortie au zoo ? Parce que la maîtresse en demande au moins six.",
+          "marks": [
+            {
+              "kind": "question",
+              "text": "On sait combien de parents bénévoles on aura pour encadrer la sortie au zoo ?"
+            }
+          ]
+        },
+        {
+          "who": "Sandrine",
+          "text": "Bonne question, on verra bien. Il est tard, je propose qu'on s'arrête là."
+        },
+        {
+          "who": "Vous",
+          "text": "Donc pour résumer, kermesse le vingt-huit juin, courrier au directeur, et sorties financées aux deux tiers.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "Donc pour résumer, kermesse le vingt-huit juin, courrier au directeur, et sorties financées aux deux tiers."
+            }
+          ]
+        },
+        {
+          "who": "Nadia",
+          "text": "Et moi la mairie lundi, Thierry la pêche à la ligne, toi la buvette et le courrier.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Et moi la mairie lundi, Thierry la pêche à la ligne, toi la buvette et le courrier."
+            }
+          ]
+        },
+        {
+          "who": "Sandrine",
+          "text": "Voilà. Merci tout le monde, bonne soirée."
+        }
+      ]
+    },
+    {
+      "id": "fr-aveugle-voirie",
+      "lang": "fr",
+      "split": "aveugle",
+      "title": "Commission des travaux de la commune",
+      "speakers": {
+        "Vous": {
+          "voice": "fr_FR-tom-medium",
+          "channel": "me"
+        },
+        "Gérard": {
+          "voice": "fr_FR-mls-medium",
+          "speaker": 7,
+          "channel": "others"
+        },
+        "Lucie": {
+          "voice": "fr_FR-siwis-medium",
+          "channel": "others"
+        },
+        "Bastien": {
+          "voice": "fr_FR-mls-medium",
+          "speaker": 112,
+          "channel": "others"
+        },
+        "Fanny": {
+          "voice": "fr_FR-upmc-medium",
+          "speaker": 0,
+          "channel": "others"
+        }
+      },
+      "lines": [
+        {
+          "who": "Gérard",
+          "text": "Bonjour à tous. On a une heure, donc on va essayer d'être efficaces."
+        },
+        {
+          "who": "Lucie",
+          "text": "Euh, est-ce que quelqu'un peut couper son micro ? Il y a un écho terrible."
+        },
+        {
+          "who": "Bastien",
+          "text": "Pardon, c'est moi, voilà."
+        },
+        {
+          "who": "Gérard",
+          "text": "Bon. La réfection de la rue des Tilleuls. Le devis est arrivé, on est à quarante-deux mille euros."
+        },
+        {
+          "who": "Fanny",
+          "text": "C'est beaucoup plus que prévu. Est-ce qu'on ne pourrait pas faire seulement la moitié cette année ?"
+        },
+        {
+          "who": "Gérard",
+          "text": "Franchement, je préfère qu'on ne coupe pas en deux, ça coûterait plus cher au final."
+        },
+        {
+          "who": "Lucie",
+          "text": "Je suis d'accord avec Gérard."
+        },
+        {
+          "who": "Gérard",
+          "text": "Bon, alors c'est réglé, on fait toute la rue en une fois, pendant les vacances de la Toussaint.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "Bon, alors c'est réglé, on fait toute la rue en une fois, pendant les vacances de la Toussaint."
+            }
+          ]
+        },
+        {
+          "who": "Vous",
+          "text": "Il faudra prévenir les riverains au moins trois semaines avant."
+        },
+        {
+          "who": "Lucie",
+          "text": "Je fais le courrier aux riverains, et je le dépose aussi chez les commerçants.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Je fais le courrier aux riverains, et je le dépose aussi chez les commerçants."
+            }
+          ]
+        },
+        {
+          "who": "Bastien",
+          "text": "Et la déviation pour le bus scolaire, elle passe par où ?"
+        },
+        {
+          "who": "Gérard",
+          "text": "On la fait passer par l'avenue du Stade, c'est la seule option qui tient la route.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "On la fait passer par l'avenue du Stade, c'est la seule option qui tient la route."
+            }
+          ]
+        },
+        {
+          "who": "Bastien",
+          "text": "D'accord. Je vois avec le transporteur pour ajuster les horaires.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Je vois avec le transporteur pour ajuster les horaires."
+            }
+          ]
+        },
+        {
+          "who": "Fanny",
+          "text": "Deuxième sujet, l'éclairage du parking de la salle des fêtes. On avait voté le passage en lampes basse consommation l'an dernier, je vous le rappelle."
+        },
+        {
+          "who": "Vous",
+          "text": "Oui, et ça n'a jamais été fait. Pourquoi, d'ailleurs ?"
+        },
+        {
+          "who": "Gérard",
+          "text": "Parce que le fournisseur a fait faillite, tout simplement."
+        },
+        {
+          "who": "Vous",
+          "text": "Alors je relance un appel d'offres, je m'en charge dès lundi.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Alors je relance un appel d'offres, je m'en charge dès lundi."
+            }
+          ]
+        },
+        {
+          "who": "Gérard",
+          "text": "Très bien. Lucie, tu peux lui transmettre l'ancien cahier des charges ?",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Lucie, tu peux lui transmettre l'ancien cahier des charges ?"
+            }
+          ]
+        },
+        {
+          "who": "Lucie",
+          "text": "Oui, pas de problème.",
+          "marks": [
+            {
+              "kind": "neutral",
+              "text": "Oui, pas de problème."
+            }
+          ]
+        },
+        {
+          "who": "Bastien",
+          "text": "Troisième chose, le terrain de pétanque. Les habitants voudraient un abri."
+        },
+        {
+          "who": "Gérard",
+          "text": "Si on avait du budget, pourquoi pas. Mais cette année c'est non, on reporte l'abri au budget de l'an prochain.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "Mais cette année c'est non, on reporte l'abri au budget de l'an prochain."
+            }
+          ]
+        },
+        {
+          "who": "Fanny",
+          "text": "Est-ce que la région peut subventionner ce genre de petit équipement ? Je n'ai jamais réussi à avoir une réponse claire.",
+          "marks": [
+            {
+              "kind": "question",
+              "text": "Est-ce que la région peut subventionner ce genre de petit équipement ?"
+            }
+          ]
+        },
+        {
+          "who": "Lucie",
+          "text": "Aucune idée, vraiment."
+        },
+        {
+          "who": "Bastien",
+          "text": "Ce serait bien de faire un point avec les associations du quartier un de ces jours."
+        },
+        {
+          "who": "Gérard",
+          "text": "Oui. Dernier point, la prochaine commission. On la fixe au mardi quatorze octobre, à dix-huit heures.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "On la fixe au mardi quatorze octobre, à dix-huit heures."
+            }
+          ]
+        },
+        {
+          "who": "Fanny",
+          "text": "Et la question du stationnement devant l'école, on la traite quand ? Ça fait trois réunions qu'on la repousse.",
+          "marks": [
+            {
+              "kind": "question",
+              "text": "Et la question du stationnement devant l'école, on la traite quand ?"
+            }
+          ]
+        },
+        {
+          "who": "Gérard",
+          "text": "Je sais, je sais. On manque de temps."
+        },
+        {
+          "who": "Vous",
+          "text": "Je résume : rue des Tilleuls en une fois à la Toussaint, déviation par l'avenue du Stade, pas d'abri cette année. Lucie fait le courrier, Bastien voit le transporteur et moi l'appel d'offres.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "Je résume : rue des Tilleuls en une fois à la Toussaint, déviation par l'avenue du Stade, pas d'abri cette année."
+            },
+            {
+              "kind": "action",
+              "text": "Lucie fait le courrier, Bastien voit le transporteur et moi l'appel d'offres."
+            }
+          ]
+        },
+        {
+          "who": "Gérard",
+          "text": "Parfait. Merci, bonne fin de journée."
+        }
+      ]
+    },
+    {
+      "id": "en-aveugle-retro",
+      "lang": "en",
+      "split": "aveugle",
+      "title": "Sprint retrospective",
+      "speakers": {
+        "You": {
+          "voice": "en_US-ryan-medium",
+          "channel": "me"
+        },
+        "Priya": {
+          "voice": "en_US-amy-medium",
+          "channel": "others"
+        },
+        "Owen": {
+          "voice": "en_GB-alan-medium",
+          "channel": "others"
+        },
+        "Hannah": {
+          "voice": "en_US-libritts_r-medium",
+          "speaker": 12,
+          "channel": "others"
+        }
+      },
+      "lines": [
+        {
+          "who": "Priya",
+          "text": "Okay, can everyone hear me? Owen, you're a bit choppy."
+        },
+        {
+          "who": "Owen",
+          "text": "Yeah, sorry, is that better now?"
+        },
+        {
+          "who": "Priya",
+          "text": "Much better. So, sprint retro. Let's start with what went wrong."
+        },
+        {
+          "who": "Owen",
+          "text": "The release on Thursday, honestly. We pushed it out at like eleven at night and the rollback took forever."
+        },
+        {
+          "who": "Hannah",
+          "text": "Just to remind everyone, we agreed back in spring that nobody deploys after four in the afternoon. And we still did it."
+        },
+        {
+          "who": "You",
+          "text": "Yeah, that's on me, I pushed for it."
+        },
+        {
+          "who": "Priya",
+          "text": "Okay, so from now on, no deploys on Thursdays or Fridays, full stop.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "Okay, so from now on, no deploys on Thursdays or Fridays, full stop."
+            }
+          ]
+        },
+        {
+          "who": "Owen",
+          "text": "What if it's a critical security fix, though?"
+        },
+        {
+          "who": "Priya",
+          "text": "If that ever happens, we'll figure it out, I guess."
+        },
+        {
+          "who": "Hannah",
+          "text": "The other thing is the flaky tests. Half the pipeline failures last week were the same two tests."
+        },
+        {
+          "who": "Owen",
+          "text": "I can take a look at those this week, I think it's a timing issue.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "I can take a look at those this week, I think it's a timing issue."
+            }
+          ]
+        },
+        {
+          "who": "You",
+          "text": "Should we just delete them? Like, do they even test anything useful?"
+        },
+        {
+          "who": "Hannah",
+          "text": "No, we're not deleting them, they caught a real bug in March. We quarantine them until Owen fixes them.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "No, we're not deleting them, they caught a real bug in March."
+            },
+            {
+              "kind": "decision",
+              "text": "We quarantine them until Owen fixes them."
+            }
+          ]
+        },
+        {
+          "who": "Priya",
+          "text": "Fine by me. Next, the on-call rotation. It's been the same three people for two months."
+        },
+        {
+          "who": "Hannah",
+          "text": "It'd be nice if someone updated the on-call wiki page at some point, it's totally outdated."
+        },
+        {
+          "who": "You",
+          "text": "I'll rewrite the rotation so everyone's on it, and I'll share the new schedule by Monday.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "I'll rewrite the rotation so everyone's on it, and I'll share the new schedule by Monday."
+            }
+          ]
+        },
+        {
+          "who": "Priya",
+          "text": "Great. Hannah, could you handle the handover checklist for new people?",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Hannah, could you handle the handover checklist for new people?"
+            }
+          ]
+        },
+        {
+          "who": "Hannah",
+          "text": "Sure, will do.",
+          "marks": [
+            {
+              "kind": "neutral",
+              "text": "Sure, will do."
+            }
+          ]
+        },
+        {
+          "who": "Owen",
+          "text": "Do we know if we're getting budget for the second staging server? Nobody's told us anything.",
+          "marks": [
+            {
+              "kind": "question",
+              "text": "Do we know if we're getting budget for the second staging server?"
+            }
+          ]
+        },
+        {
+          "who": "Priya",
+          "text": "Not yet, I'm still waiting on finance."
+        },
+        {
+          "who": "You",
+          "text": "We tried pair programming on Tuesdays, and I think it worked well. Do we keep it?"
+        },
+        {
+          "who": "Priya",
+          "text": "Let's keep it, but make it every other week instead of weekly.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "Let's keep it, but make it every other week instead of weekly."
+            }
+          ]
+        },
+        {
+          "who": "Owen",
+          "text": "Works for me."
+        },
+        {
+          "who": "Hannah",
+          "text": "One more thing. How are we supposed to estimate the migration work when we don't even know what the new interface looks like?",
+          "marks": [
+            {
+              "kind": "question",
+              "text": "How are we supposed to estimate the migration work when we don't even know what the new interface looks like?"
+            }
+          ]
+        },
+        {
+          "who": "Priya",
+          "text": "Good point. Honestly, nobody knows yet, we'll have to see."
+        },
+        {
+          "who": "You",
+          "text": "And who's talking to the customer about the delay?"
+        },
+        {
+          "who": "Priya",
+          "text": "I'll call them tomorrow morning and explain.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "I'll call them tomorrow morning and explain."
+            }
+          ]
+        },
+        {
+          "who": "You",
+          "text": "Okay, so to wrap up: no deploys Thursdays or Fridays, flaky tests quarantined, pairing every other week, and Owen, Hannah and I have our tasks.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "Okay, so to wrap up: no deploys Thursdays or Fridays, flaky tests quarantined, pairing every other week, and Owen, Hannah and I have our tasks.",
+              "also": [
+                "action"
+              ]
+            }
+          ]
+        },
+        {
+          "who": "Priya",
+          "text": "Perfect. Thanks, everyone."
+        }
+      ]
+    },
+    {
+      "id": "en-aveugle-restaurant",
+      "lang": "en",
+      "split": "aveugle",
+      "title": "Kitchen briefing before service",
+      "speakers": {
+        "You": {
+          "voice": "en_US-ryan-medium",
+          "channel": "me"
+        },
+        "Marco": {
+          "voice": "en_GB-alan-medium",
+          "channel": "others"
+        },
+        "Jess": {
+          "voice": "en_US-lessac-medium",
+          "channel": "others"
+        },
+        "Tom": {
+          "voice": "en_US-libritts_r-medium",
+          "speaker": 340,
+          "channel": "others"
+        },
+        "Aisha": {
+          "voice": "en_US-amy-medium",
+          "channel": "others"
+        }
+      },
+      "lines": [
+        {
+          "who": "Marco",
+          "text": "Alright, gather round, we've got ten minutes before service."
+        },
+        {
+          "who": "Jess",
+          "text": "Can you guys hear me at the back? The extractor fan is so loud."
+        },
+        {
+          "who": "Tom",
+          "text": "Yeah, we can hear you, go on."
+        },
+        {
+          "who": "Marco",
+          "text": "First thing, the new menu. We're dropping the duck, it's just not selling.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "We're dropping the duck, it's just not selling."
+            }
+          ]
+        },
+        {
+          "who": "Aisha",
+          "text": "What do we replace it with?"
+        },
+        {
+          "who": "Marco",
+          "text": "We go with the lamb shoulder from Friday, people loved it at the tasting.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "We go with the lamb shoulder from Friday, people loved it at the tasting."
+            }
+          ]
+        },
+        {
+          "who": "Jess",
+          "text": "Remember we said in January we'd keep at least two vegetarian mains at all times."
+        },
+        {
+          "who": "You",
+          "text": "Yeah, and right now we only have the risotto. I'll come up with a second veggie main and run it past you by Wednesday.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "I'll come up with a second veggie main and run it past you by Wednesday."
+            }
+          ]
+        },
+        {
+          "who": "Marco",
+          "text": "Good. Tom, you're on the new prep sheets for the lamb.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Tom, you're on the new prep sheets for the lamb."
+            }
+          ]
+        },
+        {
+          "who": "Tom",
+          "text": "On it.",
+          "marks": [
+            {
+              "kind": "neutral",
+              "text": "On it."
+            }
+          ]
+        },
+        {
+          "who": "Aisha",
+          "text": "Second thing, the Saturday bookings. We're getting a lot of big tables."
+        },
+        {
+          "who": "Marco",
+          "text": "Should we cap groups at eight? I'm thinking out loud here."
+        },
+        {
+          "who": "Jess",
+          "text": "If we cap it, we lose the birthday parties, and those are good money."
+        },
+        {
+          "who": "Marco",
+          "text": "Fair. Okay, no cap, but anything over eight has to go on the set menu.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "Okay, no cap, but anything over eight has to go on the set menu."
+            }
+          ]
+        },
+        {
+          "who": "Aisha",
+          "text": "I'll update the booking page and let the front desk know tonight.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "I'll update the booking page and let the front desk know tonight."
+            }
+          ]
+        },
+        {
+          "who": "Tom",
+          "text": "Has anyone heard back from the landlord about the walk-in fridge? It's been making that noise again.",
+          "marks": [
+            {
+              "kind": "question",
+              "text": "Has anyone heard back from the landlord about the walk-in fridge?"
+            }
+          ]
+        },
+        {
+          "who": "Marco",
+          "text": "No, nothing. Still waiting."
+        },
+        {
+          "who": "Jess",
+          "text": "We really should deep clean the extraction hood one of these days."
+        },
+        {
+          "who": "You",
+          "text": "What time is the fish delivery tomorrow?"
+        },
+        {
+          "who": "Aisha",
+          "text": "Seven thirty, same as always."
+        },
+        {
+          "who": "Marco",
+          "text": "Staff meal. From next week, it's at four fifteen, not four thirty, so we're not rushing before doors open.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "From next week, it's at four fifteen, not four thirty, so we're not rushing before doors open."
+            }
+          ]
+        },
+        {
+          "who": "Tom",
+          "text": "Who's covering Jess's shift on Sunday?"
+        },
+        {
+          "who": "You",
+          "text": "I can do it, I'm free Sunday.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "I can do it, I'm free Sunday."
+            }
+          ]
+        },
+        {
+          "who": "Jess",
+          "text": "Thank you, you're a lifesaver."
+        },
+        {
+          "who": "Aisha",
+          "text": "And are we doing anything for the anniversary in May, or not? Every year we talk about it and nothing happens.",
+          "marks": [
+            {
+              "kind": "question",
+              "text": "And are we doing anything for the anniversary in May, or not?"
+            }
+          ]
+        },
+        {
+          "who": "Marco",
+          "text": "Let's not get into that today. Jess, can you dig out the numbers from last year so we can talk about it next week?",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Jess, can you dig out the numbers from last year so we can talk about it next week?"
+            }
+          ]
+        },
+        {
+          "who": "You",
+          "text": "So, quick recap: duck's off, lamb's on from Friday, no cap on groups but set menu over eight, and staff meal at four fifteen.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "So, quick recap: duck's off, lamb's on from Friday, no cap on groups but set menu over eight, and staff meal at four fifteen."
+            }
+          ]
+        },
+        {
+          "who": "Marco",
+          "text": "That's it. Let's have a good service, everyone."
+        }
+      ]
+    },
+    {
+      "id": "en-aveugle-board",
+      "lang": "en",
+      "split": "aveugle",
+      "title": "Food bank board meeting",
+      "speakers": {
+        "You": {
+          "voice": "en_US-ryan-medium",
+          "channel": "me"
+        },
+        "Margaret": {
+          "voice": "en_US-lessac-medium",
+          "channel": "others"
+        },
+        "Daniel": {
+          "voice": "en_US-libritts_r-medium",
+          "speaker": 12,
+          "channel": "others"
+        },
+        "Rosa": {
+          "voice": "en_US-amy-medium",
+          "channel": "others"
+        },
+        "Ken": {
+          "voice": "en_GB-alan-medium",
+          "channel": "others"
+        }
+      },
+      "lines": [
+        {
+          "who": "Margaret",
+          "text": "Good evening, everyone. I think we have quorum, so let's begin. Daniel, are you with us? Your camera's off."
+        },
+        {
+          "who": "Daniel",
+          "text": "Yes, I'm here, just on my phone, sorry."
+        },
+        {
+          "who": "Margaret",
+          "text": "No problem. First item, the winter coat drive."
+        },
+        {
+          "who": "Rosa",
+          "text": "Last year we ran it for three weeks and it wasn't enough. I'd suggest six weeks this time."
+        },
+        {
+          "who": "Ken",
+          "text": "Six feels long. What about four?"
+        },
+        {
+          "who": "Margaret",
+          "text": "Let's split the difference. The board agrees on five weeks, starting the first Monday of November.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "The board agrees on five weeks, starting the first Monday of November."
+            }
+          ]
+        },
+        {
+          "who": "You",
+          "text": "I'll put together the flyer and get it to the printer by the end of next week.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "I'll put together the flyer and get it to the printer by the end of next week."
+            }
+          ]
+        },
+        {
+          "who": "Rosa",
+          "text": "And I'll reach out to the schools for collection points.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "And I'll reach out to the schools for collection points."
+            }
+          ]
+        },
+        {
+          "who": "Ken",
+          "text": "Second item, the van. It failed inspection again."
+        },
+        {
+          "who": "Daniel",
+          "text": "Honestly, we keep throwing money at it. Should we just sell it?",
+          "marks": [
+            {
+              "kind": "question",
+              "text": "Should we just sell it?"
+            }
+          ]
+        },
+        {
+          "who": "Ken",
+          "text": "Before we decide anything, let me get two repair quotes, I know a couple of garages.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Before we decide anything, let me get two repair quotes, I know a couple of garages."
+            }
+          ]
+        },
+        {
+          "who": "Margaret",
+          "text": "Good, let's come back to it when we have those."
+        },
+        {
+          "who": "Rosa",
+          "text": "Third item, the grant application. The deadline is the fifteenth."
+        },
+        {
+          "who": "You",
+          "text": "Is the deadline the fifteenth at midnight or at five?"
+        },
+        {
+          "who": "Rosa",
+          "text": "Five in the afternoon, I checked."
+        },
+        {
+          "who": "Margaret",
+          "text": "Daniel, can you take the budget section?",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Daniel, can you take the budget section?"
+            }
+          ]
+        },
+        {
+          "who": "Daniel",
+          "text": "Yeah, I can do that.",
+          "marks": [
+            {
+              "kind": "neutral",
+              "text": "Yeah, I can do that."
+            }
+          ]
+        },
+        {
+          "who": "Ken",
+          "text": "If we get the grant, we could hire a part-time coordinator."
+        },
+        {
+          "who": "Margaret",
+          "text": "That would be wonderful, but let's not count our chickens."
+        },
+        {
+          "who": "Rosa",
+          "text": "On volunteers, we decided last year that anyone under sixteen needs a parent present."
+        },
+        {
+          "who": "You",
+          "text": "Right, and do we have any idea how many volunteers we'll actually need for the holiday distribution? Nobody has counted yet.",
+          "marks": [
+            {
+              "kind": "question",
+              "text": "Right, and do we have any idea how many volunteers we'll actually need for the holiday distribution?"
+            }
+          ]
+        },
+        {
+          "who": "Margaret",
+          "text": "No, we don't. We'll need to figure that out."
+        },
+        {
+          "who": "Ken",
+          "text": "Also, the annual dinner. Venue options were the community hall or the church basement."
+        },
+        {
+          "who": "Margaret",
+          "text": "Let's go with the community hall, it's accessible and the kitchen is bigger.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "Let's go with the community hall, it's accessible and the kitchen is bigger."
+            }
+          ]
+        },
+        {
+          "who": "Daniel",
+          "text": "And the ticket price?"
+        },
+        {
+          "who": "Margaret",
+          "text": "We keep it at twenty-five dollars, no increase this year.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "We keep it at twenty-five dollars, no increase this year."
+            }
+          ]
+        },
+        {
+          "who": "Rosa",
+          "text": "It would be great if someone could update the donor list at some point."
+        },
+        {
+          "who": "Margaret",
+          "text": "Before we close, the next board meeting moves to the second Thursday of December, because of the holidays.",
+          "marks": [
+            {
+              "kind": "decision",
+              "text": "Before we close, the next board meeting moves to the second Thursday of December, because of the holidays."
+            }
+          ]
+        },
+        {
+          "who": "You",
+          "text": "Just to recap the actions: I do the flyer, Rosa the schools, Ken the quotes, and Daniel the budget section.",
+          "marks": [
+            {
+              "kind": "action",
+              "text": "Just to recap the actions: I do the flyer, Rosa the schools, Ken the quotes, and Daniel the budget section."
+            }
+          ]
+        },
+        {
+          "who": "Margaret",
+          "text": "Thank you all. Meeting adjourned."
+        }
+      ]
+    }
+  ]
+}
