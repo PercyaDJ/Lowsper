@@ -11,5 +11,3 @@ app/reglages.txt
 tools/dist/
 # Notes des réunions, écrites par l'application dans le dossier Lowsper (Notes/<emplacement>)
 /Notes/
-# Corpus « paroles simultanées » : sons régénérés à l'identique par tools/test/corpus/make-overlap.py
-tools/test/corpus/simultane-*.wav
