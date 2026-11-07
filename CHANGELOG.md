@@ -13,6 +13,11 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+### Corrigé
+
+- Journal des modifications : liens de comparaison des versions 4.0.0, 4.1.0 et 4.2.0 ajoutés, lien
+  « Non publié » à partir de la 4.2.0.
+
 ## [4.2.0] - 2026-11-07
 
 Mémoire des voix d'une visio à l'autre (lot R9). Rien à faire en passant à cette version : copiez
@@ -358,7 +363,10 @@ antérieures n'ont pas été taguées (la numérotation reprend la « version 3 
   journal technique.
 - Réglages copiés dans le dossier (`app/reglages.txt`), restaurés après un nettoyage du navigateur.
 
-[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.5.0...HEAD
+[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v4.2.0...HEAD
+[4.2.0]: https://github.com/PercyaDJ/Lowsper/compare/v4.1.0...v4.2.0
+[4.1.0]: https://github.com/PercyaDJ/Lowsper/compare/v4.0.0...v4.1.0
+[4.0.0]: https://github.com/PercyaDJ/Lowsper/releases/tag/v4.0.0
 [3.5.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.4.1...v3.5.0
 [3.4.1]: https://github.com/PercyaDJ/Lowsper/compare/v3.4.0...v3.4.1
 [3.4.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.3.0...v3.4.0
