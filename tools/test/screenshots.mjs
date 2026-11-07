@@ -91,6 +91,14 @@ while (Date.now() - t0 < SECONDS * 1000 * 0.8) {
   await page.waitForTimeout(1000);
 }
 await page.screenshot({ path: join(out, 'enregistrement.png') });
+// Notes rapides (lot C2) : deux notes fictives tapées pendant la réunion, Entrée pour ajouter
+for (const note of ['Vérifier le chiffre du budget T3 avec la finance', 'Relancer le prestataire pour le devis']) {
+  await page.fill('#qn-input', note);
+  await page.press('#qn-input', 'Enter');
+  await page.waitForTimeout(1500);
+}
+await page.evaluate(() => document.activeElement && document.activeElement.blur());
+await page.locator('#qn-form').screenshot({ path: join(out, 'notes-rapides.png') });
 // Fenêtre très basse : la mini-barre, la même que dans la mini-fenêtre (248 × 52)
 await page.setViewportSize({ width: 248, height: 52 });
 await page.waitForTimeout(500);

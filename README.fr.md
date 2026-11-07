@@ -49,6 +49,9 @@ confiée à une IA pour le compte rendu. Ni le son ni le texte ne quittent l'ord
   Sur des réunions fictives jamais utilisées pour le réglage, transcrites par Lowsper lui-même,
   la moitié de ces phrases sont retrouvées en français, sept sur dix en anglais ; huit sur dix des
   phrases recopiées sont justes.
+- **Notes rapides** tapées pendant la réunion, reprises dans la note avec l'heure où vous avez
+  commencé à les taper. « Obtenir un résumé » propose aussi un **e-mail de suivi** pour les
+  participants.
 - **Mots à reconnaître** (noms, sigles) et **corrections automatiques** des mots mal compris,
   gardés d'une réunion à l'autre ; douze vocabulaires métier intégrés, en français et en anglais.
 - **Emplacements** : chacun est un dossier et un format de note. « Pour les applications de

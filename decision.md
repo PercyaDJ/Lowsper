@@ -2739,3 +2739,74 @@ plus par phrase (pas de retour arrière explosif, §33). Non mesuré sur le port
 - Les décisions implicites (« ça me va », un silence qui vaut accord) ne sont pas repérées.
 - Suite possible, à mesurer d'abord : le lot C3 (IA locale) pourrait reprendre les phrases
   manquées, sur le portable de référence seulement si la mesure le valide.
+
+## 41. Notes rapides pendant la réunion et consigne « e-mail de suivi » (lot C2)
+
+**Contexte.** Feuille de route du 7 novembre 2026 (§39, `docs/lots.md`) : après le compte rendu
+extractif (§40), laisser l'utilisateur taper ses propres notes pendant la réunion, et proposer
+une consigne « e-mail de suivi » pour « Obtenir un résumé ». Machine de référence : portable
+d'entreprise sans carte graphique, 16 Go, Edge ou Chrome, hors ligne. Le direct ne doit pas
+ralentir.
+
+**Choix du mainteneur** (7 novembre 2026, sur trois options chacun) :
+- *Place dans la note* : une section « Vos notes » (« Your notes ») après le compte rendu et
+  avant le transcript, plutôt qu'insérée dans le transcript à son heure (noyée dans le texte) ou
+  les deux (doublon).
+- *Saisie* : dans la fenêtre agrandie seulement. La mini-fenêtre (248 × 52, tailles mesurées au
+  lot R5, §28) ne change pas : l'agrandir le temps de taper demanderait de nouvelles mesures dans
+  Chrome et Edge, en partie non vérifiables ici.
+- *Heure retenue* : celle de la première frappe, la plus proche du moment dont parle la note,
+  plutôt que celle de la validation, décalée de quelques secondes.
+
+**Réalisation.**
+- *Données* : `meta.notes`, liste de `{ t, text }` dans le transcript (`transcript.js`, `addNote`,
+  `removeNote`, `quickNotes`, `notesSection`). `t` est en secondes depuis le début de la réunion,
+  sur la même horloge que les répliques et les pauses (`meetingNow`, temps du contexte audio). Le
+  texte tient sur une ligne, espaces réduits, 500 caractères au plus. Gardées dans `meta`, les
+  notes sont conservées par la sauvegarde de secours et proposées avec le texte au lancement
+  suivant, sans code de plus.
+- *Interface* (`Lowsper.html`, `app.js`) : un formulaire « Note rapide » sous les trois gros
+  boutons. Entrée ou « Ajouter » valide, Échap efface, le focus reste dans le champ ; la liste
+  montre l'heure, le texte et « Retirer » (libellé accessible avec l'heure) ; l'ajout est annoncé
+  aux lecteurs d'écran. Une note tapée sans Entrée au moment de « Terminer » ou de « Commencer
+  une nouvelle réunion sans arrêter » est ajoutée à la réunion qui se termine : rien de ce qui est
+  tapé n'est perdu.
+- *Modèles de note* (`notes.js`) : variable `{{notes}}`, placée dans le modèle par défaut juste
+  avant le transcript, retirée proprement sans note rapide. Rétrocompatibilité (contrainte n° 8) :
+  les deux anciens modèles par défaut (avant et après le lot C1), reconnus au caractère près
+  comme jamais modifiés, reçoivent `{{notes}}` avant le transcript ; celui d'avant le lot C1 ne
+  gagne pas de compte rendu, comme décidé au §40. Un modèle modifié sans `{{notes}}` reçoit les
+  notes à la fin de la note : perdre ce que l'utilisateur a tapé serait pire qu'un emplacement
+  imparfait. `{{transcript_complet}}` les contient déjà (pas de doublon).
+- *Consigne « E-mail de suivi »* (`email-suivi`, textes dans `i18n.js`) : même structure que les
+  consignes du lot R6 (§29 : rôle, contexte, tâche, règles, transcript), même contexte, mêmes
+  trois premières règles. La tâche demande l'e-mail que « Vous » enverra aux participants
+  (objet, remerciement et objet de la réunion, décisions, actions avec qui, quoi, échéance,
+  questions ouvertes, prochaine étape seulement si elle a été fixée, formule de fin sans
+  signature) et dit ce qu'est la section « Vos notes ». Règles propres : aucun engagement qui n'a
+  pas été pris, ce qu'il faut vérifier entre crochets, ton professionnel et cordial. Ajoutée en
+  quatrième position : la consigne par défaut des emplacements reste le compte rendu. Les trois
+  consignes existantes ne changent pas.
+
+**Mesures.**
+- *Charge du moteur* (`npm run bench`, Whisper small, 25 s de son, machine de développement à
+  4 cœurs, sans carte graphique, trois passes chacun) : avant, temps de calcul rapporté à la durée
+  du son de 0,450 à 0,473 (médiane 0,462) ; après, de 0,440 à 0,457 (médiane 0,448). Écart dans le
+  bruit de mesure. Le banc ne charge que le moteur (`engine.js`), que ce lot ne touche pas ; côté
+  interface, aucun travail n'est ajouté à l'arrivée des répliques : la liste des notes n'est
+  redessinée qu'à l'ajout ou au retrait d'une note.
+- *Coût d'une note* (Node.js 22, même machine, réunion fictive d'une heure à 1 200 répliques) :
+  ajout d'une note, sauvegarde de secours comprise, 0,4 ms en médiane, 1 ms au plus ; production
+  de la note complète (compte rendu compris) 57 ms sans note rapide, 72 ms avec 200 notes.
+- *Bout en bout* (`npm run test:e2e`, Chromium) : note commencée, 3 s d'attente, puis la suite et
+  Entrée : l'heure retenue est celle de la première lettre (moins de 1,5 s d'écart) ; la note
+  figure dans la note de sa réunion et pas dans celle qui suit ; une note tapée sans Entrée avant
+  « Terminer » est gardée. Toutes les autres vérifications du parcours restent vertes.
+
+**Limites.**
+- Pas de saisie depuis la mini-fenêtre : il faut revenir à la fenêtre de Lowsper.
+- Les notes n'apparaissent pas sur l'écran de fin, seulement dans la note enregistrée et dans ce
+  que copie « Obtenir un résumé » (le compte rendu du §40 non plus).
+- Non vérifié : la qualité des e-mails rédigés par une IA avec cette consigne (aucun assistant en
+  ligne n'est appelé par les tests, contrainte n° 1), et le confort de saisie sur le portable de
+  référence pendant une vraie visio.

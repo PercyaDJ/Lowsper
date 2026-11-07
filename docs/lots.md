@@ -50,9 +50,19 @@ sans carte graphique, 16 Go, Edge ou Chrome. Pas de discussion avec la réunion 
 | Lot | Objectif | État |
 |---|---|---|
 | C1 | Compte rendu extractif : décisions, actions, questions ouvertes, recopiées mot pour mot avec leur horodatage en haut de la note, transcript complet dessous ; français et anglais ; mesuré sur un corpus fictif | Livré |
-| C2 | Notes rapides tapées pendant la réunion, reprises dans la note ; consigne « e-mail de suivi » | À faire |
+| C2 | Notes rapides tapées pendant la réunion, reprises dans la note ; consigne « e-mail de suivi » | Livré |
 | C3 | Compte rendu rédigé par une IA locale, seulement là où une mesure sur le portable de référence le valide | À étudier |
 | Étude | Séparation des voix plus légère ; vocabulaire « IA et informatique » | À étudier |
+
+## C2 : notes rapides et e-mail de suivi (livré)
+
+Livré, voir `decision.md` §41. Choix du mainteneur en cours de lot : section « Vos notes » après le
+compte rendu et avant le transcript (variable `{{notes}}` ; un modèle modifié sans elle reçoit les
+notes à la fin) ; saisie dans la fenêtre agrandie seulement, mini-fenêtre inchangée ; heure de la
+première frappe. Consigne « E-mail de suivi » en français et en anglais, même structure que les
+consignes du lot R6. Charge du moteur avant et après dans le bruit de mesure (0,462 et 0,448 en
+médiane). Non vérifié : la qualité des e-mails rédigés par une IA, et la saisie sur le portable de
+référence pendant une vraie visio.
 
 ## C1 : compte rendu extractif (livré)
 
@@ -235,20 +245,21 @@ Voir `refonte.md` §9.
 
 ## Texte pour ouvrir la session suivante
 
-Remplacer `C2` par le lot voulu, et sa ligne d'objectif par celle du tableau.
+Remplacer `C3` par le lot voulu, et sa ligne d'objectif par celle du tableau.
 
 ```text
 Tu travailles sur le dépôt PercyaDJ/Lowsper (application de transcription de réunions 100 %
 locale, dans le navigateur).
 
 Avant tout, lis AGENTS.md (règles non négociables), docs/lots.md (feuille de route après la
-refonte) et decision.md §39 et §40.
+refonte) et decision.md §22, §23, §40 et §41.
 
-Ta mission : le lot C2 de docs/lots.md, et seulement ce lot : notes rapides tapées pendant la
-réunion, reprises dans la note avec leur horodatage ; consigne « e-mail de suivi » pour
-« Obtenir un résumé », en français et en anglais. Machine de référence : portable d'entreprise
-sans carte graphique (16 Go, Edge ou Chrome), hors ligne. Le direct ne doit pas ralentir : mesure
-la charge du moteur avant et après (npm run bench).
+Ta mission : le lot C3 de docs/lots.md, et seulement ce lot : compte rendu rédigé par une IA
+locale, seulement là où une mesure sur le portable de référence le valide. Commence par mesurer
+(vitesse, mémoire, fidélité au transcript, phrases inventées) avant de coder quoi que ce soit, et
+propose-moi un arbitrage sur ces mesures. Machine de référence : portable d'entreprise sans carte
+graphique (16 Go, Edge ou Chrome), hors ligne. Le direct ne doit pas ralentir : mesure la charge
+du moteur avant et après (npm run bench) si le chemin du direct change.
 Respecte toutes les règles d'AGENTS.md. Mesure au lieu de supposer, et si un point n'est pas
 vérifiable, écris-le comme non vérifié.
 

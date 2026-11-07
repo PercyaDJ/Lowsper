@@ -155,8 +155,8 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/js/audiofile.js` | Fichiers importés : lecteurs de conteneur (WAV, MP3, AAC, M4A, Ogg, WebM), décodage WebCodecs en flux |
 | `app/js/speakers.js` | Distinction, regroupement et mémoire des voix (cinq empreintes au plus par personne, comparaison à la plus proche, `decision.md` §37) ; voix du micro (anti-écho) |
 | `app/js/extract.js` | Compte rendu extractif : phrases de décision, d'action et de question ouverte recopiées mot pour mot (règles en français et en anglais, `decision.md` §40) |
-| `app/js/transcript.js` | Assemblage, sigles, filtres, couverture, Markdown (section « Compte rendu » comprise), sauvegarde de secours |
-| `app/js/notes.js` | Emplacements (profils de sortie) : modèle de note, nom de fichier, front matter, liens, dossier de destination (par défaut `Notes/<emplacement>` du dossier Lowsper, `decision.md` §30) ; consignes pour l'IA (textes fournis dans `i18n.js`, anciens textes reconnus pour la rétrocompatibilité, `decision.md` §29) |
+| `app/js/transcript.js` | Assemblage, sigles, filtres, couverture, Markdown (sections « Compte rendu » et « Vos notes » comprises), notes rapides de la réunion (`decision.md` §41), sauvegarde de secours |
+| `app/js/notes.js` | Emplacements (profils de sortie) : modèle de note, nom de fichier, front matter, liens, dossier de destination (par défaut `Notes/<emplacement>` du dossier Lowsper, `decision.md` §30) ; consignes pour l'IA (textes fournis dans `i18n.js`, dont l'e-mail de suivi, anciens textes et anciens modèles par défaut reconnus pour la rétrocompatibilité, `decision.md` §29 et §41) |
 | `app/js/localai.js` | Sonde de l'IA intégrée du navigateur (expérimental) : disponibilité, essai sur une réunion fictive, rapport |
 | `app/js/languages.js` | Langues parlées proposées (qualité mesurée), lecture de l'ancien réglage `lowsper.language`, nom des langues dans la note (`decision.md` §34) |
 | `app/js/vocabularies.js` | Données des vocabulaires métier, par domaine et par langue parlée ; format dans `CONTRIBUTING.md` |
