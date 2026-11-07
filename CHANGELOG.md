@@ -11,7 +11,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 Les détails techniques et les mesures sont dans `decision.md`.
 
-## [Non publié]
+## [4.3.0] - 2026-11-07
 
 Rien à faire en passant à cette version : copiez `app\models`, `app\reglages.txt` et `Notes` comme
 d'habitude.
