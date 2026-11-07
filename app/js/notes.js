@@ -31,7 +31,9 @@
   // Texte dans la langue voulue (i18n.js, chargé avant ce fichier)
   const tx = (key, vars, lang) => Lowsper.t(key, vars, lang);
 
-  const DEFAULT_TEMPLATE = '# {{titre}}\n\n{{en_tete}}\n\n## Transcript\n\n{{transcript}}\n';
+  // Le compte rendu extractif (lot C1) est dans le modèle par défaut ; les modèles déjà modifiés
+  // par l'utilisateur ne changent pas (decision.md §40).
+  const DEFAULT_TEMPLATE = '# {{titre}}\n\n{{en_tete}}\n\n{{compte_rendu}}\n\n## Transcript\n\n{{transcript}}\n';
   const DEFAULT_FILENAME = '{{date}} {{titre}}';
 
   /**
@@ -53,6 +55,7 @@
     'profil',
     'en_tete',
     'avertissement',
+    'compte_rendu',
     'transcript',
     'transcript_complet',
   ].map((name) => [name, () => tx('var.' + name)]);
@@ -214,6 +217,7 @@
       profil: profile.name,
       en_tete: parts.header.join('\n'),
       avertissement: parts.notice,
+      compte_rendu: parts.summary,
       transcript: parts.body,
       transcript_complet: t.toMarkdown().trim(),
       // Pour le front matter (valeurs brutes)
@@ -316,7 +320,11 @@
     const p = normalize(profile);
     if (p.format === 'classique') return { name: t.fileName(), content: t.toMarkdown() };
     const vars = variables(t, p);
-    const body = render(p.template, vars).replace(/\s+$/, '') + '\n';
+    // Compte rendu désactivé : sa variable disparaît avec la ligne vide qui la suit
+    const template = vars.compte_rendu
+      ? p.template
+      : String(p.template || '').replace(/\{\{\s*compte_rendu\s*\}\}\n*/g, '');
+    const body = render(template, vars).replace(/\s+$/, '') + '\n';
     const front = frontMatter(p.front, vars);
     return {
       name: safeFileName(render(p.fileName || DEFAULT_FILENAME, vars), t.noteLang()),

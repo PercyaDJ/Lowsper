@@ -738,13 +738,49 @@
         }
         out.push('');
       }
-      return { title, header, notice, body: out.join('\n').trim() };
+      return { title, header, notice, summary: this.summary(links), body: out.join('\n').trim() };
     }
 
-    /** Format classique de Lowsper (profil « Par défaut »). */
+    /**
+     * Phrases du compte rendu extractif (extract.js) : décisions, actions et questions restées
+     * ouvertes, recopiées telles quelles avec l'heure et la personne de leur réplique.
+     */
+    highlights(links) {
+      if (!Lowsper.Extract) return [];
+      const items = this.lines
+        .filter((l) => !l.draft && l.text)
+        .map((l) => ({ start: l.start, end: l.end, speaker: this.speakerName(l, links), text: l.text }));
+      return Lowsper.Extract.extract(items);
+    }
+
+    /**
+     * Section « Compte rendu » de la note, en Markdown, ou '' si elle est désactivée
+     * (réglage « Recopier les décisions, actions et questions », meta.highlights).
+     */
+    summary(links) {
+      if (this.meta.highlights === false || !Lowsper.Extract) return '';
+      const lang = this.noteLang();
+      const tl = (key, vars) => Lowsper.t(key, vars, lang);
+      const found = this.highlights(links);
+      const out = [tl('note.crTitle'), '', tl('note.crIntro'), ''];
+      if (!found.length) out.push(tl('note.crNone'));
+      for (const kind of Lowsper.Extract.KINDS) {
+        const list = found.filter((f) => f.kind === kind);
+        if (!list.length) continue;
+        out.push(tl('note.cr.' + kind), '');
+        for (const f of list) out.push(tl('note.crLine', { t: fmt(f.start), name: f.speaker, text: f.text }));
+        out.push('');
+      }
+      return out.join('\n').trim();
+    }
+
+    /** Format classique de Lowsper (profil « Par défaut ») : le compte rendu avant le transcript. */
     toMarkdown() {
       const p = this.parts();
-      return [p.title, '', ...p.header, '', p.notice, '', '## Transcript', '', p.body].join('\n').trim() + '\n';
+      const summary = p.summary ? [p.summary, ''] : [];
+      return (
+        [p.title, '', ...p.header, '', p.notice, '', ...summary, '## Transcript', '', p.body].join('\n').trim() + '\n'
+      );
     }
 
     /** Intervenants dans leur ordre d'apparition (« Vous », noms donnés, « Intervenant n »). */

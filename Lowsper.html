@@ -152,6 +152,10 @@
           <section class="set-group" aria-labelledby="ai-title">
             <h3 class="group-title" id="ai-title" data-i18n="grp.summary">Compte rendu</h3>
             <div class="group">
+              <label class="set-row check">
+                <span class="set-text"><span class="set-label" data-i18n="set.highlights">Recopier les décisions, actions et questions en haut de la note</span><span class="set-sub" data-i18n="set.highlightsSub">Les phrases prononcées, mot pour mot, avec l'heure et la personne. Rien n'est réécrit.</span></span>
+                <input type="checkbox" id="highlights" checked>
+              </label>
               <button type="button" class="set-row" data-open="prompt">
                 <span class="set-text"><span class="set-label" data-i18n="row.prompt">Consigne</span></span>
                 <span class="set-value" id="v-prompt"></span>
@@ -797,6 +801,7 @@
   <script src="app/js/languages.js"></script>
   <script src="app/js/vocabularies.js"></script>
   <script src="app/js/vocabulary.js"></script>
+  <script src="app/js/extract.js"></script>
   <script src="app/js/transcript.js"></script>
   <script src="app/js/notes.js"></script>
   <script src="app/js/localai.js"></script>
