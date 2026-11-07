@@ -121,6 +121,7 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Vitesse des modèles selon le nombre de moteurs (après `--embed whisper-small whisper-base`) | `npm run bench -- --cores` |
 | Essai à la main de la fenêtre de choix de dossier (`startIn`) dans Chrome et Edge | ouvrir `tools/test/startin.html` |
 | Essai à la main des tailles de la mini-fenêtre dans Chrome et Edge | ouvrir `tools/test/pip-sizes.html` |
+| Mémoire des voix d'une visio à l'autre : corpus multi-appareils, empreintes, banc avant et après (`decision.md` §37) | `python corpus/make-voices.py` (dans `test/`, 1 h 15), `node test/embed-voices.mjs` (1 h, Chromium), `node test/eval-voices.mjs [--sweep\|--explore\|--curve\|--stats]` (secondes) |
 | Étude du résumé local (modèles dans `.cache/llm`, decision.md §22) | `node test/eval-summary.mjs <modèle> [--dtype=q8\|q4] [--sanity] [--long]` |
 
 Chromium : si Playwright ne trouve pas son navigateur, définissez `CHROMIUM_PATH`. Le test de
@@ -148,7 +149,7 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/js/analyzer.js` | Détection de parole (Silero) et empreintes vocales (WeSpeaker), dans des Workers |
 | `app/js/capture.js` | Micro et partage d'écran, rééchantillonnage 16 kHz, découpage en blocs, son gardé en mémoire |
 | `app/js/audiofile.js` | Fichiers importés : lecteurs de conteneur (WAV, MP3, AAC, M4A, Ogg, WebM), décodage WebCodecs en flux |
-| `app/js/speakers.js` | Distinction, regroupement et mémoire des voix ; voix du micro (anti-écho) |
+| `app/js/speakers.js` | Distinction, regroupement et mémoire des voix (cinq empreintes au plus par personne, comparaison à la plus proche, `decision.md` §37) ; voix du micro (anti-écho) |
 | `app/js/transcript.js` | Assemblage, sigles, filtres, couverture, Markdown, sauvegarde de secours |
 | `app/js/notes.js` | Emplacements (profils de sortie) : modèle de note, nom de fichier, front matter, liens, dossier de destination (par défaut `Notes/<emplacement>` du dossier Lowsper, `decision.md` §30) ; consignes pour l'IA (textes fournis dans `i18n.js`, anciens textes reconnus pour la rétrocompatibilité, `decision.md` §29) |
 | `app/js/localai.js` | Sonde de l'IA intégrée du navigateur (expérimental) : disponibilité, essai sur une réunion fictive, rapport |

@@ -13,6 +13,27 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [4.2.0] - 2026-11-07
+
+Mémoire des voix d'une visio à l'autre (lot R9). Rien à faire en passant à cette version : copiez
+`app\models`, `app\reglages.txt` et `Notes` comme d'habitude ; les voix déjà mémorisées restent
+reconnues.
+
+### Modifié
+- **Mémoire des voix plus sûre quand une personne change de micro** : Lowsper garde jusqu'à cinq
+  empreintes par personne (une par réunion où vous la nommez ou corrigez son nom) et compare
+  chaque voix à la plus proche. Une voix qui ressemble presque autant à deux personnes ne reçoit
+  aucun nom. Mesuré sur un corpus synthétique de cinq appareils simulés (decision.md §37) : les
+  confusions passent de 12-15 % à 1-4 %, et les personnes de passage nommées à tort de 79-83 % à
+  0-8 %. En contrepartie, une voix est plus souvent laissée sans nom (65 à 71 % reconnues, contre
+  84 à 87 %) : nommez-la une fois sur ce nouvel appareil, elle sera reconnue ensuite.
+- **Effacement automatique par empreinte** : chaque empreinte est effacée 1, 3 ou 6 mois après sa
+  création ; une personne est oubliée quand il ne lui en reste aucune.
+
+### Ajouté
+- Outils de mesure (développeurs) : corpus `tools/test/corpus/make-voices.py`, calcul des
+  empreintes `tools/test/embed-voices.mjs`, banc `tools/test/eval-voices.mjs`.
+
 ## [4.1.0] - 2026-11-06
 
 Langues parlées multiples et vocabulaires métier élargis (lot R8). Rien à faire en passant à cette

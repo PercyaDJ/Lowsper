@@ -35,7 +35,12 @@
     micLearn: 10, // secondes de parole « seul au micro » avant de juger une phrase
     micForeign: 0.4, // en dessous : phrase étrangère à votre voix
     sameVoice: 0.75, // deux voix finales plus proches que cela sont une même personne (mesuré : 0,89 vs 0,6 au plus)
-    remember: 0.65, // similarité pour reconnaître une voix mémorisée (prudent : un mauvais nom est pire qu'aucun)
+    // Mémoire des voix (decision.md §37, réglé sur le corpus multi-appareils) : similarité minimale
+    // avec l'empreinte la plus proche d'une personne, et écart minimal avec la deuxième personne la
+    // plus proche (prudent : un mauvais nom est pire qu'aucun).
+    remember: 0.825,
+    rememberMargin: 0.05,
+    rememberPrints: 5, // empreintes gardées par personne (une par réunion où on la nomme), la plus ancienne oubliée
   };
 
   function cosine(a, b) {
@@ -521,14 +526,42 @@
   /**
    * Mémoire des voix (facultative, désactivée par défaut).
    *
-   * Quand l'utilisateur nomme un intervenant, son empreinte vocale moyenne (256 nombres, pas
+   * Quand l'utilisateur nomme un intervenant, l'empreinte vocale de cette réunion (256 nombres, pas
    * d'audio) est conservée sur ce poste, dans le stockage du navigateur. Aux réunions suivantes,
    * une voix suffisamment proche reçoit automatiquement ce nom.
    *
+   * Analogie : plutôt qu'un seul portrait-robot moyen par personne, la mémoire garde jusqu'à cinq
+   * photos prises dans des conditions différentes (casque, micro du portable, téléphone...) et
+   * compare la voix à la photo la plus ressemblante. Une moyenne de sons très différents ne
+   * ressemble à aucun d'eux (decision.md §37).
+   *
+   * Format (clé lowsper.voices.v1, inchangée) : chaque personne garde « emb » (la moyenne, lue par
+   * les versions antérieures à la 4.2.0) et « prints » (ses empreintes datées). Une voix
+   * mémorisée par une version précédente, sans « prints », est lue comme une seule empreinte.
+   *
    * Une empreinte vocale est une donnée biométrique (RGPD, article 9) : consentement des
-   * personnes, stockage local uniquement, durée de conservation limitée (effacement automatique)
-   * et effacement manuel à tout moment.
+   * personnes, stockage local uniquement, durée de conservation limitée (chaque empreinte est
+   * effacée après la durée choisie) et effacement manuel à tout moment.
    */
+  const roundPrint = (v) => Array.from(v, (x) => Math.round(x * 1e4) / 1e4);
+
+  /** Empreintes d'une personne mémorisée ; une voix d'une version précédente en a une seule. */
+  function printsOf(v) {
+    if (Array.isArray(v.prints) && v.prints.length) return v.prints;
+    if (!Array.isArray(v.emb) || !v.emb.length) return [];
+    return [{ emb: v.emb, seconds: v.seconds || 0, at: v.createdAt || v.updatedAt || 0 }];
+  }
+
+  /** Moyenne des empreintes (pondérée par le temps de parole, 10 min au plus par empreinte). */
+  function meanOf(prints) {
+    const sum = new Float64Array(prints[0].emb.length);
+    for (const p of prints) {
+      const w = Math.min(p.seconds || 1, 600);
+      for (let i = 0; i < sum.length; i++) sum[i] += p.emb[i] * w;
+    }
+    return normalize(sum);
+  }
+
   class VoiceMemory {
     constructor(storage) {
       this.storage = storage || (typeof localStorage !== 'undefined' ? localStorage : null);
@@ -540,7 +573,10 @@
       try {
         const raw = this.storage && this.storage.getItem(this.key);
         const d = raw ? JSON.parse(raw) : null;
-        if (d && Array.isArray(d.voices)) return d;
+        if (d && Array.isArray(d.voices)) {
+          d.voices = d.voices.filter((v) => v && typeof v.name === 'string');
+          return d;
+        }
       } catch {}
       return { enabled: false, keepDays: 90, voices: [] };
     }
@@ -572,10 +608,21 @@
       return this.data.voices.map((v) => v.name);
     }
 
-    /** Efface les empreintes plus anciennes que la durée de conservation (depuis leur création). */
+    /**
+     * Efface chaque empreinte plus ancienne que la durée de conservation (depuis sa création) ;
+     * une personne sans empreinte restante est oubliée.
+     */
     purge(now) {
       const limit = (now || Date.now()) - this.keepDays * 86400000;
-      this.data.voices = this.data.voices.filter((v) => v.createdAt >= limit);
+      this.data.voices = this.data.voices.filter((v) => {
+        const all = printsOf(v);
+        // entrée sans empreinte lisible : gardée telle quelle, effacée selon sa date de création
+        if (!all.length) return v.createdAt >= limit;
+        const kept = all.filter((p) => p.at >= limit);
+        if (!kept.length) return false;
+        if (kept.length !== all.length) this.setPrints(v, kept);
+        return true;
+      });
       this.save();
     }
 
@@ -589,15 +636,35 @@
       this.save();
     }
 
+    /** Remplace les empreintes d'une personne, et tient à jour sa moyenne (anciennes versions). */
+    setPrints(v, prints) {
+      v.prints = prints;
+      v.emb = roundPrint(meanOf(prints));
+      v.seconds = prints.reduce((n, p) => n + (p.seconds || 0), 0);
+      v.createdAt = Math.min(...prints.map((p) => p.at));
+    }
+
     /**
      * Associe des voix d'une réunion à des voix mémorisées (une à une, la plus proche d'abord).
+     * Une voix est comparée à l'empreinte la plus proche de chaque personne ; elle ne reçoit un
+     * nom que si cette similarité atteint le seuil, et dépasse d'au moins la marge celle de la
+     * deuxième personne la plus proche (deux personnes presque aussi proches : pas de nom).
      * @param {Map<number,{emb:Float32Array}>} centroids
      * @returns {Map<number,string>} voix de la réunion -> nom
      */
     match(centroids) {
       const pairs = [];
+      const second = new Map(); // voix -> [meilleure similarité, deuxième]
       for (const [voice, c] of centroids) {
-        for (const m of this.data.voices) pairs.push({ voice, name: m.name, sim: cosine(c.emb, m.emb) });
+        const top = [-2, -2];
+        for (const m of this.data.voices) {
+          let sim = -2;
+          for (const p of printsOf(m)) sim = Math.max(sim, cosine(c.emb, p.emb));
+          pairs.push({ voice, name: m.name, sim });
+          if (sim > top[0]) top.splice(0, 2, sim, top[0]);
+          else if (sim > top[1]) top[1] = sim;
+        }
+        second.set(voice, top);
       }
       pairs.sort((a, b) => b.sim - a.sim);
       const out = new Map();
@@ -605,25 +672,28 @@
       for (const p of pairs) {
         if (p.sim < CFG.remember) break;
         if (out.has(p.voice) || used.has(p.name)) continue;
+        const [first, next] = second.get(p.voice);
+        // seule la personne la plus proche peut être retenue, et nettement devant la suivante
+        if (p.sim < first || first - next < CFG.rememberMargin) continue;
         out.set(p.voice, p.name);
         used.add(p.name);
       }
       return out;
     }
 
-    /** Ajoute ou affine l'empreinte d'une personne nommée. */
-    remember(name, emb, seconds) {
+    /** Ajoute une empreinte à une personne nommée (la plus ancienne est oubliée au-delà de 5). */
+    remember(name, emb, seconds, now) {
       if (!name || !emb) return;
-      const now = Date.now();
+      now = now || Date.now();
+      const print = { emb: roundPrint(normalize(emb)), seconds: Math.round(seconds || 0), at: now };
       const v = this.data.voices.find((x) => x.name.toLowerCase() === name.toLowerCase());
       if (v) {
-        const w1 = Math.min(v.seconds, 600);
-        const w2 = Math.min(seconds, 600);
-        v.emb = normalize(v.emb.map((x, i) => x * w1 + emb[i] * w2));
-        v.seconds = w1 + w2;
+        this.setPrints(v, [...printsOf(v), print].slice(-CFG.rememberPrints));
         v.updatedAt = now;
       } else {
-        this.data.voices.push({ name, emb: Array.from(emb), seconds, createdAt: now, updatedAt: now });
+        const nv = { name, updatedAt: now };
+        this.setPrints(nv, [print]);
+        this.data.voices.push(nv);
       }
       this.save();
     }

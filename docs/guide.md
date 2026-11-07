@@ -470,8 +470,16 @@ besoin.
 Oui, si vous l'activez (paramètres, « Mémoriser les voix », désactivé par défaut). Nommez les
 intervenants à la fin d'une réunion : aux réunions suivantes, leurs voix sont reconnues. Une
 empreinte vocale est une donnée biométrique : demandez l'accord des personnes. Les empreintes
-restent sur votre poste, sont effacées automatiquement après 1, 3 ou 6 mois, et peuvent être
-effacées à tout moment.
+restent sur votre poste, chacune est effacée automatiquement après 1, 3 ou 6 mois, et toutes
+peuvent être effacées à tout moment.
+
+**Un collègue n'est pas reconnu parce qu'il a changé de micro. Que faire ?**
+Nommez-le à la fin de la réunion, comme la première fois. Lowsper garde jusqu'à cinq empreintes
+par personne (casque, micro du portable, téléphone...) et compare chaque voix à la plus proche :
+la fois suivante, il sera reconnu sur ce micro aussi. Lowsper préfère ne rien proposer plutôt
+qu'un mauvais nom : une voix qui ressemble presque autant à deux collègues reste sans nom. Mesuré
+sur des voix de synthèse (decision.md §37) : environ deux voix sur trois reconnues, moins de 5 %
+de mauvais noms ; non vérifié sur de vraies réunions.
 
 **Comment garder Lowsper visible pendant la visio ?**
 Par défaut, Lowsper se réduit en mini-fenêtre dès le démarrage : une barre de 300 x 48 pixels,
@@ -554,9 +562,9 @@ et `decision.md`) :
    anglais (lot R2) ; premier lancement guidé avec recommandation du modèle (lot R3) ; nouvel
    accueil (lot R4) ; réunion avec mini-fenêtre et contrôle d'état (lot R5) ; fin de réunion
    (lot R6) ; paramètres en onglets (lot R7). Les lots R2 à R7 forment la version 4.0.0 ; les
-   langues parlées multiples et les vocabulaires élargis (lot R8), la version 4.1.0.
-2. **Mémoire des voix plus fiable** d'une visio à l'autre, après mesure.
-3. **Résumé local** : la piste de l'IA intégrée du navigateur reste à l'étude (`decision.md`
+   langues parlées multiples et les vocabulaires élargis (lot R8), la version 4.1.0 ; la mémoire des
+   voix plus sûre d'une visio à l'autre (lot R9), la version 4.2.0.
+2. **Résumé local** : la piste de l'IA intégrée du navigateur reste à l'étude (`decision.md`
    §22 et §23). D'ici là, « Obtenir un résumé » reste la voie recommandée.
 
 Une idée, un problème ? Ouvrez une [issue](https://github.com/PercyaDJ/Lowsper/issues/new/choose),

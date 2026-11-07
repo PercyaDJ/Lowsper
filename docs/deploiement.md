@@ -96,7 +96,7 @@ Voir `decision.md` §23.
 | Copie de secours du transcript en cours | Stockage local du navigateur | Effacée à la réunion suivante |
 | Réglages (glossaire, vocabulaire, préférences, emplacements) | Stockage du navigateur et `app/reglages.txt` | Jusqu'à modification |
 | Export des réglages (facultatif) | Fichier `lowsper-reglages_AAAA-MM-JJ.json`, téléchargé à la demande | Géré par l'utilisateur ; sans empreinte vocale |
-| Empreintes vocales (facultatif, désactivé par défaut) | Stockage du navigateur | Effacement automatique après 1, 3 ou 6 mois, ou à la demande |
+| Empreintes vocales (facultatif, désactivé par défaut) | Stockage du navigateur, copie dans `app/reglages.txt` | Cinq au plus par personne ; chacune effacée automatiquement après 1, 3 ou 6 mois, ou à la demande |
 | Journal technique (facultatif) | Téléchargé à la demande | Ne contient aucun texte de réunion |
 
 Les fichiers produits ne sont pas chiffrés par Lowsper : leur protection relève du poste
