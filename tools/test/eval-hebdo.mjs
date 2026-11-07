@@ -184,10 +184,12 @@ await browser.close();
 // Couverture par réplique
 let sumCov = 0;
 const missed = [];
+const perLine = []; // détail par réplique (eval-overlap.mjs le relit)
 for (const t of truth) {
   const hyp = res.lines.filter((l) => l.source === t.channel && l.end >= t.start - 2.5 && l.start <= t.end + 2.5);
   const cov = coverage(norm(t.ref), norm(hyp.map((l) => l.text).join(' ')));
   sumCov += cov;
+  perLine.push({ ...t, cov: Math.round(cov * 1000) / 1000 });
   if (cov < 0.7) missed.push(`${t.who} [${t.start}s] ${(cov * 100).toFixed(0)} % : ${t.ref.slice(0, 70)}`);
 }
 const report = {
@@ -211,6 +213,18 @@ for (const ch of ['me', 'others']) {
     .join(' ');
   report[`wer_${ch}`] = (wer(ref, hyp) * 100).toFixed(1) + ' %';
 }
+const tag = process.argv.includes('--teams') ? '-teams' : '';
+await writeFile(
+  join(out, `${name}${tag}-${modelId}-lignes.json`),
+  JSON.stringify(
+    {
+      lines: perLine,
+      hyp: res.lines.map((l) => ({ source: l.source, start: l.start, end: l.end, speaker: l.speaker, text: l.text })),
+    },
+    null,
+    1
+  )
+);
 report.couverture = ((sumCov / truth.length) * 100).toFixed(1) + ' %';
 report.repliques_mal_captees = missed.length + ' / ' + truth.length;
 const terms = corpus.terms || corpus.glossary.split(',').map((s) => s.trim());
