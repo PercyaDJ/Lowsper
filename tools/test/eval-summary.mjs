@@ -11,9 +11,10 @@
 // transcript. Sortie : temps de chargement, de lecture (préremplissage) et de génération, mémoire,
 // texte produit, et faits du corpus retrouvés ou non.
 //
-// Prérequis : modèles dans tools/.cache/llm/onnx-community/<nom>/ (config, tokenizer,
-// onnx/model_quantized.onnx), téléchargés depuis Hugging Face.
-// Usage : node test/eval-summary.mjs <nom du modèle> [--long]   (CHROMIUM_PATH si besoin)
+// Prérequis : modèles dans tools/.cache/llm/<auteur>/<nom>/ (config, tokenizer, fichiers onnx/
+// de la précision voulue), téléchargés depuis Hugging Face. Mesures : decision.md §22 et §43.
+// Usage : node test/eval-summary.mjs <nom> [--dtype=q8|q4|q4f16|fp32] [--long] [--extrait] [--sanity]
+//   <nom> : onnx-community/<nom> par défaut, ou <auteur>/<nom>   (CHROMIUM_PATH si besoin)
 import { chromium } from 'playwright-core';
 import { build } from 'esbuild';
 import http from 'node:http';
@@ -193,7 +194,9 @@ const found = [...sandbox.Lowsper.LocalAI.checkFacts(r.text).found];
 // écrit autrement, « 1240 » pour « 1 240 », compte comme présent)
 const digits = (x) => String(x).replace(/(\d)[\s\u00a0\u202f](?=\d{3}\b)/g, '$1');
 const known = new Set(digits(transcript).match(/\d+/g) || []);
-const invented = [...new Set((digits(r.text).match(/\d+/g) || []).filter((n) => !known.has(n)))];
+// (les numéros de liste « 1. », « 2. » en début de ligne ne comptent pas)
+const produced = digits(r.text).replace(/^\s*\d+\.\s/gm, '');
+const invented = [...new Set((produced.match(/\d+/g) || []).filter((n) => !known.has(n)))];
 const report = {
   modele: modelRepo,
   precision: dtype,

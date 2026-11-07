@@ -657,10 +657,12 @@ et `decision.md`) :
    voix plus sûre d'une visio à l'autre (lot R9), la version 4.2.0.
 2. **Compte rendu de réunion, sur le PC et hors ligne** ([docs/lots.md](lots.md)) : livrés, le
    compte rendu extractif en haut de la note (lot C1), les notes rapides tapées pendant la réunion
-   et la consigne « e-mail de suivi » (lot C2) ; à venir, un compte rendu rédigé par une IA
-   locale, seulement là où une mesure sur un portable sans carte graphique le valide (lot C3).
-3. **Résumé local** : la piste de l'IA intégrée du navigateur reste à l'étude (`decision.md`
-   §22 et §23). D'ici là, « Obtenir un résumé » reste la voie recommandée.
+   et la consigne « e-mail de suivi » (lot C2). Un compte rendu rédigé par une IA locale a été
+   mesuré et écarté (lot C3) : le seul petit modèle qui tient dans le navigateur invente des
+   chiffres, des dates ou des personnes (`decision.md` §43).
+3. **Résumé local** : la seule piste restante est l'IA intégrée de Chrome et d'Edge, à mesurer
+   sur de vrais PC avec la sonde des paramètres (`decision.md` §22, §23 et §43). D'ici là,
+   « Obtenir un résumé » reste la voie recommandée.
 
 Une idée, un problème ? Ouvrez une [issue](https://github.com/PercyaDJ/Lowsper/issues/new/choose),
 ou posez votre question dans les [discussions](https://github.com/PercyaDJ/Lowsper/discussions).

@@ -2841,3 +2841,81 @@ peuvent seulement lancer un workflow.
 
 **Limites.** Le texte d'une release créée à la main est celui du CHANGELOG, en Markdown, sans
 retouche. Lancer le workflow demande les droits d'écriture sur le dépôt, comme publier une release.
+
+## 43. Étude : compte rendu rédigé par une IA locale, sur le processeur (lot C3)
+
+**Contexte.** Feuille de route du 7 novembre 2026 (§39, `docs/lots.md`) : un compte rendu rédigé
+par une IA locale, **seulement là où une mesure sur le portable de référence le valide**
+(portable d'entreprise sans carte graphique, 16 Go, Edge ou Chrome, hors ligne). Le §22 avait
+écarté Qwen2.5 (0,5 et 1,5 milliard) : quantifiés, ils ne retrouvaient aucun fait. Depuis, de
+nouveaux petits modèles existent en ONNX, et le compte rendu extractif (§40) offre une entrée bien
+plus courte que le transcript. Les deux pistes sont mesurées ici, avec le banc du §22.
+
+**Méthode.** `tools/test/eval-summary.mjs`, inchangé sur le fond : Chromium, transformers.js 4.3.0,
+WebAssembly sur **un seul fil** comme Lowsper (§2), consigne « compte rendu » de la sonde (§23),
+corpus fictif « hebdo » (2 min 40, 8 faits à retrouver), génération déterministe, 600 jetons au
+plus. Ajouts de ce lot : dépôt Hugging Face complet en argument, réponse sans phase de réflexion
+pour Qwen3 (`enable_thinking: false`, vérifiée par la question de contrôle), relevé des nombres
+absents du transcript, et option `--extrait` qui donne au modèle le seul compte rendu extractif de
+Lowsper (`Transcript.summary()`, 460 jetons au lieu de 1 060 ; il contient 5 des 8 faits, les
+indicateurs chiffrés n'y étant pas). Machine de développement à 4 cœurs, sans carte graphique.
+
+**Modèles essayés** (révisions de `onnx-community`, licences des modèles d'origine) :
+- Qwen3 0,6 milliard (`Qwen3-0.6B-ONNX`, révision `58ca03a5e7`, Apache 2.0) : 8 bits (618 Mo),
+  4 bits (919 Mo), pleine précision (2,4 Go) ;
+- Qwen3 1,7 milliard (`Qwen3-1.7B-ONNX`, révision `3231b522c6`, Apache 2.0) : 8 bits (1,7 Go),
+  4 bits (2,1 Go), 4 bits avec activations 16 bits (1,4 Go) ;
+- Gemma 3 1 milliard (`gemma-3-1b-it-ONNX`, révision `a58439f400`, licence Gemma, non libre au
+  sens de l'OSI : comparaison seulement), 8 bits.
+
+**Mesures.**
+
+| Modèle, précision, entrée | Lecture | Génération | Mémoire de pointe | Faits | Ce que contient le texte |
+|---|---|---|---|---|---|
+| Qwen3 0,6 Md, 8 bits, transcript | 103 s | 1,6 jeton/s | 4,7 Go | 3/8 | Recopie le transcript au lieu de le résumer, en altérant les chiffres (« quatre-vingt-quatre pour cent » pour 87, « mille et vingt-cent quarante ») |
+| Qwen3 0,6 Md, 4 bits, transcript | 116 s | 0,66 jeton/s | 5,7 Go | 4/8 | Quatre pourcentages inventés (20 %, 47,5 %, 67,5 % pour un objectif de 65 %) ; actions écrites comme faites (« ont terminé la migration ») |
+| Qwen3 0,6 Md, 8 bits, extrait | 26 s | 2,4 jetons/s | 3,6 Go | 4/8 | Actions écrites comme faites (« Marc a envoyé le chiffrage ») ; thème inventé (« la transition numérique ») |
+| Qwen3 0,6 Md, 4 bits, extrait | 31 s | 0,78 jeton/s | 5,4 Go | 4/8 | Date inventée (« le 1er mois ») ; demande de renfort attribuée à Claire au lieu de Sophie ; Julien ajouté aux participants |
+| Qwen3 0,6 Md, pleine précision | | | | | Ne se charge pas : `std::bad_alloc` (4 Go de WebAssembly) |
+| Qwen3 1,7 Md, 8 bits ; 4 bits activations 16 bits | | | | | Ne se charge pas : `std::bad_alloc` |
+| Qwen3 1,7 Md, 4 bits | | | | | Fichier de 2,1 Go non chargé par la page (« Failed to fetch ») |
+| Gemma 3 1 Md, 8 bits | | | | | Ne se charge pas : opération `GatherBlockQuantized` absente d'ONNX Runtime en WebAssembly |
+
+Contrôle du banc : à « Quelle est la capitale de la France ? », Qwen3 0,6 Md en 8 bits répond
+« La capitale de la France est Paris. », sans phase de réflexion. Aucune requête hors du banc.
+« Faits » : critères du §22 (expressions régulières de `app/js/localai.js`) ; ils comptent un
+fait présent même si la phrase qui le porte est fausse par ailleurs. Les erreurs de la dernière
+colonne sont relevées à la lecture des quatre textes, conservés dans `tools/test/output/summary`
+(non versionné).
+
+**Ce que cela dit.**
+1. Le seul modèle libre qui tourne dans les limites de Lowsper (WebAssembly, un fil, 4 Go) est
+   Qwen3 0,6 milliard quantifié, et **chacun de ses quatre textes contient au moins une fausseté**
+   qu'un lecteur prendrait pour vraie : chiffre, date, personne, ou action future décrite comme
+   faite. Le §22.2 (point 3) s'applique toujours : un compte rendu qui invente est pire que pas de
+   compte rendu.
+2. L'entrée courte (compte rendu extractif) divise le temps de lecture par 4 et la mémoire de
+   pointe d'un quart, sans rendre le texte fidèle : le modèle reformule mal même des phrases déjà
+   choisies.
+3. Les modèles de taille supérieure, qui seraient plus fiables, **ne se chargent pas** en
+   WebAssembly : la limite n'est pas la vitesse du portable mais la mémoire de WebAssembly. Une
+   mesure sur le portable de référence ne changerait pas ce point ; elle ne pourrait que confirmer
+   des durées du même ordre (non mesuré là-bas).
+
+**Arbitrage du mainteneur** (7 novembre 2026, sur ces mesures) : **rien n'est intégré**.
+« Obtenir un résumé » (consignes pour l'IA choisie par l'utilisateur ou sa DSI) reste la voie
+conseillée ; le compte rendu extractif (§40) et les notes rapides (§41) restent ce que Lowsper
+produit seul. Le banc et l'option `--extrait` sont gardés pour refaire la mesure quand un modèle
+ou un moteur nouveau le justifiera.
+
+**Seule piste restante : l'IA intégrée de Chrome et d'Edge** (option A du §22). Elle tourne hors
+de la page, sans la limite de 4 Go de WebAssembly, et la documentation de Chrome annonce un
+fonctionnement sur processeur avec 16 Go de mémoire et 4 cœurs, ce qu'a le portable de
+référence (non vérifié). Elle se mesure **sur le portable de référence** avec la sonde déjà
+livrée (Paramètres, Avancé, IA intégrée du navigateur, §23) : même exemple fictif, mêmes 8 faits.
+Un rapport sans invention ouvrirait un lot à part ; sinon, la piste sera close ici.
+
+**Limites.** Un seul corpus fictif de 2 min 40, en français ; génération déterministe ; aucune
+mesure sur le portable de référence ni sur WebGPU (pas de carte graphique ici, et le portable de
+référence n'en a pas). Le relevé automatique des nombres inventés compte aussi les horodatages
+recopiés : seule la lecture des textes fait foi.

@@ -13,6 +13,13 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+### Ajouté
+- Outils de mesure (développeurs) : le banc `tools/test/eval-summary.mjs` mesure les modèles
+  Qwen3 et peut ne donner au modèle que le compte rendu extractif (`--extrait`). Étude du lot C3 :
+  aucun compte rendu rédigé par une IA locale n'est intégré, le seul modèle qui tient dans le
+  navigateur inventant des chiffres, des dates ou des personnes (decision.md §43). Rien ne change
+  pour l'utilisateur.
+
 ## [4.4.0] - 2026-11-07
 
 Rien à faire en passant à cette version : copiez `app\models`, `app\reglages.txt` et `Notes` comme
