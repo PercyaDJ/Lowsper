@@ -44,6 +44,11 @@ confiée à une IA pour le compte rendu. Ni le son ni le texte ne quittent l'ord
 ## Ce que fait Lowsper
 
 - **Transcription en direct** du micro et du son partagé de la réunion, intervenants distingués.
+- **Compte rendu en haut de la note** : les phrases prononcées qui portent une décision, une action
+  ou une question ouverte, recopiées mot pour mot avec l'heure et la personne ; rien n'est réécrit.
+  Sur des réunions fictives jamais utilisées pour le réglage, transcrites par Lowsper lui-même,
+  la moitié de ces phrases sont retrouvées en français, sept sur dix en anglais ; huit sur dix des
+  phrases recopiées sont justes.
 - **Mots à reconnaître** (noms, sigles) et **corrections automatiques** des mots mal compris,
   gardés d'une réunion à l'autre ; douze vocabulaires métier intégrés, en français et en anglais.
 - **Emplacements** : chacun est un dossier et un format de note. « Pour les applications de

@@ -36,6 +36,7 @@ for (const f of [
   'languages.js',
   'vocabularies.js',
   'vocabulary.js',
+  'extract.js',
   'transcript.js',
   'speakers.js',
   'notes.js',
@@ -2116,6 +2117,117 @@ await test('notes : le dossier Lowsper d’une autre copie n’est jamais utilis
   assert.equal((await N.access(p, true, true)).state, 'aucun', 'Téléchargements, comme sans dossier');
   assert.equal(base.dirs.size, 0, 'rien n’est créé dans l’autre copie');
   Object.assign(N.lowsper, saved);
+});
+
+// ---------------------------------------------------------------------------
+// Compte rendu extractif (extract.js, decision.md §40)
+// ---------------------------------------------------------------------------
+await test('compte rendu : phrases recopiées telles quelles, rangées par catégorie', () => {
+  const X = L.Extract;
+  const items = [
+    {
+      start: 10,
+      speaker: 'Lucie',
+      text: "Bonjour à tous. Alors c'est décidé, la mise en ligne est fixée au quinze décembre.",
+    },
+    { start: 20, speaker: 'Hugo', text: "Je termine l'écran de paiement d'ici vendredi." },
+    { start: 30, speaker: 'Vous', text: 'Qui valide la revue du code de paiement avant la mise en ligne ?' },
+    { start: 34, speaker: 'Lucie', text: "Bonne question, je n'ai pas la réponse." },
+    { start: 40, speaker: 'Maya', text: "Then let's drop the advanced filters from this release." },
+    { start: 50, speaker: 'Priya', text: "I'll start on the export on Monday." },
+  ];
+  const found = JSON.parse(JSON.stringify(X.extract(items)));
+  assert.deepEqual(
+    found.map((f) => [f.kind, f.speaker, f.start]),
+    [
+      ['decision', 'Lucie', 10],
+      ['action', 'Hugo', 20],
+      ['question', 'Vous', 30],
+      ['decision', 'Maya', 40],
+      ['action', 'Priya', 50],
+    ]
+  );
+  // Mot pour mot : chaque phrase est une sous-chaîne exacte de sa réplique
+  for (const f of found)
+    assert.ok(
+      items.some((it) => it.start === f.start && it.text.includes(f.text)),
+      f.text
+    );
+  assert.equal(found[0].text, "Alors c'est décidé, la mise en ligne est fixée au quinze décembre.");
+});
+
+await test('compte rendu : hypothèses, rappels du passé et propositions écartés', () => {
+  const c = L.Extract.classify;
+  assert.equal(c("L'an dernier, on avait décidé de tout sortir en même temps."), null);
+  assert.equal(c('Si on avait plus de monde, on pourrait la lancer en parallèle.'), null);
+  assert.equal(c("Je propose qu'on décale la mise en ligne au quinze décembre."), null);
+  assert.equal(c('Last year we decided to keep the old format for two versions.'), null);
+  assert.equal(c('We could also hire a contractor, if we had the budget.'), null);
+  assert.equal(c("Je pense qu'on peut les corriger cette semaine."), null);
+  assert.equal(c('Bonjour à tous, est-ce que tout le monde m’entend bien ?'), null);
+  assert.equal(c('Moi je peux m’occuper de la pêche à la ligne, comme l’an dernier.'), 'action');
+});
+
+await test('compte rendu : une question qui reçoit une réponse n’est pas retenue', () => {
+  const found = L.Extract.extract([
+    { start: 0, speaker: 'Vous', text: 'Est-ce que les tests sur les vieux téléphones ont été faits ?' },
+    { start: 4, speaker: 'Inès', text: 'Oui, sur quatre modèles, et tout passe.' },
+    { start: 10, speaker: 'Gaël', text: 'Et qui s’occupe des clés de la salle pendant les vacances ?' },
+    { start: 14, speaker: 'Odile', text: 'Il y a aussi le sujet des nouveaux maillots.' },
+    { start: 20, speaker: 'You', text: 'Do we know how many volunteers we will need? Nobody has counted yet.' },
+  ]);
+  assert.deepEqual(JSON.parse(JSON.stringify(found.map((f) => [f.kind, f.text]))), [
+    ['question', 'Et qui s’occupe des clés de la salle pendant les vacances ?'],
+    ['question', 'Do we know how many volunteers we will need?'],
+  ]);
+});
+
+await test('compte rendu : section de la note avant le transcript, désactivable, en anglais', () => {
+  const make = (meta) => {
+    const t = new L.Transcript(
+      Object.assign(
+        {
+          title: 'Projet',
+          sources: ['me', 'others'],
+          startedAt: Date.UTC(2026, 10, 7, 9),
+          endedAt: Date.UTC(2026, 10, 7, 10),
+        },
+        meta
+      )
+    );
+    t.addSegment('others', seg(65, 70), {
+      chunks: [{ from: 0, to: 5, text: 'Bon, on garde le tarif actuel pour cette saison.' }],
+    });
+    t.addSegment('me', seg(80, 84), {
+      chunks: [{ from: 0, to: 4, text: 'Je relance le sponsor par écrit cette semaine.' }],
+    });
+    return t;
+  };
+  const md = make({}).toMarkdown();
+  assert.ok(
+    md.indexOf('## Compte rendu') > md.indexOf('exécuté localement') &&
+      md.indexOf('## Compte rendu') < md.indexOf('## Transcript')
+  );
+  assert.match(
+    md,
+    /### Décisions\n\n- \*\*\[00:01:05\] Participants :\*\* « Bon, on garde le tarif actuel pour cette saison\. »/
+  );
+  assert.match(md, /### Actions\n\n- \*\*\[00:01:20\] Vous :\*\* « Je relance le sponsor par écrit cette semaine\. »/);
+  assert.ok(!md.includes('### Questions ouvertes'), 'catégorie vide omise');
+  assert.ok(!make({ highlights: false }).toMarkdown().includes('Compte rendu'), 'réglage désactivé');
+  const en = make({ noteLang: 'en' }).toMarkdown();
+  assert.match(en, /## Summary[\s\S]*### Decisions\n\n- \*\*\[00:01:05\] Participants:\*\* "Bon, on garde/);
+  // Rien de repéré : une ligne le dit
+  const empty = new L.Transcript({ sources: ['me'] });
+  empty.addSegment('me', seg(0, 3), { chunks: [{ from: 0, to: 3, text: 'Les chiffres de la semaine sont bons.' }] });
+  assert.match(
+    empty.toMarkdown(),
+    /## Compte rendu[\s\S]*_Aucune décision, action ni question ouverte repérée\._[\s\S]*## Transcript/
+  );
+  // Modèle de note : variable {{compte_rendu}}, retirée proprement si le réglage est désactivé
+  const prof = L.Notes.newProfile('Essai', []);
+  assert.match(L.Notes.note(make({}), prof).content, /\n## Compte rendu\n[\s\S]*\n## Transcript\n/);
+  assert.doesNotMatch(L.Notes.note(make({ highlights: false }), prof).content, /Compte rendu|\n\n\n/);
 });
 
 if (failed) {

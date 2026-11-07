@@ -189,13 +189,34 @@ Les emplacements sont conservés avec vos réglages (y compris dans `app\reglage
 dossier, lui, est un accord donné au navigateur : s'il est oublié ou doit être redonné, l'écran
 d'accueil le signale et un clic suffit.
 
+### Le compte rendu en haut de la note
+
+À la fin de la réunion (ou de l'import d'un fichier), Lowsper relit le transcript et recopie, en
+haut de la note, les phrases qui portent :
+- une **décision** (« on garde le tarif actuel », « let's go with the export ») ;
+- une **action** (« je relance le fournisseur lundi », « Paul, tu envoies le chiffrage ? ») ;
+- une **question restée ouverte** (une question sans réponse, ou « on ne sait pas encore si... »).
+
+Chaque phrase est copiée mot pour mot, avec l'heure et la personne de sa réplique : rien n'est
+réécrit, rien n'est inventé. C'est un sommaire pour retrouver vite les moments importants, pas un
+compte rendu rédigé : il peut manquer des phrases (la moitié en français, trois sur dix en anglais,
+sur des réunions de test), surtout des décisions dites sans formule (« bon, ça me va »), et une phrase peut être mal
+rangée. Relisez-le avec le transcript, juste dessous. Les règles existent en français et en
+anglais ; dans une autre langue, la section dit qu'aucune phrase n'a été repérée.
+
+![Section « Compte rendu » produite sur l'hebdo fictif : actions et questions ouvertes, avec l'heure et la personne](images/compte-rendu.png)
+
+Pour le retirer : Paramètres, « Notes et compte rendu », décochez « Recopier les décisions, actions
+et questions en haut de la note » (le réglage vaut à partir de la réunion suivante). Dans un modèle
+de note personnalisé, la variable `{{compte_rendu}}` place cette section où vous voulez.
+
 ### Les paramètres
 
 Trois onglets ; chaque élément à choix ouvre un sous-écran (« ‹ Paramètres » ou Échap pour revenir).
 - **Transcription** : langue de l'interface, langues parlées, mots à reconnaître, corrections
   automatiques, vocabulaire métier, options de la réunion.
-- **Notes et compte rendu** : emplacements, dossier, format de la note, consigne de « Obtenir un
-  résumé » et éditeur des consignes.
+- **Notes et compte rendu** : emplacements, dossier, format de la note, compte rendu en haut de
+  la note, consigne de « Obtenir un résumé » et éditeur des consignes.
 - **Avancé** : modèle, vitesse, thème, mémoire des voix, sauvegarde, IA intégrée du navigateur
   (expérimental), journal technique.
 
@@ -283,6 +304,23 @@ consigne que vous avez modifiée n'est jamais changée.
 - **Vocabulaire de référence** (sigles et noms propres attendus) : RSSI, SLA, ITSM, ServiceNow, ...
 
 > Transcription automatique : elle peut contenir des erreurs de reconnaissance. [...]
+
+## Compte rendu
+
+_Phrases recopiées mot pour mot du transcript, repérées automatiquement : il peut en manquer, et une phrase peut être mal rangée. Le transcript complet est dessous._
+
+<!-- Extrait réel : corpus hebdo (texte exact), heures de la vérité terrain -->
+
+### Actions
+
+- **[00:01:47] Claire :** « Je le mets à l'ordre du jour du COPIL de jeudi. »
+- **[00:01:47] Claire :** « Marc, tu m'envoies le chiffrage ? »
+- [...]
+
+### Questions ouvertes
+
+- **[00:01:59] Sophie :** « J'ai demandé un renfort au prestataire, mais rien n'est signé. »
+- [...]
 
 ## Transcript
 
@@ -546,6 +584,11 @@ Lowsper reconnaît Brave et affiche ces explications au bon moment.
   plus forte ; les réponses courtes de l'autre (« oui », « d'accord », « pardon, vas-y ») sont
   souvent perdues. Vos propres paroles, sur le micro, restent captées, surtout avec un casque
   (mesures dans `decision.md` §39).
+- **Compte rendu en haut de la note** : sur des réunions de test, la moitié des phrases utiles
+  manquent en français et trois sur dix en anglais, surtout les décisions dites sans formule et,
+  en français, les questions dont Whisper perd le point d'interrogation ; huit phrases recopiées
+  sur dix sont justes. Mesuré sur des réunions fictives à voix de synthèse, en français et en anglais
+  seulement, pas sur de vraies réunions (`decision.md` §40).
 - **Voix proches** : deux personnes à la voix proche peuvent partager un numéro d'intervenant.
 - **Mesures** : vitesses mesurées sur une machine de développement lente, qualité mesurée sur des
   voix de synthèse. Le test de vitesse intégré (paramètres) donne la réalité de votre PC.
@@ -585,7 +628,11 @@ et `decision.md`) :
    (lot R6) ; paramètres en onglets (lot R7). Les lots R2 à R7 forment la version 4.0.0 ; les
    langues parlées multiples et les vocabulaires élargis (lot R8), la version 4.1.0 ; la mémoire des
    voix plus sûre d'une visio à l'autre (lot R9), la version 4.2.0.
-2. **Résumé local** : la piste de l'IA intégrée du navigateur reste à l'étude (`decision.md`
+2. **Compte rendu de réunion, sur le PC et hors ligne** ([docs/lots.md](lots.md)) : livré, le
+   compte rendu extractif en haut de la note (lot C1) ; à venir, les notes rapides tapées pendant
+   la réunion et une consigne « e-mail de suivi » (lot C2), puis un compte rendu rédigé par une IA
+   locale, seulement là où une mesure sur un portable sans carte graphique le valide (lot C3).
+3. **Résumé local** : la piste de l'IA intégrée du navigateur reste à l'étude (`decision.md`
    §22 et §23). D'ici là, « Obtenir un résumé » reste la voie recommandée.
 
 Une idée, un problème ? Ouvrez une [issue](https://github.com/PercyaDJ/Lowsper/issues/new/choose),

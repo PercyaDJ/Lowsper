@@ -726,6 +726,7 @@
       offset: offset || 0,
       profile: L.Notes.current().id, // profil de sortie choisi à l'accueil
       noteLang: L.i18n.lang(), // langue de la note : celle de l'interface au début de la réunion
+      highlights: store.get('lowsper.opt.highlights') !== '0', // compte rendu extractif (extract.js)
     });
     L.Transcript.current = t; // seule la réunion en cours est sauvegardée pour la récupération
     t.onChange(renderLive);
@@ -779,6 +780,7 @@
       },
       profile: L.Notes.current().id,
       noteLang: L.i18n.lang(),
+      highlights: store.get('lowsper.opt.highlights') !== '0',
     });
     t.othersBusy = [];
     if (app.voiceAnalyzer && $('distinguish').checked) {
@@ -2944,7 +2946,7 @@
   // Vocabulaires métier intégrés (vocabulary.js) : liste à cocher, mémorisée sur ce poste
   renderVocab();
   // Options : mémorisées comme le reste
-  for (const id of ['with-others', 'distinguish', 'autopip']) {
+  for (const id of ['with-others', 'distinguish', 'autopip', 'highlights']) {
     const v = store.get('lowsper.opt.' + id);
     if (v != null && !$(id).disabled) $(id).checked = v === '1';
     $(id).addEventListener('change', (e) => store.set('lowsper.opt.' + id, e.target.checked ? '1' : '0'));
