@@ -375,6 +375,83 @@ await test('intervenants : le nombre de personnes indiqué est respecté', async
   assert.equal(voices, 4);
 });
 
+await test('mémoire des voix : voix mémorisées par la 4.1.0 lues, reconnues et enrichies', () => {
+  const day = 86400000;
+  const now = Date.now();
+  const v = (i, noise = 0) => {
+    const a = new Array(256).fill(0);
+    a[i] = 1;
+    a[(i + 1) % 256] = noise;
+    const n = Math.hypot(1, noise);
+    return a.map((x) => x / n);
+  };
+  // Format écrit par les versions précédentes : une empreinte moyenne, pas de « prints »
+  const old = JSON.stringify({
+    enabled: true,
+    keepDays: 90,
+    voices: [{ name: 'Personne A', emb: v(1), seconds: 300, createdAt: now - 10 * day, updatedAt: now - 10 * day }],
+  });
+  const mem = new Map([['lowsper.voices.v1', old]]);
+  const storage = { getItem: (k) => mem.get(k) ?? null, setItem: (k, val) => mem.set(k, val) };
+  const m = new L.VoiceMemory(storage);
+  assert.equal(m.count, 1, 'ancienne voix lue');
+  assert.equal(m.match(new Map([[1, { emb: Float32Array.from(v(1, 0.2)) }]])).get(1), 'Personne A');
+  // Nouvel appareil : la voix est loin de la première empreinte, l'utilisateur la nomme
+  m.remember('Personne A', Float32Array.from(v(40)), 60, now);
+  const stored = JSON.parse(mem.get('lowsper.voices.v1')).voices[0];
+  assert.equal(stored.prints.length, 2, "l'ancienne empreinte devient la première de la liste");
+  assert.equal(stored.prints[0].at, now - 10 * day, 'sa date de création est gardée');
+  assert.equal(stored.emb.length, 256, 'moyenne gardée pour les versions précédentes');
+  // Comparaison à l'empreinte la plus proche : les deux appareils sont reconnus
+  const both = m.match(
+    new Map([
+      [1, { emb: Float32Array.from(v(40, 0.1)) }],
+      [2, { emb: Float32Array.from(v(9)) }],
+    ])
+  );
+  assert.equal(both.get(1), 'Personne A');
+  assert.equal(both.has(2), false);
+  // Au plus 5 empreintes, la plus ancienne oubliée
+  for (let k = 0; k < 6; k++) m.remember('personne a', Float32Array.from(v(100 + k)), 30, now + k);
+  const p = JSON.parse(mem.get('lowsper.voices.v1')).voices[0].prints;
+  assert.equal(p.length, L.SPEAKER_CFG.rememberPrints);
+  assert.equal(p[0].emb[101], 1, 'les plus récentes restent');
+  // Effacement par empreinte : la personne disparaît quand il ne lui en reste aucune
+  const r = new L.VoiceMemory(storage);
+  r.remember('Personne B', Float32Array.from(v(200)), 30, now - 100 * day);
+  r.remember('Personne B', Float32Array.from(v(210)), 30, now - 5 * day);
+  r.purge(now);
+  assert.equal(r.names().sort().join(), 'Personne A,Personne B');
+  assert.equal(JSON.parse(mem.get('lowsper.voices.v1')).voices[1].prints.length, 1, 'empreinte trop ancienne effacée');
+  r.purge(now + 200 * day);
+  assert.equal(r.count, 0);
+});
+
+await test('mémoire des voix : deux personnes presque aussi proches, pas de nom', () => {
+  const mem = new Map();
+  const storage = { getItem: (k) => mem.get(k) ?? null, setItem: (k, val) => mem.set(k, val) };
+  const m = new L.VoiceMemory(storage);
+  const mix = (a, b) => {
+    const x = new Float32Array(256);
+    x[a] = 1;
+    x[b] = 0.95;
+    const n = Math.hypot(1, 0.95);
+    return x.map((y) => y / n);
+  };
+  const e = (i) => {
+    const x = new Float32Array(256);
+    x[i] = 1;
+    return x;
+  };
+  m.remember('Personne A', e(3), 60);
+  m.remember('Personne B', e(4), 60);
+  // similarité 0,72 et 0,69 : sous le seuil ; avec une voix plus nette, l'écart compte
+  assert.equal(m.match(new Map([[1, { emb: mix(3, 4) }]])).size, 0);
+  const close = Float32Array.from(e(3)).map((x, i) => (i === 4 ? 0.3 : x));
+  const n = Math.hypot(1, 0.3);
+  assert.equal(m.match(new Map([[1, { emb: close.map((x) => x / n) }]])).get(1), 'Personne A');
+});
+
 await test('mémoire des voix : reconnaissance, prudence, effacement', () => {
   const mem = new Map();
   const storage = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, v) };

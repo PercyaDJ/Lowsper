@@ -119,6 +119,40 @@ const current = (threshold) => () => {
   return mem;
 };
 
+// Mémoire jusqu'à la version 4.1.0, recopiée à l'identique pour garder la comparaison « avant » :
+// une empreinte moyenne par personne, seuil 0,65, sans marge.
+class Before {
+  constructor(threshold = 0.65) {
+    this.threshold = threshold;
+    this.voices = [];
+  }
+  match(centroids) {
+    const pairs = [];
+    for (const [voice, c] of centroids)
+      for (const m of this.voices) pairs.push({ voice, name: m.name, sim: dot(c.emb, m.emb) });
+    pairs.sort((a, b) => b.sim - a.sim);
+    const out = new Map();
+    const used = new Set();
+    for (const p of pairs) {
+      if (p.sim < this.threshold) break;
+      if (out.has(p.voice) || used.has(p.name)) continue;
+      out.set(p.voice, p.name);
+      used.add(p.name);
+    }
+    return out;
+  }
+  remember(name, emb, seconds) {
+    const v = this.voices.find((x) => x.name.toLowerCase() === name.toLowerCase());
+    if (v) {
+      const w1 = Math.min(v.seconds, 600);
+      const w2 = Math.min(seconds, 600);
+      v.emb = unit(v.emb.map((x, i) => x * w1 + emb[i] * w2));
+      v.seconds = w1 + w2;
+    } else this.voices.push({ name, emb: Array.from(emb), seconds });
+  }
+}
+const before = (threshold) => () => new Before(threshold);
+
 // Prototypes des pistes de refonte.md §9, pour les essais avant de toucher à l'application.
 //   max : nombre d'empreintes gardées par personne ; full : quand la liste est pleine, oublier la
 //   plus ancienne (« oldest ») ou fusionner les deux plus proches (« merge ») ;
@@ -212,9 +246,10 @@ for (const [half, teams] of Object.entries(halves)) {
     (results[half] = results[half] || {})[label] = r;
     if (!json) console.log(line(label, r));
   };
-  run('Mémoire actuelle (0,65)', current());
+  run('Avant (4.1.0, seuil 0,65)', before());
+  run(`Après (4.2.0, seuil ${BASE.remember})`, current());
   if (process.argv.includes('--sweep'))
-    for (let th = 0.3; th <= 0.701; th += 0.05) run(`actuelle, seuil ${th.toFixed(2)}`, current(th));
+    for (let th = 0.6; th <= 0.901; th += 0.025) run(`après, seuil ${th.toFixed(3)}`, current(th));
 }
 
 // --explore : grille des pistes. Pour chaque piste, le seuil est choisi sur la moitié « réglage »
@@ -225,12 +260,12 @@ if (process.argv.includes('--explore')) {
   const cap = Number((process.argv.find((a) => a.startsWith('--cap=')) || '=2').split('=')[1]) / 100;
   const safe = (r) => r.wrong / r.known <= cap && r.oneoffNamed / r.oneoff <= cap;
   const ths = [];
-  for (let th = 0.3; th <= 0.8001; th += 0.025) ths.push(Math.round(th * 1000) / 1000);
-  const tracks = [{ label: 'actuelle', make: (th) => current(th) }];
-  for (const max of [1, 2, 3, 5, 8, 12])
-    for (const score of max === 1 ? ['max'] : ['max', 'mean', 'both'])
+  for (let th = 0.4; th <= 0.9501; th += 0.025) ths.push(Math.round(th * 1000) / 1000);
+  const tracks = [{ label: 'avant', make: (th) => before(th) }];
+  for (const max of [1, 3, 5, 8])
+    for (const score of max === 1 ? ['max'] : ['max', 'mean'])
       for (const full of max === 1 ? ['oldest'] : ['oldest', 'merge'])
-        for (const margin of [0, 0.05])
+        for (const margin of [0, 0.05, 0.1, 0.15])
           tracks.push({
             label: `max ${max}, ${score}, ${full}${margin ? ', marge ' + margin : ''}`,
             make: (th) => proto({ max, score, full, margin, threshold: th }),
@@ -295,5 +330,19 @@ if (process.argv.includes('--stats')) {
     });
     console.log(d1.padEnd(10) + row.join(''));
   }
+}
+// --curve : compromis seuil par seuil, sur tout le corpus, pour la mémoire actuelle et la piste
+// retenue (plusieurs empreintes, la plus proche, marge avec la deuxième personne).
+if (process.argv.includes('--curve')) {
+  const all = [...halves.réglage, ...halves.contrôle];
+  const ths = [0.6, 0.65, 0.7, 0.75, 0.775, 0.8, 0.825, 0.85, 0.875, 0.9];
+  console.log('\nCompromis sur tout le corpus (8 équipes)');
+  for (const th of ths) console.log(line(`avant, seuil ${th}`, simulate(all, before(th))));
+  for (const margin of [0, 0.05, 0.1])
+    for (const max of [1, 5])
+      for (const th of ths)
+        console.log(
+          line(`${max} empr., marge ${margin}, seuil ${th}`, simulate(all, proto({ max, margin, threshold: th })))
+        );
 }
 if (json) console.log(JSON.stringify(results, null, 1));
