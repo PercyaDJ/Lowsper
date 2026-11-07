@@ -54,8 +54,17 @@ sans carte graphique, 16 Go, Edge ou Chrome. Pas de discussion avec la réunion 
 |---|---|---|
 | C1 | Compte rendu extractif : décisions, actions, questions ouvertes, recopiées mot pour mot avec leur horodatage en haut de la note, transcript complet dessous ; français et anglais ; mesuré sur un corpus fictif | Livré |
 | C2 | Notes rapides tapées pendant la réunion, reprises dans la note ; consigne « e-mail de suivi » | Livré (4.4.0) |
-| C3 | Compte rendu rédigé par une IA locale, seulement là où une mesure sur le portable de référence le valide | À étudier |
+| C3 | Compte rendu rédigé par une IA locale, seulement là où une mesure sur le portable de référence le valide | Étudié : rien d'intégré |
 | Étude | Séparation des voix plus légère ; vocabulaire « IA et informatique » | À étudier |
+
+## C3 : compte rendu rédigé par une IA locale (étudié, rien d'intégré)
+
+Voir `decision.md` §43. Mesuré avec `tools/test/eval-summary.mjs` (WebAssembly, un fil, comme
+Lowsper) : seul Qwen3 0,6 milliard quantifié se charge, et chacun de ses textes invente (chiffre,
+date, personne, action décrite comme faite), même quand il ne lit que le compte rendu extractif.
+Qwen3 1,7 milliard et Gemma 3 ne se chargent pas (mémoire de WebAssembly, opération absente).
+Choix du mainteneur : rien n'est intégré. Piste restante : l'IA intégrée de Chrome et d'Edge, à
+mesurer sur le portable de référence avec la sonde des paramètres (§23).
 
 ## C2 : notes rapides et e-mail de suivi (livré)
 
@@ -248,19 +257,20 @@ Voir `refonte.md` §9.
 
 ## Texte pour ouvrir la session suivante
 
-Remplacer `C3` par le lot voulu, et sa ligne d'objectif par celle du tableau.
+Remplacer le lot et sa ligne d'objectif par ceux voulus, d'après le tableau.
 
 ```text
 Tu travailles sur le dépôt PercyaDJ/Lowsper (application de transcription de réunions 100 %
 locale, dans le navigateur).
 
 Avant tout, lis AGENTS.md (règles non négociables), docs/lots.md (feuille de route après la
-refonte) et decision.md §22, §23, §40 et §41.
+refonte) et decision.md §35, §39 et §43.
 
-Ta mission : le lot C3 de docs/lots.md, et seulement ce lot : compte rendu rédigé par une IA
-locale, seulement là où une mesure sur le portable de référence le valide. Commence par mesurer
-(vitesse, mémoire, fidélité au transcript, phrases inventées) avant de coder quoi que ce soit, et
-propose-moi un arbitrage sur ces mesures. Machine de référence : portable d'entreprise sans carte
+Ta mission : le lot « Étude » de docs/lots.md, et seulement ce lot : vocabulaire métier « IA et
+informatique » (jargon mal reconnu : IA, LLM, carte graphique, RAM, noms de logiciels, voir
+decision.md §39 point 1), mesuré avant et après sur un corpus synthétique ; puis, si le temps le
+permet, une séparation des voix plus légère que MossFormer2, mesurée sur le corpus « paroles
+simultanées » (decision.md §39 point 4). Machine de référence : portable d'entreprise sans carte
 graphique (16 Go, Edge ou Chrome), hors ligne. Le direct ne doit pas ralentir : mesure la charge
 du moteur avant et après (npm run bench) si le chemin du direct change.
 Respecte toutes les règles d'AGENTS.md. Mesure au lieu de supposer, et si un point n'est pas

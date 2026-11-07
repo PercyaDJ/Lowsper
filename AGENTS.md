@@ -129,7 +129,7 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Séparation des voix (MossFormer2, `.cache/sep`, `decision.md` §39) | `node test/eval-separation.mjs [--teams] [--max=N]` |
 | Kyutai STT sur processeur (environnement Python à part, `.cache/kyutai`, `decision.md` §39) | `python test/eval-kyutai.py [--threads=4] [corpus...]` |
 | Compte rendu extractif : texte exact (secondes), puis audio par la chaîne Lowsper (`decision.md` §40) | `node test/eval-extract.mjs [--list]` ; audio : `python corpus/make-cr.py` (dans `test/`), `node build.mjs --embed whisper-small`, `node test/eval-extract.mjs --transcribe` (1 h 30, Chromium), `node test/eval-hebdo.mjs whisper-small` (et `--corpus=entretien`), puis `node test/eval-extract.mjs --audio` |
-| Étude du résumé local (modèles dans `.cache/llm`, decision.md §22) | `node test/eval-summary.mjs <modèle> [--dtype=q8\|q4] [--sanity] [--long]` |
+| Étude du résumé local (modèles dans `.cache/llm/<auteur>/<nom>`, decision.md §22 et §43) | `node test/eval-summary.mjs <modèle ou auteur/modèle> [--dtype=q8\|q4\|q4f16\|fp32] [--sanity] [--long] [--extrait]` |
 
 Chromium : si Playwright ne trouve pas son navigateur, définissez `CHROMIUM_PATH`. Le test de
 décodage a besoin d'un navigateur qui lit l'AAC et le MP3 (Google Chrome en CI). Les tests e2e
