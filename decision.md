@@ -419,6 +419,9 @@ nommés. Décision prise avec l'utilisateur, consentement recueilli auprès des 
   de fin, et restent modifiables.
 - L'empreinte d'une personne s'affine à chaque fois qu'on confirme son nom.
 
+Remplacé pour la reconnaissance et la conservation par le §37 (4.2.0) : plusieurs empreintes par
+personne, seuil 0,825 et marge, effacement par empreinte.
+
 ### 15.11 Vitesse : le vrai goulot d'étranglement, et le test intégré
 
 Mesure sur la machine de test avec Whisper small : 11,9 s d'encodeur par bloc de 18 s, puis 148 ms
@@ -2333,3 +2336,111 @@ même lot à sa demande, en commits séparés.
 - **Non changé** : la recommandation ne retient jamais un modèle « carte graphique », faute de
   mesure de sa vitesse (§26) ; le mainteneur mesurera d'abord sur son PC (16 fils, 32 Go, carte
   graphique). Le choix d'un seul modèle est celui du lot R3.
+
+## 37. Refonte, lot R9 : mémoire des voix d'une visio à l'autre
+
+**Contexte.** Constat du mainteneur (`docs/refonte.md` §9) : la mémoire des voix (§15.10)
+reconnaît mal une personne qui change de micro. Aucune mesure n'existait. Remplace, pour la
+reconnaissance et la conservation, les règles du §15.10 ; le reste (désactivée par défaut,
+consentement, stockage local, effacement manuel) est inchangé.
+
+**Corpus (synthétique, aucune donnée réelle).** `tools/test/corpus/make-voices.py`, graine fixe,
+régénéré à l'identique (environ 4 h 25 de son, non versionné, dans `tools/.cache/voices`).
+- 96 voix Piper distinctes du modèle multi-voix `fr_FR-mls-medium` (révision figée) : 48
+  « habituées » (8 équipes de 6, 6 réunions chacune) et 48 « de passage » (une seule réunion).
+- Cinq appareils simulés, chacun suivi de l'aller-retour Opus d'une visio et d'un bruit rose :
+  casque (90-7000 Hz, Opus 24 kb/s), micro du portable (graves coupés, résonance, écho de la pièce,
+  ventilateur, 16 kb/s), téléphone (300-3400 Hz, 8 kb/s), salle équipée (réverbération,
+  compresseur, 20 kb/s), écouteurs Bluetooth (200-3800 Hz, compresseur, 12 kb/s). Chaque habituée
+  passe par les cinq, dans un ordre tiré au hasard.
+- À chaque réunion varient aussi le débit et l'intonation, la distance au micro (-8 à +4 dB), le
+  volume reçu (-6 à +3 dB) et la durée de parole (3 à 10 phrases).
+- Empreintes calculées dans le vrai moteur (`tools/test/embed-voices.mjs` : WeSpeaker dans
+  Chromium, fenêtres de 2 s de `SpeakerTracker`, empreinte finale de la voix). Le regroupement des
+  voix de la réunion est supposé parfait : la mesure isole la mémoire.
+
+**Protocole** (`tools/test/eval-voices.mjs`, sans navigateur, quelques secondes). Rejoue 6
+réunions par équipe, mémoire partagée par toutes les équipes d'une moitié. À la première réunion,
+l'utilisateur nomme chaque habituée ; ensuite la mémoire propose des noms, puis l'utilisateur
+corrige les noms absents ou faux, ce qui enrichit la mémoire (comme `app.js`). Le corpus est coupé
+en deux moitiés indépendantes : le seuil est choisi sur la première (« réglage ») et vérifié sur
+la seconde (« contrôle »). Mesuré : bon nom, mauvais nom (confusion), aucun nom, personne de
+passage nommée à tort.
+
+**Ce que dit le corpus** (`--stats`, similarité entre deux réunions) :
+
+| | 5 % | médiane | 95 % | maximum |
+|---|---|---|---|---|
+| Même personne, même appareil | 0,891 | 0,945 | 0,970 | 0,975 |
+| Même personne, autre appareil | 0,652 | 0,849 | 0,926 | 0,951 |
+| Deux personnes différentes | 0,172 | 0,434 | 0,739 | 0,936 |
+
+Le téléphone est l'appareil qui éloigne le plus une voix d'elle-même (médiane 0,69 à 0,73 avec
+les autres appareils, contre 0,85 à 0,91 entre les autres). Les deux zones se chevauchent : aucun
+seuil seul ne sépare une même personne sur un autre appareil de deux personnes proches.
+
+**Mesure de l'existant** (une empreinte moyenne par personne, seuil 0,65) : 82 % de bonnes
+reconnaissances, mais 17 % de confusions et **81 % des personnes de passage reçoivent un nom**.
+Avec 24 personnes en mémoire, une voix inconnue en trouve presque toujours une au-dessus de 0,65.
+Monter le seuil seul ne suffit pas : à 0,875, encore 2,5 % de confusions et 6 % de passage nommé,
+pour 53 % de reconnaissances.
+
+**Pistes essayées** (grille : 1 à 12 empreintes par personne ; comparaison à la plus proche, à la
+moyenne, ou au meilleur des deux ; liste pleine : oublier la plus ancienne ou fusionner les deux
+plus proches ; marge de 0 à 0,15 avec la deuxième personne la plus proche ; seuil de 0,40 à
+0,95) :
+- **plusieurs empreintes, comparées à la plus proche** : chaque appareil corrigé une fois est
+  reconnu ensuite (même appareil : 100 % sur la moitié « réglage ») ; une seule empreinte, même
+  avec marge, plafonne à 45 % de reconnaissances aux mêmes taux d'erreur ;
+- **la marge avec la deuxième personne** est le levier principal contre les faux noms : une voix
+  qui ressemble presque autant à deux personnes n'en reçoit aucune ;
+- 3, 5 ou 8 empreintes donnent les mêmes chiffres sur ce corpus (au plus 6 réunions par
+  personne) ; « oublier la plus ancienne » et « fusionner » font jeu égal ;
+- ajouter aussi une empreinte quand le nom proposé est gardé gagne 3 à 5 points, mais suppose que
+  l'utilisateur corrige toujours un faux nom : écarté (un faux nom non corrigé polluerait la
+  mémoire de la mauvaise personne).
+
+**Choix du mainteneur** (7 novembre 2026), parmi trois compromis présentés : « équilibré ».
+- Jusqu'à **5 empreintes par personne**, une par réunion où on la nomme ou la corrige ; au-delà,
+  la plus ancienne est oubliée.
+- Comparaison à **l'empreinte la plus proche** de chaque personne, **seuil 0,825**, et **marge de
+  0,05** avec la deuxième personne la plus proche. Association une à une, comme avant.
+- **Conservation par empreinte** : chaque empreinte est effacée 1, 3 ou 6 mois après sa création ;
+  la personne est oubliée quand il ne lui en reste aucune.
+- **Copie locale gardée** dans `app/reglages.txt` (§15.16) : les empreintes y restent, sur ce PC,
+  pour survivre à l'effacement des données du navigateur ; jamais dans l'export ni dans un
+  fichier importé (§30).
+
+**Avant et après, mêmes chiffres** (`node test/eval-voices.mjs`) :
+
+| Moitié | Version | Bon nom | Confusion | Sans nom | Passage nommé | Appareil nouveau |
+|---|---|---|---|---|---|---|
+| Réglage | 4.1.0 | 86,7 % | 11,7 % | 1,7 % | 83,3 % | 86,1 % |
+| Réglage | 4.2.0 | 70,8 % | 4,2 % | 25,0 % | 8,3 % | 68,8 % |
+| Contrôle | 4.1.0 | 84,2 % | 15,0 % | 0,8 % | 79,2 % | 82,9 % |
+| Contrôle | 4.2.0 | 65,0 % | 0,8 % | 34,2 % | 0,0 % | 62,4 % |
+
+Chaque moitié compte 120 reconnaissances à juger et 24 personnes de passage : une personne de
+passage vaut 4,2 points. Lecture : moins de noms proposés, mais presque jamais faux ; une voix
+sans nom se corrige d'un clic et enrichit la mémoire, un faux nom passe inaperçu dans la note.
+
+**Format et rétrocompatibilité.** Clé `lowsper.voices.v1` inchangée, format étendu sans rien
+retirer : chaque personne garde `emb` (la moyenne, que lisent les versions antérieures) et reçoit
+`prints` (ses empreintes datées, arrondies à 4 décimales, environ 2 Ko chacune). Une voix sans
+`prints` (mémorisée par une version précédente) est lue comme une seule empreinte, datée de sa
+création : aucune migration à lancer, testé (`npm run test:unit`). Limite : revenir à une version
+antérieure puis renommer une voix met à jour `emb` sans `prints` ; la 4.2.0 garde alors les
+anciennes `prints`.
+
+**Coût.** Aucun pendant la réunion : la reconnaissance a lieu à la fin, sur quelques voix
+(au plus 5 empreintes par personne mémorisée). Le chemin du direct n'a pas changé, d'où aucune
+mesure `npm run bench`.
+
+**Limites, non vérifiées ici.**
+- Les voix d'un même modèle Piper se ressemblent sans doute plus que de vraies voix (deux
+  personnes : médiane 0,43) : le seuil est probablement prudent pour de vraies réunions. Seul un
+  essai réel le dira.
+- Le corpus ne contient pas les erreurs du regroupement des voix (une personne coupée en deux, deux
+  personnes fusionnées), mesurées à part (§15.14).
+- Pas de vrais appareils ni de vrais logiciels de visio : la dégradation est simulée par des
+  filtres et le codec Opus.

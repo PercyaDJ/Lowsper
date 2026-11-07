@@ -35,7 +35,7 @@ Chaque lot respecte `AGENTS.md`, et en particulier :
 | R6 | Fin de réunion et consignes réécrites | 4.0.0 | Livré |
 | R7 | Réglages en onglets | 4.0.0 | Livré |
 | R8 | Langues parlées multiples et vocabulaires métier élargis | 4.1.0 | Livré |
-| R9 | Mémoire des voix d'une visio à l'autre | 4.2.0 | À faire |
+| R9 | Mémoire des voix d'une visio à l'autre | 4.2.0 | Livré |
 
 ## R1 : fondations visuelles (livré)
 
@@ -192,7 +192,12 @@ Voir `refonte.md` §8.1 et §8.4.
 - **Contexte de Whisper** : il est limité en longueur. Mesurer l'effet de plusieurs listes
   cochées à la fois.
 
-## R9 : mémoire des voix d'une visio à l'autre
+## R9 : mémoire des voix d'une visio à l'autre (livré)
+
+Livré, voir `decision.md` §37. Choix du mainteneur en cours de lot, sur mesures : compromis
+« équilibré » (seuil 0,825, marge 0,05 avec la deuxième personne la plus proche), 5 empreintes au
+plus par personne, effacement par empreinte, copie locale gardée dans `app/reglages.txt` (jamais
+exportée). Non vérifié : le comportement sur de vraies voix et de vrais appareils.
 
 Voir `refonte.md` §9.
 1. Construire un corpus synthétique où une même voix passe par plusieurs micros simulés.
