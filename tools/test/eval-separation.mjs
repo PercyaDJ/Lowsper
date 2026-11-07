@@ -61,7 +61,9 @@ window.separate = async (clips) => {
     const x = Float32Array.from(c);
     const t = performance.now();
     const r = await session.run({ inputs: new ort.Tensor('float32', x, [1, x.length]) });
-    out.push({ ms: performance.now() - t, spk0: Array.from(r.spk0.data), spk1: Array.from(r.spk1.data) });
+    const ms = performance.now() - t;
+    console.log('clip ' + (out.length + 1) + '/' + clips.length + ' : ' + (c.length / 16000).toFixed(1) + ' s de son, ' + (ms / 1000).toFixed(1) + ' s de calcul');
+    out.push({ ms, spk0: Array.from(r.spk0.data), spk1: Array.from(r.spk1.data) });
   }
   return { loadMs, out };
 };</script>`;
@@ -83,6 +85,7 @@ await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const tab = await browser.newPage();
 tab.on('pageerror', (e) => console.log('[pageerror]', e.message));
+tab.on('console', (m) => console.log(m.text()));
 await tab.goto(`http://127.0.0.1:${server.address().port}/`);
 const sep = await tab.evaluate(
   (clips) => window.separate(clips),
