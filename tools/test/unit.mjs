@@ -214,6 +214,28 @@ await test("l'écho des participants capté par le micro est supprimé", () => {
   assert.match(t.lines[1].text, /chiffrage/);
 });
 
+await test("l'écho découpé autrement que l'original (à cheval sur deux phrases) est supprimé", () => {
+  const t = new L.Transcript({ sources: ['me', 'others'] });
+  t.addSegment('others', seg(10, 18), {
+    chunks: [
+      { from: 0, to: 4, text: "J'ai relu la nouvelle procédure d'accès." },
+      { from: 4, to: 8, text: 'Elle me paraît claire, il faudra juste ajouter un exemple.' },
+    ],
+  });
+  // L'écho, transcrit en une seule phrase, avec une erreur de Whisper (« reçu »)
+  t.addSegment('me', seg(10.2, 18.3), {
+    chunks: [
+      { from: 0, to: 8, text: "J'ai reçu la nouvelle procédure d'accès, elle me paraît claire, il faudra juste" },
+    ],
+  });
+  // Votre vraie question, dite juste après, avec quelques mots déjà entendus : gardée
+  t.addSegment('me', seg(19, 22), {
+    chunks: [{ from: 0, to: 3, text: 'Tu peux envoyer la procédure à toute l’équipe avant lundi ?' }],
+  });
+  assert.equal(t.lines.map((l) => l.source).join(','), 'others,others,me');
+  assert.match(t.lines[2].text, /avant lundi/);
+});
+
 await test('les hallucinations classiques de Whisper sont filtrées', () => {
   const t = new L.Transcript();
   t.addSegment('others', seg(0, 5, 0.5), {
