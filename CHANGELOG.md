@@ -11,6 +11,38 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 Les détails techniques et les mesures sont dans `decision.md`.
 
+## [Non publié]
+
+## [4.4.0] - 2026-11-07
+
+Rien à faire en passant à cette version : copiez `app\models`, `app\reglages.txt` et `Notes` comme
+d'habitude.
+
+### Ajouté
+- **Notes rapides pendant la réunion** (lot C2) : un champ « Note rapide » dans la fenêtre de
+  Lowsper ; Entrée ajoute la note, « Retirer » l'enlève. Les notes sont reprises dans la note,
+  section « Vos notes » (« Your notes » en anglais), après le compte rendu et avant le transcript,
+  chacune avec l'heure où vous avez commencé à la taper. Une note tapée sans Entrée au moment de
+  terminer est gardée. Elles restent sur le PC et sont conservées par la sauvegarde de secours.
+- **Consigne « E-mail de suivi »** pour « Obtenir un résumé », en français et en anglais :
+  l'e-mail à envoyer aux participants (objet, décisions, actions, questions ouvertes, prochaine
+  étape), sans signature, avec entre crochets ce qu'il faut vérifier avant l'envoi.
+- Variable `{{notes}}` pour les modèles de note, présente dans le modèle par défaut.
+- **Publication d'une release lancée à la main** (mainteneur) : le workflow « Paquet de release »
+  se lance aussi depuis l'onglet Actions avec le tag voulu. Il crée la release depuis `main`, avec
+  le texte du CHANGELOG, puis joint le paquet ; ou il complète une release déjà publiée sans
+  paquet (decision.md §42).
+
+### Modifié
+- Un modèle de note par défaut jamais modifié (versions précédentes) reçoit la section « Vos
+  notes » avant le transcript. Un modèle que vous avez modifié reste tel quel ; s'il n'a pas
+  `{{notes}}`, vos notes rapides sont ajoutées à la fin de la note, pour ne jamais les perdre.
+
+### Corrigé
+- **Release 4.3.0 sans paquet** : le numéro de version avait été oublié dans `tools/package.json`,
+  et le workflow refusait de construire `Lowsper-4.3.0.zip`. Le paquet est joint à la release
+  4.3.0 par le lancement manuel ci-dessus, construit depuis son tag (non déplacé).
+
 ## [4.3.0] - 2026-11-07
 
 Rien à faire en passant à cette version : copiez `app\models`, `app\reglages.txt` et `Notes` comme
@@ -416,7 +448,9 @@ antérieures n'ont pas été taguées (la numérotation reprend la « version 3 
   journal technique.
 - Réglages copiés dans le dossier (`app/reglages.txt`), restaurés après un nettoyage du navigateur.
 
-[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v4.2.2...HEAD
+[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v4.4.0...HEAD
+[4.4.0]: https://github.com/PercyaDJ/Lowsper/compare/v4.3.0...v4.4.0
+[4.3.0]: https://github.com/PercyaDJ/Lowsper/compare/v4.2.2...v4.3.0
 [4.2.2]: https://github.com/PercyaDJ/Lowsper/compare/v4.2.1...v4.2.2
 [4.2.1]: https://github.com/PercyaDJ/Lowsper/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/PercyaDJ/Lowsper/compare/v4.1.0...v4.2.0

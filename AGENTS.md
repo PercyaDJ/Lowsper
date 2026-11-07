@@ -53,7 +53,10 @@ Une modification qui affaiblit l'une d'elles est refusée, quelle qu'en soit la 
   `chore`. Portée facultative : `feat(import): ...`.
 - **Versions** : SemVer. Majeur si l'utilisateur doit agir, mineur pour une fonctionnalité,
   correctif sinon. La version de `tools/package.json` fait foi ; la release `vX.Y.Z` est publiée
-  sur `main` et reçoit automatiquement son paquet (le workflow refuse un tag différent).
+  sur `main` et reçoit automatiquement son paquet (le workflow refuse un tag différent). Elle peut
+  aussi être créée en lançant à la main le workflow « Paquet de release » avec le tag : depuis
+  `main`, texte tiré de la section du CHANGELOG ; une release publiée sans paquet est complétée
+  depuis son tag (`decision.md` §42).
 - **CHANGELOG** : format Keep a Changelog. Chaque pull request remplit la section « Non publié ».
 - **Décisions** : tout choix technique non trivial va dans `decision.md`, dans le style existant :
   contexte, options, arbitrage, mesures, limites. Ne réécrivez pas une décision passée : ajoutez
@@ -155,8 +158,8 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/js/audiofile.js` | Fichiers importés : lecteurs de conteneur (WAV, MP3, AAC, M4A, Ogg, WebM), décodage WebCodecs en flux |
 | `app/js/speakers.js` | Distinction, regroupement et mémoire des voix (cinq empreintes au plus par personne, comparaison à la plus proche, `decision.md` §37) ; voix du micro (anti-écho) |
 | `app/js/extract.js` | Compte rendu extractif : phrases de décision, d'action et de question ouverte recopiées mot pour mot (règles en français et en anglais, `decision.md` §40) |
-| `app/js/transcript.js` | Assemblage, sigles, filtres, couverture, Markdown (section « Compte rendu » comprise), sauvegarde de secours |
-| `app/js/notes.js` | Emplacements (profils de sortie) : modèle de note, nom de fichier, front matter, liens, dossier de destination (par défaut `Notes/<emplacement>` du dossier Lowsper, `decision.md` §30) ; consignes pour l'IA (textes fournis dans `i18n.js`, anciens textes reconnus pour la rétrocompatibilité, `decision.md` §29) |
+| `app/js/transcript.js` | Assemblage, sigles, filtres, couverture, Markdown (sections « Compte rendu » et « Vos notes » comprises), notes rapides de la réunion (`decision.md` §41), sauvegarde de secours |
+| `app/js/notes.js` | Emplacements (profils de sortie) : modèle de note, nom de fichier, front matter, liens, dossier de destination (par défaut `Notes/<emplacement>` du dossier Lowsper, `decision.md` §30) ; consignes pour l'IA (textes fournis dans `i18n.js`, dont l'e-mail de suivi, anciens textes et anciens modèles par défaut reconnus pour la rétrocompatibilité, `decision.md` §29 et §41) |
 | `app/js/localai.js` | Sonde de l'IA intégrée du navigateur (expérimental) : disponibilité, essai sur une réunion fictive, rapport |
 | `app/js/languages.js` | Langues parlées proposées (qualité mesurée), lecture de l'ancien réglage `lowsper.language`, nom des langues dans la note (`decision.md` §34) |
 | `app/js/vocabularies.js` | Données des vocabulaires métier, par domaine et par langue parlée ; format dans `CONTRIBUTING.md` |
@@ -170,7 +173,7 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `tools/build.mjs`, `fetch-model.mjs`, `models.mjs`, `models.lock.json` | Construction et verrou des modèles |
 | `tools/test/` | Tests unitaires, non-fuite, e2e, bancs de mesure ; `corpus/` : corpus synthétiques et leurs générateurs |
 | `docs/` | Architecture, guide de déploiement (DSI, RSSI), spécifications de la refonte (`refonte.md`) et plan des lots (`lots.md`), captures d'écran (`docs/images`, régénérées par `tools/test/screenshots.mjs`) |
-| `tools/release.mjs` | Paquet de distribution, joint aux releases par `.github/workflows/release.yml` |
+| `tools/release.mjs` | Paquet de distribution, joint aux releases par `.github/workflows/release.yml` (publication dans GitHub ou lancement manuel, `decision.md` §42) |
 | `README.md`, `README.fr.md` | Pages d'accueil courtes, en anglais et en français, avec bascule |
 | `docs/guide.md` | Guide complet de l'utilisateur, en français : écrans, FAQ, limites |
 | `.github/workflows/lysbor.yml`, `.semgrepignore` | Suivi des vulnérabilités par l'agent Lysbor (`decision.md` §32) |

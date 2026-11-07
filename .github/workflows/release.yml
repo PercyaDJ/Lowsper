@@ -1,12 +1,28 @@
-# Joint le paquet de distribution à chaque release publiée sur GitHub.
-# La release est créée à la main (tag vX.Y.Z sur main) ; ce workflow construit
-# Lowsper-X.Y.Z.zip avec tools/release.mjs, vérifie qu'il correspond au tag, puis le joint à la
-# release avec son empreinte SHA-256 (decision.md §18.1).
+# Joint le paquet de distribution Lowsper-X.Y.Z.zip (et son empreinte SHA-256) à une release
+# (decision.md §18.1 et §42).
+#
+# Deux façons de le lancer :
+# - publication d'une release dans GitHub (tag vX.Y.Z sur main) : le paquet est construit depuis
+#   le tag, qui doit correspondre à la version de tools/package.json ;
+# - lancement manuel (onglet Actions, « Run workflow », champ tag) :
+#   - release absente : depuis main seulement, la version de tools/package.json doit être celle
+#     du tag et le CHANGELOG doit avoir sa section ; la release est créée sur le commit lancé,
+#     avec le texte de cette section, puis le paquet est joint ;
+#   - release déjà publiée sans paquet : le paquet est construit depuis son tag, jamais déplacé.
+#     Si seul le numéro de tools/package.json avait été oublié (le CHANGELOG du tag a bien la
+#     section de cette version), il est corrigé pour la construction : il ne sert qu'au nom du
+#     paquet.
 name: Paquet de release
 
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version à publier ou à compléter, de la forme vX.Y.Z'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -16,10 +32,31 @@ jobs:
     name: Construire et joindre Lowsper-X.Y.Z.zip
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
     steps:
+      - name: Tag valide, release existante ou à créer
+        id: plan
+        run: |
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag « $TAG » invalide : forme attendue vX.Y.Z." >&2
+            exit 1
+          fi
+          if [ "$GITHUB_EVENT_NAME" = "release" ] || gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "create=false" >> "$GITHUB_OUTPUT"
+            echo "ref=$TAG" >> "$GITHUB_OUTPUT"
+          else
+            if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+              echo "Une nouvelle release se crée depuis main seulement (lancé depuis $GITHUB_REF)." >&2
+              exit 1
+            fi
+            echo "create=true" >> "$GITHUB_OUTPUT"
+            echo "ref=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ steps.plan.outputs.ref }}
           persist-credentials: false
       - name: Version qui sait construire son paquet ?
         id: check
@@ -44,20 +81,36 @@ jobs:
         if: steps.check.outputs.present == 'true'
         working-directory: tools
         env:
-          TAG: ${{ github.event.release.tag_name }}
+          CREATE: ${{ steps.plan.outputs.create }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          if [ "$TAG" != "v$VERSION" ]; then
-            echo "Le tag $TAG ne correspond pas à la version $VERSION de tools/package.json." >&2
-            exit 1
+          WANTED="${TAG#v}"
+          if [ "$VERSION" = "$WANTED" ]; then exit 0; fi
+          # Seule réparation permise : release déjà publiée, lancée à la main, dont le CHANGELOG
+          # du tag a la section de sa version (seul le numéro avait été oublié)
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$CREATE" = "false" ] \
+            && grep -qF "## [$WANTED]" ../CHANGELOG.md; then
+            echo "tools/package.json du tag est en $VERSION : numéro corrigé en $WANTED pour la construction."
+            npm pkg set version="$WANTED"
+            exit 0
           fi
+          echo "Le tag $TAG ne correspond pas à la version $VERSION de tools/package.json." >&2
+          exit 1
       - name: Construction du paquet
         if: steps.check.outputs.present == 'true'
         working-directory: tools
         run: node release.mjs
+      - name: Création de la release (lancement manuel)
+        if: steps.check.outputs.present == 'true' && steps.plan.outputs.create == 'true'
+        run: |
+          WANTED="${TAG#v}"
+          # Texte de la release : la section de cette version dans le CHANGELOG, sans son titre
+          awk -v head="## [$WANTED]" 'index($0, head) == 1 { on = 1; next } on && /^## \[/ { exit } on' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "Section « ## [$WANTED] » absente ou vide dans CHANGELOG.md." >&2
+            exit 1
+          fi
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$TAG" --notes-file notes.md
       - name: Ajout à la release
         if: steps.check.outputs.present == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.release.tag_name }}
         run: gh release upload "$TAG" tools/dist/*.zip tools/dist/*.sha256 --clobber --repo "$GITHUB_REPOSITORY"

@@ -1431,7 +1431,7 @@ await test('consignes : prompt système (rôle, contexte, tâche, règles, trans
   const out = L.Notes.promptText(t, p);
   assert.ok(out.startsWith('# Rôle\nTu rédiges des comptes rendus de réunion exacts et utiles.\n'));
   assert.ok(out.endsWith('\n# Transcript\n' + t.toMarkdown()), 'la note, inchangée, à la place de {{note}}');
-  assert.equal(L.Notes.prompts().length, 3);
+  assert.equal(L.Notes.prompts().length, 4);
   const order = {
     fr: ['Rôle', 'Contexte', 'Tâche', 'Règles', 'Transcript'],
     en: ['Role', 'Context', 'Task', 'Rules', 'Transcript'],
@@ -1450,7 +1450,11 @@ await test('consignes : prompt système (rôle, contexte, tâche, règles, trans
       const ctx = (x) => x.slice(x.indexOf('\n- '), x.indexOf('\n# ' + order[lang][2]));
       const ref = L.Notes.builtinPrompts(lang)[0].text;
       assert.equal(ctx(b.text), ctx(ref), `${lang} ${b.id} : même contexte`);
-      if (b.id !== 'actions') assert.equal(rules(b.text), rules(ref), `${lang} ${b.id} : mêmes règles`);
+      if (b.id === 'email-suivi') {
+        // E-mail de suivi : les mêmes règles, plus celles propres à un e-mail envoyé
+        const base = rules(ref).trim().split('\n').slice(0, -1).join('\n'); // sans « Sois concis »
+        assert.ok(rules(b.text).trim().startsWith(base), `${lang} ${b.id} : règles communes reprises`);
+      } else if (b.id !== 'actions') assert.equal(rules(b.text), rules(ref), `${lang} ${b.id} : mêmes règles`);
     }
 });
 
@@ -1514,13 +1518,13 @@ await test('consignes : modifiables, rétablissables, personnelles, variables et
   assert.match(own, /^Résume pour un client : \*\*\[00:00:01\] Vous :\*\* Bonjour à tous\./);
   assert.ok(!own.includes('---\n\n'), '{{transcript}} présent : la note n’est pas ajoutée en plus');
   L.Notes.removePrompt(id);
-  assert.equal(L.Notes.prompts().length, 3);
+  assert.equal(L.Notes.prompts().length, 4);
   // Consigne disparue : repli sur la première
   assert.ok(
     L.Notes.promptText(t, Object.assign(p, { prompt: id })).startsWith('# Rôle\nTu rédiges des comptes rendus')
   );
   store.set('lowsper.prompts', 'abîmé');
-  assert.equal(L.Notes.prompts().length, 3);
+  assert.equal(L.Notes.prompts().length, 4);
   store.delete('lowsper.prompts');
 });
 
@@ -1894,7 +1898,10 @@ await test('consignes : fournies dans la langue de l’interface, consigne modif
   L.i18n.setLang('en');
   try {
     let list = L.Notes.prompts();
-    assert.deepEqual([...list.map((p) => p.name)], ['Meeting minutes', 'Call summary', 'Action items']);
+    assert.deepEqual(
+      [...list.map((p) => p.name)],
+      ['Meeting minutes', 'Call summary', 'Action items', 'Follow-up email']
+    );
     assert.match(list[0].text, /^# Role\nYou write accurate, useful meeting minutes\./);
     // Texte d'origine français enregistré (version précédente) : non modifié, il suit la langue
     L.Notes.savePrompt('compte-rendu', { text: L.i18n.t('prompt.compte-rendu.text', null, 'fr') });
@@ -2228,6 +2235,145 @@ await test('compte rendu : section de la note avant le transcript, désactivable
   const prof = L.Notes.newProfile('Essai', []);
   assert.match(L.Notes.note(make({}), prof).content, /\n## Compte rendu\n[\s\S]*\n## Transcript\n/);
   assert.doesNotMatch(L.Notes.note(make({ highlights: false }), prof).content, /Compte rendu|\n\n\n/);
+});
+
+// --- Notes rapides et e-mail de suivi (lot C2) ---
+const plain = (x) => JSON.parse(JSON.stringify(x));
+function meetingWithNotes(meta) {
+  const t = new L.Transcript(
+    Object.assign(
+      {
+        title: 'Point équipe',
+        startedAt: new Date(2026, 10, 9, 10, 0).getTime(),
+        endedAt: new Date(2026, 10, 9, 10, 30).getTime(),
+        sources: ['me'],
+        highlights: false,
+      },
+      meta || {}
+    )
+  );
+  t.addSegment('me', { start: 0, end: 30, speech: 30 }, { chunks: [{ from: 1, to: 4, text: 'Bonjour à tous.' }] });
+  return t;
+}
+
+await test('notes rapides : rangées par heure, une ligne, vides ignorées, retirables', () => {
+  const t = meetingWithNotes();
+  assert.equal(t.addNote(12, '   '), null, 'note vide ignorée');
+  const b = t.addNote(125.7, '  Relancer   le\nfournisseur  ');
+  t.addNote(65, 'Budget : 12 400 €');
+  assert.deepEqual(
+    plain(t.meta.notes).map((n) => [n.t, n.text]),
+    [
+      [65, 'Budget : 12 400 €'],
+      [125.7, 'Relancer le fournisseur'],
+    ]
+  );
+  const long = t.addNote(200, 'x'.repeat(800));
+  assert.equal(long.text.length, L.NOTE_MAX);
+  t.removeNote(long);
+  t.removeNote({ t: 65, text: 'Budget : 12 400 €' }); // autre objet de même contenu : rien n'est retiré
+  assert.equal(t.meta.notes.length, 2);
+  t.removeNote(b);
+  assert.deepEqual(plain(t.quickNotes()), [{ t: 65, text: 'Budget : 12 400 €' }]);
+  // Notes abîmées (fichier de secours d'une autre version) : ignorées sans erreur
+  t.meta.notes = [null, { t: 'x', text: 'A' }, { t: 3 }, { t: 2, text: ' B ' }];
+  assert.deepEqual(plain(t.quickNotes()), [
+    { t: 0, text: 'A' },
+    { t: 2, text: 'B' },
+  ]);
+});
+
+await test('notes rapides : section « Vos notes » avant le transcript, après le compte rendu', () => {
+  const plain = meetingWithNotes();
+  const before = plain.toMarkdown();
+  assert.ok(!before.includes('Vos notes'), 'sans note rapide, la note ne change pas');
+  const t = meetingWithNotes({ highlights: true });
+  t.addNote(65, 'Budget : 12 400 €');
+  t.addNote(3725, 'Prochaine revue : {t} **mardi**');
+  const md = t.toMarkdown();
+  assert.match(
+    md,
+    /\n## Vos notes\n\n_Notes tapées pendant la réunion, recopiées telles quelles, avec l’heure où vous avez commencé à les écrire\._\n\n- \*\*\[00:01:05\]\*\* Budget : 12 400 €\n- \*\*\[01:02:05\]\*\* Prochaine revue : \{t\} \*\*mardi\*\*\n\n## Transcript\n/
+  );
+  assert.ok(md.indexOf('## Compte rendu') < md.indexOf('## Vos notes'), 'après le compte rendu');
+  // Sans note rapide, le format classique reste identique au caractère près
+  assert.equal(before, meetingWithNotes().toMarkdown());
+  const en = meetingWithNotes({ noteLang: 'en' });
+  en.addNote(5, 'Check the figures');
+  assert.match(
+    en.toMarkdown(),
+    /\n## Your notes\n\n_Notes typed during the meeting[^\n]*\n\n- \*\*\[00:00:05\]\*\* Check the figures\n/
+  );
+});
+
+await test('notes rapides : sauvegarde de secours et récupération', () => {
+  const t = meetingWithNotes({ endedAt: null });
+  L.Transcript.current = t;
+  t.addNote(42, 'À garder');
+  const back = L.Transcript.loadUnfinished();
+  assert.deepEqual(plain(back.quickNotes()), [{ t: 42, text: 'À garder' }]);
+  assert.match(back.toMarkdown(), /- \*\*\[00:00:42\]\*\* À garder/);
+  L.Transcript.clearSaved();
+  L.Transcript.current = null;
+});
+
+await test('notes rapides : modèles de note ({{notes}}, anciens modèles par défaut, modèle modifié)', () => {
+  const t = meetingWithNotes();
+  t.addNote(65, 'Budget validé');
+  const prof = L.Notes.newProfile('Essai', []);
+  // Modèle par défaut : {{notes}} juste avant le transcript
+  const c = L.Notes.note(t, prof).content;
+  assert.match(c, /\n## Vos notes\n[\s\S]*Budget validé\n\n## Transcript\n/);
+  // Sans note rapide : variable retirée proprement
+  assert.doesNotMatch(L.Notes.note(meetingWithNotes(), prof).content, /Vos notes|\n\n\n/);
+  // Anciens modèles par défaut, jamais modifiés : reçoivent les notes avant le transcript
+  for (const old of [
+    '# {{titre}}\n\n{{en_tete}}\n\n{{compte_rendu}}\n\n## Transcript\n\n{{transcript}}\n',
+    '# {{titre}}\n\n{{en_tete}}\n\n## Transcript\n\n{{transcript}}\n',
+  ]) {
+    const out = L.Notes.note(t, Object.assign({}, prof, { template: old })).content;
+    assert.ok(out.indexOf('## Vos notes') > 0 && out.indexOf('## Vos notes') < out.indexOf('## Transcript'), old);
+  }
+  // Le modèle d'avant le lot C1 ne gagne pas de compte rendu
+  const pre = L.Notes.note(
+    meetingWithNotes({ highlights: true }),
+    Object.assign({}, prof, {
+      template: '# {{titre}}\n\n{{en_tete}}\n\n## Transcript\n\n{{transcript}}\n',
+    })
+  ).content;
+  assert.ok(!pre.includes('Compte rendu'));
+  // Modèle modifié sans {{notes}} : notes ajoutées à la fin, jamais perdues
+  const own = L.Notes.note(t, Object.assign({}, prof, { template: '{{titre}}\n\n{{transcript}}' })).content;
+  assert.ok(own.endsWith('- **[00:01:05]** Budget validé\n'), own);
+  // {{transcript_complet}} contient déjà les notes : pas de doublon
+  const full = L.Notes.note(t, Object.assign({}, prof, { template: '{{transcript_complet}}' })).content;
+  assert.equal(full.split('Budget validé').length, 2);
+  assert.equal(L.Notes.unknownVariables('{{notes}}').length, 0);
+});
+
+await test('e-mail de suivi : consigne fournie en français et en anglais, avec vos notes', () => {
+  store.delete('lowsper.prompts');
+  const t = meetingWithNotes();
+  t.addNote(65, 'Envoyer le devis');
+  const prof = Object.assign(L.Notes.newProfile('Essai', []), { prompt: 'email-suivi' });
+  const out = L.Notes.promptText(t, prof);
+  assert.ok(out.startsWith('# Rôle\nTu rédiges des e-mails de suivi de réunion exacts, clairs et courts.\n'));
+  assert.match(out, /« Vos notes »/);
+  assert.ok(
+    out.endsWith('Envoyer le devis\n\n## Transcript\n\n**[00:00:01] Vous :** Bonjour à tous.\n'),
+    out.slice(-200)
+  );
+  const en = L.Notes.builtinPrompts('en').find((p) => p.id === 'email-suivi');
+  assert.equal(en.name, 'Follow-up email');
+  assert.match(en.text, /« Your notes »/);
+  assert.equal(L.i18n.t('note.notesTitle', null, 'en'), '## Your notes');
+  // Les mots qui désignent la section dans la consigne sont ceux de la note
+  assert.ok(
+    L.Notes.builtinPrompts('fr')
+      .find((p) => p.id === 'email-suivi')
+      .text.includes('« ' + L.i18n.t('note.notesTitle', null, 'fr').slice(3) + ' »')
+  );
+  assert.ok(en.text.includes('« ' + L.i18n.t('note.notesTitle', null, 'en').slice(3) + ' »'));
 });
 
 if (failed) {

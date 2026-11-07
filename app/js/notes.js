@@ -33,7 +33,23 @@
 
   // Le compte rendu extractif (lot C1) est dans le modèle par défaut ; les modèles déjà modifiés
   // par l'utilisateur ne changent pas (decision.md §40).
-  const DEFAULT_TEMPLATE = '# {{titre}}\n\n{{en_tete}}\n\n{{compte_rendu}}\n\n## Transcript\n\n{{transcript}}\n';
+  const DEFAULT_TEMPLATE =
+    '# {{titre}}\n\n{{en_tete}}\n\n{{compte_rendu}}\n\n{{notes}}\n\n## Transcript\n\n{{transcript}}\n';
+  /**
+   * Modèles par défaut des versions précédentes, jamais modifiés par l'utilisateur : ils reçoivent
+   * {{notes}} juste avant le transcript (lot C2). Le modèle d'avant le lot C1 garde son absence de
+   * compte rendu, comme au lot C1 (decision.md §40).
+   */
+  const LEGACY_TEMPLATES = new Map([
+    [
+      '# {{titre}}\n\n{{en_tete}}\n\n{{compte_rendu}}\n\n## Transcript\n\n{{transcript}}\n',
+      '# {{titre}}\n\n{{en_tete}}\n\n{{compte_rendu}}\n\n{{notes}}\n\n## Transcript\n\n{{transcript}}\n',
+    ],
+    [
+      '# {{titre}}\n\n{{en_tete}}\n\n## Transcript\n\n{{transcript}}\n',
+      '# {{titre}}\n\n{{en_tete}}\n\n{{notes}}\n\n## Transcript\n\n{{transcript}}\n',
+    ],
+  ]);
   const DEFAULT_FILENAME = '{{date}} {{titre}}';
 
   /**
@@ -58,6 +74,7 @@
     'compte_rendu',
     'transcript',
     'transcript_complet',
+    'notes',
   ].map((name) => [name, () => tx('var.' + name)]);
   const NAMES = new Set(VARIABLES.map((v) => v[0]));
 
@@ -218,6 +235,7 @@
       en_tete: parts.header.join('\n'),
       avertissement: parts.notice,
       compte_rendu: parts.summary,
+      notes: parts.notes,
       transcript: parts.body,
       transcript_complet: t.toMarkdown().trim(),
       // Pour le front matter (valeurs brutes)
@@ -320,11 +338,15 @@
     const p = normalize(profile);
     if (p.format === 'classique') return { name: t.fileName(), content: t.toMarkdown() };
     const vars = variables(t, p);
-    // Compte rendu désactivé : sa variable disparaît avec la ligne vide qui la suit
-    const template = vars.compte_rendu
-      ? p.template
-      : String(p.template || '').replace(/\{\{\s*compte_rendu\s*\}\}\n*/g, '');
-    const body = render(template, vars).replace(/\s+$/, '') + '\n';
+    let template = String(p.template || '');
+    template = LEGACY_TEMPLATES.get(template) || template;
+    // Compte rendu désactivé, aucune note rapide : la variable disparaît avec la ligne vide qui suit
+    if (!vars.compte_rendu) template = template.replace(/\{\{\s*compte_rendu\s*\}\}\n*/g, '');
+    if (!vars.notes) template = template.replace(/\{\{\s*notes\s*\}\}\n*/g, '');
+    let body = render(template, vars).replace(/\s+$/, '') + '\n';
+    // Modèle modifié sans {{notes}} : vos notes sont ajoutées à la fin, jamais perdues
+    // ({{transcript_complet}} les contient déjà)
+    if (vars.notes && !/\{\{\s*(notes|transcript_complet)\s*\}\}/.test(template)) body += '\n' + vars.notes + '\n';
     const front = frontMatter(p.front, vars);
     return {
       name: safeFileName(render(p.fileName || DEFAULT_FILENAME, vars), t.noteLang()),
@@ -337,7 +359,7 @@
   // ---------------------------------------------------------------------------
   const PROMPTS_KEY = 'lowsper.prompts';
   // Consignes fournies : textes dans le catalogue (i18n.js), en français et en anglais
-  const BUILTIN_IDS = ['compte-rendu', 'synthese-appel', 'actions'];
+  const BUILTIN_IDS = ['compte-rendu', 'synthese-appel', 'actions', 'email-suivi'];
   /** Consignes fournies dans une langue (par défaut, celle de l'interface). */
   function builtinPrompts(lang) {
     return BUILTIN_IDS.map((id) => ({
@@ -382,6 +404,7 @@
         'sentence of the transcript that supports it (with its timestamp). If the owner or the deadline ' +
         'is not stated explicitly, write “not specified”: never invent a name or a date.',
     ],
+    'email-suivi': [], // consigne ajoutée au lot C2 : pas d'ancien texte
   };
   /**
    * Texte d'origine d'une consigne fournie, dans l'une des langues ou d'une version précédente :

@@ -214,6 +214,7 @@
     'var.transcript': 'les interventions horodatées',
     'var.transcript_complet': 'tout le format classique de Lowsper',
     'var.compte_rendu': 'décisions, actions et questions ouvertes, recopiées mot pour mot',
+    'var.notes': 'vos notes rapides tapées pendant la réunion, avec leur heure',
     'front.date': 'date',
     'front.duree': 'durée (minutes)',
     'front.intervenants': 'intervenants',
@@ -313,6 +314,37 @@
       '- Recopie les chiffres exactement.\n' +
       '- Quand un passage est peu clair ou semble mal reconnu, signale-le au lieu de deviner.\n' +
       '- Sois concis.\n' +
+      '\n' +
+      '# Transcript\n' +
+      '{{note}}',
+    'prompt.email-suivi.name': 'E-mail de suivi',
+    'prompt.email-suivi.text':
+      '# Rôle\n' +
+      'Tu rédiges des e-mails de suivi de réunion exacts, clairs et courts.\n' +
+      '\n' +
+      '# Contexte\n' +
+      "Ci-dessous figure le transcript automatique d'une réunion, enregistrée et transcrite par Lowsper sur l'ordinateur de l'utilisateur.\n" +
+      '- Il peut contenir des erreurs de reconnaissance vocale.\n' +
+      "- « Vous » est la personne qui a enregistré. Les autres personnes peuvent apparaître sous la forme « Intervenant 1 », « Intervenant 2 »... quand leur nom n'est pas connu.\n" +
+      "- Les heures sont comptées depuis le début de l'enregistrement.\n" +
+      '\n' +
+      '# Tâche\n' +
+      "Rédige, dans la langue principale du transcript, l'e-mail que « Vous » enverra aux participants après la réunion. La section « Vos notes », quand elle existe, contient des notes tapées par « Vous » pendant la réunion : elles montrent ce qui compte pour cette personne. L'e-mail contient :\n" +
+      '1. Objet : une ligne.\n' +
+      "2. Une phrase de remerciement, puis l'objet de la réunion en 1 à 2 phrases.\n" +
+      '3. Décisions prises.\n' +
+      '4. Actions à mener : qui, quoi, échéance. Écris « non précisé » quand une information manque.\n' +
+      "5. Questions restées ouvertes, s'il y en a.\n" +
+      '6. Prochaine étape ou prochaine réunion, seulement si elle a été fixée.\n' +
+      '7. Une formule de fin courte, sans signature : « Vous » ajoutera la sienne.\n' +
+      '\n' +
+      '# Règles\n' +
+      "- N'utilise que ce qui figure dans le transcript. N'invente jamais un nom, un chiffre ou une date.\n" +
+      '- Recopie les chiffres exactement.\n' +
+      '- Quand un passage est peu clair ou semble mal reconnu, signale-le au lieu de deviner.\n' +
+      "- N'ajoute aucun engagement qui n'a pas été pris pendant la réunion.\n" +
+      "- Écris entre crochets ce que « Vous » doit vérifier avant l'envoi.\n" +
+      '- Ton professionnel et cordial, phrases courtes. Utilise des listes à puces pour les décisions et les actions.\n' +
       '\n' +
       '# Transcript\n' +
       '{{note}}',
@@ -578,6 +610,14 @@
     'meet.fixHelp':
       "Lowsper n'entend pas la réunion. Partagez à nouveau l'écran ou l'onglet de la visio, et cochez « Partager l'audio ». ",
     'meet.showText': 'Afficher le texte pendant la réunion',
+    'qn.label': 'Note rapide',
+    'qn.placeholder': 'Tapez une note, puis Entrée',
+    'qn.add': 'Ajouter',
+    'qn.help': 'Reprise dans la note avec l’heure où vous avez commencé à la taper. Elle reste sur ce PC.',
+    'qn.list': 'Vos notes',
+    'qn.remove': 'Retirer',
+    'qn.removeLabel': 'Retirer la note de {t}',
+    'qn.added': 'Note ajoutée à {t}.',
     'rec.stop': 'Terminer',
     'rec.placeholder': 'Le transcript apparaîtra ici au fil de la réunion.',
     'rec.draftTitle': 'Transcription rapide provisoire : la version précise arrive dès que le moteur est disponible.',
@@ -782,6 +822,10 @@
     'note.cr.action': '### Actions',
     'note.cr.question': '### Questions ouvertes',
     'note.crLine': '- **[{t}] {name} :** « {text} »',
+    'note.notesTitle': '## Vos notes',
+    'note.notesIntro':
+      '_Notes tapées pendant la réunion, recopiées telles quelles, avec l’heure où vous avez commencé à les écrire._',
+    'note.notesLine': '- **[{t}]** {text}',
     'note.pause': '_[{from} à {to}] Enregistrement en pause._',
     'note.gap': '_[{from} à {to}] Passage non transcrit ({who}) : le moteur a échoué sur ce passage._',
     'note.line': '**[{t}] {name} :** {text}',
@@ -1011,6 +1055,7 @@
     'var.transcript': 'the timestamped lines',
     'var.transcript_complet': 'the whole Lowsper classic format',
     'var.compte_rendu': 'decisions, actions and open questions, copied word for word',
+    'var.notes': 'your quick notes typed during the meeting, with their time',
     'front.date': 'date',
     'front.duree': 'duration (minutes)',
     'front.intervenants': 'speakers',
@@ -1109,6 +1154,37 @@
       '- Copy numbers exactly.\n' +
       '- When a passage is unclear or looks misheard, say so instead of guessing.\n' +
       '- Be concise.\n' +
+      '\n' +
+      '# Transcript\n' +
+      '{{note}}',
+    'prompt.email-suivi.name': 'Follow-up email',
+    'prompt.email-suivi.text':
+      '# Role\n' +
+      'You write accurate, clear and short meeting follow-up emails.\n' +
+      '\n' +
+      '# Context\n' +
+      "Below is an automatic transcript of a meeting, recorded and transcribed on the user's own computer by Lowsper.\n" +
+      '- It may contain speech recognition errors.\n' +
+      '- « You » is the person who recorded. Other people may appear as « Speaker 1 », « Speaker 2 »... when their names are unknown.\n' +
+      '- Times are relative to the start of the recording.\n' +
+      '\n' +
+      '# Task\n' +
+      'Write, in the main language of the transcript, the email « You » will send to the participants after the meeting. The « Your notes » section, when present, holds notes « You » typed during the meeting: they show what matters to this person. The email contains:\n' +
+      '1. Subject: one line.\n' +
+      '2. One sentence of thanks, then the purpose of the meeting in 1 or 2 sentences.\n' +
+      '3. Decisions made.\n' +
+      '4. Action items: who, what, deadline. Write « not specified » when something is missing.\n' +
+      '5. Open questions, if any.\n' +
+      '6. Next step or next meeting, only if it was set.\n' +
+      '7. A short closing line, without a signature: « You » will add their own.\n' +
+      '\n' +
+      '# Rules\n' +
+      '- Use only what is in the transcript. Never invent a name, a number or a date.\n' +
+      '- Copy numbers exactly.\n' +
+      '- When a passage is unclear or looks misheard, say so instead of guessing.\n' +
+      '- Add no commitment or promise that was not made during the meeting.\n' +
+      '- Put in square brackets what « You » must check before sending.\n' +
+      '- Professional and friendly tone, short sentences. Use bullet points for decisions and action items.\n' +
       '\n' +
       '# Transcript\n' +
       '{{note}}',
@@ -1358,6 +1434,14 @@
     'meet.fixHelp':
       'Lowsper cannot hear the meeting. Share the screen or the video call tab again, and tick “Share audio”. ',
     'meet.showText': 'Show the text during the meeting',
+    'qn.label': 'Quick note',
+    'qn.placeholder': 'Type a note, then Enter',
+    'qn.add': 'Add',
+    'qn.help': 'Added to the note with the time you started typing it. It stays on this PC.',
+    'qn.list': 'Your notes',
+    'qn.remove': 'Remove',
+    'qn.removeLabel': 'Remove the note from {t}',
+    'qn.added': 'Note added at {t}.',
     'rec.stop': 'Stop',
     'rec.placeholder': 'The transcript will appear here as the meeting goes on.',
     'rec.draftTitle': 'Quick draft transcription: the accurate version comes as soon as the engine is free.',
@@ -1549,6 +1633,9 @@
     'note.cr.action': '### Actions',
     'note.cr.question': '### Open questions',
     'note.crLine': '- **[{t}] {name}:** "{text}"',
+    'note.notesTitle': '## Your notes',
+    'note.notesIntro': '_Notes typed during the meeting, copied as typed, with the time you started writing each one._',
+    'note.notesLine': '- **[{t}]** {text}',
     'note.pause': '_[{from} to {to}] Recording paused._',
     'note.gap': '_[{from} to {to}] Passage not transcribed ({who}): the engine failed on this passage._',
     'note.line': '**[{t}] {name}:** {text}',

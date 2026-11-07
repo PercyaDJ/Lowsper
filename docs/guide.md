@@ -104,6 +104,15 @@ réunion qui travaille hors ligne.
    Le texte en direct est masqué par défaut : l'interrupteur « Afficher le texte pendant la
    réunion » l'affiche (choix gardé). « Commencer une nouvelle réunion sans arrêter » enchaîne
    sur la suivante sans repartager l'écran.
+
+   **Notes rapides** : tapez une note dans le champ « Note rapide », puis Entrée (ou « Ajouter »).
+   Elle est reprise dans la note, dans la section « Vos notes », avec l'heure où vous avez
+   commencé à la taper : celle du moment dont vous parlez, pas celle où vous avez fini d'écrire.
+   « Retirer » l'enlève. Une note tapée sans Entrée au moment de « Terminer » (ou de « Commencer
+   une nouvelle réunion sans arrêter ») est gardée dans la réunion qui se termine. Les notes ne
+   passent pas par le moteur de transcription et restent sur le PC, comme le texte.
+
+   ![Le champ « Note rapide » et deux notes fictives, avec leur heure et « Retirer »](images/notes-rapides.png)
 7. En fin de réunion, cliquez sur **« Terminer »** (carré rouge). La note est enregistrée dans le
    dossier de l'emplacement (par défaut `Lowsper\Notes\Par défaut`) : la carte « Note
    enregistrée » dit où. L'écran
@@ -112,8 +121,10 @@ réunion qui travaille hors ligne.
    la note (Entrée valide, Échap annule). À droite, « Et maintenant ? » :
    - **« Obtenir un résumé »** copie une consigne pour l'IA suivie de la note, à coller dans
      l'assistant de votre choix. La consigne (compte rendu de réunion, synthèse d'appel, liste
-     d'actions, ou la vôtre) se choisit juste en dessous, et **« Voir ce qui est copié »** montre
-     le texte exact ;
+     d'actions, e-mail de suivi, ou la vôtre) se choisit juste en dessous, et **« Voir ce qui est
+     copié »** montre le texte exact. « E-mail de suivi » demande à l'IA l'e-mail à envoyer aux
+     participants : objet, décisions, actions, questions ouvertes, prochaine étape, sans
+     signature, avec entre crochets ce qu'il faut vérifier avant l'envoi ;
    - **« Copier le texte »** copie la note seule ;
    - **« Enregistrer une copie »** la télécharge.
 
@@ -209,6 +220,11 @@ anglais ; dans une autre langue, la section dit qu'aucune phrase n'a été repé
 Pour le retirer : Paramètres, « Notes et compte rendu », décochez « Recopier les décisions, actions
 et questions en haut de la note » (le réglage vaut à partir de la réunion suivante). Dans un modèle
 de note personnalisé, la variable `{{compte_rendu}}` place cette section où vous voulez.
+
+Vos **notes rapides** (tapées pendant la réunion) suivent, dans la section « Vos notes », avant le
+transcript. Dans un modèle de note personnalisé, la variable `{{notes}}` les place où vous voulez ;
+un modèle modifié avant cette version, sans `{{notes}}`, les reçoit à la fin de la note, pour ne
+jamais perdre ce que vous avez tapé.
 
 ### Les paramètres
 
@@ -320,6 +336,13 @@ _Phrases recopiées mot pour mot du transcript, repérées automatiquement : il 
 ### Questions ouvertes
 
 - **[00:01:59] Sophie :** « J'ai demandé un renfort au prestataire, mais rien n'est signé. »
+- [...]
+
+## Vos notes
+
+_Notes tapées pendant la réunion, recopiées telles quelles, avec l’heure où vous avez commencé à les écrire._
+
+- **[00:00:20]** Vérifier le chiffre des tickets avec Julien
 - [...]
 
 ## Transcript
@@ -589,6 +612,10 @@ Lowsper reconnaît Brave et affiche ces explications au bon moment.
   en français, les questions dont Whisper perd le point d'interrogation ; huit phrases recopiées
   sur dix sont justes. Mesuré sur des réunions fictives à voix de synthèse, en français et en anglais
   seulement, pas sur de vraies réunions (`decision.md` §40).
+- **Notes rapides** : elles se tapent dans la fenêtre de Lowsper, pas dans la mini-fenêtre (trop
+  petite). Leur heure est celle de la première frappe : si vous commencez une note puis attendez
+  avant de l'écrire, l'heure est celle du début. Elles n'apparaissent pas sur l'écran de fin, seulement
+  dans la note enregistrée et dans ce que copie « Obtenir un résumé ».
 - **Voix proches** : deux personnes à la voix proche peuvent partager un numéro d'intervenant.
 - **Mesures** : vitesses mesurées sur une machine de développement lente, qualité mesurée sur des
   voix de synthèse. Le test de vitesse intégré (paramètres) donne la réalité de votre PC.
@@ -628,9 +655,9 @@ et `decision.md`) :
    (lot R6) ; paramètres en onglets (lot R7). Les lots R2 à R7 forment la version 4.0.0 ; les
    langues parlées multiples et les vocabulaires élargis (lot R8), la version 4.1.0 ; la mémoire des
    voix plus sûre d'une visio à l'autre (lot R9), la version 4.2.0.
-2. **Compte rendu de réunion, sur le PC et hors ligne** ([docs/lots.md](lots.md)) : livré, le
-   compte rendu extractif en haut de la note (lot C1) ; à venir, les notes rapides tapées pendant
-   la réunion et une consigne « e-mail de suivi » (lot C2), puis un compte rendu rédigé par une IA
+2. **Compte rendu de réunion, sur le PC et hors ligne** ([docs/lots.md](lots.md)) : livrés, le
+   compte rendu extractif en haut de la note (lot C1), les notes rapides tapées pendant la réunion
+   et la consigne « e-mail de suivi » (lot C2) ; à venir, un compte rendu rédigé par une IA
    locale, seulement là où une mesure sur un portable sans carte graphique le valide (lot C3).
 3. **Résumé local** : la piste de l'IA intégrée du navigateur reste à l'étude (`decision.md`
    §22 et §23). D'ici là, « Obtenir un résumé » reste la voie recommandée.

@@ -47,6 +47,8 @@ to an AI for the minutes. Neither the sound nor the text leaves the computer.
   open question, copied word for word with their time and speaker; nothing is rewritten. On
   fictional meetings never used for tuning, transcribed by Lowsper itself, half of these sentences
   are found in French and seven in ten in English; eight in ten of those copied are right.
+- **Quick notes** typed during the meeting, added to the note with the time you started typing
+  them. « Get a summary » also offers a **follow-up email** for the participants.
 - **Words to recognize** (names, acronyms) and **automatic fixes** for misheard words, kept from
   one meeting to the next; twelve built-in industry vocabularies, in English and French.
 - **Places**: each one is a folder and a note format. « For note apps » adds properties and
