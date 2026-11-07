@@ -53,7 +53,10 @@ Une modification qui affaiblit l'une d'elles est refusée, quelle qu'en soit la 
   `chore`. Portée facultative : `feat(import): ...`.
 - **Versions** : SemVer. Majeur si l'utilisateur doit agir, mineur pour une fonctionnalité,
   correctif sinon. La version de `tools/package.json` fait foi ; la release `vX.Y.Z` est publiée
-  sur `main` et reçoit automatiquement son paquet (le workflow refuse un tag différent).
+  sur `main` et reçoit automatiquement son paquet (le workflow refuse un tag différent). Elle peut
+  aussi être créée en lançant à la main le workflow « Paquet de release » avec le tag : depuis
+  `main`, texte tiré de la section du CHANGELOG ; une release publiée sans paquet est complétée
+  depuis son tag (`decision.md` §42).
 - **CHANGELOG** : format Keep a Changelog. Chaque pull request remplit la section « Non publié ».
 - **Décisions** : tout choix technique non trivial va dans `decision.md`, dans le style existant :
   contexte, options, arbitrage, mesures, limites. Ne réécrivez pas une décision passée : ajoutez
@@ -170,7 +173,7 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `tools/build.mjs`, `fetch-model.mjs`, `models.mjs`, `models.lock.json` | Construction et verrou des modèles |
 | `tools/test/` | Tests unitaires, non-fuite, e2e, bancs de mesure ; `corpus/` : corpus synthétiques et leurs générateurs |
 | `docs/` | Architecture, guide de déploiement (DSI, RSSI), spécifications de la refonte (`refonte.md`) et plan des lots (`lots.md`), captures d'écran (`docs/images`, régénérées par `tools/test/screenshots.mjs`) |
-| `tools/release.mjs` | Paquet de distribution, joint aux releases par `.github/workflows/release.yml` |
+| `tools/release.mjs` | Paquet de distribution, joint aux releases par `.github/workflows/release.yml` (publication dans GitHub ou lancement manuel, `decision.md` §42) |
 | `README.md`, `README.fr.md` | Pages d'accueil courtes, en anglais et en français, avec bascule |
 | `docs/guide.md` | Guide complet de l'utilisateur, en français : écrans, FAQ, limites |
 | `.github/workflows/lysbor.yml`, `.semgrepignore` | Suivi des vulnérabilités par l'agent Lysbor (`decision.md` §32) |

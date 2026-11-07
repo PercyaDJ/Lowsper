@@ -2810,3 +2810,34 @@ ralentir.
 - Non vérifié : la qualité des e-mails rédigés par une IA avec cette consigne (aucun assistant en
   ligne n'est appelé par les tests, contrainte n° 1), et le confort de saisie sur le portable de
   référence pendant une vraie visio.
+
+## 42. Release lancée à la main, et paquet de la 4.3.0 (4.4.0)
+
+**Contexte.** La release 4.3.0 a été publiée sans paquet : `tools/package.json` était resté en
+4.2.2, et le workflow « Paquet de release » (§18.1) refuse, à juste titre, un tag différent de
+cette version. Le tag ne peut pas être corrigé en place sans déplacer une version déjà publiée.
+Par ailleurs, les agents de développement n'ont pas d'outil pour publier une release : ils
+peuvent seulement lancer un workflow.
+
+**Options.**
+1. Déplacer le tag `v4.3.0` sur un commit corrigé : réécrit une version publiée, que d'autres
+   ont pu télécharger. Écarté.
+2. Laisser la 4.3.0 sans paquet et publier la 4.4.0 : la 4.3.0 resterait inutilisable telle
+   quelle.
+3. Ajouter au workflow un lancement manuel (`workflow_dispatch`, champ `tag`). Choix du
+   mainteneur (7 novembre 2026).
+
+**Arbitrage : option 3.** Le même workflow sert aux deux cas, avec les mêmes contrôles
+(`test/release.mjs`, paquet reproductible).
+- *Release absente* : lancée depuis `main` seulement ; la version de `tools/package.json` doit
+  être celle du tag et le CHANGELOG doit avoir sa section, dont le texte devient celui de la
+  release. La release est créée sur le commit lancé, puis le paquet est joint. Une release créée
+  par le jeton du workflow ne relance pas le workflow (règle de GitHub) : pas de double paquet.
+- *Release publiée sans paquet* : le paquet est construit depuis son tag, jamais déplacé. Seule
+  réparation permise : si `tools/package.json` du tag porte un autre numéro **et** que le
+  CHANGELOG du tag a la section de la version voulue, le numéro est corrigé pour la construction.
+  Le numéro ne sert qu'au nom du paquet (`release.mjs`) : le contenu est celui du tag.
+- *Publication depuis GitHub* : inchangée, toujours stricte.
+
+**Limites.** Le texte d'une release créée à la main est celui du CHANGELOG, en Markdown, sans
+retouche. Lancer le workflow demande les droits d'écriture sur le dépôt, comme publier une release.

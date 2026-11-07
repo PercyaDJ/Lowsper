@@ -37,6 +37,9 @@ Chaque lot respecte `AGENTS.md`, et en particulier :
 | R8 | Langues parlées multiples et vocabulaires métier élargis | 4.1.0 | Livré |
 | R9 | Mémoire des voix d'une visio à l'autre | 4.2.0 | Livré |
 
+Publication : 4.3.0 pour le lot C1 (paquet joint après coup), 4.4.0 pour le lot C2, avec le
+lancement manuel du workflow de release (`decision.md` §42).
+
 Après la refonte : correctif 4.2.1 (dossier Lowsper : accès d'une ancienne version oublié, chemin
 de nouveau affiché à l'installation, dossier parent accepté ; `decision.md` §38). Correctif 4.2.2 :
 étude du son de visio, des paroles simultanées et de l'écho, anti-écho corrigé (`decision.md` §39).
@@ -50,13 +53,13 @@ sans carte graphique, 16 Go, Edge ou Chrome. Pas de discussion avec la réunion 
 | Lot | Objectif | État |
 |---|---|---|
 | C1 | Compte rendu extractif : décisions, actions, questions ouvertes, recopiées mot pour mot avec leur horodatage en haut de la note, transcript complet dessous ; français et anglais ; mesuré sur un corpus fictif | Livré |
-| C2 | Notes rapides tapées pendant la réunion, reprises dans la note ; consigne « e-mail de suivi » | Livré |
+| C2 | Notes rapides tapées pendant la réunion, reprises dans la note ; consigne « e-mail de suivi » | Livré (4.4.0) |
 | C3 | Compte rendu rédigé par une IA locale, seulement là où une mesure sur le portable de référence le valide | À étudier |
 | Étude | Séparation des voix plus légère ; vocabulaire « IA et informatique » | À étudier |
 
 ## C2 : notes rapides et e-mail de suivi (livré)
 
-Livré, voir `decision.md` §41. Choix du mainteneur en cours de lot : section « Vos notes » après le
+Livré en 4.4.0, voir `decision.md` §41. Choix du mainteneur en cours de lot : section « Vos notes » après le
 compte rendu et avant le transcript (variable `{{notes}}` ; un modèle modifié sans elle reçoit les
 notes à la fin) ; saisie dans la fenêtre agrandie seulement, mini-fenêtre inchangée ; heure de la
 première frappe. Consigne « E-mail de suivi » en français et en anglais, même structure que les
