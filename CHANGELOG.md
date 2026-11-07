@@ -13,6 +13,26 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [4.2.1] - 2026-11-07
+
+Corrections du premier lancement et du dossier Lowsper. Rien à faire en passant à cette version :
+copiez `app\models`, `app\reglages.txt` et `Notes` comme d'habitude.
+
+### Corrigé
+- **Fenêtre d'accès au dossier d'une ancienne version** (« Lowsper-3.4.0 », même supprimé) :
+  toutes les copies de Lowsper ouvertes depuis le disque partagent la mémoire du navigateur, et la
+  4.x réutilisait l'accès rangé par une copie précédente. Elle aurait pu y écrire ses réglages et
+  ses notes. Un accès qui ne correspond pas au dossier de la page est désormais oublié sans rien
+  demander, et le dossier est vérifié avant toute écriture (decision.md §38).
+- **Chemin du dossier absent de l'écran de bienvenue** depuis la 4.0.0 : deux éléments de la page
+  portaient le même identifiant, et le chemin s'écrivait dans la page « Dossier » des paramètres,
+  qu'il effaçait.
+- **Choix du dossier plus simple** : choisir un dossier qui contient le dossier Lowsper suffit
+  (le premier des deux dossiers `Lowsper-X.Y.Z` créés par « Extraire tout » de Windows, ou
+  Téléchargements). Lowsper retrouve celui de la page ouverte. Consigne de l'écran réécrite.
+- Journal des modifications : liens de comparaison des versions 4.0.0, 4.1.0 et 4.2.0 ajoutés, lien
+  « Non publié » à partir de la 4.2.0.
+
 ## [4.2.0] - 2026-11-07
 
 Mémoire des voix d'une visio à l'autre (lot R9). Rien à faire en passant à cette version : copiez
@@ -358,7 +378,11 @@ antérieures n'ont pas été taguées (la numérotation reprend la « version 3 
   journal technique.
 - Réglages copiés dans le dossier (`app/reglages.txt`), restaurés après un nettoyage du navigateur.
 
-[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v3.5.0...HEAD
+[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v4.2.1...HEAD
+[4.2.1]: https://github.com/PercyaDJ/Lowsper/compare/v4.2.0...v4.2.1
+[4.2.0]: https://github.com/PercyaDJ/Lowsper/compare/v4.1.0...v4.2.0
+[4.1.0]: https://github.com/PercyaDJ/Lowsper/compare/v4.0.0...v4.1.0
+[4.0.0]: https://github.com/PercyaDJ/Lowsper/releases/tag/v4.0.0
 [3.5.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.4.1...v3.5.0
 [3.4.1]: https://github.com/PercyaDJ/Lowsper/compare/v3.4.0...v3.4.1
 [3.4.0]: https://github.com/PercyaDJ/Lowsper/compare/v3.3.0...v3.4.0

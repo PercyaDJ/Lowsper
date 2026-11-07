@@ -37,6 +37,10 @@ Chaque lot respecte `AGENTS.md`, et en particulier :
 | R8 | Langues parlées multiples et vocabulaires métier élargis | 4.1.0 | Livré |
 | R9 | Mémoire des voix d'une visio à l'autre | 4.2.0 | Livré |
 
+Après la refonte : correctif 4.2.1 (dossier Lowsper : accès d'une ancienne version oublié, chemin
+de nouveau affiché à l'installation, dossier parent accepté ; `decision.md` §38). Étude suivante :
+son de visio et paroles simultanées, mesures en cours.
+
 ## R1 : fondations visuelles (livré)
 
 Neutres teintés de vert, clairs ou sombres. Le thème suit le système, avec une bascule dans

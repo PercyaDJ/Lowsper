@@ -439,7 +439,9 @@
     'install.button': 'Télécharger et installer',
     'install.cta': 'Télécharger et installer ({mb} Mo)',
     'install.nothing': 'Tous les modèles utilisables sont déjà installés',
-    'install.hint': 'Votre navigateur va ouvrir une fenêtre : choisissez ce dossier, puis validez.',
+    'install.hint':
+      "Une fenêtre va s'ouvrir sur vos Téléchargements : choisissez le dossier ci-dessus, puis validez. " +
+      'Vous ne le voyez pas ? Choisissez celui qui le contient, Lowsper le retrouve.',
     'install.more': 'Déjà installé ailleurs, ou PC sans Internet ?',
     'model.label.whisper-small': 'Whisper small',
     'model.label.whisper-small-gpu': 'Whisper small (carte graphique)',
@@ -472,7 +474,7 @@
     'err.cancelled': 'Sélection annulée.',
     'err.picker': "Le navigateur n'autorise pas l'accès à ce dossier : {error}",
     'err.wrongFolder':
-      'Ce dossier ne contient pas Lowsper.html. Choisissez le dossier Lowsper lui-même (celui où se trouve Lowsper.html).',
+      'Lowsper.html est introuvable dans ce dossier et dans ceux qu’il contient. Choisissez le dossier indiqué au-dessus du bouton.',
     'err.cannotWrite': "Impossible d'écrire dans ce dossier : {error}",
     'err.otherCopy':
       'Ce dossier est une autre copie de Lowsper que celle ouverte dans cette page. ' +
@@ -1214,7 +1216,9 @@
     'install.button': 'Download and install',
     'install.cta': 'Download and install ({mb} MB)',
     'install.nothing': 'All usable models are already installed',
-    'install.hint': 'Your browser will open a window: choose this folder, then confirm.',
+    'install.hint':
+      'A window will open on your Downloads: choose the folder above, then confirm. ' +
+      "Can't see it? Choose the one that contains it, Lowsper will find it.",
     'install.more': 'Installed elsewhere already, or PC without Internet?',
     'model.label.whisper-small': 'Whisper small',
     'model.label.whisper-small-gpu': 'Whisper small (graphics card)',
@@ -1246,7 +1250,7 @@
     'err.cancelled': 'Selection cancelled.',
     'err.picker': 'The browser does not allow access to this folder: {error}',
     'err.wrongFolder':
-      'This folder does not contain Lowsper.html. Choose the Lowsper folder itself (the one where Lowsper.html is).',
+      'Lowsper.html cannot be found in this folder or the folders inside it. Choose the folder shown above the button.',
     'err.cannotWrite': 'Cannot write to this folder: {error}',
     'err.otherCopy':
       'This folder is another copy of Lowsper, not the one open in this page. ' +

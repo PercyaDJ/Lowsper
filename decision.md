@@ -2444,3 +2444,75 @@ mesure `npm run bench`.
   personnes fusionnées), mesurées à part (§15.14).
 - Pas de vrais appareils ni de vrais logiciels de visio : la dégradation est simulée par des
   filtres et le codec Opus.
+
+## 38. Dossier Lowsper : accès d'une ancienne version, chemin absent, dossier parent accepté (4.2.1)
+
+**Constats du mainteneur** (Chrome sous Windows, 4.2.0, 7 novembre 2026) :
+1. une fenêtre du navigateur demande l'autorisation de modifier le dossier « Lowsper-3.4.0 »,
+   alors que ce dossier n'existe plus ;
+2. à l'installation, Lowsper « ne trouve pas » le dossier de `Lowsper.html`, alors que la barre
+   d'adresse le montre (`file:///C:/Users/.../Downloads/Lowsper-4.2.0/Lowsper-4.2.0/Lowsper.html`).
+
+**Causes, trouvées dans le code.**
+- **Mémoire partagée.** Le navigateur range les données de toutes les pages ouvertes en `file://`
+  au même endroit (même origine). L'accès au dossier rangé par la 3.4.0 (IndexedDB, clé
+  `folder`, §26) était relu par la 4.2.0 sans vérifier qu'il s'agissait de son propre dossier :
+  au premier enregistrement des réglages ou d'une note, Lowsper redemandait l'accès à l'ancien
+  dossier. Accordé sur un dossier encore présent, il y aurait écrit `app/reglages.txt` et les
+  notes (`Notes/<emplacement>`), loin de la version utilisée. Déduit du code, non reproduit dans
+  Chrome ou Edge du commerce ; le partage du stockage entre pages `file://` n'est pas vérifié ici
+  sur ces navigateurs (il l'est dans Chromium, où les tests tournent).
+- **Identifiant en double.** Depuis le lot R7 (4.0.0), `Lowsper.html` contenait deux éléments
+  `id="page-folder"` : la sous-page « Dossier » des paramètres, et la ligne de l'écran de bienvenue
+  censée afficher le chemin. Le code trouvait le premier : le chemin n'était jamais affiché à
+  l'installation, et il effaçait le contenu de la sous-page « Dossier ». Le test de l'écran de
+  bienvenue lisait le même mauvais élément, d'où un test vert.
+- **Double dossier.** Le paquet contient un dossier `Lowsper-X.Y.Z` (`tools/release.mjs`), et
+  « Extraire tout » de Windows en crée un second du même nom. La fenêtre s'ouvre sur
+  Téléchargements (§36) : il faut descendre de deux niveaux, et choisir le premier
+  `Lowsper-X.Y.Z` donnait « Ce dossier ne contient pas Lowsper.html ».
+- **Non contournable** : la fenêtre de choix ne peut pas s'ouvrir sur le chemin lu dans l'adresse
+  de la page (§26, §36).
+
+**Options pour le double dossier.**
+| Option | Effet | Arbitrage |
+|---|---|---|
+| Paquet sans dossier racine | « Extraire tout » crée un seul dossier | Écartée : d'autres outils (« Extraire ici ») répandraient les fichiers dans Téléchargements |
+| Consigne seule | Rien à coder | Insuffisante : c'est l'erreur observée |
+| **Lowsper cherche lui-même** dans le dossier choisi | Le premier `Lowsper-X.Y.Z`, ou Téléchargements, suffit | **Retenue** |
+
+**Corrections.**
+1. **Accès d'une autre copie** (`settings.js`) : l'accès rangé n'est utilisé que s'il porte le nom
+   du dossier de la page (casse indifférente, comme Windows) ; sinon il est oublié, sans fenêtre.
+   Une fois l'accès accordé, le dossier est vérifié une fois par ouverture de la page par la même
+   sonde qu'à l'installation (un fichier écrit puis relu depuis la page) : une autre copie qui
+   porterait le même nom est oubliée, rien n'y est écrit. Les notes (`notes.js`) passent par la
+   même vérification et partent sinon dans les Téléchargements, comme sans dossier.
+2. **Identifiant** : la ligne de l'écran de bienvenue devient `install-folder`. Le test vérifie
+   que le chemin est visible et que la sous-page « Dossier » est intacte.
+3. **Dossier parent accepté** (`installer.js`, `findLowsperFolders`) : si le dossier choisi ne
+   contient pas `Lowsper.html`, Lowsper regarde ses sous-dossiers, puis, deux niveaux plus bas,
+   seulement à travers les dossiers dont le nom contient « lowsper » ou est celui de la page. Les
+   dossiers du nom de la page passent en premier ; chacun est vérifié par la sonde ; une ancienne
+   version voisine (`Lowsper-3.4.0`) n'est jamais retenue. Parcours borné à 400 éléments : un
+   dossier choisi par erreur (Documents) répond tout de suite « mauvais dossier ». Seul le dossier
+   trouvé est mémorisé.
+4. **Consigne** réécrite, en français et en anglais : « Une fenêtre va s'ouvrir sur vos
+   Téléchargements : choisissez le dossier ci-dessus, puis validez. Vous ne le voyez pas ?
+   Choisissez celui qui le contient, Lowsper le retrouve. »
+
+**Non changé.** Un seul modèle au premier lancement (§26), confirmé par le mainteneur le
+7 novembre 2026.
+
+**Tests.** `npm run test:unit` : recherche depuis le dossier, son parent et Téléchargements, nom de
+la page en premier, dossiers sans rapport non parcourus, parcours borné ; accès d'une autre copie
+oublié sans fenêtre ; même nom mais autre copie oublié après vérification ; notes jamais écrites
+dans une autre copie. `npm run test:welcome` (Chromium) : chemin affiché, sous-page intacte,
+dossier parent et double dossier acceptés, ancienne version seule refusée.
+
+**Limites.**
+- Choisir Téléchargements donne au navigateur un accord d'écriture sur tout ce dossier, le temps de
+  la page. Lowsper n'écrit que dans le dossier trouvé, et seul celui-ci est mémorisé ; la consigne
+  invite d'abord à choisir le dossier affiché.
+- Non vérifié dans Chrome et Edge du commerce : la fenêtre de choix et la sonde sont simulées dans
+  les tests (une page ne peut pas fabriquer un vrai accès à un dossier).

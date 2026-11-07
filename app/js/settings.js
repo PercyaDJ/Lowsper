@@ -103,16 +103,60 @@
     });
   }
 
+  // Toutes les pages ouvertes en file:// partagent le même stockage du navigateur : l'accès rangé
+  // peut venir d'une autre copie de Lowsper (une ancienne version, même supprimée). Il n'est
+  // utilisé que s'il porte le nom du dossier de cette page, sinon il est oublié sans rien demander
+  // (decision.md §38).
+  function pageFolderName() {
+    try {
+      const p = decodeURIComponent(location.pathname).replace(/\/[^/]*$/, '');
+      return p.slice(p.lastIndexOf('/') + 1);
+    } catch {
+      return '';
+    }
+  }
+  const belongsHere = (dir) => {
+    const want = pageFolderName();
+    return !want || typeof dir.name !== 'string' || dir.name.toLowerCase() === want.toLowerCase();
+  };
+
   async function savedHandle() {
     if (handle) return handle;
-    handle = await idb('readonly', (s) => s.get('folder'));
+    const stored = await idb('readonly', (s) => s.get('folder'));
+    if (stored && !belongsHere(stored)) {
+      await forgetFolder();
+      return null;
+    }
+    handle = stored;
     return handle;
+  }
+
+  async function forgetFolder() {
+    handle = null;
+    await idb('readwrite', (s) => s.delete('folder'));
   }
 
   /** À appeler quand on obtient le dossier Lowsper (installation, ou choix explicite). */
   async function setFolder(dir) {
     handle = dir;
+    confirmed.add(dir);
     await idb('readwrite', (s) => s.put(dir, 'folder'));
+  }
+
+  /**
+   * Accès accordé : vérifie une fois par ouverture de la page que le dossier rangé est bien celui
+   * de cette page (même nom, mais autre copie), sinon l'oublie. Retourne vrai si on peut écrire.
+   */
+  const confirmed = new WeakSet();
+  async function confirm(dir) {
+    if (confirmed.has(dir) || !Lowsper.isPageFolder) return true;
+    let same = false;
+    try {
+      same = await Lowsper.isPageFolder(dir);
+    } catch {}
+    if (same) confirmed.add(dir);
+    else await forgetFolder();
+    return same;
   }
 
   const dirty = () => JSON.stringify(snapshot()) !== lastWritten;
@@ -154,6 +198,7 @@
       if (perm !== 'granted' && interactive) perm = await dir.requestPermission({ mode: 'readwrite' });
     } catch {}
     if (perm !== 'granted') return 'denied';
+    if (!(await confirm(dir))) return 'needs-folder';
     await write(dir);
     return 'saved';
   }
@@ -214,5 +259,16 @@
     return { savedAt: at, dirty: dirty(), restored: restored.slice(), hasFile: !!file };
   }
 
-  Lowsper.Settings = { snapshot, restore, save, setFolder, folder, status, exportData, parseImport, importData };
+  Lowsper.Settings = {
+    snapshot,
+    restore,
+    save,
+    setFolder,
+    folder,
+    confirm,
+    status,
+    exportData,
+    parseImport,
+    importData,
+  };
 })();

@@ -511,7 +511,11 @@
   }
 
   // Dossier Lowsper accordé à l'installation (settings.js). Remplaçable par les tests.
-  const lowsper = { get: async () => (Lowsper.Settings ? Lowsper.Settings.folder() : null) };
+  // confirm : le dossier rangé est bien celui de cette page, et pas une autre copie (§38).
+  const lowsper = {
+    get: async () => (Lowsper.Settings ? Lowsper.Settings.folder() : null),
+    confirm: async (dir) => (Lowsper.Settings && Lowsper.Settings.confirm ? Lowsper.Settings.confirm(dir) : true),
+  };
 
   async function permission(dir, interactive) {
     let perm = 'prompt';
@@ -536,6 +540,7 @@
       if (!base) return { state: 'aucun' };
       const sub = subfolderOf(profile);
       if (!(await permission(base, interactive))) return { state: 'a-demander', kind: 'lowsper', sub };
+      if (!(await lowsper.confirm(base))) return { state: 'aucun' };
       if (!write) return { state: 'accorde', kind: 'lowsper', sub };
       const notes = await base.getDirectoryHandle('Notes', { create: true });
       const dir = await notes.getDirectoryHandle(sub, { create: true });

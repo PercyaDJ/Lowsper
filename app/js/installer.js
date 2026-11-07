@@ -106,13 +106,75 @@
       if (err && err.name === 'AbortError') throw installError('CANCELLED', tx('err.cancelled'));
       throw installError('PICKER', tx('err.picker', { error: err.message }));
     }
-    try {
-      await dir.getFileHandle('Lowsper.html');
-    } catch {
-      throw installError('WRONG_FOLDER', tx('err.wrongFolder'));
+    // Le dossier choisi peut être un dossier parent : « Extraire tout » de Windows crée
+    // Lowsper-X.Y.Z\Lowsper-X.Y.Z, et la fenêtre s'ouvre sur Téléchargements. Lowsper y cherche
+    // lui-même le dossier de cette page (decision.md §38).
+    const found = await Lowsper.findLowsperFolders(dir, pageFolderName());
+    if (!found.length) throw installError('WRONG_FOLDER', tx('err.wrongFolder'));
+    for (const candidate of found) {
+      let same;
+      try {
+        same = await Lowsper.isPageFolder(candidate);
+      } catch (e) {
+        throw installError('PICKER', tx('err.cannotWrite', { error: e.message }));
+      }
+      if (same) return candidate;
     }
-    // Vérifie que c'est bien le dossier de CETTE page (et pas une autre copie de Lowsper) :
-    // on y écrit un petit fichier, puis on essaie de le relire depuis la page.
+    throw installError('OTHER_COPY', tx('err.otherCopy', { folder: Lowsper.pageFolder() }));
+  };
+
+  /** Nom du dossier de la page ouverte (ex. « Lowsper-4.2.0 »). */
+  function pageFolderName() {
+    const p = Lowsper.pageFolder().replace(/[\\/]+$/, '');
+    return p.slice(Math.max(p.lastIndexOf('/'), p.lastIndexOf('\\')) + 1);
+  }
+
+  const hasFile = async (dir, name) => {
+    try {
+      await dir.getFileHandle(name);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  /**
+   * Dossiers contenant Lowsper.html : le dossier choisi lui-même, sinon ses sous-dossiers, sinon
+   * les sous-dossiers de ses sous-dossiers dont le nom contient « lowsper » (cas de
+   * Téléchargements\Lowsper-X.Y.Z\Lowsper-X.Y.Z). Ceux qui portent le nom du dossier de la page
+   * viennent en premier. Parcours borné : un dossier choisi par erreur (Documents...) ne bloque
+   * pas la page.
+   */
+  Lowsper.findLowsperFolders = async function (dir, pageName, limit = 400) {
+    if (await hasFile(dir, 'Lowsper.html')) return [dir];
+    const want = String(pageName || '').toLowerCase();
+    const found = [];
+    const deeper = [];
+    let seen = 0;
+    const subfolders = async function* (d) {
+      if (typeof d.values !== 'function') return;
+      for await (const h of d.values()) {
+        if (++seen > limit) return;
+        if (h.kind === 'directory' && !h.name.startsWith('.')) yield h;
+      }
+    };
+    for await (const sub of subfolders(dir)) {
+      if (await hasFile(sub, 'Lowsper.html')) found.push(sub);
+      else if (sub.name.toLowerCase().includes('lowsper') || sub.name.toLowerCase() === want) deeper.push(sub);
+    }
+    if (!found.length)
+      for (const d of deeper)
+        for await (const sub of subfolders(d)) if (await hasFile(sub, 'Lowsper.html')) found.push(sub);
+    // Le nom du dossier de la page d'abord, l'ordre du disque ensuite
+    return found.sort((a, b) => (b.name.toLowerCase() === want) - (a.name.toLowerCase() === want));
+  };
+
+  /**
+   * Vérifie que ce dossier est celui de CETTE page (et pas une autre copie de Lowsper) : on y
+   * écrit un petit fichier, puis on essaie de le relire depuis la page. Demande l'accord
+   * d'écriture déjà donné.
+   */
+  Lowsper.isPageFolder = async function (dir) {
     const token = Math.random().toString(36).slice(2);
     const name = `.verification-${token}.txt`;
     let same = false;
@@ -129,17 +191,12 @@
         document.head.appendChild(sc);
         setTimeout(() => resolve(false), 5000);
       });
-    } catch (e) {
-      throw installError('PICKER', tx('err.cannotWrite', { error: e.message }));
     } finally {
       try {
         if (models) await models.removeEntry(name);
       } catch {}
     }
-    if (!same) {
-      throw installError('OTHER_COPY', tx('err.otherCopy', { folder: Lowsper.pageFolder() }));
-    }
-    return dir;
+    return same;
   };
 
   /**

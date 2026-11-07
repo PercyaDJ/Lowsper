@@ -30,8 +30,8 @@ to an AI for the minutes. Neither the sound nor the text leaves the computer.
    and unzip it (right click, « Extract all »).
 2. Open `Lowsper.html` in Edge or Chrome.
 3. First launch only: Lowsper shows what it found on your PC and ticks the best model for it.
-   Click « Download and install » and select the Lowsper folder shown on screen. The model (80 to
-   330 MB) is downloaded once; then everything works offline.
+   Click « Download and install » and select the Lowsper folder shown on screen (or the folder
+   that contains it). The model (80 to 330 MB) is downloaded once; then everything works offline.
 4. On the home screen, name the meeting, choose where to save the note, click « Start ». Share
    your screen **with audio** and allow the microphone.
 5. Click « Stop ». The note is saved in `Notes/<place>` inside the Lowsper folder. Name the

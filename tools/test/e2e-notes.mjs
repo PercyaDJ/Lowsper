@@ -122,6 +122,9 @@ await context.addInitScript(() => {
       delete: async (id) => kept.delete(id),
     });
     window.Lowsper.Settings.folder = async () => (window.__useLowsper ? window.__lowsper : null);
+    // Le faux dossier tient lieu du dossier de cette page : la sonde d'écriture puis de relecture
+    // (decision.md §38) ne peut pas porter sur un dossier en mémoire
+    window.Lowsper.Settings.confirm = async () => true;
   };
   patch();
 });

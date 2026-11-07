@@ -2439,7 +2439,7 @@
       box.appendChild(label);
     }
     $('install-back').hidden = !adding;
-    $('page-folder').textContent = L.pageFolder();
+    $('install-folder').textContent = L.pageFolder();
     $('temp-warning').hidden = !L.openedFromTemp();
     $('install-error').hidden = true;
     updateInstallButton();
