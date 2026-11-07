@@ -156,8 +156,8 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/js/languages.js` | Langues parlées proposées (qualité mesurée), lecture de l'ancien réglage `lowsper.language`, nom des langues dans la note (`decision.md` §34) |
 | `app/js/vocabularies.js` | Données des vocabulaires métier, par domaine et par langue parlée ; format dans `CONTRIBUTING.md` |
 | `app/js/vocabulary.js` | Vocabulaires métier : corrections connues, glossaire complet, termes alternés pour le contexte donné à Whisper (`decision.md` §35) |
-| `app/js/installer.js` | Téléchargement vérifié du modèle : seul code réseau de l'application |
-| `app/js/settings.js` | Copie des réglages dans `app/reglages.txt` ; export et import d'un fichier de réglages (sans empreintes vocales) |
+| `app/js/installer.js` | Téléchargement vérifié du modèle : seul code réseau de l'application ; recherche et vérification du dossier Lowsper, même choisi depuis un dossier parent (`decision.md` §38) |
+| `app/js/settings.js` | Copie des réglages dans `app/reglages.txt` ; export et import d'un fichier de réglages (sans empreintes vocales) ; accès au dossier Lowsper, oublié s'il vient d'une autre copie (`decision.md` §38) |
 | `app/js/app.js` | Contrôleur de l'interface, file de transcription, cycle de la réunion, écran de fin (texte lisible, renommage des voix sur les répliques) |
 | `app/css/` | Styles (thèmes clair et sombre) |
 | `app/engine/`, `app/manifest.js` | Générés par `tools/build.mjs` : ne pas modifier à la main |

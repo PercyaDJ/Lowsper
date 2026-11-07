@@ -31,7 +31,7 @@ confiée à une IA pour le compte rendu. Ni le son ni le texte ne quittent l'ord
 2. Ouvrez `Lowsper.html` dans Edge ou Chrome.
 3. Premier lancement seulement : Lowsper montre ce qu'il a détecté sur votre PC et coche le
    meilleur modèle. Cliquez sur « Télécharger et installer » et choisissez le dossier Lowsper
-   affiché. Le modèle (80 à 330 Mo) se télécharge une seule fois ; ensuite tout fonctionne hors
+   affiché (ou celui qui le contient). Le modèle (80 à 330 Mo) se télécharge une seule fois ; ensuite tout fonctionne hors
    ligne.
 4. Sur l'accueil, nommez la réunion, choisissez où enregistrer la note, cliquez sur « Démarrer ».
    Partagez votre écran **avec le son** et autorisez le micro.

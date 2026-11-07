@@ -40,6 +40,7 @@ for (const f of [
   'speakers.js',
   'notes.js',
   'localai.js',
+  'installer.js',
 ]) {
   vm.runInContext(await readFile(join(appJs, f), 'utf8'), sandbox, { filename: f });
 }
@@ -1953,6 +1954,146 @@ await test('thème : suit le système, choix clair ou sombre gardé, retour à a
   T.set('n importe quoi');
   assert.equal(T.stored(), 'auto');
   assert.equal(T.effective(), 'light');
+});
+
+// --- Dossier Lowsper : recherche depuis un dossier parent, accès d'une autre copie (decision.md §38) ---
+/** Arborescence factice : { 'Lowsper.html': '', sous: { ... } } ; seen compte les dossiers lus. */
+function tree(name, content, seen = { n: 0 }) {
+  const dir = {
+    kind: 'directory',
+    name,
+    seen,
+    getFileHandle: async (f) => {
+      if (typeof content[f] !== 'string') throw new Error('NotFoundError');
+      return { kind: 'file', name: f };
+    },
+    async *values() {
+      seen.n++;
+      for (const [k, v] of Object.entries(content))
+        yield typeof v === 'string' ? { kind: 'file', name: k } : tree(k, v, seen);
+    },
+  };
+  return dir;
+}
+
+await test('dossier Lowsper : trouvé depuis le dossier lui-même, un dossier parent ou Téléchargements', async () => {
+  const lowsper = { 'Lowsper.html': '', app: {} };
+  const find = (dir, page) => L.findLowsperFolders(dir, page).then((r) => Array.from(r, (d) => d.name));
+  // Le bon dossier choisi directement
+  assert.deepEqual(await find(tree('Lowsper-4.2.0', lowsper), 'Lowsper-4.2.0'), ['Lowsper-4.2.0']);
+  // « Extraire tout » de Windows : Lowsper-4.2.0\Lowsper-4.2.0, le premier choisi
+  assert.deepEqual(await find(tree('Lowsper-4.2.0', { 'Lowsper-4.2.0': lowsper }), 'Lowsper-4.2.0'), ['Lowsper-4.2.0']);
+  // Téléchargements choisi tel quel : deux niveaux plus bas, à travers un dossier « lowsper »
+  const downloads = tree('Downloads', {
+    'facture.pdf': '',
+    Photos: { 'a.jpg': '' },
+    'Lowsper-3.4.0': { 'Lowsper-3.4.0': lowsper },
+    'Lowsper-4.2.0': { 'Lowsper-4.2.0': lowsper },
+  });
+  assert.deepEqual(
+    await find(downloads, 'Lowsper-4.2.0'),
+    ['Lowsper-4.2.0', 'Lowsper-3.4.0'],
+    'le nom de la page d’abord'
+  );
+  // Copie renommée par l'utilisateur : trouvée au premier niveau, quel que soit son nom
+  assert.deepEqual(await find(tree('Bureau', { Transcription: lowsper }), 'Transcription'), ['Transcription']);
+  // Rien : liste vide (message « mauvais dossier »), sans descendre dans les dossiers sans rapport
+  const docs = tree('Documents', { Projets: { Lowsper: lowsper }, 'notes.txt': '' });
+  assert.deepEqual(await find(docs, 'Lowsper-4.2.0'), []);
+  assert.equal(docs.seen.n, 1, 'Projets n’est pas parcouru : seul un dossier « lowsper » l’est');
+  // Parcours borné : un très grand dossier ne bloque pas la page
+  const big = {};
+  for (let i = 0; i < 2000; i++) big['dossier' + i] = {};
+  big['zz-Lowsper'] = lowsper;
+  assert.equal((await L.findLowsperFolders(tree('Gros', big), 'zz-Lowsper', 400)).length, 0);
+});
+
+await test('dossier Lowsper : l’accès rangé par une autre copie est oublié sans rien demander', async () => {
+  const mem = new Map();
+  const kv = new Map();
+  // IndexedDB factice, suffisant pour settings.js (get, put, delete dans le magasin « kv »)
+  const indexedDB = {
+    open: () => {
+      const req = {};
+      setTimeout(() => {
+        req.result = {
+          transaction: () => {
+            const tx = {};
+            const store = {
+              get: (k) => {
+                const r = { result: kv.get(k) };
+                return r;
+              },
+              put: (v, k) => (kv.set(k, v), {}),
+              delete: (k) => (kv.delete(k), {}),
+            };
+            tx.objectStore = () => store;
+            setTimeout(() => tx.oncomplete && tx.oncomplete());
+            return tx;
+          },
+        };
+        req.onsuccess();
+      });
+      return req;
+    },
+  };
+  const make = async (path) => {
+    const box = {
+      console,
+      setTimeout,
+      location: { pathname: path },
+      indexedDB,
+      localStorage: {
+        getItem: (k) => (mem.has(k) ? mem.get(k) : null),
+        setItem: (k, v) => mem.set(k, String(v)),
+        removeItem: (k) => mem.delete(k),
+      },
+    };
+    box.window = box;
+    box.self = box;
+    Object.defineProperty(box.localStorage, 'keys', { value: () => [...mem.keys()] });
+    vm.createContext(box);
+    vm.runInContext(
+      'Object.keys = ((orig) => (o) => (o === localStorage ? localStorage.keys() : orig(o)))(Object.keys);',
+      box
+    );
+    vm.runInContext(await readFile(join(appJs, 'settings.js'), 'utf8'), box, { filename: 'settings.js' });
+    return box;
+  };
+  let asked = 0;
+  const handle = (name) => ({
+    name,
+    queryPermission: async () => 'prompt',
+    requestPermission: async () => (asked++, 'granted'),
+  });
+  // La 3.4.0 avait rangé son dossier ; la 4.2.0 est ouverte depuis un autre dossier
+  kv.set('folder', handle('Lowsper-3.4.0'));
+  let box = await make('/C:/Users/u/Downloads/Lowsper-4.2.0/Lowsper-4.2.0/Lowsper.html');
+  assert.equal(await box.Lowsper.Settings.folder(), null, 'accès d’une autre copie ignoré');
+  assert.equal(kv.has('folder'), false, 'et oublié');
+  mem.set('lowsper.glossary', 'COPIL');
+  assert.equal(await box.Lowsper.Settings.save({ interactive: false, force: true }), 'needs-folder');
+  assert.equal(asked, 0, 'aucune fenêtre d’autorisation pour l’ancien dossier');
+  // Le dossier de cette page, rangé à l'installation : gardé (casse indifférente, comme Windows)
+  kv.set('folder', handle('lowsper-4.2.0'));
+  box = await make('/C:/Users/u/Downloads/Lowsper-4.2.0/Lowsper-4.2.0/Lowsper.html');
+  assert.equal((await box.Lowsper.Settings.folder()).name, 'lowsper-4.2.0');
+  // Même nom, mais autre copie (vérification après l'accord) : oublié, rien n'est écrit
+  box.Lowsper.isPageFolder = async () => false;
+  assert.equal(await box.Lowsper.Settings.save({ interactive: true, force: true }), 'needs-folder');
+  assert.equal(kv.has('folder'), false);
+});
+
+await test('notes : le dossier Lowsper d’une autre copie n’est jamais utilisé', async () => {
+  const N = L.Notes;
+  const saved = { ...N.lowsper };
+  const base = fakeDir('Lowsper', 'granted');
+  N.lowsper.get = async () => base;
+  N.lowsper.confirm = async () => false;
+  const p = N.normalize({ id: 'p2', name: 'Travail', format: 'modele' });
+  assert.equal((await N.access(p, true, true)).state, 'aucun', 'Téléchargements, comme sans dossier');
+  assert.equal(base.dirs.size, 0, 'rien n’est créé dans l’autre copie');
+  Object.assign(N.lowsper, saved);
 });
 
 if (failed) {

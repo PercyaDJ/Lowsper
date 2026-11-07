@@ -57,9 +57,11 @@ réunion qui travaille hors ligne.
    Si un autre navigateur s'ouvre : clic droit sur le fichier, « Ouvrir avec », Microsoft Edge.
 3. **Premier lancement uniquement** : l'écran de bienvenue montre ce que Lowsper a détecté sur
    votre PC (processeurs, mémoire, carte graphique) et coche le modèle **« Le meilleur pour ce
-   PC »**. Cliquez sur **« Télécharger et installer »**, puis, dans la fenêtre du navigateur,
-   choisissez le **dossier Lowsper** affiché à l'écran (celui qui contient `Lowsper.html`) et
-   acceptez que Lowsper y enregistre des fichiers. Le téléchargement (80 à 330 Mo selon le modèle)
+   PC »**. Cliquez sur **« Télécharger et installer »**. La fenêtre du navigateur s'ouvre sur vos
+   Téléchargements : choisissez le **dossier Lowsper** affiché à l'écran (celui qui contient
+   `Lowsper.html`) et acceptez que Lowsper y enregistre des fichiers. « Extraire tout » de Windows
+   crée souvent deux dossiers du même nom l'un dans l'autre (`Lowsper-4.2.1\Lowsper-4.2.1`) :
+   choisir le premier suffit, Lowsper retrouve seul celui qui contient `Lowsper.html`. Le téléchargement (80 à 330 Mo selon le modèle)
    prend une à quelques minutes, la page redémarre toute seule à la fin. Ce même accord sert
    ensuite à garder une copie de vos réglages dans ce dossier, et à y ranger vos notes
    (`Notes\<emplacement>`).
@@ -304,6 +306,17 @@ indiquait « Langue : undefined ». Corrigé en 4.1.0 ; votre réglage est relu 
 Cochez-les toutes dans « Langues parlées dans mes réunions » : Lowsper reconnaît la langue de
 chaque passage. Sur des phrases de 3 à 8 secondes, il ne s'est jamais trompé dans notre mesure,
 même en choisissant parmi douze langues ; sur un passage très court (« oui »), ce n'est pas mesuré.
+
+**Le navigateur demande l'accès à un dossier « Lowsper-3.4.0 » (ou une autre version) que je n'ai plus.**
+Toutes les copies de Lowsper ouvertes depuis le disque partagent la mémoire du navigateur : une
+ancienne version y avait rangé l'accès à son dossier. Refusez cette fenêtre. Depuis la 4.2.1,
+Lowsper oublie cet accès sans rien demander et n'utilise que le dossier de la page ouverte.
+
+**Lowsper me dit que le dossier choisi ne contient pas Lowsper.html.**
+Choisissez le dossier affiché sur l'écran de bienvenue, ou l'un des dossiers qui le contiennent
+(par exemple le premier des deux dossiers `Lowsper-4.2.1` créés par « Extraire tout ») : Lowsper
+regarde dans les dossiers qu'il contient. Le navigateur ne permet pas d'ouvrir sa fenêtre
+directement sur le bon dossier : elle s'ouvre sur vos Téléchargements.
 
 **Le téléchargement du modèle échoue au bureau.**
 Le réseau de l'entreprise bloque peut-être Hugging Face. Faites l'installation depuis un autre
@@ -550,6 +563,11 @@ Lowsper reconnaît Brave et affiche ces explications au bon moment.
   ou non l'accord au dossier Lowsper après un redémarrage n'est pas encore vérifié.
 - **Notes et nouvelle version** : les notes sont rangées dans le dossier de la version de Lowsper
   utilisée ; copiez le dossier `Notes` en passant à une nouvelle version.
+- **Plusieurs copies de Lowsper** : toutes les pages ouvertes depuis le disque partagent la même
+  mémoire du navigateur. Depuis la 4.2.1, une copie n'utilise jamais l'accès au dossier d'une
+  autre (une ancienne version par exemple) : elle l'oublie et redemande son propre dossier au
+  premier enregistrement. Avant la 4.2.1, une fenêtre pouvait demander l'accès au dossier d'une
+  ancienne version, même supprimée : refusez-la.
 
 ## Feuille de route
 

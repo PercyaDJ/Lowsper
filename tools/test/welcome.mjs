@@ -103,7 +103,10 @@ const state = (page) =>
       rows,
       button: document.getElementById('install').textContent,
       buttons: [...document.querySelectorAll('#view-install button:not([hidden])')].length,
-      folder: document.getElementById('page-folder').textContent,
+      folder: document.getElementById('install-folder').textContent,
+      folderVisible: !!document.getElementById('install-folder').offsetParent,
+      // La sous-page « Dossier » des paramètres n'est pas écrasée par le chemin (decision.md §38)
+      settingsFolderPage: !!document.querySelector('#page-folder .settings-head'),
       langMenu: !document.getElementById('lang-menu').hidden,
     };
   });
@@ -135,6 +138,8 @@ await test('4 fils, sans carte graphique : détection affichée, Whisper base re
   assert.match(s.button, /^Télécharger et installer \(\d+ Mo\)$/);
   assert.equal(s.buttons, 1, 'un seul bouton (pas de « Retour » au premier lancement)');
   assert.ok(s.folder.endsWith('welcome-site'), s.folder);
+  assert.ok(s.folderVisible, 'chemin du dossier affiché sur l’écran de bienvenue');
+  assert.ok(s.settingsFolderPage, 'sous-page Dossier des paramètres intacte');
   assert.ok(s.langMenu, 'menu de langue visible sur l’écran de bienvenue');
   assert.deepEqual(errors, []);
   assert.deepEqual(requests, []);
@@ -206,6 +211,49 @@ await test('menu de langue : au clavier, changement immédiat et mémorisé', as
   await page.keyboard.press('Escape');
   assert.equal(await page.isHidden('#lang-list'), true);
   assert.equal(await page.getAttribute('html', 'lang'), 'en');
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+await test('dossier : un dossier parent (Téléchargements, double dossier de Windows) suffit', async () => {
+  const { context, page, errors } = await open({ threads: 8, memory: 8 });
+  const res = await page.evaluate(async () => {
+    const L = window.Lowsper;
+    // Arborescence factice : la fenêtre du navigateur et la vérification d'écriture sont simulées
+    const node = (name, content) => ({
+      kind: 'directory',
+      name,
+      getFileHandle: async (f) => {
+        if (typeof content[f] !== 'string') throw new DOMException('absent', 'NotFoundError');
+        return { kind: 'file', name: f };
+      },
+      async *values() {
+        for (const [k, v] of Object.entries(content)) yield typeof v === 'string' ? { kind: 'file', name: k } : v;
+      },
+    });
+    const here = node('welcome-site', { 'Lowsper.html': '' });
+    const old = node('welcome-site', { 'Lowsper.html': '' });
+    const downloads = node('Downloads', {
+      'welcome-site': node('welcome-site', { 'welcome-site': here }),
+      'Lowsper-3.4.0': node('Lowsper-3.4.0', { 'Lowsper-3.4.0': old }),
+    });
+    L.isPageFolder = async (d) => d === here;
+    const pick = async (dir) => {
+      window.showDirectoryPicker = async () => dir;
+      try {
+        return (await L.pickLowsperFolder()) === here ? 'ok' : 'autre';
+      } catch (e) {
+        return e.code;
+      }
+    };
+    return {
+      parent: await pick(downloads),
+      double: await pick(node('welcome-site', { 'welcome-site': here })),
+      nothing: await pick(node('Documents', { 'notes.txt': '' })),
+      otherOnly: await pick(node('Downloads', { 'Lowsper-3.4.0': node('Lowsper-3.4.0', { 'Lowsper-3.4.0': old }) })),
+    };
+  });
+  assert.deepEqual(res, { parent: 'ok', double: 'ok', nothing: 'WRONG_FOLDER', otherOnly: 'OTHER_COPY' });
   assert.deepEqual(errors, []);
   await context.close();
 });
