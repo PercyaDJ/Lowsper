@@ -841,6 +841,7 @@
     // --- Vocabulaires métier (vocabulary.js) ---
     'vocab.cyber': 'Cybersécurité',
     'vocab.it': 'Informatique et cloud',
+    'vocab.ia': 'IA et informatique',
     'vocab.projet': 'Gestion de projet',
     'vocab.sante': 'Santé',
     'vocab.juridique': 'Juridique',
@@ -1650,6 +1651,7 @@
 
     'vocab.cyber': 'Cybersecurity',
     'vocab.it': 'IT and cloud',
+    'vocab.ia': 'AI and computing',
     'vocab.projet': 'Project management',
     'vocab.sante': 'Healthcare',
     'vocab.juridique': 'Legal',

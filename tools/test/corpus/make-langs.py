@@ -4,9 +4,10 @@
 # Hugging Face à une révision figée. L'audio n'est pas versionné (environ 20 Mo) : il se
 # régénère à l'identique avec ce script.
 # Avec l'argument « vocab », génère de même le corpus des vocabulaires métier (vocab-fr.json :
-# vocab-<domaine>.wav et .json).
+# vocab-<domaine>.wav et .json). Avec « vocab-ia », le corpus du vocabulaire « IA et informatique »
+# (vocab-ia.json : vocab-ia-<langue>.wav et .json, decision.md §44).
 # Prérequis : pip install piper-tts numpy (et piper-tts[zh,ja] pour le mandarin et le japonais).
-# Usage : python make-langs.py [langues...] ou python make-langs.py vocab
+# Usage : python make-langs.py [langues...], python make-langs.py vocab ou python make-langs.py vocab-ia
 import json, os, sys, urllib.request, wave
 import numpy as np
 from piper import PiperVoice
@@ -62,6 +63,10 @@ if only == ['vocab']:
     vocab = json.load(open(os.path.join(here, 'vocab-fr.json'), encoding='utf-8'))
     for domain, d in vocab['domains'].items():
         write('vocab-' + domain, d['lines'], vocab['voices'])
+elif only == ['vocab-ia']:
+    vocab = json.load(open(os.path.join(here, 'vocab-ia.json'), encoding='utf-8'))
+    for lang, d in vocab['langs'].items():
+        write('vocab-ia-' + lang, d['lines'], d['voices'])
 else:
     for lang, lines in data['lines'].items():
         if not only or lang in only:

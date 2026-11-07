@@ -11,7 +11,13 @@
 //     utiles à la fin, si bien que la coupe par le début garde les premiers termes de chacune.
 // Mesures : part des termes du domaine bien écrits (sans tenir compte de la casse ni des accents,
 // que la correction de casse rétablit ensuite) et taux d'erreur par mot de la phrase.
-// Prérequis : node build.mjs --embed whisper-small. Usage : node test/eval-vocab.mjs [modèle] [domaines...]
+// Avec --corpus=vocab-ia (decision.md §44) : corpus corpus/vocab-ia.json, une série de phrases par
+// langue parlée (audio : corpus/make-langs.py vocab-ia), et les contextes nommés dans le corpus
+// (« conditions » : listes cochées), construits par les fonctions de Lowsper (Vocabulary.alternate
+// et Vocabulary.prompt). Un terme y est compté comme mot entier (« IA » n'est pas trouvé dans
+// « via ») ; les domaines en argument deviennent les langues parlées (fr, en).
+// Prérequis : node build.mjs --embed whisper-small.
+// Usage : node test/eval-vocab.mjs [modèle] [domaines ou langues...] [--corpus=vocab-ia]
 import { chromium } from 'playwright-core';
 import { AutoTokenizer, env } from '@huggingface/transformers';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
@@ -24,9 +30,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const out = join(here, 'output');
 const cache = join(here, '..', '.cache');
 await mkdir(out, { recursive: true });
-const model = process.argv[2] || 'whisper-small';
-const domains = process.argv.slice(3);
-const corpus = JSON.parse(await readFile(join(here, 'corpus', 'vocab-fr.json'), 'utf8'));
+const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const corpusName = (process.argv.find((a) => a.startsWith('--corpus=')) || '--corpus=vocab-fr').slice(9);
+const model = args[0] || 'whisper-small';
+const domains = args.slice(1);
+const corpus = JSON.parse(await readFile(join(here, 'corpus', corpusName + '.json'), 'utf8'));
 
 env.allowRemoteModels = false;
 env.localModelPath = join(cache, 'models') + '/';
@@ -37,7 +45,9 @@ vm.createContext(sb);
 for (const f of ['vocabularies.js', 'vocabulary.js'])
   vm.runInContext(await readFile(join(here, '..', '..', 'app', 'js', f), 'utf8'), sb);
 const LISTS = sb.window.Lowsper.VOCABULARIES;
-const ALL = Object.keys(LISTS);
+const V = sb.window.Lowsper.Vocabulary;
+// Les douze listes du lot R8 : le domaine « ia » (§44) est exclu, pour garder la mesure du §35
+const ALL = Object.keys(LISTS).filter((id) => id !== 'ia');
 const THREE = ['sante', 'juridique', 'finance'];
 const BUDGET = 200; // jetons de contexte gardés par le moteur (engine.js)
 
@@ -69,6 +79,15 @@ function alternate(ids) {
   return tok.decode(ids2.slice(-BUDGET)).trim();
 }
 const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’']/g, "'");
+// Mot entier, pluriel en « s » accepté, tirets et espaces équivalents (corpus « match »: « word »)
+const esc = (t) =>
+  fold(t)
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/[\s-]+/g, '[\\s-]+');
+// Terme échappé, tirets et espaces en une seule classe : pas de retour arrière exponentiel
+// nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
+const hasWord = (text, term) => new RegExp(`(^|[^a-z0-9])${esc(term)}s?([^a-z0-9]|$)`).test(fold(text));
+const has = corpus.match === 'word' ? hasWord : (text, term) => fold(text).includes(fold(term));
 
 await writeFile(
   join(out, 'ev.html'),
@@ -78,10 +97,10 @@ await writeFile(
 <script src="../../../app/js/engine.js"></script>
 <script>
 window.init = async (m) => { window.tr = new Lowsper.Transcriber(await Lowsper.loadAssets(null, m)); await window.tr.ready; };
-window.run = async (b64, prompt) => {
+window.run = async (b64, prompt, lang) => {
   const by = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   const audio = Float32Array.from(new Int16Array(by.buffer), (v) => v / 32768);
-  const r = await window.tr.transcribe(audio, 'fr', prompt);
+  const r = await window.tr.transcribe(audio, lang || 'fr', prompt);
   return r.chunks.map((c) => c.text).join(' ').trim();
 };
 </script>`
@@ -93,9 +112,18 @@ await page.goto(pathToFileURL(join(out, 'ev.html')).href);
 await page.evaluate((m) => window.init(m), model);
 
 const results = {};
-for (const [domain, d] of Object.entries(corpus.domains)) {
+// Séries à mesurer : un domaine du corpus R8 (phrases françaises), ou une langue de vocab-ia
+const series = corpus.langs
+  ? Object.entries(corpus.langs).map(([lang, d]) => [lang, { ...d, lang, file: `${corpusName}-${lang}` }])
+  : Object.entries(corpus.domains).map(([domain, d]) => [domain, { ...d, lang: 'fr', file: `vocab-${domain}` }]);
+for (const [domain, d] of series) {
   if (domains.length && !domains.includes(domain)) continue;
-  const conditions = {
+  const named =
+    corpus.conditions &&
+    Object.fromEntries(
+      Object.entries(corpus.conditions).map(([name, ids]) => [name, V.prompt({ vocab: V.alternate(ids, d.lang, '') })])
+    );
+  const conditions = named || {
     aucun: '',
     seule: LISTS[domain].fr.join(', '),
     'trois bout à bout': tail(THREE),
@@ -105,36 +133,39 @@ for (const [domain, d] of Object.entries(corpus.domains)) {
     'trois en alternance': alternate(THREE),
     'douze en alternance': alternate(ALL),
   };
-  const pcm = (await readFile(join(cache, 'langs', `vocab-${domain}.wav`))).subarray(44);
-  const timeline = JSON.parse(await readFile(join(cache, 'langs', `vocab-${domain}.json`), 'utf8'));
+  const pcm = (await readFile(join(cache, 'langs', `${d.file}.wav`))).subarray(44);
+  const timeline = JSON.parse(await readFile(join(cache, 'langs', `${d.file}.json`), 'utf8'));
   for (const [name, prompt] of Object.entries(conditions)) {
     const r = { found: 0, terms: 0, errors: 0, words: 0, inPrompt: 0, tokens: Math.min(BUDGET, count(prompt || ' ')) };
     for (const line of timeline) {
       const a = Math.max(0, Math.floor((line.start - 0.3) * 16000)) * 2;
       const b = Math.min(pcm.length, Math.floor((line.end + 0.3) * 16000) * 2);
       const text = await page.evaluate(
-        ([x, p]) => window.run(x, p),
-        [Buffer.from(pcm.subarray(a, b)).toString('base64'), prompt]
+        ([x, p, l]) => window.run(x, p, l),
+        [Buffer.from(pcm.subarray(a, b)).toString('base64'), prompt, d.lang]
       );
-      for (const term of d.terms.filter((t) => fold(line.text).includes(fold(t)))) {
+      for (const term of d.terms.filter((t) => has(line.text, t))) {
         r.terms++;
-        if (fold(text).includes(fold(term))) r.found++;
+        if (has(text, term)) r.found++;
+        else (r.missed = r.missed || []).push(term);
         if (fold(prompt).includes(fold(term).replace(/s$/, ''))) r.inPrompt++;
       }
-      const ref = normalize(line.text, 'fr');
-      r.errors += edits(ref, normalize(text, 'fr'));
+      const ref = normalize(line.text, d.lang);
+      r.errors += edits(ref, normalize(text, d.lang));
       r.words += ref.length;
-      if (name === 'aucun' || name === 'trois bout à bout') console.log(`${domain} / ${name} : ${text}`);
+      (r.texts = r.texts || []).push(text);
+      if (name === 'aucun' || name === 'trois bout à bout' || named) console.log(`${domain} / ${name} : ${text}`);
     }
     (results[domain] = results[domain] || {})[name] = r;
     console.log(
       `${domain} | ${name} | termes ${r.found}/${r.terms} | dans le contexte ${r.inPrompt}/${r.terms} | ` +
-        `erreur ${((r.errors / r.words) * 100).toFixed(1)} % | ${r.tokens} jetons`
+        `erreur ${((r.errors / r.words) * 100).toFixed(1)} % | ${r.tokens} jetons` +
+        (r.missed ? ` | manqués : ${r.missed.join(', ')}` : '')
     );
   }
 }
 await writeFile(
-  join(out, `eval-vocab-${model}${domains.length ? '-' + domains.join('-') : ''}.json`),
+  join(out, `eval-${corpusName}-${model}${domains.length ? '-' + domains.join('-') : ''}.json`),
   JSON.stringify(results, null, 1)
 );
 await browser.close();
