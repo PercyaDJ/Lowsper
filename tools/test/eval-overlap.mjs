@@ -4,15 +4,15 @@
 // Mesuré : couverture (part des mots de la réplique retrouvés au bon moment), répliques perdues
 // (moins de 30 % des mots), et pour la personne qui coupe la parole, si ses mots sont attribués à
 // sa propre voix ou à celle de la personne coupée.
-// Prérequis : node test/eval-hebdo.mjs <modèle> --corpus=simultane [--teams]
-// Usage : node test/eval-overlap.mjs [modèle] [--teams]
+// Prérequis : node test/eval-hebdo.mjs <modèle> --corpus=simultane [--teams] [--echo]
+// Usage : node test/eval-overlap.mjs [modèle] [--teams] [--echo]
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const modelId = process.argv.slice(2).find((a) => !a.startsWith('--')) || 'whisper-small';
-const tag = process.argv.includes('--teams') ? '-teams' : '';
+const tag = (process.argv.includes('--teams') ? '-teams' : '') + (process.argv.includes('--echo') ? '-echo' : '');
 const { lines, hyp } = JSON.parse(
   await readFile(join(here, 'output', `simultane${tag}-${modelId}-lignes.json`), 'utf8')
 );
@@ -42,21 +42,23 @@ for (const who of new Set(lines.map((l) => l.who))) {
 
 const rows = [];
 const groups = [['temoin', 'premier']];
-for (const k of ['acquiescement', 'interruption', 'simultane', 'long']) groups.push([k, 'premier'], [k, 'second']);
+for (const k of ['acquiescement', 'interruption', 'simultane', 'long', 'vous'])
+  groups.push([k, 'premier'], [k, 'second']);
 for (const [kind, role] of groups) {
-  const sel = lines.filter((l) => l.kind === kind && l.role === role && l.channel === 'others');
+  const sel = lines.filter((l) => l.kind === kind && l.role === role);
   if (!sel.length) continue;
   // Attribution : les mots de la réplique, retrouvés dans une phrase de la bonne voix ?
   let own = 0;
   for (const l of sel) {
     const ref = new Set(norm(l.ref));
-    const near = hyp.filter((h) => h.source === 'others' && h.end >= l.start - 1 && h.start <= l.end + 1);
+    const near = hyp.filter((h) => h.source === l.channel && h.end >= l.start - 1 && h.start <= l.end + 1);
     let mine = 0,
       all = 0;
     for (const h of near) {
       const n = norm(h.text).filter((w) => ref.has(w)).length;
       all += n;
-      if (h.speaker === voiceOf[l.who]) mine += n;
+      // Micro : une seule voix, la vôtre ; côté participants, la voix trouvée pour cette personne
+      if (l.channel === 'me' || h.speaker === voiceOf[l.who]) mine += n;
     }
     if (all && mine / all >= 0.5) own++;
   }

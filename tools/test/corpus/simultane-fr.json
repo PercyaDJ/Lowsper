@@ -36,44 +36,19 @@
    "say": "Pour le planning du trimestre, on a pris un peu de retard sur la migration, mais l'équipe pense rattraper d'ici la fin du mois."
   },
   {
-   "who": "A",
-   "ref": "Attends, je ne suis pas d'accord sur le délai, la fin du mois me paraît trop juste pour l'équipe.",
-   "say": "Attends, je ne suis pas d'accord sur le délai, la fin du mois me paraît trop juste pour l'équipe."
-  },
-  {
    "who": "C",
    "ref": "Le budget de formation est presque consommé, il reste environ trois mille euros pour les sessions de décembre.",
    "say": "Le budget de formation est presque consommé, il reste environ trois mille euros pour les sessions de décembre."
   },
   {
-   "who": "D",
-   "ref": "Justement, il faudrait garder une marge pour les imprévus, sinon on sera bloqués en janvier.",
-   "say": "Justement, il faudrait garder une marge pour les imprévus, sinon on sera bloqués en janvier."
+   "who": "Vous",
+   "ref": "D'accord, mais il faudrait prévenir l'équipe avant vendredi.",
+   "say": "D'accord, mais il faudrait prévenir l'équipe avant vendredi."
   },
   {
-   "who": "A",
+   "who": "C",
    "ref": "J'ai relu la nouvelle procédure d'accès, elle me paraît claire, il faudra juste ajouter un exemple pour les nouveaux arrivants.",
    "say": "J'ai relu la nouvelle procédure d'accès, elle me paraît claire, il faudra juste ajouter un exemple pour les nouveaux arrivants."
-  },
-  {
-   "who": "C",
-   "ref": "Oui, mais il faut prévenir les utilisateurs au moins une semaine avant, sinon ils vont s'inquiéter.",
-   "say": "Oui, mais il faut prévenir les utilisateurs au moins une semaine avant, sinon ils vont s'inquiéter."
-  },
-  {
-   "who": "B",
-   "ref": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants.",
-   "say": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants."
-  },
-  {
-   "who": "C",
-   "ref": "Je peux m'en occuper si personne ne le prend, j'ai un peu de temps la semaine prochaine.",
-   "say": "Je peux m'en occuper si personne ne le prend, j'ai un peu de temps la semaine prochaine."
-  },
-  {
-   "who": "C",
-   "ref": "Sur la sauvegarde des données, le test de restauration a duré quarante minutes, c'est mieux que la dernière fois.",
-   "say": "Sur la sauvegarde des données, le test de restauration a duré quarante minutes, c'est mieux que la dernière fois."
   },
   {
    "who": "D",
@@ -82,8 +57,33 @@
   },
   {
    "who": "C",
+   "ref": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants.",
+   "say": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants."
+  },
+  {
+   "who": "D",
+   "ref": "Pardon, vas-y.",
+   "say": "Pardon, vas-y."
+  },
+  {
+   "who": "C",
+   "ref": "Sur la sauvegarde des données, le test de restauration a duré quarante minutes, c'est mieux que la dernière fois.",
+   "say": "Sur la sauvegarde des données, le test de restauration a duré quarante minutes, c'est mieux que la dernière fois."
+  },
+  {
+   "who": "D",
+   "ref": "Attends, je ne suis pas d'accord sur le délai, la fin du mois me paraît trop juste pour l'équipe.",
+   "say": "Attends, je ne suis pas d'accord sur le délai, la fin du mois me paraît trop juste pour l'équipe."
+  },
+  {
+   "who": "A",
    "ref": "Le fournisseur propose de renouveler le contrat de maintenance pour deux ans, avec une hausse de quatre pour cent.",
    "say": "Le fournisseur propose de renouveler le contrat de maintenance pour deux ans, avec une hausse de quatre pour cent."
+  },
+  {
+   "who": "Vous",
+   "ref": "Pardon, je n'ai pas entendu la fin de la phrase.",
+   "say": "Pardon, je n'ai pas entendu la fin de la phrase."
   },
   {
    "who": "B",
@@ -91,14 +91,134 @@
    "say": "Les indicateurs du mois montrent une baisse des tickets en attente, on passe de cent vingt à quatre-vingt-dix."
   },
   {
-   "who": "B",
+   "who": "Vous",
+   "ref": "Juste une question, est-ce que le fournisseur a confirmé la date de livraison ?",
+   "say": "Juste une question, est-ce que le fournisseur a confirmé la date de livraison ?"
+  },
+  {
+   "who": "C",
    "ref": "Pour le déménagement du bureau, les cartons seront livrés lundi et les postes déplacés le week-end suivant.",
    "say": "Pour le déménagement du bureau, les cartons seront livrés lundi et les postes déplacés le week-end suivant."
   },
   {
+   "who": "Vous",
+   "ref": "D'accord, mais il faudrait prévenir l'équipe avant vendredi.",
+   "say": "D'accord, mais il faudrait prévenir l'équipe avant vendredi."
+  },
+  {
+   "who": "C",
+   "ref": "La refonte du site avance, la page d'accueil est validée, il reste les pages de contact et le formulaire de devis.",
+   "say": "La refonte du site avance, la page d'accueil est validée, il reste les pages de contact et le formulaire de devis."
+  },
+  {
    "who": "A",
+   "ref": "D'accord.",
+   "say": "D'accord."
+  },
+  {
+   "who": "A",
+   "ref": "Le recrutement du stagiaire est lancé, on a reçu douze candidatures et on fera les entretiens la semaine prochaine.",
+   "say": "Le recrutement du stagiaire est lancé, on a reçu douze candidatures et on fera les entretiens la semaine prochaine."
+  },
+  {
+   "who": "B",
+   "ref": "Justement, il faudrait garder une marge pour les imprévus, sinon on sera bloqués en janvier.",
+   "say": "Justement, il faudrait garder une marge pour les imprévus, sinon on sera bloqués en janvier."
+  },
+  {
+   "who": "Vous",
+   "ref": "D'accord, je note tout ça pour le compte rendu.",
+   "say": "D'accord, je note tout ça pour le compte rendu."
+  },
+  {
+   "who": "D",
+   "ref": "Pour la mise à jour des postes, il reste une trentaine de machines, surtout au deuxième étage.",
+   "say": "Pour la mise à jour des postes, il reste une trentaine de machines, surtout au deuxième étage."
+  },
+  {
+   "who": "Vous",
+   "ref": "Oui, je suis d'accord avec cette proposition.",
+   "say": "Oui, je suis d'accord avec cette proposition."
+  },
+  {
+   "who": "D",
+   "ref": "Le retour des utilisateurs sur le nouveau tableau de suivi est plutôt bon, ils demandent surtout un export en tableur.",
+   "say": "Le retour des utilisateurs sur le nouveau tableau de suivi est plutôt bon, ils demandent surtout un export en tableur."
+  },
+  {
+   "who": "A",
+   "ref": "Oui, mais il faut prévenir les utilisateurs au moins une semaine avant, sinon ils vont s'inquiéter.",
+   "say": "Oui, mais il faut prévenir les utilisateurs au moins une semaine avant, sinon ils vont s'inquiéter."
+  },
+  {
+   "who": "A",
+   "ref": "Pour le planning du trimestre, on a pris un peu de retard sur la migration, mais l'équipe pense rattraper d'ici la fin du mois.",
+   "say": "Pour le planning du trimestre, on a pris un peu de retard sur la migration, mais l'équipe pense rattraper d'ici la fin du mois."
+  },
+  {
+   "who": "D",
+   "ref": "Je peux m'en occuper si personne ne le prend, j'ai un peu de temps la semaine prochaine.",
+   "say": "Je peux m'en occuper si personne ne le prend, j'ai un peu de temps la semaine prochaine."
+  },
+  {
+   "who": "B",
+   "ref": "Le budget de formation est presque consommé, il reste environ trois mille euros pour les sessions de décembre.",
+   "say": "Le budget de formation est presque consommé, il reste environ trois mille euros pour les sessions de décembre."
+  },
+  {
+   "who": "A",
+   "ref": "J'ai relu la nouvelle procédure d'accès, elle me paraît claire, il faudra juste ajouter un exemple pour les nouveaux arrivants.",
+   "say": "J'ai relu la nouvelle procédure d'accès, elle me paraît claire, il faudra juste ajouter un exemple pour les nouveaux arrivants."
+  },
+  {
+   "who": "C",
    "ref": "Sur ce point, il faudrait demander l'avis du service juridique avant de signer quoi que ce soit.",
    "say": "Sur ce point, il faudrait demander l'avis du service juridique avant de signer quoi que ce soit."
+  },
+  {
+   "who": "B",
+   "ref": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants.",
+   "say": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants."
+  },
+  {
+   "who": "D",
+   "ref": "Et on a vérifié que les salles sont libres ce jour-là, parce que la dernière fois il y avait un conflit.",
+   "say": "Et on a vérifié que les salles sont libres ce jour-là, parce que la dernière fois il y avait un conflit."
+  },
+  {
+   "who": "C",
+   "ref": "Sur la sauvegarde des données, le test de restauration a duré quarante minutes, c'est mieux que la dernière fois.",
+   "say": "Sur la sauvegarde des données, le test de restauration a duré quarante minutes, c'est mieux que la dernière fois."
+  },
+  {
+   "who": "Vous",
+   "ref": "Oui, je suis d'accord avec cette proposition.",
+   "say": "Oui, je suis d'accord avec cette proposition."
+  },
+  {
+   "who": "C",
+   "ref": "Le fournisseur propose de renouveler le contrat de maintenance pour deux ans, avec une hausse de quatre pour cent.",
+   "say": "Le fournisseur propose de renouveler le contrat de maintenance pour deux ans, avec une hausse de quatre pour cent."
+  },
+  {
+   "who": "B",
+   "ref": "Ah, vas-y, je t'en prie.",
+   "say": "Ah, vas-y, je t'en prie."
+  },
+  {
+   "who": "B",
+   "ref": "Les indicateurs du mois montrent une baisse des tickets en attente, on passe de cent vingt à quatre-vingt-dix.",
+   "say": "Les indicateurs du mois montrent une baisse des tickets en attente, on passe de cent vingt à quatre-vingt-dix."
+  },
+  {
+   "who": "C",
+   "ref": "Il faudrait aussi mettre à jour la documentation, elle date de l'année dernière.",
+   "say": "Il faudrait aussi mettre à jour la documentation, elle date de l'année dernière."
+  },
+  {
+   "who": "D",
+   "ref": "Pour le déménagement du bureau, les cartons seront livrés lundi et les postes déplacés le week-end suivant.",
+   "say": "Pour le déménagement du bureau, les cartons seront livrés lundi et les postes déplacés le week-end suivant."
   },
   {
    "who": "C",
@@ -111,24 +231,19 @@
    "say": "Le recrutement du stagiaire est lancé, on a reçu douze candidatures et on fera les entretiens la semaine prochaine."
   },
   {
-   "who": "C",
+   "who": "B",
    "ref": "Pour la mise à jour des postes, il reste une trentaine de machines, surtout au deuxième étage.",
    "say": "Pour la mise à jour des postes, il reste une trentaine de machines, surtout au deuxième étage."
   },
   {
    "who": "B",
-   "ref": "D'accord.",
-   "say": "D'accord."
-  },
-  {
-   "who": "C",
    "ref": "Le retour des utilisateurs sur le nouveau tableau de suivi est plutôt bon, ils demandent surtout un export en tableur.",
    "say": "Le retour des utilisateurs sur le nouveau tableau de suivi est plutôt bon, ils demandent surtout un export en tableur."
   },
   {
-   "who": "A",
-   "ref": "Pardon, vas-y.",
-   "say": "Pardon, vas-y."
+   "who": "C",
+   "ref": "Je propose qu'on en reparle mardi, avec les chiffres complets du trimestre sous les yeux.",
+   "say": "Je propose qu'on en reparle mardi, avec les chiffres complets du trimestre sous les yeux."
   },
   {
    "who": "D",
@@ -136,44 +251,14 @@
    "say": "Pour le planning du trimestre, on a pris un peu de retard sur la migration, mais l'équipe pense rattraper d'ici la fin du mois."
   },
   {
-   "who": "A",
-   "ref": "Et on a vérifié que les salles sont libres ce jour-là, parce que la dernière fois il y avait un conflit.",
-   "say": "Et on a vérifié que les salles sont libres ce jour-là, parce que la dernière fois il y avait un conflit."
+   "who": "B",
+   "ref": "Attends, je ne suis pas d'accord sur le délai, la fin du mois me paraît trop juste pour l'équipe.",
+   "say": "Attends, je ne suis pas d'accord sur le délai, la fin du mois me paraît trop juste pour l'équipe."
   },
   {
-   "who": "A",
+   "who": "D",
    "ref": "Le budget de formation est presque consommé, il reste environ trois mille euros pour les sessions de décembre.",
    "say": "Le budget de formation est presque consommé, il reste environ trois mille euros pour les sessions de décembre."
-  },
-  {
-   "who": "D",
-   "ref": "Il faudrait aussi mettre à jour la documentation, elle date de l'année dernière.",
-   "say": "Il faudrait aussi mettre à jour la documentation, elle date de l'année dernière."
-  },
-  {
-   "who": "B",
-   "ref": "J'ai relu la nouvelle procédure d'accès, elle me paraît claire, il faudra juste ajouter un exemple pour les nouveaux arrivants.",
-   "say": "J'ai relu la nouvelle procédure d'accès, elle me paraît claire, il faudra juste ajouter un exemple pour les nouveaux arrivants."
-  },
-  {
-   "who": "A",
-   "ref": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants.",
-   "say": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants."
-  },
-  {
-   "who": "A",
-   "ref": "Sur la sauvegarde des données, le test de restauration a duré quarante minutes, c'est mieux que la dernière fois.",
-   "say": "Sur la sauvegarde des données, le test de restauration a duré quarante minutes, c'est mieux que la dernière fois."
-  },
-  {
-   "who": "D",
-   "ref": "Je propose qu'on en reparle mardi, avec les chiffres complets du trimestre sous les yeux.",
-   "say": "Je propose qu'on en reparle mardi, avec les chiffres complets du trimestre sous les yeux."
-  },
-  {
-   "who": "A",
-   "ref": "Le fournisseur propose de renouveler le contrat de maintenance pour deux ans, avec une hausse de quatre pour cent.",
-   "say": "Le fournisseur propose de renouveler le contrat de maintenance pour deux ans, avec une hausse de quatre pour cent."
   },
   {
    "who": "B",
@@ -182,53 +267,8 @@
   },
   {
    "who": "C",
-   "ref": "Les indicateurs du mois montrent une baisse des tickets en attente, on passe de cent vingt à quatre-vingt-dix.",
-   "say": "Les indicateurs du mois montrent une baisse des tickets en attente, on passe de cent vingt à quatre-vingt-dix."
-  },
-  {
-   "who": "B",
-   "ref": "Ah, vas-y, je t'en prie.",
-   "say": "Ah, vas-y, je t'en prie."
-  },
-  {
-   "who": "B",
-   "ref": "Pour le déménagement du bureau, les cartons seront livrés lundi et les postes déplacés le week-end suivant.",
-   "say": "Pour le déménagement du bureau, les cartons seront livrés lundi et les postes déplacés le week-end suivant."
-  },
-  {
-   "who": "C",
-   "ref": "Oui, oui.",
-   "say": "Oui, oui."
-  },
-  {
-   "who": "Vous",
-   "ref": "On passe au point suivant, s'il vous plaît.",
-   "say": "On passe au point suivant, s'il vous plaît."
-  },
-  {
-   "who": "D",
-   "ref": "La refonte du site avance, la page d'accueil est validée, il reste les pages de contact et le formulaire de devis.",
-   "say": "La refonte du site avance, la page d'accueil est validée, il reste les pages de contact et le formulaire de devis."
-  },
-  {
-   "who": "B",
-   "ref": "Attends, je ne suis pas d'accord sur le délai, la fin du mois me paraît trop juste pour l'équipe.",
-   "say": "Attends, je ne suis pas d'accord sur le délai, la fin du mois me paraît trop juste pour l'équipe."
-  },
-  {
-   "who": "B",
-   "ref": "Le recrutement du stagiaire est lancé, on a reçu douze candidatures et on fera les entretiens la semaine prochaine.",
-   "say": "Le recrutement du stagiaire est lancé, on a reçu douze candidatures et on fera les entretiens la semaine prochaine."
-  },
-  {
-   "who": "D",
-   "ref": "Exactement.",
-   "say": "Exactement."
-  },
-  {
-   "who": "A",
-   "ref": "Pour la mise à jour des postes, il reste une trentaine de machines, surtout au deuxième étage.",
-   "say": "Pour la mise à jour des postes, il reste une trentaine de machines, surtout au deuxième étage."
+   "ref": "J'ai relu la nouvelle procédure d'accès, elle me paraît claire, il faudra juste ajouter un exemple pour les nouveaux arrivants.",
+   "say": "J'ai relu la nouvelle procédure d'accès, elle me paraît claire, il faudra juste ajouter un exemple pour les nouveaux arrivants."
   },
   {
    "who": "B",
@@ -237,28 +277,8 @@
   },
   {
    "who": "B",
-   "ref": "Le retour des utilisateurs sur le nouveau tableau de suivi est plutôt bon, ils demandent surtout un export en tableur.",
-   "say": "Le retour des utilisateurs sur le nouveau tableau de suivi est plutôt bon, ils demandent surtout un export en tableur."
-  },
-  {
-   "who": "D",
-   "ref": "Justement, il faudrait garder une marge pour les imprévus, sinon on sera bloqués en janvier.",
-   "say": "Justement, il faudrait garder une marge pour les imprévus, sinon on sera bloqués en janvier."
-  },
-  {
-   "who": "D",
-   "ref": "Pour le planning du trimestre, on a pris un peu de retard sur la migration, mais l'équipe pense rattraper d'ici la fin du mois.",
-   "say": "Pour le planning du trimestre, on a pris un peu de retard sur la migration, mais l'équipe pense rattraper d'ici la fin du mois."
-  },
-  {
-   "who": "B",
-   "ref": "Ah oui, d'accord.",
-   "say": "Ah oui, d'accord."
-  },
-  {
-   "who": "B",
-   "ref": "Le budget de formation est presque consommé, il reste environ trois mille euros pour les sessions de décembre.",
-   "say": "Le budget de formation est presque consommé, il reste environ trois mille euros pour les sessions de décembre."
+   "ref": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants.",
+   "say": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants."
   },
   {
    "who": "C",
@@ -267,48 +287,88 @@
   },
   {
    "who": "A",
-   "ref": "J'ai relu la nouvelle procédure d'accès, elle me paraît claire, il faudra juste ajouter un exemple pour les nouveaux arrivants.",
-   "say": "J'ai relu la nouvelle procédure d'accès, elle me paraît claire, il faudra juste ajouter un exemple pour les nouveaux arrivants."
-  },
-  {
-   "who": "C",
-   "ref": "Pardon, vas-y.",
-   "say": "Pardon, vas-y."
-  },
-  {
-   "who": "D",
-   "ref": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants.",
-   "say": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants."
-  },
-  {
-   "who": "B",
-   "ref": "Oui, mais il faut prévenir les utilisateurs au moins une semaine avant, sinon ils vont s'inquiéter.",
-   "say": "Oui, mais il faut prévenir les utilisateurs au moins une semaine avant, sinon ils vont s'inquiéter."
-  },
-  {
-   "who": "D",
    "ref": "Sur la sauvegarde des données, le test de restauration a duré quarante minutes, c'est mieux que la dernière fois.",
    "say": "Sur la sauvegarde des données, le test de restauration a duré quarante minutes, c'est mieux que la dernière fois."
   },
   {
-   "who": "B",
-   "ref": "Ah, vas-y, je t'en prie.",
-   "say": "Ah, vas-y, je t'en prie."
+   "who": "C",
+   "ref": "Justement, il faudrait garder une marge pour les imprévus, sinon on sera bloqués en janvier.",
+   "say": "Justement, il faudrait garder une marge pour les imprévus, sinon on sera bloqués en janvier."
   },
   {
-   "who": "B",
+   "who": "C",
    "ref": "Le fournisseur propose de renouveler le contrat de maintenance pour deux ans, avec une hausse de quatre pour cent.",
    "say": "Le fournisseur propose de renouveler le contrat de maintenance pour deux ans, avec une hausse de quatre pour cent."
   },
   {
-   "who": "D",
-   "ref": "Je peux m'en occuper si personne ne le prend, j'ai un peu de temps la semaine prochaine.",
-   "say": "Je peux m'en occuper si personne ne le prend, j'ai un peu de temps la semaine prochaine."
+   "who": "A",
+   "ref": "Pardon, vas-y.",
+   "say": "Pardon, vas-y."
   },
   {
    "who": "Vous",
    "ref": "Merci à tous, on s'arrête là pour aujourd'hui.",
    "say": "Merci à tous, on s'arrête là pour aujourd'hui."
+  },
+  {
+   "who": "A",
+   "ref": "Les indicateurs du mois montrent une baisse des tickets en attente, on passe de cent vingt à quatre-vingt-dix.",
+   "say": "Les indicateurs du mois montrent une baisse des tickets en attente, on passe de cent vingt à quatre-vingt-dix."
+  },
+  {
+   "who": "C",
+   "ref": "Oui, oui.",
+   "say": "Oui, oui."
+  },
+  {
+   "who": "D",
+   "ref": "Pour le déménagement du bureau, les cartons seront livrés lundi et les postes déplacés le week-end suivant.",
+   "say": "Pour le déménagement du bureau, les cartons seront livrés lundi et les postes déplacés le week-end suivant."
+  },
+  {
+   "who": "C",
+   "ref": "Ah, vas-y, je t'en prie.",
+   "say": "Ah, vas-y, je t'en prie."
+  },
+  {
+   "who": "A",
+   "ref": "La refonte du site avance, la page d'accueil est validée, il reste les pages de contact et le formulaire de devis.",
+   "say": "La refonte du site avance, la page d'accueil est validée, il reste les pages de contact et le formulaire de devis."
+  },
+  {
+   "who": "C",
+   "ref": "Exactement.",
+   "say": "Exactement."
+  },
+  {
+   "who": "B",
+   "ref": "Le recrutement du stagiaire est lancé, on a reçu douze candidatures et on fera les entretiens la semaine prochaine.",
+   "say": "Le recrutement du stagiaire est lancé, on a reçu douze candidatures et on fera les entretiens la semaine prochaine."
+  },
+  {
+   "who": "D",
+   "ref": "Oui, mais il faut prévenir les utilisateurs au moins une semaine avant, sinon ils vont s'inquiéter.",
+   "say": "Oui, mais il faut prévenir les utilisateurs au moins une semaine avant, sinon ils vont s'inquiéter."
+  },
+  {
+   "who": "D",
+   "ref": "Pour la mise à jour des postes, il reste une trentaine de machines, surtout au deuxième étage.",
+   "say": "Pour la mise à jour des postes, il reste une trentaine de machines, surtout au deuxième étage."
+  },
+  {
+   "who": "C",
+   "ref": "Je peux m'en occuper si personne ne le prend, j'ai un peu de temps la semaine prochaine.",
+   "say": "Je peux m'en occuper si personne ne le prend, j'ai un peu de temps la semaine prochaine."
+  },
+  {
+   "who": "A",
+   "ref": "Le retour des utilisateurs sur le nouveau tableau de suivi est plutôt bon, ils demandent surtout un export en tableur.",
+   "say": "Le retour des utilisateurs sur le nouveau tableau de suivi est plutôt bon, ils demandent surtout un export en tableur."
+  },
+  {
+   "who": "B",
+   "ref": "Ah oui, d'accord.",
+   "say": "Ah oui, d'accord."
   }
  ]
 }

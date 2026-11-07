@@ -213,7 +213,7 @@ for (const ch of ['me', 'others']) {
     .join(' ');
   report[`wer_${ch}`] = (wer(ref, hyp) * 100).toFixed(1) + ' %';
 }
-const tag = process.argv.includes('--teams') ? '-teams' : '';
+const tag = (process.argv.includes('--teams') ? '-teams' : '') + (opts.echo ? '-echo' : '');
 await writeFile(
   join(out, `${name}${tag}-${modelId}-lignes.json`),
   JSON.stringify(

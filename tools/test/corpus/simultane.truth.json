@@ -2,148 +2,386 @@
  {
   "who": "B",
   "channel": "others",
-  "kind": "long",
+  "kind": "temoin",
   "role": "premier",
   "start": 1.5,
-  "end": 8.26,
-  "ref": "Pour le planning du trimestre, on a pris un peu de retard sur la migration, mais l'équipe pense rattraper d'ici la fin du mois.",
-  "overlap": 2.92
- },
- {
-  "who": "A",
-  "channel": "others",
-  "kind": "long",
-  "role": "second",
-  "start": 5.34,
-  "end": 10.43,
-  "ref": "Attends, je ne suis pas d'accord sur le délai, la fin du mois me paraît trop juste pour l'équipe.",
-  "overlap": 2.92
+  "end": 7.9,
+  "ref": "Pour le planning du trimestre, on a pris un peu de retard sur la migration, mais l'équipe pense rattraper d'ici la fin du mois."
  },
  {
   "who": "C",
   "channel": "others",
-  "kind": "long",
+  "kind": "vous",
   "role": "premier",
-  "start": 11.55,
-  "end": 18.15,
+  "start": 8.54,
+  "end": 15.17,
   "ref": "Le budget de formation est presque consommé, il reste environ trois mille euros pour les sessions de décembre.",
-  "overlap": 3.4
+  "overlap": 3.33
+ },
+ {
+  "who": "Vous",
+  "channel": "me",
+  "kind": "vous",
+  "role": "second",
+  "start": 10.88,
+  "end": 14.21,
+  "ref": "D'accord, mais il faudrait prévenir l'équipe avant vendredi.",
+  "overlap": 3.33
+ },
+ {
+  "who": "C",
+  "channel": "others",
+  "kind": "acquiescement",
+  "role": "premier",
+  "start": 15.85,
+  "end": 22.63,
+  "ref": "J'ai relu la nouvelle procédure d'accès, elle me paraît claire, il faudra juste ajouter un exemple pour les nouveaux arrivants.",
+  "overlap": 1.39
+ },
+ {
+  "who": "D",
+  "channel": "others",
+  "kind": "acquiescement",
+  "role": "second",
+  "start": 18.24,
+  "end": 19.63,
+  "ref": "Oui.",
+  "overlap": 1.39
+ },
+ {
+  "who": "C",
+  "channel": "others",
+  "kind": "simultane",
+  "role": "premier",
+  "start": 23.79,
+  "end": 30.13,
+  "ref": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants.",
+  "overlap": 4.99
+ },
+ {
+  "who": "D",
+  "channel": "others",
+  "kind": "simultane",
+  "role": "second",
+  "start": 23.97,
+  "end": 28.96,
+  "ref": "Pardon, vas-y.",
+  "overlap": 4.99
+ },
+ {
+  "who": "C",
+  "channel": "others",
+  "kind": "interruption",
+  "role": "premier",
+  "start": 30.88,
+  "end": 37.36,
+  "ref": "Sur la sauvegarde des données, le test de restauration a duré quarante minutes, c'est mieux que la dernière fois.",
+  "overlap": 1.09
+ },
+ {
+  "who": "D",
+  "channel": "others",
+  "kind": "interruption",
+  "role": "second",
+  "start": 36.27,
+  "end": 42.25,
+  "ref": "Attends, je ne suis pas d'accord sur le délai, la fin du mois me paraît trop juste pour l'équipe.",
+  "overlap": 1.09
+ },
+ {
+  "who": "A",
+  "channel": "others",
+  "kind": "vous",
+  "role": "premier",
+  "start": 43.18,
+  "end": 49.22,
+  "ref": "Le fournisseur propose de renouveler le contrat de maintenance pour deux ans, avec une hausse de quatre pour cent.",
+  "overlap": 3.34
+ },
+ {
+  "who": "Vous",
+  "channel": "me",
+  "kind": "vous",
+  "role": "second",
+  "start": 45.88,
+  "end": 49.56,
+  "ref": "Pardon, je n'ai pas entendu la fin de la phrase.",
+  "overlap": 3.34
+ },
+ {
+  "who": "B",
+  "channel": "others",
+  "kind": "vous",
+  "role": "premier",
+  "start": 50.26,
+  "end": 56.03,
+  "ref": "Les indicateurs du mois montrent une baisse des tickets en attente, on passe de cent vingt à quatre-vingt-dix.",
+  "overlap": 3.33
+ },
+ {
+  "who": "Vous",
+  "channel": "me",
+  "kind": "vous",
+  "role": "second",
+  "start": 52.7,
+  "end": 57.3,
+  "ref": "Juste une question, est-ce que le fournisseur a confirmé la date de livraison ?",
+  "overlap": 3.33
+ },
+ {
+  "who": "C",
+  "channel": "others",
+  "kind": "vous",
+  "role": "premier",
+  "start": 58.35,
+  "end": 64.23,
+  "ref": "Pour le déménagement du bureau, les cartons seront livrés lundi et les postes déplacés le week-end suivant.",
+  "overlap": 3.33
+ },
+ {
+  "who": "Vous",
+  "channel": "me",
+  "kind": "vous",
+  "role": "second",
+  "start": 60.46,
+  "end": 63.79,
+  "ref": "D'accord, mais il faudrait prévenir l'équipe avant vendredi.",
+  "overlap": 3.33
+ },
+ {
+  "who": "C",
+  "channel": "others",
+  "kind": "acquiescement",
+  "role": "premier",
+  "start": 65.31,
+  "end": 72.09,
+  "ref": "La refonte du site avance, la page d'accueil est validée, il reste les pages de contact et le formulaire de devis.",
+  "overlap": 1.9
+ },
+ {
+  "who": "A",
+  "channel": "others",
+  "kind": "acquiescement",
+  "role": "second",
+  "start": 69.23,
+  "end": 71.13,
+  "ref": "D'accord.",
+  "overlap": 1.9
+ },
+ {
+  "who": "A",
+  "channel": "others",
+  "kind": "long",
+  "role": "premier",
+  "start": 73.22,
+  "end": 80.25,
+  "ref": "Le recrutement du stagiaire est lancé, on a reçu douze candidatures et on fera les entretiens la semaine prochaine.",
+  "overlap": 2.62
+ },
+ {
+  "who": "B",
+  "channel": "others",
+  "kind": "long",
+  "role": "second",
+  "start": 77.63,
+  "end": 83.43,
+  "ref": "Justement, il faudrait garder une marge pour les imprévus, sinon on sera bloqués en janvier.",
+  "overlap": 2.62
+ },
+ {
+  "who": "Vous",
+  "channel": "me",
+  "kind": "micro",
+  "role": "premier",
+  "start": 84.52,
+  "end": 87.89,
+  "ref": "D'accord, je note tout ça pour le compte rendu."
+ },
+ {
+  "who": "D",
+  "channel": "others",
+  "kind": "vous",
+  "role": "premier",
+  "start": 88.91,
+  "end": 94.75,
+  "ref": "Pour la mise à jour des postes, il reste une trentaine de machines, surtout au deuxième étage.",
+  "overlap": 2.66
+ },
+ {
+  "who": "Vous",
+  "channel": "me",
+  "kind": "vous",
+  "role": "second",
+  "start": 91.04,
+  "end": 93.7,
+  "ref": "Oui, je suis d'accord avec cette proposition.",
+  "overlap": 2.66
+ },
+ {
+  "who": "D",
+  "channel": "others",
+  "kind": "long",
+  "role": "premier",
+  "start": 95.44,
+  "end": 102.69,
+  "ref": "Le retour des utilisateurs sur le nouveau tableau de suivi est plutôt bon, ils demandent surtout un export en tableur.",
+  "overlap": 2.88
+ },
+ {
+  "who": "A",
+  "channel": "others",
+  "kind": "long",
+  "role": "second",
+  "start": 99.81,
+  "end": 104.85,
+  "ref": "Oui, mais il faut prévenir les utilisateurs au moins une semaine avant, sinon ils vont s'inquiéter.",
+  "overlap": 2.88
+ },
+ {
+  "who": "A",
+  "channel": "others",
+  "kind": "long",
+  "role": "premier",
+  "start": 105.71,
+  "end": 112.01,
+  "ref": "Pour le planning du trimestre, on a pris un peu de retard sur la migration, mais l'équipe pense rattraper d'ici la fin du mois.",
+  "overlap": 3.16
  },
  {
   "who": "D",
   "channel": "others",
   "kind": "long",
   "role": "second",
-  "start": 14.75,
-  "end": 20.78,
-  "ref": "Justement, il faudrait garder une marge pour les imprévus, sinon on sera bloqués en janvier.",
-  "overlap": 3.4
+  "start": 108.85,
+  "end": 113.8,
+  "ref": "Je peux m'en occuper si personne ne le prend, j'ai un peu de temps la semaine prochaine.",
+  "overlap": 3.16
+ },
+ {
+  "who": "B",
+  "channel": "others",
+  "kind": "temoin",
+  "role": "premier",
+  "start": 114.77,
+  "end": 121.17,
+  "ref": "Le budget de formation est presque consommé, il reste environ trois mille euros pour les sessions de décembre."
  },
  {
   "who": "A",
   "channel": "others",
-  "kind": "interruption",
+  "kind": "long",
   "role": "premier",
-  "start": 21.51,
-  "end": 27.86,
+  "start": 122.13,
+  "end": 128.62,
   "ref": "J'ai relu la nouvelle procédure d'accès, elle me paraît claire, il faudra juste ajouter un exemple pour les nouveaux arrivants.",
-  "overlap": 1.35
+  "overlap": 2.74
  },
  {
   "who": "C",
   "channel": "others",
-  "kind": "interruption",
+  "kind": "long",
   "role": "second",
-  "start": 26.51,
-  "end": 33.07,
-  "ref": "Oui, mais il faut prévenir les utilisateurs au moins une semaine avant, sinon ils vont s'inquiéter.",
-  "overlap": 1.35
+  "start": 125.88,
+  "end": 132.38,
+  "ref": "Sur ce point, il faudrait demander l'avis du service juridique avant de signer quoi que ce soit.",
+  "overlap": 2.74
  },
  {
   "who": "B",
   "channel": "others",
   "kind": "interruption",
   "role": "premier",
-  "start": 33.8,
-  "end": 39.63,
+  "start": 133.57,
+  "end": 139.25,
   "ref": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants.",
-  "overlap": 1.49
- },
- {
-  "who": "C",
-  "channel": "others",
-  "kind": "interruption",
-  "role": "second",
-  "start": 38.14,
-  "end": 43.26,
-  "ref": "Je peux m'en occuper si personne ne le prend, j'ai un peu de temps la semaine prochaine.",
-  "overlap": 1.49
- },
- {
-  "who": "C",
-  "channel": "others",
-  "kind": "acquiescement",
-  "role": "premier",
-  "start": 44.27,
-  "end": 50.7,
-  "ref": "Sur la sauvegarde des données, le test de restauration a duré quarante minutes, c'est mieux que la dernière fois.",
-  "overlap": 0.81
+  "overlap": 1.9
  },
  {
   "who": "D",
   "channel": "others",
-  "kind": "acquiescement",
+  "kind": "interruption",
   "role": "second",
-  "start": 47.76,
-  "end": 48.57,
-  "ref": "Oui.",
-  "overlap": 0.81
+  "start": 137.35,
+  "end": 143.14,
+  "ref": "Et on a vérifié que les salles sont libres ce jour-là, parce que la dernière fois il y avait un conflit.",
+  "overlap": 1.9
+ },
+ {
+  "who": "C",
+  "channel": "others",
+  "kind": "vous",
+  "role": "premier",
+  "start": 143.9,
+  "end": 150.38,
+  "ref": "Sur la sauvegarde des données, le test de restauration a duré quarante minutes, c'est mieux que la dernière fois.",
+  "overlap": 2.66
+ },
+ {
+  "who": "Vous",
+  "channel": "me",
+  "kind": "vous",
+  "role": "second",
+  "start": 147.63,
+  "end": 150.29,
+  "ref": "Oui, je suis d'accord avec cette proposition.",
+  "overlap": 2.66
+ },
+ {
+  "who": "C",
+  "channel": "others",
+  "kind": "simultane",
+  "role": "premier",
+  "start": 151.46,
+  "end": 158.18,
+  "ref": "Le fournisseur propose de renouveler le contrat de maintenance pour deux ans, avec une hausse de quatre pour cent.",
+  "overlap": 2.66
+ },
+ {
+  "who": "B",
+  "channel": "others",
+  "kind": "simultane",
+  "role": "second",
+  "start": 151.56,
+  "end": 154.22,
+  "ref": "Ah, vas-y, je t'en prie.",
+  "overlap": 2.66
+ },
+ {
+  "who": "B",
+  "channel": "others",
+  "kind": "long",
+  "role": "premier",
+  "start": 159.29,
+  "end": 165.06,
+  "ref": "Les indicateurs du mois montrent une baisse des tickets en attente, on passe de cent vingt à quatre-vingt-dix.",
+  "overlap": 3.15
+ },
+ {
+  "who": "C",
+  "channel": "others",
+  "kind": "long",
+  "role": "second",
+  "start": 161.91,
+  "end": 166.73,
+  "ref": "Il faudrait aussi mettre à jour la documentation, elle date de l'année dernière.",
+  "overlap": 3.15
+ },
+ {
+  "who": "D",
+  "channel": "others",
+  "kind": "temoin",
+  "role": "premier",
+  "start": 167.68,
+  "end": 173.76,
+  "ref": "Pour le déménagement du bureau, les cartons seront livrés lundi et les postes déplacés le week-end suivant."
  },
  {
   "who": "C",
   "channel": "others",
   "kind": "temoin",
   "role": "premier",
-  "start": 51.34,
-  "end": 57.61,
-  "ref": "Le fournisseur propose de renouveler le contrat de maintenance pour deux ans, avec une hausse de quatre pour cent."
- },
- {
-  "who": "B",
-  "channel": "others",
-  "kind": "temoin",
-  "role": "premier",
-  "start": 58.77,
-  "end": 64.39,
-  "ref": "Les indicateurs du mois montrent une baisse des tickets en attente, on passe de cent vingt à quatre-vingt-dix."
- },
- {
-  "who": "B",
-  "channel": "others",
-  "kind": "interruption",
-  "role": "premier",
-  "start": 65.03,
-  "end": 70.59,
-  "ref": "Pour le déménagement du bureau, les cartons seront livrés lundi et les postes déplacés le week-end suivant.",
-  "overlap": 1.92
- },
- {
-  "who": "A",
-  "channel": "others",
-  "kind": "interruption",
-  "role": "second",
-  "start": 68.67,
-  "end": 74.46,
-  "ref": "Sur ce point, il faudrait demander l'avis du service juridique avant de signer quoi que ce soit.",
-  "overlap": 1.92
- },
- {
-  "who": "C",
-  "channel": "others",
-  "kind": "temoin",
-  "role": "premier",
-  "start": 75.35,
-  "end": 82.37,
+  "start": 174.56,
+  "end": 181.34,
   "ref": "La refonte du site avance, la page d'accueil est validée, il reste les pages de contact et le formulaire de devis."
  },
  {
@@ -151,404 +389,286 @@
   "channel": "others",
   "kind": "temoin",
   "role": "premier",
-  "start": 83.01,
-  "end": 90.61,
+  "start": 181.96,
+  "end": 189.15,
   "ref": "Le recrutement du stagiaire est lancé, on a reçu douze candidatures et on fera les entretiens la semaine prochaine."
  },
  {
-  "who": "C",
+  "who": "B",
   "channel": "others",
-  "kind": "acquiescement",
+  "kind": "temoin",
   "role": "premier",
-  "start": 91.21,
-  "end": 96.6,
-  "ref": "Pour la mise à jour des postes, il reste une trentaine de machines, surtout au deuxième étage.",
-  "overlap": 1.07
+  "start": 190.29,
+  "end": 194.99,
+  "ref": "Pour la mise à jour des postes, il reste une trentaine de machines, surtout au deuxième étage."
  },
  {
   "who": "B",
   "channel": "others",
-  "kind": "acquiescement",
-  "role": "second",
-  "start": 93.28,
-  "end": 94.35,
-  "ref": "D'accord.",
-  "overlap": 1.07
- },
- {
-  "who": "C",
-  "channel": "others",
-  "kind": "simultane",
+  "kind": "long",
   "role": "premier",
-  "start": 97.21,
-  "end": 104.43,
+  "start": 196.14,
+  "end": 202.61,
   "ref": "Le retour des utilisateurs sur le nouveau tableau de suivi est plutôt bon, ils demandent surtout un export en tableur.",
-  "overlap": 4.34
+  "overlap": 3.04
  },
  {
-  "who": "A",
-  "channel": "others",
-  "kind": "simultane",
-  "role": "second",
-  "start": 97.49,
-  "end": 101.83,
-  "ref": "Pardon, vas-y.",
-  "overlap": 4.34
- },
- {
-  "who": "D",
-  "channel": "others",
-  "kind": "long",
-  "role": "premier",
-  "start": 105.38,
-  "end": 112.69,
-  "ref": "Pour le planning du trimestre, on a pris un peu de retard sur la migration, mais l'équipe pense rattraper d'ici la fin du mois.",
-  "overlap": 2.74
- },
- {
-  "who": "A",
+  "who": "C",
   "channel": "others",
   "kind": "long",
   "role": "second",
-  "start": 109.95,
-  "end": 115.0,
-  "ref": "Et on a vérifié que les salles sont libres ce jour-là, parce que la dernière fois il y avait un conflit.",
-  "overlap": 2.74
- },
- {
-  "who": "A",
-  "channel": "others",
-  "kind": "interruption",
-  "role": "premier",
-  "start": 115.65,
-  "end": 121.62,
-  "ref": "Le budget de formation est presque consommé, il reste environ trois mille euros pour les sessions de décembre.",
-  "overlap": 1.56
- },
- {
-  "who": "D",
-  "channel": "others",
-  "kind": "interruption",
-  "role": "second",
-  "start": 120.06,
-  "end": 126.31,
-  "ref": "Il faudrait aussi mettre à jour la documentation, elle date de l'année dernière.",
-  "overlap": 1.56
- },
- {
-  "who": "B",
-  "channel": "others",
-  "kind": "temoin",
-  "role": "premier",
-  "start": 127.14,
-  "end": 133.6,
-  "ref": "J'ai relu la nouvelle procédure d'accès, elle me paraît claire, il faudra juste ajouter un exemple pour les nouveaux arrivants."
- },
- {
-  "who": "A",
-  "channel": "others",
-  "kind": "temoin",
-  "role": "premier",
-  "start": 134.29,
-  "end": 140.08,
-  "ref": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants."
- },
- {
-  "who": "A",
-  "channel": "others",
-  "kind": "interruption",
-  "role": "premier",
-  "start": 140.85,
-  "end": 146.39,
-  "ref": "Sur la sauvegarde des données, le test de restauration a duré quarante minutes, c'est mieux que la dernière fois.",
-  "overlap": 1.76
- },
- {
-  "who": "D",
-  "channel": "others",
-  "kind": "interruption",
-  "role": "second",
-  "start": 144.63,
-  "end": 149.9,
+  "start": 199.57,
+  "end": 204.86,
   "ref": "Je propose qu'on en reparle mardi, avec les chiffres complets du trimestre sous les yeux.",
-  "overlap": 1.76
- },
- {
-  "who": "A",
-  "channel": "others",
-  "kind": "acquiescement",
-  "role": "premier",
-  "start": 150.52,
-  "end": 156.16,
-  "ref": "Le fournisseur propose de renouveler le contrat de maintenance pour deux ans, avec une hausse de quatre pour cent.",
-  "overlap": 2.07
- },
- {
-  "who": "B",
-  "channel": "others",
-  "kind": "acquiescement",
-  "role": "second",
-  "start": 153.64,
-  "end": 155.71,
-  "ref": "Tout à fait.",
-  "overlap": 2.07
- },
- {
-  "who": "C",
-  "channel": "others",
-  "kind": "simultane",
-  "role": "premier",
-  "start": 157.31,
-  "end": 164.3,
-  "ref": "Les indicateurs du mois montrent une baisse des tickets en attente, on passe de cent vingt à quatre-vingt-dix.",
-  "overlap": 3.45
- },
- {
-  "who": "B",
-  "channel": "others",
-  "kind": "simultane",
-  "role": "second",
-  "start": 157.58,
-  "end": 161.03,
-  "ref": "Ah, vas-y, je t'en prie.",
-  "overlap": 3.45
- },
- {
-  "who": "B",
-  "channel": "others",
-  "kind": "acquiescement",
-  "role": "premier",
-  "start": 164.98,
-  "end": 170.54,
-  "ref": "Pour le déménagement du bureau, les cartons seront livrés lundi et les postes déplacés le week-end suivant.",
-  "overlap": 2.09
- },
- {
-  "who": "C",
-  "channel": "others",
-  "kind": "acquiescement",
-  "role": "second",
-  "start": 168.03,
-  "end": 170.12,
-  "ref": "Oui, oui.",
-  "overlap": 2.09
- },
- {
-  "who": "Vous",
-  "channel": "me",
-  "kind": "micro",
-  "role": "premier",
-  "start": 171.55,
-  "end": 174.6,
-  "ref": "On passe au point suivant, s'il vous plaît."
+  "overlap": 3.04
  },
  {
   "who": "D",
   "channel": "others",
   "kind": "interruption",
   "role": "premier",
-  "start": 175.23,
-  "end": 183.08,
-  "ref": "La refonte du site avance, la page d'accueil est validée, il reste les pages de contact et le formulaire de devis.",
-  "overlap": 1.15
- },
- {
-  "who": "B",
-  "channel": "others",
-  "kind": "interruption",
-  "role": "second",
-  "start": 181.93,
-  "end": 186.34,
-  "ref": "Attends, je ne suis pas d'accord sur le délai, la fin du mois me paraît trop juste pour l'équipe.",
-  "overlap": 1.15
- },
- {
-  "who": "B",
-  "channel": "others",
-  "kind": "acquiescement",
-  "role": "premier",
-  "start": 187.17,
-  "end": 193.33,
-  "ref": "Le recrutement du stagiaire est lancé, on a reçu douze candidatures et on fera les entretiens la semaine prochaine.",
-  "overlap": 3.33
- },
- {
-  "who": "D",
-  "channel": "others",
-  "kind": "acquiescement",
-  "role": "second",
-  "start": 190.0,
-  "end": 193.78,
-  "ref": "Exactement.",
-  "overlap": 3.33
- },
- {
-  "who": "A",
-  "channel": "others",
-  "kind": "simultane",
-  "role": "premier",
-  "start": 194.79,
-  "end": 199.66,
-  "ref": "Pour la mise à jour des postes, il reste une trentaine de machines, surtout au deuxième étage.",
-  "overlap": 2.55
- },
- {
-  "who": "B",
-  "channel": "others",
-  "kind": "simultane",
-  "role": "second",
-  "start": 194.97,
-  "end": 197.52,
-  "ref": "Non, continue.",
-  "overlap": 2.55
- },
- {
-  "who": "B",
-  "channel": "others",
-  "kind": "long",
-  "role": "premier",
-  "start": 200.62,
-  "end": 206.75,
-  "ref": "Le retour des utilisateurs sur le nouveau tableau de suivi est plutôt bon, ils demandent surtout un export en tableur.",
-  "overlap": 2.74
- },
- {
-  "who": "D",
-  "channel": "others",
-  "kind": "long",
-  "role": "second",
-  "start": 204.01,
-  "end": 210.04,
-  "ref": "Justement, il faudrait garder une marge pour les imprévus, sinon on sera bloqués en janvier.",
-  "overlap": 2.74
- },
- {
-  "who": "D",
-  "channel": "others",
-  "kind": "acquiescement",
-  "role": "premier",
-  "start": 211.22,
-  "end": 218.53,
+  "start": 205.84,
+  "end": 213.3,
   "ref": "Pour le planning du trimestre, on a pris un peu de retard sur la migration, mais l'équipe pense rattraper d'ici la fin du mois.",
-  "overlap": 2.59
+  "overlap": 1.79
+ },
+ {
+  "who": "B",
+  "channel": "others",
+  "kind": "interruption",
+  "role": "second",
+  "start": 211.51,
+  "end": 216.1,
+  "ref": "Attends, je ne suis pas d'accord sur le délai, la fin du mois me paraît trop juste pour l'équipe.",
+  "overlap": 1.79
+ },
+ {
+  "who": "D",
+  "channel": "others",
+  "kind": "acquiescement",
+  "role": "premier",
+  "start": 216.7,
+  "end": 223.72,
+  "ref": "Le budget de formation est presque consommé, il reste environ trois mille euros pour les sessions de décembre.",
+  "overlap": 1.21
  },
  {
   "who": "B",
   "channel": "others",
   "kind": "acquiescement",
   "role": "second",
-  "start": 215.41,
-  "end": 218.0,
-  "ref": "Ah oui, d'accord.",
-  "overlap": 2.59
+  "start": 219.54,
+  "end": 220.75,
+  "ref": "Tout à fait.",
+  "overlap": 1.21
+ },
+ {
+  "who": "C",
+  "channel": "others",
+  "kind": "simultane",
+  "role": "premier",
+  "start": 224.37,
+  "end": 231.15,
+  "ref": "J'ai relu la nouvelle procédure d'accès, elle me paraît claire, il faudra juste ajouter un exemple pour les nouveaux arrivants.",
+  "overlap": 3.44
+ },
+ {
+  "who": "B",
+  "channel": "others",
+  "kind": "simultane",
+  "role": "second",
+  "start": 224.66,
+  "end": 228.1,
+  "ref": "Non, continue.",
+  "overlap": 3.44
  },
  {
   "who": "B",
   "channel": "others",
   "kind": "simultane",
   "role": "premier",
-  "start": 219.29,
-  "end": 224.74,
-  "ref": "Le budget de formation est presque consommé, il reste environ trois mille euros pour les sessions de décembre.",
-  "overlap": 4.16
+  "start": 232.03,
+  "end": 237.71,
+  "ref": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants.",
+  "overlap": 2.74
  },
  {
   "who": "C",
   "channel": "others",
   "kind": "simultane",
   "role": "second",
-  "start": 219.56,
-  "end": 223.72,
+  "start": 232.14,
+  "end": 234.88,
   "ref": "Excuse-moi, je te laisse finir.",
-  "overlap": 4.16
+  "overlap": 2.74
+ },
+ {
+  "who": "A",
+  "channel": "others",
+  "kind": "interruption",
+  "role": "premier",
+  "start": 238.78,
+  "end": 244.08,
+  "ref": "Sur la sauvegarde des données, le test de restauration a duré quarante minutes, c'est mieux que la dernière fois.",
+  "overlap": 1.48
+ },
+ {
+  "who": "C",
+  "channel": "others",
+  "kind": "interruption",
+  "role": "second",
+  "start": 242.6,
+  "end": 249.14,
+  "ref": "Justement, il faudrait garder une marge pour les imprévus, sinon on sera bloqués en janvier.",
+  "overlap": 1.48
+ },
+ {
+  "who": "C",
+  "channel": "others",
+  "kind": "simultane",
+  "role": "premier",
+  "start": 250.06,
+  "end": 256.78,
+  "ref": "Le fournisseur propose de renouveler le contrat de maintenance pour deux ans, avec une hausse de quatre pour cent.",
+  "overlap": 4.18
  },
  {
   "who": "A",
   "channel": "others",
   "kind": "simultane",
-  "role": "premier",
-  "start": 225.82,
-  "end": 232.17,
-  "ref": "J'ai relu la nouvelle procédure d'accès, elle me paraît claire, il faudra juste ajouter un exemple pour les nouveaux arrivants.",
-  "overlap": 3.34
- },
- {
-  "who": "C",
-  "channel": "others",
-  "kind": "simultane",
   "role": "second",
-  "start": 225.92,
-  "end": 229.26,
+  "start": 250.35,
+  "end": 254.53,
   "ref": "Pardon, vas-y.",
-  "overlap": 3.34
- },
- {
-  "who": "D",
-  "channel": "others",
-  "kind": "long",
-  "role": "premier",
-  "start": 233.28,
-  "end": 239.42,
-  "ref": "La démonstration de jeudi est confirmée à quatorze heures, dans la grande salle, avec une vingtaine de participants.",
-  "overlap": 3.15
- },
- {
-  "who": "B",
-  "channel": "others",
-  "kind": "long",
-  "role": "second",
-  "start": 236.27,
-  "end": 241.51,
-  "ref": "Oui, mais il faut prévenir les utilisateurs au moins une semaine avant, sinon ils vont s'inquiéter.",
-  "overlap": 3.15
- },
- {
-  "who": "D",
-  "channel": "others",
-  "kind": "simultane",
-  "role": "premier",
-  "start": 242.46,
-  "end": 248.67,
-  "ref": "Sur la sauvegarde des données, le test de restauration a duré quarante minutes, c'est mieux que la dernière fois.",
-  "overlap": 3.45
- },
- {
-  "who": "B",
-  "channel": "others",
-  "kind": "simultane",
-  "role": "second",
-  "start": 242.57,
-  "end": 246.02,
-  "ref": "Ah, vas-y, je t'en prie.",
-  "overlap": 3.45
- },
- {
-  "who": "B",
-  "channel": "others",
-  "kind": "long",
-  "role": "premier",
-  "start": 249.29,
-  "end": 255.41,
-  "ref": "Le fournisseur propose de renouveler le contrat de maintenance pour deux ans, avec une hausse de quatre pour cent.",
-  "overlap": 3.42
- },
- {
-  "who": "D",
-  "channel": "others",
-  "kind": "long",
-  "role": "second",
-  "start": 251.99,
-  "end": 258.46,
-  "ref": "Je peux m'en occuper si personne ne le prend, j'ai un peu de temps la semaine prochaine.",
-  "overlap": 3.42
+  "overlap": 4.18
  },
  {
   "who": "Vous",
   "channel": "me",
   "kind": "micro",
   "role": "premier",
-  "start": 259.6,
-  "end": 263.12,
+  "start": 257.75,
+  "end": 261.28,
   "ref": "Merci à tous, on s'arrête là pour aujourd'hui."
+ },
+ {
+  "who": "A",
+  "channel": "others",
+  "kind": "acquiescement",
+  "role": "premier",
+  "start": 262.12,
+  "end": 268.03,
+  "ref": "Les indicateurs du mois montrent une baisse des tickets en attente, on passe de cent vingt à quatre-vingt-dix.",
+  "overlap": 1.87
+ },
+ {
+  "who": "C",
+  "channel": "others",
+  "kind": "acquiescement",
+  "role": "second",
+  "start": 264.79,
+  "end": 266.66,
+  "ref": "Oui, oui.",
+  "overlap": 1.87
+ },
+ {
+  "who": "D",
+  "channel": "others",
+  "kind": "simultane",
+  "role": "premier",
+  "start": 269.0,
+  "end": 275.08,
+  "ref": "Pour le déménagement du bureau, les cartons seront livrés lundi et les postes déplacés le week-end suivant.",
+  "overlap": 3.01
+ },
+ {
+  "who": "C",
+  "channel": "others",
+  "kind": "simultane",
+  "role": "second",
+  "start": 269.13,
+  "end": 272.14,
+  "ref": "Ah, vas-y, je t'en prie.",
+  "overlap": 3.01
+ },
+ {
+  "who": "A",
+  "channel": "others",
+  "kind": "acquiescement",
+  "role": "premier",
+  "start": 275.99,
+  "end": 281.95,
+  "ref": "La refonte du site avance, la page d'accueil est validée, il reste les pages de contact et le formulaire de devis.",
+  "overlap": 2.89
+ },
+ {
+  "who": "C",
+  "channel": "others",
+  "kind": "acquiescement",
+  "role": "second",
+  "start": 279.06,
+  "end": 282.43,
+  "ref": "Exactement.",
+  "overlap": 2.89
+ },
+ {
+  "who": "B",
+  "channel": "others",
+  "kind": "interruption",
+  "role": "premier",
+  "start": 283.27,
+  "end": 289.36,
+  "ref": "Le recrutement du stagiaire est lancé, on a reçu douze candidatures et on fera les entretiens la semaine prochaine.",
+  "overlap": 1.73
+ },
+ {
+  "who": "D",
+  "channel": "others",
+  "kind": "interruption",
+  "role": "second",
+  "start": 287.63,
+  "end": 293.6,
+  "ref": "Oui, mais il faut prévenir les utilisateurs au moins une semaine avant, sinon ils vont s'inquiéter.",
+  "overlap": 1.73
+ },
+ {
+  "who": "D",
+  "channel": "others",
+  "kind": "interruption",
+  "role": "premier",
+  "start": 294.79,
+  "end": 300.63,
+  "ref": "Pour la mise à jour des postes, il reste une trentaine de machines, surtout au deuxième étage.",
+  "overlap": 1.94
+ },
+ {
+  "who": "C",
+  "channel": "others",
+  "kind": "interruption",
+  "role": "second",
+  "start": 298.69,
+  "end": 304.26,
+  "ref": "Je peux m'en occuper si personne ne le prend, j'ai un peu de temps la semaine prochaine.",
+  "overlap": 1.94
+ },
+ {
+  "who": "A",
+  "channel": "others",
+  "kind": "acquiescement",
+  "role": "premier",
+  "start": 304.92,
+  "end": 311.08,
+  "ref": "Le retour des utilisateurs sur le nouveau tableau de suivi est plutôt bon, ils demandent surtout un export en tableur.",
+  "overlap": 2.6
+ },
+ {
+  "who": "B",
+  "channel": "others",
+  "kind": "acquiescement",
+  "role": "second",
+  "start": 308.23,
+  "end": 310.83,
+  "ref": "Ah oui, d'accord.",
+  "overlap": 2.6
  }
 ]

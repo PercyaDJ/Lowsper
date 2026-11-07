@@ -6,7 +6,9 @@
 #   - acquiescement : une réponse courte (« oui », « d'accord ») au milieu d'une phrase longue ;
 #   - interruption : la seconde personne commence 1 à 2 s avant la fin de la première ;
 #   - simultane : deux personnes commencent en même temps, l'une s'efface vite ;
-#   - long : deux phrases complètes qui se chevauchent sur 3 s environ.
+#   - long : deux phrases complètes qui se chevauchent sur 3 s environ ;
+#   - vous : vous parlez au micro pendant qu'un participant parle (deux pistes séparées ; avec
+#     la variante « écho », le micro réentend aussi les haut-parleurs).
 # La seconde voix est reçue entre -6 et 0 dB par rapport à la première (graine fixe).
 #
 # Prérequis : pip install piper-tts==1.3.0 numpy ; ffmpeg avec libopus (variante visio :
@@ -69,6 +71,14 @@ REPONSES = [
     "Il faudrait aussi mettre à jour la documentation, elle date de l'année dernière.",
     "Je propose qu'on en reparle mardi, avec les chiffres complets du trimestre sous les yeux.",
 ]
+VOUS = [
+    "Juste une question, est-ce que le fournisseur a confirmé la date de livraison ?",
+    "D'accord, mais il faudrait prévenir l'équipe avant vendredi.",
+    "Je note, on en reparlera au comité de lundi.",
+    "Attends, tu peux répéter le chiffre du budget ?",
+    "Oui, je suis d'accord avec cette proposition.",
+    "Pardon, je n'ai pas entendu la fin de la phrase.",
+]
 MICRO = [
     "D'accord, je note tout ça pour le compte rendu.",
     "On passe au point suivant, s'il vous plaît.",
@@ -92,7 +102,7 @@ def synth(who, text):
 
 others = ['A', 'B', 'C', 'D']
 events = []
-kinds = ['temoin', 'acquiescement', 'interruption', 'simultane', 'long'] * 6
+kinds = ['temoin', 'acquiescement', 'interruption', 'simultane', 'long', 'vous'] * 6
 rng.shuffle(kinds)
 li, ri, ci, ei = 0, 0, 0, 0
 for k, kind in enumerate(kinds):
@@ -106,9 +116,12 @@ for k, kind in enumerate(kinds):
         second = COURTES[ci % len(COURTES)]; ci += 1
     elif kind == 'simultane':
         second = EFFACEMENTS[ei % len(EFFACEMENTS)]; ei += 1
+    elif kind == 'vous':
+        second = VOUS[k % len(VOUS)]
+        b = 'Vous'
     else:
         second = REPONSES[ri % len(REPONSES)]; ri += 1
-    gain = round(float(rng.uniform(-6, 0)), 1)
+    gain = 0.0 if b == 'Vous' else round(float(rng.uniform(-6, 0)), 1)
     events.append({'kind': kind, 'gain_db': gain, 'lines': [{'who': a, 'say': first}, {'who': b, 'say': second}]})
     if k % 10 == 9:
         events.append({'kind': 'micro', 'lines': [{'who': 'Vous', 'say': MICRO[(k // 10) % len(MICRO)]}]})
@@ -125,7 +138,7 @@ for ev in events:
     if len(ev['lines']) == 2:
         a2 = synth(ev['lines'][1]['who'], ev['lines'][1]['say'])
         d2 = len(a2) / RATE
-        if ev['kind'] == 'acquiescement':
+        if ev['kind'] in ('acquiescement', 'vous'):
             s2 = t + d1 * float(rng.uniform(0.35, 0.6))
         elif ev['kind'] == 'interruption':
             s2 = t + d1 - float(rng.uniform(1.0, 2.0))
