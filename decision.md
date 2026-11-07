@@ -2516,3 +2516,105 @@ dossier parent et double dossier acceptés, ancienne version seule refusée.
   invite d'abord à choisir le dossier affiché.
 - Non vérifié dans Chrome et Edge du commerce : la fenêtre de choix et la sonde sont simulées dans
   les tests (une page ne peut pas fabriquer un vrai accès à un dossier).
+
+## 39. Étude : son de visio, paroles simultanées, écho, séparation des voix et Kyutai STT (4.2.2)
+
+**Contexte.** Demande du mainteneur : « tout capter », quand deux participants parlent en même temps
+ou quand on parle en même temps que le haut-parleur. Piste suggérée : les travaux de Kyutai et de
+Neil Zeghidour (Moshi, flux parallèles, transcription en continu). Machine de référence : portable
+d'entreprise sans carte graphique (EliteBook 650 G9, 16 Go), Edge ou Chrome, hors ligne après le
+premier téléchargement. Toutes les mesures ci-dessous : machine de développement à 4 cœurs, sans
+carte graphique, voix de synthèse.
+
+**1. L'instrument de mesure.** Sur le corpus hebdo, Whisper small se trompe sur 41,0 % des mots des
+participants au son propre, et sur 34,6 % au son dégradé façon visio (`eval-hebdo.mjs`, une passe
+chacun). Les erreurs viennent surtout des voix de synthèse, peu intelligibles, et non de la
+compression de la visio : ce corpus ne permet pas de juger un levier propre au son de visio.
+Un essai réel du mainteneur (vidéo publique, non versée au dépôt, règle 9) confirme que sur un son
+de qualité, les erreurs portent surtout sur le jargon (« IA », « LLM », « carte graphique »,
+« RAM », noms de logiciels) : piste du vocabulaire métier, à traiter dans un lot à part.
+
+**2. Corpus « paroles simultanées »** (`tools/test/corpus/make-overlap.py`, graine fixe, sons non
+versionnés). 5 min 12, 68 répliques, 30 chevauchements de 1,1 à 5 s, voix Piper du modèle
+multi-voix : acquiescements courts pendant une phrase, interruptions, départs simultanés, longs
+chevauchements, et vous au micro pendant qu'un participant parle ; répliques témoins des mêmes
+voix sans chevauchement. `eval-overlap.mjs` compare les répliques chevauchées aux témoins.
+
+**Mesure de l'existant** (Whisper small, part des mots de chaque réplique retrouvés) :
+
+| Situation | Son propre | Son de visio | Visio, micro sans casque |
+|---|---|---|---|
+| Réplique seule (témoin) | 92 % | 92 % | 92 % |
+| « Oui », « d'accord » dits par-dessus une phrase | 8 % (5 sur 6 perdus) | 8 % | 8 % |
+| « Pardon, vas-y » dit en même temps qu'un autre | 0 % (6 sur 6) | 0 % | 0 % |
+| Interruption de 1 à 2 s : la personne qui coupe | 80 % | 82 % | 82 % |
+| Long chevauchement : la seconde personne | 63 % | 57 % | 57 % |
+| Vous au micro pendant qu'un participant parle | 86 % | 86 % | 54 % |
+
+Lecture : sur un son mélangé, Whisper suit la voix dominante ; ce qui se perd, ce sont surtout les
+répliques courtes de la seconde voix. Vos propres paroles, sur une piste séparée, sont bien
+captées avec un casque. Limite du corpus : le regroupement des voix fusionne les quatre voix de
+synthèse en une seule ; l'attribution des répliques chevauchées n'est donc pas mesurable ici.
+
+**3. Écho : correction livrée.** Sans casque, le micro réentend les haut-parleurs. L'anti-écho à la
+voix (§15.16) n'agit qu'après 15 s de votre parole « seul au micro » : quelqu'un qui écoute plus
+qu'il ne parle n'en bénéficie pas. L'anti-écho par le texte comparait chaque phrase du micro à
+**une** phrase des participants (60 % de mots communs) : quand Whisper découpe l'écho autrement,
+aucune comparaison n'atteignait le seuil. Elle est désormais comparée à **tout** ce que les
+participants ont dit dans les 6 s autour (`transcript.js`, `removeEcho`).
+
+| Corpus avec écho (micro sans casque) | Erreurs sur « Vous », 4.2.1 | 4.2.2 |
+|---|---|---|
+| Paroles simultanées, son de visio | 118,5 % (4 phrases d'écho restantes) | 48,1 % (aucune) |
+| Entretien | 5,8 % | 5,8 % |
+| Hebdo | 21,9 % | 21,9 % |
+
+Aucune de vos phrases n'est perdue par la correction : les répliques de « Vous » mal captées sont
+les mêmes avant et après, sur les trois corpus. Le reste des erreurs sur « Vous » vient de vos
+répliques dites pendant que les participants parlent, mélangées à leur écho dans le micro.
+
+**4. Séparation des voix : gardée à l'étude, non intégrée.** MossFormer2 (Alibaba, deux voix,
+16 kHz, Apache 2.0), version ONNX 8 bits de la communauté (`ipsilondev/MossFormer2-SS-16K-ONNX`,
+révision `abd8b1268dfded6b0e972ddae4c2dd6a3faf4f8a`, 91 Mo), mesurée dans Chromium avec ONNX
+Runtime Web en WebAssembly sur un fil, comme Lowsper (`eval-separation.mjs`) :
+- **693 s de calcul pour 35 s de son**, environ 20 fois plus lent que la parole ;
+- sur 4 chevauchements, **aucun gain** : la seconde personne a 36 % de ses mots retrouvés, avec
+  ou sans séparation (échantillon petit).
+Sur une réunion d'une heure avec 5 min de chevauchements, il faudrait de l'ordre d'1 h 40 de calcul
+après la réunion. Choix du mainteneur : garder la piste à l'étude (modèle plus léger, ou seulement
+les passages qui se chevauchent vraiment), sans rien intégrer.
+
+**5. Kyutai : Moshi, Kyutai STT, Gradium.**
+- **Moshi** (conversation « full-duplex », deux flux parallèles, 7 milliards de paramètres) : c'est
+  un assistant vocal, pas un transcripteur ; carte graphique de 24 Go en PyTorch selon des copies
+  non officielles du dépôt (non vérifié sur le dépôt officiel). Écarté.
+- **Gradium** (société de N. Zeghidour et d'autres chercheurs de Kyutai, 2025) : transcription
+  par service en ligne payant. Exclu par la contrainte n° 1.
+- **Kyutai STT** (`kyutai/stt-1b-en_fr`, 1 milliard de paramètres, français et anglais,
+  transcription en continu avec 0,5 s de délai, CC-BY 4.0) : mesuré dans sa version Transformers
+  (`stt-1b-en_fr-trfs`, révision `98aadd47649e7ccb89d1e73a6b62bcb31d38170f`), PyTorch sur le
+  processeur, 4 fils (`eval-kyutai.py`) :
+
+| Piste des participants | Kyutai STT 1B | Whisper small (Lowsper) |
+|---|---|---|
+| Hebdo, son propre | 44,2 % d'erreurs | 41,0 % |
+| Hebdo, son de visio | 39,0 % | 34,6 % |
+| Entretien, son de visio | 40,7 % | 49,4 % |
+
+  Qualité du même ordre ; Kyutai saute des passages entiers (de 35 à 62 s sur l'hebdo). Calcul :
+  **1,6 s par seconde de son** avec 4 fils en code natif, donc plus lent que la parole sur cette
+  machine. Aucune version officielle pour le navigateur ; un portage de la communauté existe en
+  WebGPU (531 Mo), donc avec carte graphique. Écarté pour le portable d'entreprise. Non testé : le
+  serveur de transcription en continu de Kyutai (Rust).
+- **« Deux canaux »** : Lowsper sépare déjà le micro et le son de la réunion. Le cas qui perd des
+  mots est celui de deux participants mêlés dans le **même** canal : aucun modèle à flux parallèles
+  ne le règle, il faudrait séparer les voix d'abord (point 4).
+
+**Suite décidée par le mainteneur** (7 novembre 2026) : compte rendu extractif (phrases prononcées
+recopiées mot pour mot en haut de la note : décisions, actions, questions ouvertes ; transcript
+complet dessous), puis notes rapides pendant la réunion et e-mail de suivi ; un compte rendu rédigé
+par une IA locale seulement là où une mesure sur le portable de référence le valide. Pas de
+discussion avec la réunion. Téléphone : plus tard. Voir `docs/lots.md`.
+
+**Limites.** Voix de synthèse ; pas de vrai logiciel de visio ; écho simulé à 35 % du volume, sans
+l'annulation d'écho du navigateur, qui le réduit sans doute en vrai (non mesuré).

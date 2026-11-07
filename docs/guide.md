@@ -542,7 +542,10 @@ Lowsper reconnaît Brave et affiche ces explications au bon moment.
 - **Son de visio dégradé** : sur le son compressé d'une visio, Whisper small se trompe nettement
   plus que sur le micro (mesures dans `decision.md` §15.15 et §17.6). Un modèle plus gros
   (large-v3 turbo) aide, mais demande une carte graphique.
-- **Paroles simultanées** : une seule voix est retenue pendant un chevauchement.
+- **Paroles simultanées** : quand deux participants parlent en même temps, Whisper suit la voix la
+  plus forte ; les réponses courtes de l'autre (« oui », « d'accord », « pardon, vas-y ») sont
+  souvent perdues. Vos propres paroles, sur le micro, restent captées, surtout avec un casque
+  (mesures dans `decision.md` §39).
 - **Voix proches** : deux personnes à la voix proche peuvent partager un numéro d'intervenant.
 - **Mesures** : vitesses mesurées sur une machine de développement lente, qualité mesurée sur des
   voix de synthèse. Le test de vitesse intégré (paramètres) donne la réalité de votre PC.

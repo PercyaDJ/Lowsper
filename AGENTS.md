@@ -122,6 +122,9 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Essai à la main de la fenêtre de choix de dossier (`startIn`) dans Chrome et Edge | ouvrir `tools/test/startin.html` |
 | Essai à la main des tailles de la mini-fenêtre dans Chrome et Edge | ouvrir `tools/test/pip-sizes.html` |
 | Mémoire des voix d'une visio à l'autre : corpus multi-appareils, empreintes, banc avant et après (`decision.md` §37) | `python corpus/make-voices.py` (dans `test/`, 1 h 15), `node test/embed-voices.mjs` (1 h, Chromium), `node test/eval-voices.mjs [--sweep\|--explore\|--curve\|--stats]` (secondes) |
+| Paroles simultanées : corpus, puis mesure par type de chevauchement (`decision.md` §39) | `python corpus/make-overlap.py` puis `python corpus/make-variants.py simultane` (dans `test/corpus/`), `node test/eval-hebdo.mjs whisper-small --corpus=simultane [--teams] [--echo]`, puis `node test/eval-overlap.mjs whisper-small [--teams] [--echo]` |
+| Séparation des voix (MossFormer2, `.cache/sep`, `decision.md` §39) | `node test/eval-separation.mjs [--teams] [--max=N]` |
+| Kyutai STT sur processeur (environnement Python à part, `.cache/kyutai`, `decision.md` §39) | `python test/eval-kyutai.py [--threads=4] [corpus...]` |
 | Étude du résumé local (modèles dans `.cache/llm`, decision.md §22) | `node test/eval-summary.mjs <modèle> [--dtype=q8\|q4] [--sanity] [--long]` |
 
 Chromium : si Playwright ne trouve pas son navigateur, définissez `CHROMIUM_PATH`. Le test de
