@@ -120,6 +120,22 @@ await page.emulateMedia({ colorScheme: 'dark' });
 await page.waitForTimeout(300);
 await page.screenshot({ path: join(out, 'fin-sombre.png'), fullPage: true });
 await page.emulateMedia({ colorScheme: 'light' });
+// Compte rendu extractif (lot C1) : section produite par le vrai code (Transcript.summary) sur le
+// texte de l'hebdo fictif (corpus/hebdo.truth.json), avec ses heures, affichée dans la fenêtre
+// « Voir ce qui est copié ». La courte réunion des captures n'a presque aucune décision.
+const hebdo = JSON.parse(await readFile(join(here, 'corpus', 'hebdo.truth.json'), 'utf8'));
+await page.click('#ai-see');
+await page.waitForSelector('#ai-dialog[open]');
+await page.evaluate((lines) => {
+  const t = new Lowsper.Transcript({ sources: ['me', 'others'], noteLang: 'fr' });
+  t.lines = lines.map((l) => ({ source: l.channel, start: l.start, end: l.end, text: l.ref, voice: l.who }));
+  t.meta.names = Object.fromEntries(lines.map((l) => [l.who, l.who]));
+  const pre = document.getElementById('ai-preview');
+  pre.textContent = t.summary();
+  pre.scrollTop = 0;
+}, hebdo);
+await page.locator('#ai-dialog').screenshot({ path: join(out, 'compte-rendu.png') });
+await page.click('#ai-dialog-close');
 
 // Import d'enregistrements faits ailleurs : écran d'avancement
 await page.click('#again');

@@ -125,6 +125,7 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Paroles simultanées : corpus, puis mesure par type de chevauchement (`decision.md` §39) | `python corpus/make-overlap.py` puis `python corpus/make-variants.py simultane` (dans `test/corpus/`), `node test/eval-hebdo.mjs whisper-small --corpus=simultane [--teams] [--echo]`, puis `node test/eval-overlap.mjs whisper-small [--teams] [--echo]` |
 | Séparation des voix (MossFormer2, `.cache/sep`, `decision.md` §39) | `node test/eval-separation.mjs [--teams] [--max=N]` |
 | Kyutai STT sur processeur (environnement Python à part, `.cache/kyutai`, `decision.md` §39) | `python test/eval-kyutai.py [--threads=4] [corpus...]` |
+| Compte rendu extractif : texte exact (secondes), puis audio par la chaîne Lowsper (`decision.md` §40) | `node test/eval-extract.mjs [--list]` ; audio : `python corpus/make-cr.py` (dans `test/`), `node build.mjs --embed whisper-small`, `node test/eval-extract.mjs --transcribe` (1 h 30, Chromium), `node test/eval-hebdo.mjs whisper-small` (et `--corpus=entretien`), puis `node test/eval-extract.mjs --audio` |
 | Étude du résumé local (modèles dans `.cache/llm`, decision.md §22) | `node test/eval-summary.mjs <modèle> [--dtype=q8\|q4] [--sanity] [--long]` |
 
 Chromium : si Playwright ne trouve pas son navigateur, définissez `CHROMIUM_PATH`. Le test de
@@ -153,7 +154,8 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/js/capture.js` | Micro et partage d'écran, rééchantillonnage 16 kHz, découpage en blocs, son gardé en mémoire |
 | `app/js/audiofile.js` | Fichiers importés : lecteurs de conteneur (WAV, MP3, AAC, M4A, Ogg, WebM), décodage WebCodecs en flux |
 | `app/js/speakers.js` | Distinction, regroupement et mémoire des voix (cinq empreintes au plus par personne, comparaison à la plus proche, `decision.md` §37) ; voix du micro (anti-écho) |
-| `app/js/transcript.js` | Assemblage, sigles, filtres, couverture, Markdown, sauvegarde de secours |
+| `app/js/extract.js` | Compte rendu extractif : phrases de décision, d'action et de question ouverte recopiées mot pour mot (règles en français et en anglais, `decision.md` §40) |
+| `app/js/transcript.js` | Assemblage, sigles, filtres, couverture, Markdown (section « Compte rendu » comprise), sauvegarde de secours |
 | `app/js/notes.js` | Emplacements (profils de sortie) : modèle de note, nom de fichier, front matter, liens, dossier de destination (par défaut `Notes/<emplacement>` du dossier Lowsper, `decision.md` §30) ; consignes pour l'IA (textes fournis dans `i18n.js`, anciens textes reconnus pour la rétrocompatibilité, `decision.md` §29) |
 | `app/js/localai.js` | Sonde de l'IA intégrée du navigateur (expérimental) : disponibilité, essai sur une réunion fictive, rapport |
 | `app/js/languages.js` | Langues parlées proposées (qualité mesurée), lecture de l'ancien réglage `lowsper.language`, nom des langues dans la note (`decision.md` §34) |

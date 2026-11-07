@@ -49,10 +49,21 @@ sans carte graphique, 16 Go, Edge ou Chrome. Pas de discussion avec la réunion 
 
 | Lot | Objectif | État |
 |---|---|---|
-| C1 | Compte rendu extractif : décisions, actions, questions ouvertes, recopiées mot pour mot avec leur horodatage en haut de la note, transcript complet dessous ; français et anglais ; mesuré sur un corpus fictif | À faire |
+| C1 | Compte rendu extractif : décisions, actions, questions ouvertes, recopiées mot pour mot avec leur horodatage en haut de la note, transcript complet dessous ; français et anglais ; mesuré sur un corpus fictif | Livré |
 | C2 | Notes rapides tapées pendant la réunion, reprises dans la note ; consigne « e-mail de suivi » | À faire |
 | C3 | Compte rendu rédigé par une IA locale, seulement là où une mesure sur le portable de référence le valide | À étudier |
 | Étude | Séparation des voix plus légère ; vocabulaire « IA et informatique » | À étudier |
+
+## C1 : compte rendu extractif (livré)
+
+Livré, voir `decision.md` §40. Règles explicites en français et en anglais (`app/js/extract.js`),
+sans modèle ; chaque phrase recopiée est une sous-chaîne exacte du transcript. Choix du mainteneur
+en cours de lot : activé par défaut avec un interrupteur dans « Notes et compte rendu » ; une ligne
+le dit quand rien n'est repéré ; section placée avant le transcript ; variable `{{compte_rendu}}`
+dans le modèle par défaut, modèles modifiés inchangés. Mesure qui fait foi, sur un second corpus
+écrit à l'aveugle et jamais utilisé pour le réglage, de l'audio jusqu'à la note : 52 % des phrases
+retrouvées en français, 70 % en anglais, 81 à 82 % de phrases justes, toutes bien rangées. Non vérifié : de vraies
+réunions, et la vitesse sur le portable de référence.
 
 ## R1 : fondations visuelles (livré)
 
@@ -224,22 +235,25 @@ Voir `refonte.md` §9.
 
 ## Texte pour ouvrir la session suivante
 
-Remplacer `R8` par le lot voulu, et sa ligne d'objectif par celle du tableau.
+Remplacer `C2` par le lot voulu, et sa ligne d'objectif par celle du tableau.
 
 ```text
 Tu travailles sur le dépôt PercyaDJ/Lowsper (application de transcription de réunions 100 %
 locale, dans le navigateur).
 
-Avant tout, lis AGENTS.md (règles non négociables), docs/refonte.md (spécifications de la
-refonte) et docs/lots.md (plan des lots). Les maquettes validées sont sur
-https://claude.ai/artifact/KeT2Rk6qFNieqFozpFJxMx : lis-les si tu as l'outil Artifact.
+Avant tout, lis AGENTS.md (règles non négociables), docs/lots.md (feuille de route après la
+refonte) et decision.md §39 et §40.
 
-Ta mission : réaliser le lot R8 de docs/lots.md (langues parlées multiples et vocabulaires
-métier élargis), et seulement ce lot. Respecte toutes les règles d'AGENTS.md. Mesure au lieu de
-supposer, et si un point n'est pas vérifiable, écris-le comme non vérifié.
+Ta mission : le lot C2 de docs/lots.md, et seulement ce lot : notes rapides tapées pendant la
+réunion, reprises dans la note avec leur horodatage ; consigne « e-mail de suivi » pour
+« Obtenir un résumé », en français et en anglais. Machine de référence : portable d'entreprise
+sans carte graphique (16 Go, Edge ou Chrome), hors ligne. Le direct ne doit pas ralentir : mesure
+la charge du moteur avant et après (npm run bench).
+Respecte toutes les règles d'AGENTS.md. Mesure au lieu de supposer, et si un point n'est pas
+vérifiable, écris-le comme non vérifié.
 
-Si un choix important n'est pas couvert par les spécifications, pose-moi la question avant
-de le trancher.
+Pose-moi tes questions sous forme de choix à sélectionner, et seulement quand un choix
+important n'est pas couvert.
 
 Quand le lot est terminé :
 1. tous les tests passent, y compris le test de non-fuite réseau ;

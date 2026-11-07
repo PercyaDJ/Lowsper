@@ -13,6 +13,27 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+Rien à faire en passant à cette version : copiez `app\models`, `app\reglages.txt` et `Notes` comme
+d'habitude.
+
+### Ajouté
+- **Compte rendu en haut de la note** (lot C1) : Lowsper recopie mot pour mot les phrases
+  prononcées qui portent une décision, une action ou une question restée ouverte, avec leur
+  horodatage et la personne, rangées en « Décisions », « Actions » et « Questions ouvertes ». Le
+  transcript complet reste dessous, inchangé. Rien n'est réécrit ni inventé : chaque phrase est
+  copiée telle quelle du transcript. Français et anglais, hors ligne, sans modèle à télécharger.
+  Mesuré sur des réunions fictives jamais utilisées pour le réglage, de l'audio jusqu'à la note :
+  52 % des phrases retrouvées en français, 70 % en anglais, 81 à 82 % des phrases recopiées justes
+  (sur le texte exact : 61 % et 73 %, 86 à 87 % ; decision.md §40).
+- Variable `{{compte_rendu}}` pour les modèles de note, présente dans le modèle par défaut.
+- Outils de mesure (développeurs) : corpus fictifs annotés (`tools/test/corpus/compte-rendu*.json`),
+  générateur audio `make-cr.py` et banc `tools/test/eval-extract.mjs`.
+
+### Modifié
+- **Les notes ont une section « Compte rendu » de plus**, avant le transcript, activée par défaut.
+  Pour la retirer : Paramètres, Notes et compte rendu, « Recopier les décisions, actions et
+  questions en haut de la note ». Les modèles de note que vous avez modifiés ne changent pas.
+
 ## [4.2.2] - 2026-11-07
 
 Rien à faire en passant à cette version : copiez `app\models`, `app\reglages.txt` et `Notes` comme

@@ -2618,3 +2618,124 @@ discussion avec la réunion. Téléphone : plus tard. Voir `docs/lots.md`.
 
 **Limites.** Voix de synthèse ; pas de vrai logiciel de visio ; écho simulé à 35 % du volume, sans
 l'annulation d'écho du navigateur, qui le réduit sans doute en vrai (non mesuré).
+
+## 40. Compte rendu extractif : décisions, actions, questions ouvertes, recopiées mot pour mot (lot C1)
+
+**Contexte.** Feuille de route du 7 novembre 2026 (§39, `docs/lots.md`) : faire le travail d'un
+outil de compte rendu de réunion, sur le PC, hors ligne, sans rien réécrire ni inventer. Lowsper
+recopie en haut de la note les phrases prononcées qui portent une décision, une action ou une
+question restée ouverte, avec leur horodatage et la personne ; le transcript complet reste dessous,
+inchangé. Machine de référence : portable d'entreprise sans carte graphique, 16 Go, Edge ou Chrome.
+
+**Options.**
+1. *Règles explicites* sur les formules usuelles (« c'est décidé », « je m'en charge », « on ne
+   sait pas encore »...), en français et en anglais. Instantané, hors ligne, vérifiable phrase par
+   phrase, aucun modèle à télécharger.
+2. *Petit modèle de classification* (de l'ordre de 100 Mo) dans le navigateur. Rien de tel
+   n'existe en français et en anglais pour cette tâche sans l'entraîner nous-mêmes, sur des
+   données réelles que la contrainte n° 9 exclut. Non retenu pour ce lot.
+3. *IA locale qui rédige* : c'est le lot C3, seulement là où une mesure sur le portable de
+   référence le valide (§22 : un modèle de résumé local est trop lent et invente).
+
+**Arbitrage : règles explicites (`app/js/extract.js`).** Le texte retenu est toujours une
+sous-chaîne exacte d'une réplique (vérifié par les tests) : une erreur de l'outil peut oublier ou
+mal ranger une phrase, jamais en fabriquer une. Les deux jeux de règles s'appliquent quelle que
+soit la langue parlée.
+- *Décision* : formule de choix arrêté (« on garde », « nous retenons », « va pour », « let's go
+  with », « we won't »...), date fixée, refus explicite.
+- *Action* : engagement à la première personne (« je relance », « je vais », « I'll »), ou tâche
+  confiée (« Paul, tu envoies... ? », « could you...? », « you own... »).
+- *Question ouverte* : point déclaré non tranché (« on ne sait pas encore », « no answer yet »),
+  ou question posée qui reste sans réponse : personne ne répond, la réponse est « je ne sais pas »,
+  la personne ajoute elle-même que rien n'est tranché, ou la conversation change de sujet. La
+  question est alors recopiée, pas la réplique « je ne sais pas ».
+- *Écartés* : hypothèses (« si on avait », « we could »), rappels d'une décision passée (« on
+  avait décidé », « last year we decided »), propositions encore discutées (« je propose qu'on »),
+  questions techniques ou de politesse (« vous m'entendez ? »), formules sans contenu (« Will do »).
+- Récapitulatif de fin de réunion (« pour résumer », « to sum up ») : recopié tel quel.
+
+**Note.** Section « Compte rendu » (« Summary » en anglais) après l'en-tête et l'avertissement,
+avant le transcript : une phrase d'avertissement, puis « Décisions », « Actions » et « Questions
+ouvertes », chaque ligne au format `- **[00:01:05] Lucie :** « phrase »`. Choix du mainteneur
+(7 novembre 2026) : activé par défaut, avec l'interrupteur « Recopier les décisions, actions et
+questions en haut de la note » (Paramètres, Notes et compte rendu, `lowsper.opt.highlights`) ;
+une catégorie vide est omise, et si rien n'est repéré, une ligne le dit ; dans les modèles de note,
+variable `{{compte_rendu}}`, présente dans le modèle par défaut, retirée proprement quand le réglage
+est désactivé. Les modèles déjà modifiés par l'utilisateur ne changent pas (contrainte n° 8). Le
+réglage est lu au début de la réunion, comme la langue de la note.
+
+**Méthode de mesure.** `tools/test/eval-extract.mjs`, sur des phrases étiquetées à la main selon
+un guide écrit avant les règles (`compte-rendu.json`, clé `guide`) :
+- *dev* (4 réunions) : servent à écrire les règles ;
+- *test* (4 réunions) : écrites avant les règles, mais par le même auteur : pas vraiment aveugles ;
+- *aveugle* (6 réunions, `compte-rendu-aveugle.json`) : écrites par un autre rédacteur qui n'a
+  vu ni les règles ni le corpus ; mesurées une fois, **puis utilisées pour régler les règles** ;
+- *aveugle-2* (6 réunions, `compte-rendu-aveugle-2.json`) : second rédacteur aveugle, contextes
+  imposés, mesuré seulement après le réglage, **jamais utilisé pour régler** : c'est le chiffre
+  qui fait foi ;
+- *indépendant* : corpus hebdo et entretien, écrits avant ce lot pour d'autres mesures (§15, §39),
+  annotés sans les modifier.
+Chaque corpus est versionné dans un commit à part avant sa première mesure. Une phrase retenue est
+« retrouvée » si elle correspond à une phrase étiquetée (même réplique, au moins 60 % des mots en
+commun), « fausse » sinon ; les phrases neutres (« Will do ») ne comptent ni comme oubliées ni
+comme fausses.
+
+**Mesures, texte exact** (sans reconnaissance vocale) :
+
+| Jeu | Phrases | Retrouvées | Précision | Décisions | Actions | Questions |
+|---|---|---|---|---|---|---|
+| aveugle, fr, règles avant réglage | 34 | 50 % | 89 % | 5/14 | 8/14 | 4/6 |
+| aveugle, en, règles avant réglage | 34 | 53 % | 90 % | 5/14 | 11/14 | 2/6 |
+| aveugle, fr, après réglage (vu) | 34 | 91 % | 94 % | 14/14 | 12/14 | 5/6 |
+| aveugle, en, après réglage (vu) | 34 | 94 % | 97 % | 13/14 | 14/14 | 5/6 |
+| **aveugle-2, fr (jamais vu)** | 33 | **61 %** | **87 %** | 6/11 | 12/15 | 2/7 |
+| **aveugle-2, en (jamais vu)** | 33 | **73 %** | **86 %** | 5/11 | 14/15 | 5/7 |
+| hebdo et entretien, fr | 8 | 75 % | 75 % | 0/0 | 4/6 | 2/2 |
+| dev et test, fr et en | 72 | 100 % | 97 % | 23/23 | 33/33 | 16/16 |
+
+Toutes les phrases retrouvées sont dans la bonne catégorie, sur tous les jeux. Lecture : sur le texte exact de
+réunions jamais vues, Lowsper retrouve environ deux phrases sur trois, et neuf phrases retenues sur
+dix sont justes. Les actions sont bien couvertes (26 sur 30) ; les décisions le sont mal (11 sur
+22), parce qu'elles se disent de mille façons sans formule. L'écart entre le premier corpus aveugle
+après réglage (91 à 94 %) et le second (61 à 73 %) mesure ce que valent des règles réglées sur un
+corpus : elles s'y adaptent. Le chiffre de dev et test n'est pas une estimation.
+
+**Mesures, de bout en bout** : audio de chaque réunion (voix de synthèse Piper, `make-cr.py`),
+rejoué dans la chaîne Lowsper comme en réunion (découpage, Whisper small, distinction des voix),
+puis extraction sur ce que Whisper a transcrit (`eval-extract.mjs --transcribe`, puis `--audio`).
+Une phrase est retrouvée si la réplique transcrite qui la contient recouvre la réplique étiquetée
+et a au moins 50 % de ses mots.
+
+| Jeu | Retrouvées | Précision | Décisions | Actions | Questions | Personne juste | Heure à 3 s près |
+|---|---|---|---|---|---|---|---|
+| **aveugle-2, fr (jamais vu)** | **52 %** (17/33) | **81 %** | 6/11 | 10/15 | 1/7 | 100 % | 82 % |
+| **aveugle-2, en (jamais vu)** | **70 %** (23/33) | **82 %** | 5/11 | 14/15 | 4/7 | 100 % | 96 % |
+| aveugle, fr (vu au réglage) | 65 % | 79 % | 10/14 | 10/14 | 2/6 | 100 % | 82 % |
+| aveugle, en (vu au réglage) | 85 % | 91 % | 11/14 | 14/14 | 4/6 | 100 % | 90 % |
+| hebdo, fr | 38 % (3/8) | 100 % | 0/0 | 1/6 | 2/2 | 100 % | 33 % |
+
+« Personne juste » : vous ou les participants (le canal), la seule attribution vérifiable ici, les
+voix de synthèse d'un même modèle Piper étant souvent regroupées (§39). Lecture : la reconnaissance
+vocale coûte de l'ordre de 10 points en français et 3 en anglais sur le chiffre de référence ; les
+voix de synthèse françaises sont les moins bien reconnues (§39 : 35 à 41 % d'erreurs sur l'hebdo).
+Les questions ouvertes souffrent le plus en français (1 sur 7) : quand Whisper perd le point
+d'interrogation ou coupe la phrase, la question n'est plus reconnue. Sur l'hebdo, l'heure est
+souvent celle d'un long segment qui réunit plusieurs participants (33 % à 3 s près).
+
+**Vitesse.** L'extraction tourne une fois, quand la note est produite en fin de réunion ou
+d'import : le chemin du direct n'est pas touché (pas de mesure `npm run bench` avant et après).
+Machine de développement à 4 cœurs : 0,8 s pour 11 940 répliques (environ dix heures de réunion),
+donc de l'ordre de 0,1 s pour une heure. Textes piégés de 20 000 à 32 000 caractères : 20 ms au
+plus par phrase (pas de retour arrière explosif, §33). Non mesuré sur le portable de référence.
+
+**Limites.**
+- Voix de synthèse et réunions écrites, en français et en anglais seulement ; pas de vraie
+  réunion. Les autres langues parlées n'ont aucune règle : la section dit alors « aucune décision
+  repérée ».
+- Une phrase est recopiée seule : une action dite en deux temps (« Tu peux t'en occuper ? »,
+  « Oui, demain ») ne garde que la phrase qui a le contenu, ou la plus explicite.
+- Quand deux participants s'enchaînent sur le son de la réunion sans pause, Whisper peut les
+  réunir dans un même segment : la phrase est alors attribuée à la voix et à l'heure de ce segment.
+- Les décisions implicites (« ça me va », un silence qui vaut accord) ne sont pas repérées.
+- Suite possible, à mesurer d'abord : le lot C3 (IA locale) pourrait reprendre les phrases
+  manquées, sur le portable de référence seulement si la mesure le valide.

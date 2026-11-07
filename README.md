@@ -43,6 +43,10 @@ to an AI for the minutes. Neither the sound nor the text leaves the computer.
 ## What it does
 
 - **Live transcription** of your microphone and of the shared meeting sound, speakers told apart.
+- **Summary at the top of the note**: the spoken sentences that carry a decision, an action or an
+  open question, copied word for word with their time and speaker; nothing is rewritten. On
+  fictional meetings never used for tuning, transcribed by Lowsper itself, half of these sentences
+  are found in French and seven in ten in English; eight in ten of those copied are right.
 - **Words to recognize** (names, acronyms) and **automatic fixes** for misheard words, kept from
   one meeting to the next; twelve built-in industry vocabularies, in English and French.
 - **Places**: each one is a folder and a note format. « For note apps » adds properties and
