@@ -619,6 +619,46 @@
       this.emit();
     }
 
+    /**
+     * Note rapide tapée pendant la réunion (lot C2) : son heure (secondes depuis le début, celle
+     * de la première frappe) et son texte, sur une ligne. Gardée dans meta : la sauvegarde de
+     * secours la conserve avec le transcript. Retourne la note ajoutée, ou null si le texte est vide.
+     */
+    addNote(t, text) {
+      const clean = cleanNote(text);
+      if (!clean) return null;
+      const note = { t: Math.max(0, Number(t) || 0), text: clean };
+      this.meta.notes = (this.meta.notes || []).concat(note).sort((a, b) => a.t - b.t);
+      this.emit();
+      return note;
+    }
+
+    /** Retire une note rapide (celle-là, pas une autre de même texte). */
+    removeNote(note) {
+      const list = this.meta.notes || [];
+      const i = list.indexOf(note);
+      if (i < 0) return;
+      this.meta.notes = list.slice(0, i).concat(list.slice(i + 1));
+      this.emit();
+    }
+
+    /** Notes rapides valides, dans l'ordre (session récupérée, réglages d'une autre version). */
+    quickNotes() {
+      return (Array.isArray(this.meta.notes) ? this.meta.notes : [])
+        .filter((n) => n && cleanNote(n.text))
+        .map((n) => ({ t: Math.max(0, Number(n.t) || 0), text: cleanNote(n.text) }))
+        .sort((a, b) => a.t - b.t);
+    }
+
+    /** Section « Vos notes » de la note, en Markdown, ou '' sans note rapide. */
+    notesSection() {
+      const list = this.quickNotes();
+      if (!list.length) return '';
+      const out = [this.tl('note.notesTitle'), '', this.tl('note.notesIntro'), ''];
+      for (const n of list) out.push(this.tl('note.notesLine', { t: fmt(n.t), text: n.text }));
+      return out.join('\n');
+    }
+
     /** Regroupe les phrases consécutives d'un même locuteur en paragraphes. */
     paragraphs() {
       const items = [];
@@ -738,7 +778,14 @@
         }
         out.push('');
       }
-      return { title, header, notice, summary: this.summary(links), body: out.join('\n').trim() };
+      return {
+        title,
+        header,
+        notice,
+        summary: this.summary(links),
+        notes: this.notesSection(),
+        body: out.join('\n').trim(),
+      };
     }
 
     /**
@@ -774,12 +821,18 @@
       return out.join('\n').trim();
     }
 
-    /** Format classique de Lowsper (profil « Par défaut ») : le compte rendu avant le transcript. */
+    /**
+     * Format classique de Lowsper (profil « Par défaut ») : le compte rendu, puis vos notes
+     * rapides, avant le transcript.
+     */
     toMarkdown() {
       const p = this.parts();
       const summary = p.summary ? [p.summary, ''] : [];
+      const notes = p.notes ? [p.notes, ''] : [];
       return (
-        [p.title, '', ...p.header, '', p.notice, '', ...summary, '## Transcript', '', p.body].join('\n').trim() + '\n'
+        [p.title, '', ...p.header, '', p.notice, '', ...summary, ...notes, '## Transcript', '', p.body]
+          .join('\n')
+          .trim() + '\n'
       );
     }
 
@@ -839,6 +892,19 @@
     }
   }
 
+  /**
+   * Texte d'une note rapide : une seule ligne, espaces réduits, 500 caractères au plus. Il est
+   * gardé tel quel : écrit après « - **[heure]** », il ne peut pas devenir un titre Markdown.
+   */
+  function cleanNote(text) {
+    return String(text == null ? '' : text)
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, NOTE_MAX)
+      .trim();
+  }
+  const NOTE_MAX = 500;
+
   function fmtDur(sec) {
     return sec < 90 ? `${Math.round(sec)} s` : `${Math.round(sec / 60)} min`;
   }
@@ -855,5 +921,6 @@
   Lowsper.collapseRepeats = collapseRepeats;
   Lowsper.isHallucination = isHallucination;
   Lowsper.formatTime = fmt;
+  Lowsper.NOTE_MAX = NOTE_MAX;
   Lowsper.SPEAKERS = SPEAKERS;
 })();

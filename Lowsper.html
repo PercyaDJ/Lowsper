@@ -638,6 +638,18 @@
       </div>
       <button class="linkish chain-link" id="chain" type="button" data-i18n="rec.chain">Commencer une nouvelle réunion sans arrêter</button>
 
+      <!-- Notes rapides (lot C2) : reprises dans la note avec l'heure de leur première frappe -->
+      <form class="quick-note" id="qn-form" autocomplete="off">
+        <label class="qn-label" for="qn-input" data-i18n="qn.label">Note rapide</label>
+        <div class="qn-row">
+          <input id="qn-input" type="text" maxlength="500" spellcheck="true" placeholder="Tapez une note, puis Entrée" data-i18n-attr="placeholder:qn.placeholder" aria-describedby="qn-help">
+          <button class="btn small" id="qn-add" type="submit" data-i18n="qn.add">Ajouter</button>
+        </div>
+        <p class="fine" id="qn-help" data-i18n="qn.help">Reprise dans la note avec l’heure où vous avez commencé à la taper. Elle reste sur ce PC.</p>
+        <ul class="qn-list" id="qn-list" aria-label="Vos notes" data-i18n-attr="aria-label:qn.list" hidden></ul>
+        <p class="visually-hidden" id="qn-status" aria-live="polite"></p>
+      </form>
+
       <!-- Texte en direct, masqué par défaut -->
       <label class="check live-toggle">
         <input type="checkbox" id="show-live">

@@ -294,6 +294,7 @@ const delays = [];
 const downloads = [];
 page.on('download', (d) => downloads.push(d));
 let chained = false;
+const quickNote = {};
 for (let waited = 0; waited < meetingSeconds; waited += 2) {
   await page.waitForTimeout(2000);
   // Perte simulée en direct (comme un détecteur bloqué) : les blocs de 38 à 50 s sont jetés.
@@ -305,6 +306,18 @@ for (let waited = 0; waited < meetingSeconds; waited += 2) {
       c.onSegment = (id, seg) =>
         seg.start >= 38 && seg.start < 50 ? (window.__dropped = (window.__dropped || 0) + 1) : real(id, seg);
     });
+  }
+  // Notes rapides (lot C2) : l'heure retenue est celle de la première frappe, pas de Entrée
+  if (waited === 6) {
+    quickNote.before = await page.evaluate(() => LowsperApp.meetingNow());
+    await page.focus('#qn-input');
+    await page.keyboard.type('R');
+    await page.waitForTimeout(3000);
+    await page.keyboard.type('elancer le fournisseur');
+    await page.keyboard.press('Enter');
+    quickNote.saved = await page.evaluate(() => JSON.parse(JSON.stringify(LowsperApp.transcript.meta.notes || [])));
+    quickNote.listed = await page.evaluate(() => document.querySelectorAll('#qn-list li').length);
+    quickNote.focused = await page.evaluate(() => document.activeElement.id === 'qn-input');
   }
   if (!chained && waited >= meetingSeconds / 2) {
     chained = true;
@@ -381,6 +394,9 @@ const compactOk = await page.evaluate(() => {
 });
 await page.setViewportSize({ width: 900, height: 1000 });
 
+// Note tapée sans Entrée au moment de terminer : reprise quand même dans la note
+quickNote.listAfterChain = await page.evaluate(() => document.querySelectorAll('#qn-list li').length);
+await page.fill('#qn-input', 'Envoyer le compte rendu');
 const tStop = Date.now();
 await page.click('#stop');
 // Dossier Lowsper accordé à l'installation : les notes vont dans Lowsper/Notes/Par défaut (lot R7)
@@ -491,6 +507,25 @@ const checks = [
   ['le moteur suit le rythme malgré la panne simulée (file <= 6)', maxBacklog <= 6],
   ['passages rapides tous retranscrits ensuite', draftsLeft === 0],
   ['corriger un mot partout, correction retenue', fixOk],
+  [
+    'note rapide : heure de la première frappe, Entrée, liste, focus gardé',
+    quickNote.saved &&
+      quickNote.saved.length === 1 &&
+      quickNote.saved[0].text === 'Relancer le fournisseur' &&
+      quickNote.saved[0].t >= quickNote.before &&
+      quickNote.saved[0].t < quickNote.before + 1.5 &&
+      quickNote.listed === 1 &&
+      quickNote.focused,
+  ],
+  [
+    'notes rapides dans la note de leur réunion, section « Vos notes » avant le transcript',
+    /\n## Vos notes\n\n_Notes tapées[^\n]*\n\n- \*\*\[00:00:\d\d\]\*\* Relancer le fournisseur\n\n## Transcript\n/.test(
+      firstMd
+    ) &&
+      !md.includes('Relancer le fournisseur') &&
+      quickNote.listAfterChain === 0,
+  ],
+  ['note tapée sans Entrée avant « Terminer » : gardée', /\*\* Envoyer le compte rendu\n\n## Transcript\n/.test(md)],
   ['écran de fin : un nom saisi, puis clic direct sur une autre voix', renameOk],
   [
     'réunion suivante sans temps mort : deux notes dans Lowsper/Notes/Par défaut, aucun téléchargement',

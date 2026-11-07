@@ -656,6 +656,7 @@
     app.loadSamples = [];
     app.transcript = createTranscript($('title').value.trim(), parseInt($('people').value, 10));
     $('meet-title').value = app.transcript.meta.title;
+    resetQuickNote();
 
     app.capture = new L.Capture(
       (source, seg) => {
@@ -1010,6 +1011,8 @@
     return app.capture ? app.capture.now() - ((app.transcript && app.transcript.meta.offset) || 0) : 0;
   }
 
+  app.meetingNow = () => meetingNow(); // tests
+
   function shiftSeg(seg, off) {
     if (!off) return;
     seg.start -= off;
@@ -1027,6 +1030,7 @@
     app.chaining = true;
     try {
       const old = app.transcript;
+      flushQuickNote(); // une note en cours de frappe appartient à la réunion qui se termine
       if (app.capture.paused) togglePause();
       // Les paroles en cours appartiennent encore à la réunion qui se termine
       await app.capture.cut();
@@ -1035,6 +1039,7 @@
       old.meta.endAbs = cut;
       app.transcript = createTranscript('', NaN, cut);
       $('meet-title').value = '';
+      resetQuickNote();
       for (const id of Object.keys(app.capture.sources))
         if (!app.transcript.meta.sources.includes(id)) app.transcript.meta.sources.push(id);
       app.pausedAt = null;
@@ -1381,6 +1386,61 @@
     renderChecks();
   }
 
+  // ---------------------------------------------------------------------------
+  // Notes rapides (lot C2) : tapées pendant la réunion, reprises dans la note (« Vos notes »)
+  // avec l'heure de leur première frappe. Rien ne passe par le moteur : le direct n'est pas touché.
+  // ---------------------------------------------------------------------------
+  app.qnStart = null; // heure de la réunion à la première frappe de la note en cours
+
+  function resetQuickNote() {
+    $('qn-input').value = '';
+    app.qnStart = null;
+    $('qn-status').textContent = '';
+    renderQuickNotes();
+  }
+
+  /** Ajoute la note en cours de frappe, s'il y en a une. Retourne la note ajoutée, ou null. */
+  function flushQuickNote() {
+    const text = $('qn-input').value;
+    if (!app.transcript || !text.trim()) return null;
+    const note = app.transcript.addNote(app.qnStart != null ? app.qnStart : meetingNow(), text);
+    $('qn-input').value = '';
+    app.qnStart = null;
+    renderQuickNotes();
+    return note;
+  }
+
+  function renderQuickNotes() {
+    const box = $('qn-list');
+    const list = (app.transcript && app.transcript.meta.notes) || [];
+    const frag = document.createDocumentFragment();
+    for (const n of list) {
+      const li = document.createElement('li');
+      const time = L.formatTime(n.t);
+      const t = document.createElement('span');
+      t.className = 't';
+      t.textContent = time;
+      const txt = document.createElement('span');
+      txt.className = 'txt';
+      txt.textContent = n.text;
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'linkish';
+      del.textContent = tr('qn.remove');
+      del.setAttribute('aria-label', tr('qn.removeLabel', { t: time }));
+      del.addEventListener('click', () => {
+        app.transcript.removeNote(n);
+        renderQuickNotes();
+        $('qn-input').focus();
+      });
+      li.append(t, txt, del);
+      frag.appendChild(li);
+    }
+    box.replaceChildren(frag);
+    box.hidden = !list.length;
+    box.scrollTop = box.scrollHeight;
+  }
+
   function renderLive() {
     if (!app.transcript || app.state === 'idle') return;
     const box = $('live');
@@ -1420,6 +1480,7 @@
 
   async function stop() {
     if (app.state !== 'recording') return;
+    flushQuickNote(); // ce que vous étiez en train de taper n'est pas perdu
     if (app.capture.paused && app.pausedAt != null) {
       app.transcript.meta.pauses.push({ from: app.pausedAt, to: meetingNow() });
       app.pausedAt = null;
@@ -1727,6 +1788,7 @@
   function reset() {
     L.Transcript.clearSaved();
     app.transcript = null;
+    resetQuickNote();
     app.failed = [];
     app.finished = [];
     app.gapsShown = false;
@@ -2669,6 +2731,7 @@
       } catch {}
     }
     renderPauseLabels(false);
+    if (app.state === 'recording') renderQuickNotes();
     if (app.state === 'install') {
       // Pendant le téléchargement, l'écran n'est pas redessiné : seul le bouton change de langue
       if (app.installing) $('install').textContent = tr('install.running');
@@ -3261,6 +3324,25 @@
     if (e.target.checked) renderLive();
   });
   $('chain').addEventListener('click', chainNext);
+  // Notes rapides : l'heure retenue est celle de la première frappe, Entrée ajoute, Échap efface
+  $('qn-input').addEventListener('input', () => {
+    if (!$('qn-input').value.trim()) app.qnStart = null;
+    else if (app.qnStart == null && app.state === 'recording') app.qnStart = meetingNow();
+  });
+  $('qn-input').addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !$('qn-input').value) return;
+    e.preventDefault();
+    e.stopPropagation();
+    $('qn-input').value = '';
+    app.qnStart = null;
+  });
+  $('qn-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (app.state !== 'recording') return;
+    const note = flushQuickNote();
+    if (note) $('qn-status').textContent = tr('qn.added', { t: L.formatTime(note.t) });
+    $('qn-input').focus();
+  });
   // Écran de fin : « Et maintenant ? »
   $('download').addEventListener('click', () => {
     const n = noteOf(app.transcript);
