@@ -13,6 +13,23 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [4.2.2] - 2026-11-07
+
+Rien à faire en passant à cette version : copiez `app\models`, `app\reglages.txt` et `Notes` comme
+d'habitude.
+
+### Corrigé
+- **Écho des haut-parleurs attribué à « Vous »** (micro sans casque) : une phrase du micro est
+  désormais comparée à tout ce que les participants ont dit autour, et plus à une seule de leurs
+  phrases. Quand Whisper découpait l'écho autrement que l'original, il restait dans la note.
+  Mesuré sur un corpus de paroles simultanées : 118,5 % d'erreurs sur « Vous » avant, 48,1 % après,
+  sans aucune de vos phrases perdue (decision.md §39).
+
+### Ajouté
+- Outils de mesure (développeurs) : corpus de paroles simultanées
+  (`tools/test/corpus/make-overlap.py`), bancs `eval-overlap.mjs`, `eval-separation.mjs` (séparation
+  des voix) et `eval-kyutai.py` (Kyutai STT). Étude complète dans decision.md §39.
+
 ## [4.2.1] - 2026-11-07
 
 Corrections du premier lancement et du dossier Lowsper. Rien à faire en passant à cette version :
@@ -378,7 +395,8 @@ antérieures n'ont pas été taguées (la numérotation reprend la « version 3 
   journal technique.
 - Réglages copiés dans le dossier (`app/reglages.txt`), restaurés après un nettoyage du navigateur.
 
-[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v4.2.1...HEAD
+[Non publié]: https://github.com/PercyaDJ/Lowsper/compare/v4.2.2...HEAD
+[4.2.2]: https://github.com/PercyaDJ/Lowsper/compare/v4.2.1...v4.2.2
 [4.2.1]: https://github.com/PercyaDJ/Lowsper/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/PercyaDJ/Lowsper/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/PercyaDJ/Lowsper/compare/v4.0.0...v4.1.0

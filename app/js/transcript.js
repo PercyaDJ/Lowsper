@@ -469,11 +469,11 @@
       if (!others.length) return;
       this.lines = this.lines.filter((l) => {
         if (l.source !== 'me') return true;
-        for (const o of others) {
-          if (o.end < l.start - 6 || o.start > l.end + 6) continue;
-          if (overlap(l.text, o.text) >= 0.6) return false;
-        }
-        return true;
+        // Tout ce que les participants ont dit autour, et pas une seule de leurs phrases :
+        // Whisper découpe l'écho autrement que l'original, une phrase du micro peut chevaucher
+        // deux phrases des participants (decision.md §39)
+        const near = others.filter((o) => o.end >= l.start - 6 && o.start <= l.end + 6);
+        return !near.length || overlap(l.text, near.map((o) => o.text).join(' ')) < 0.6;
       });
     }
 

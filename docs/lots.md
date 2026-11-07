@@ -38,8 +38,21 @@ Chaque lot respecte `AGENTS.md`, et en particulier :
 | R9 | Mémoire des voix d'une visio à l'autre | 4.2.0 | Livré |
 
 Après la refonte : correctif 4.2.1 (dossier Lowsper : accès d'une ancienne version oublié, chemin
-de nouveau affiché à l'installation, dossier parent accepté ; `decision.md` §38). Étude suivante :
-son de visio et paroles simultanées, mesures en cours.
+de nouveau affiché à l'installation, dossier parent accepté ; `decision.md` §38). Correctif 4.2.2 :
+étude du son de visio, des paroles simultanées et de l'écho, anti-écho corrigé (`decision.md` §39).
+
+### Feuille de route suivante (validée par le mainteneur le 7 novembre 2026)
+
+Cap : faire le travail d'un outil de compte rendu de réunion, mais sur le PC, sans installation et
+hors ligne (après le téléchargement unique du modèle). Machine de référence : portable d'entreprise
+sans carte graphique, 16 Go, Edge ou Chrome. Pas de discussion avec la réunion ; téléphone plus tard.
+
+| Lot | Objectif | État |
+|---|---|---|
+| C1 | Compte rendu extractif : décisions, actions, questions ouvertes, recopiées mot pour mot avec leur horodatage en haut de la note, transcript complet dessous ; français et anglais ; mesuré sur un corpus fictif | À faire |
+| C2 | Notes rapides tapées pendant la réunion, reprises dans la note ; consigne « e-mail de suivi » | À faire |
+| C3 | Compte rendu rédigé par une IA locale, seulement là où une mesure sur le portable de référence le valide | À étudier |
+| Étude | Séparation des voix plus légère ; vocabulaire « IA et informatique » | À étudier |
 
 ## R1 : fondations visuelles (livré)
 
