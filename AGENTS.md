@@ -155,11 +155,11 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/js/browser.js` | Reconnaissance du navigateur (Brave, Edge, Chrome, Firefox) et messages quand l'écriture dans un dossier est impossible |
 | `app/js/engine.js` | Chargement des fichiers embarqués, moteur Whisper dans un Worker (glossaire, langue, reprise, boucles) |
 | `app/js/analyzer.js` | Détection de parole (Silero) et empreintes vocales (WeSpeaker), dans des Workers |
-| `app/js/capture.js` | Micro et partage d'écran (ouverts sans réglage obligatoire, plusieurs essais, onglet présélectionné après un refus de Windows, `decision.md` §46 et §47), rééchantillonnage 16 kHz, découpage en blocs, son gardé en mémoire |
+| `app/js/capture.js` | Micro et partage d'écran (ouverts sans réglage obligatoire, plusieurs essais, onglet présélectionné après un refus de Windows, plusieurs sons additionnés, `decision.md` §46 à §48), rééchantillonnage 16 kHz, découpage en blocs, son gardé en mémoire |
 | `app/js/audiofile.js` | Fichiers importés : lecteurs de conteneur (WAV, MP3, AAC, M4A, Ogg, WebM), décodage WebCodecs en flux |
 | `app/js/speakers.js` | Distinction, regroupement et mémoire des voix (cinq empreintes au plus par personne, comparaison à la plus proche, `decision.md` §37) ; voix du micro (anti-écho) |
 | `app/js/extract.js` | Compte rendu extractif : phrases de décision, d'action et de question ouverte recopiées mot pour mot (règles en français et en anglais, `decision.md` §40) |
-| `app/js/transcript.js` | Assemblage, sigles, filtres, couverture, Markdown (sections « Compte rendu » et « Vos notes » comprises), notes rapides de la réunion (`decision.md` §41), sauvegarde de secours |
+| `app/js/transcript.js` | Assemblage, sigles, filtres (doublons d'un passage transcrit deux fois, `decision.md` §49), couverture, Markdown (sections « Compte rendu » et « Vos notes » comprises), notes rapides de la réunion (`decision.md` §41), sauvegarde de secours |
 | `app/js/notes.js` | Emplacements (profils de sortie) : modèle de note, nom de fichier, front matter, liens, dossier de destination (par défaut `Notes/<emplacement>` du dossier Lowsper, `decision.md` §30) ; consignes pour l'IA (textes fournis dans `i18n.js`, dont l'e-mail de suivi, anciens textes et anciens modèles par défaut reconnus pour la rétrocompatibilité, `decision.md` §29 et §41) |
 | `app/js/localai.js` | Sonde de l'IA intégrée du navigateur (expérimental) : disponibilité, essai sur une réunion fictive, rapport |
 | `app/js/languages.js` | Langues parlées proposées (qualité mesurée), lecture de l'ancien réglage `lowsper.language`, nom des langues dans la note (`decision.md` §34) |

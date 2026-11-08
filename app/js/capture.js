@@ -306,6 +306,12 @@
   // Branchement d'un MediaStream sur le découpeur
   // ---------------------------------------------------------------------------
 
+  // Arrête un son partagé, y compris la piste vidéo gardée ouverte pour lui (getSystemAudio)
+  function stopStream(stream) {
+    stream.getTracks().forEach((t) => t.stop());
+    (stream._lowsperVideo || []).forEach((t) => t.stop());
+  }
+
   const WORKLET = `
     class LowsperTap extends AudioWorkletProcessor {
       constructor() { super(); this.buf = new Float32Array(4096); this.n = 0; }
@@ -489,7 +495,7 @@
       });
       // La source peut être branchée en cours de session : on aligne son horloge.
       segmenter.t = this.now();
-      const entry = { stream, src, resampler, segmenter };
+      const entry = { stream, src, resampler, segmenter, inputs: [{ stream, src }] };
       if (!this.recorders[id]) this.recorders[id] = new Recorder(this.now());
       const rec = this.recorders[id];
       rec.resync(this.now());
@@ -531,17 +537,52 @@
       return !!(e && e.segmenter.active && !this.paused);
     }
 
+    /**
+     * Ajoute un son à une source déjà branchée (decision.md §48) : par exemple l'onglet d'une
+     * vidéo présentée, en plus de l'onglet de la visio. Les sons sont additionnés avant le
+     * découpage : la source reste une seule voix pour le moteur (« participants »).
+     * Retourne le nombre de sons de la source.
+     */
+    addInput(id, stream) {
+      const e = this.sources[id];
+      if (!e) {
+        this.attach(id, stream);
+        return 1;
+      }
+      const src = this.ctx.createMediaStreamSource(stream);
+      src.connect(e.node);
+      e.inputs.push({ stream, src });
+      return e.inputs.length;
+    }
+
+    /** Retire un son d'une source ; retourne le nombre de sons restants (0 : source débranchée). */
+    removeInput(id, stream) {
+      const e = this.sources[id];
+      if (!e) return 0;
+      const i = e.inputs.findIndex((x) => x.stream === stream);
+      if (i < 0) return e.inputs.length;
+      if (e.inputs.length === 1) {
+        this.detach(id);
+        return 0;
+      }
+      const [x] = e.inputs.splice(i, 1);
+      try {
+        x.src.disconnect();
+      } catch {}
+      stopStream(x.stream);
+      return e.inputs.length;
+    }
+
     detach(id) {
       const e = this.sources[id];
       if (!e) return Promise.resolve();
       const done = e.segmenter.flush();
       try {
-        e.src.disconnect();
+        for (const x of e.inputs) x.src.disconnect();
         e.node.disconnect();
         if (e.mute) e.mute.disconnect();
       } catch {}
-      e.stream.getTracks().forEach((t) => t.stop());
-      (e.stream._lowsperVideo || []).forEach((t) => t.stop());
+      for (const x of e.inputs) stopStream(x.stream);
       delete this.sources[id];
       return Promise.resolve(done);
     }

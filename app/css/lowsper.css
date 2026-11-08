@@ -594,6 +594,9 @@ label.home-row { cursor: text; }
 .level { display: block; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
 .level i { display: block; height: 100%; width: 0; background: var(--ok); border-radius: 3px; transition: width .08s linear; }
 .meeting .notice { margin: 0; }
+/* Ajouter un autre son (onglet d'une vidéo présentée...), sous le contrôle d'état */
+.meeting .add-sound { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.meeting .add-sound[hidden] { display: none; }
 .big-actions { display: flex; justify-content: center; gap: 40px; }
 .round-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
 .round-btn .round { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); }
@@ -651,6 +654,8 @@ body.mini .card.meeting { margin: 0; max-width: none; }
   .meet-head .timer { font-size: 40px; }
   .check-row { min-height: 44px; padding: 6px 12px; }
   .check-text { width: auto; flex: 1; }
+  /* Fenêtre réduite : le bouton seul, l'explication est dans son infobulle et le guide */
+  .meeting .add-sound .fine { display: none; }
   .check-row .level { flex: 0 0 25%; }
   .big-actions { gap: 24px; }
   .round-btn .round { width: 52px; height: 52px; }

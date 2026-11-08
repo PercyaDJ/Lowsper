@@ -109,6 +109,11 @@ réunion qui travaille hors ligne.
    réunion » l'affiche (choix gardé). « Commencer une nouvelle réunion sans arrêter » enchaîne
    sur la suivante sans repartager l'écran.
 
+   **Plusieurs sons à la fois** : « Ajouter un autre son » capte un onglet ou une fenêtre de plus,
+   en même temps que le premier. Exemple : la visio est dans un onglet et vous présentez une
+   vidéo dans un autre ; partagez l'onglet de la visio au démarrage, puis ajoutez celui de la
+   vidéo. Arrêter le partage de l'un ne coupe pas les autres.
+
    **Notes rapides** : tapez une note dans le champ « Note rapide », puis Entrée (ou « Ajouter »).
    Elle est reprise dans la note, dans la section « Vos notes », avec l'heure où vous avez
    commencé à la taper : celle du moment dont vous parlez, pas celle où vous avez fini d'écrire.

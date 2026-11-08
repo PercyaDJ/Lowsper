@@ -3149,3 +3149,57 @@ application (Teams installé, Jabber) n'a pas d'onglet : si le son du système e
 fenêtre échouent tous deux, aucune page web ne peut capter son son ; seul un composant installé le
 pourrait, ce que la contrainte n° 2 interdit. Le chemin du direct (traitement, moteur) ne change
 pas : pas de mesure `npm run bench`.
+
+## 48. Plusieurs sons partagés à la fois (4.6.0)
+
+**Contexte.** Après la 4.5.2, le partage de l'onglet marche sur le PC du mainteneur (§47). Sa
+remarque : une réunion réelle peut mêler la visio et une vidéo présentée, jouée ailleurs ; un seul
+onglet partagé ne capte pas tout. Quand le son de tout l'ordinateur est refusé par Windows, il faut
+pouvoir capter plusieurs onglets ou fenêtres.
+
+**Retenu.** Bouton « Ajouter un autre son » sous le contrôle d'état de la réunion. Il ouvre une
+nouvelle fenêtre de partage (un clic est exigé par le navigateur) ; le son obtenu est branché sur la
+même source « participants » (`Capture.addInput`) : Web Audio additionne les sons à l'entrée du
+découpeur, la suite de la chaîne (détection de parole, moteur, voix) est inchangée. Arrêter le
+partage d'un son le retire seul (`removeInput`) ; le dernier arrêté prévient comme avant. Option
+écartée : une source distincte par son (« participants 2 »), qui multiplierait les passages envoyés
+au moteur et la charge du direct.
+
+**Vérifié** (Chromium, écran virtuel, conteneur sans carte son) : un onglet « visio » lit le corpus
+hebdo ; 20 s après le début, un second onglet lit le corpus entretien et est ajouté ; message « 2 sons
+de la réunion captés ensemble » ; le texte en direct contient des phrases des deux (« tickets »,
+« taux de résolution » ; « poste de chef de projet technique, cybersécurité »). `npm test` et
+`npm run test:e2e` verts (le texte sous le bouton est masqué dans une fenêtre réduite, pour garder
+« Terminer » visible).
+
+**Limites.** Deux personnes qui parlent en même temps dans deux sons ajoutés se chevauchent pour
+Whisper, comme dans un seul son (§39). Non vérifié sous Windows ni dans Brave. Le chemin du direct
+ne change pas pour un son unique ; avec deux sons, le volume de parole à transcrire est celui des
+deux (pas de mesure `npm run bench`, qui porte sur un son).
+
+## 49. Retours d'un essai réel : passages en double, anglais dans le compte rendu (4.6.0)
+
+**Contexte.** Le mainteneur a transcrit une vidéo publique (non versée au dépôt, règle n° 9) : 15 min,
+français, avec un court passage en anglais. Erreurs relevées à la lecture :
+1. **deux passages entiers en double**, quelques secondes l'un après l'autre, avec de petites
+   différences (« 7 lises » puis « sept listes ») : deux transcriptions du même son ;
+2. **une phrase anglaise rangée parmi les actions** du compte rendu, dans une réunion réglée en
+   français seulement ; des formules de fin de vidéo (« n'hésitez pas à le mentionner dans les
+   commentaires ») aussi, ce qui est juste grammaticalement ;
+3. noms propres et marques mal écrits (réseaux sociaux, casques de réalité virtuelle, jeux) ;
+4. une même personne coupée en deux intervenants au milieu d'une phrase.
+
+**Retenu.**
+- Point 1 : une phrase de 10 mots ou plus, de la même source, à moins de 5 s d'une phrase déjà
+  transcrite et dont 60 % des paires de mots consécutifs s'y retrouvent, est écartée (la première
+  version est gardée). Les paires de mots, plutôt que les mots seuls, évitent qu'une phrase de mots
+  courants soit prise pour le doublon d'un long paragraphe voisin (test unitaire). Le chemin exact
+  qui a produit le doublon (rattrapage d'un passage cru perdu, blocs qui se recouvrent) n'est pas
+  établi : le journal technique de l'essai n'était pas joint (non vérifié).
+- Point 2 : dans une réunion dont les langues parlées n'incluent pas l'anglais, une phrase qui a
+  plus de petits mots anglais que français n'entre pas au compte rendu (elle reste au transcript).
+  Sans langue connue, rien ne change : le banc `eval-extract.mjs` donne les mêmes chiffres.
+- Point 3 : propre à chaque utilisateur ; les « Mots à reconnaître » sont faits pour cela. Aucune
+  marque n'est ajoutée aux vocabulaires (règle n° 9).
+- Point 4 : non traité ici. Le regroupement des voix (§37) demanderait une étude mesurée sur corpus,
+  pas un réglage fait sur un seul essai.

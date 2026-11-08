@@ -13,6 +13,21 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [4.6.0] - 2026-11-08
+
+Rien à faire en passant à cette version : copiez `app\models`, `app\reglages.txt` et `Notes` comme
+d'habitude.
+
+### Ajouté
+- **« Ajouter un autre son »** pendant la réunion : un onglet ou une fenêtre de plus, capté en même
+  temps que le premier, par exemple l'onglet d'une vidéo présentée pendant la visio. Les sons sont
+  additionnés ; arrêter le partage de l'un n'arrête pas les autres (decision.md §48).
+
+### Corrigé
+- Un passage transcrit deux fois n'apparaît plus en double dans la note (decision.md §49).
+- Le compte rendu d'une réunion en français seulement ne reprend plus de phrase en anglais
+  (extrait de vidéo, citation) parmi les décisions et les actions (decision.md §49).
+
 ## [4.5.2] - 2026-11-08
 
 Rien à faire en passant à cette version : copiez `app\models`, `app\reglages.txt` et `Notes` comme
