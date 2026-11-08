@@ -10,7 +10,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
 import assert from 'node:assert/strict';
-import { selectFiles, zip } from '../release.mjs';
+import { entryName, selectFiles, zip } from '../release.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..', '..');
@@ -81,6 +81,17 @@ await test('rien pour les développeurs ni aucune donnée personnelle', () => {
     'app/reglages.txt',
   ]);
   assert.ok(!fake.some((f) => /app\/models\/(whisper|index)|reglages/.test(f)), 'modèles ou réglages livrés');
+});
+
+await test('fichiers à la racine du zip, sans dossier en double après « Extraire tout »', () => {
+  const names = files.map(entryName);
+  assert.ok(names.includes('Lowsper.html'), 'Lowsper.html à la racine');
+  assert.ok(names.includes('app/js/app.js'), 'app/ à la racine');
+  assert.deepEqual(
+    names.filter((n) => /^Lowsper-/.test(n)),
+    [],
+    'aucun dossier Lowsper-X.Y.Z autour des fichiers'
+  );
 });
 
 await test('le zip se relit à l’identique', async () => {

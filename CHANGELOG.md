@@ -13,6 +13,16 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [4.5.0] - 2026-11-08
+
+Rien à faire en passant à cette version : copiez `app\models`, `app\reglages.txt` et `Notes` comme
+d'habitude.
+
+### Modifié
+- **Paquet plus simple à installer** : `Lowsper-4.5.0.zip` contient directement `Lowsper.html` et
+  le dossier `app`, sans dossier `Lowsper-4.5.0` autour. « Extraire tout » de Windows donne un
+  seul dossier, au lieu de deux du même nom l'un dans l'autre (decision.md §45).
+
 ### Ajouté
 - **Vocabulaire métier « IA et informatique »** (« AI and computing » en anglais), à cocher dans
   Paramètres, Transcription, Vocabulaire métier : IA, LLM, carte graphique, GPU, RAM, prompt, RAG,

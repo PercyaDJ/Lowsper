@@ -59,9 +59,10 @@ réunion qui travaille hors ligne.
    votre PC (processeurs, mémoire, carte graphique) et coche le modèle **« Le meilleur pour ce
    PC »**. Cliquez sur **« Télécharger et installer »**. La fenêtre du navigateur s'ouvre sur vos
    Téléchargements : choisissez le **dossier Lowsper** affiché à l'écran (celui qui contient
-   `Lowsper.html`) et acceptez que Lowsper y enregistre des fichiers. « Extraire tout » de Windows
-   crée souvent deux dossiers du même nom l'un dans l'autre (`Lowsper-4.2.1\Lowsper-4.2.1`) :
-   choisir le premier suffit, Lowsper retrouve seul celui qui contient `Lowsper.html`. Le téléchargement (80 à 330 Mo selon le modèle)
+   `Lowsper.html`) et acceptez que Lowsper y enregistre des fichiers. Depuis la 4.5.0, le zip
+   contient directement les fichiers : « Extraire tout » donne un seul dossier `Lowsper-X.Y.Z`
+   (avec une version plus ancienne, deux dossiers du même nom l'un dans l'autre : choisir le
+   premier suffit, Lowsper retrouve seul celui qui contient `Lowsper.html`). Le téléchargement (80 à 330 Mo selon le modèle)
    prend une à quelques minutes, la page redémarre toute seule à la fin. Ce même accord sert
    ensuite à garder une copie de vos réglages dans ce dossier, et à y ranger vos notes
    (`Notes\<emplacement>`).
@@ -384,7 +385,8 @@ Lowsper oublie cet accès sans rien demander et n'utilise que le dossier de la p
 
 **Lowsper me dit que le dossier choisi ne contient pas Lowsper.html.**
 Choisissez le dossier affiché sur l'écran de bienvenue, ou l'un des dossiers qui le contiennent
-(par exemple le premier des deux dossiers `Lowsper-4.2.1` créés par « Extraire tout ») : Lowsper
+(avant la 4.5.0, par exemple le premier des deux dossiers `Lowsper-4.2.1` créés par « Extraire
+tout ») : Lowsper
 regarde dans les dossiers qu'il contient. Le navigateur ne permet pas d'ouvrir sa fenêtre
 directement sur le bon dossier : elle s'ouvre sur vos Téléchargements.
 

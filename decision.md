@@ -3029,3 +3029,30 @@ tenté en direct.
 bornes des chevauchements connues ; MossFormer2 mesuré sur le son propre seulement (1 h 06 de
 calcul) ; Whisper small exécuté dans Node pour les pistes ; machine de développement, pas le
 portable de référence (non vérifié). Le chemin du direct ne change pas.
+
+## 45. Paquet de distribution : fichiers à la racine du zip (4.5.0)
+
+**Contexte.** Retour du mainteneur : en dézippant `Lowsper-X.Y.Z.zip`, on obtenait deux dossiers du
+même nom l'un dans l'autre (`Lowsper-4.2.1\Lowsper-4.2.1\Lowsper.html`). Cause : le paquet du
+§18.1 rangeait tous les fichiers dans un dossier `Lowsper-X.Y.Z/`, et « Extraire tout » de Windows
+crée déjà un dossier du nom du zip. Objectif : dézipper, double-cliquer sur `Lowsper.html`, le moins
+d'actions possible.
+
+**Options.**
+| Option | Verdict |
+|---|---|
+| Garder le dossier dans le zip, et l'expliquer dans le guide (ce que faisait la 4.2.1) | Une étape de plus à comprendre pour chaque utilisateur. Écarté. |
+| **Fichiers à la racine du zip** | **Retenu.** « Extraire tout » donne `Lowsper-X.Y.Z\Lowsper.html`. |
+| Paquet avec le modèle déjà installé (environ 270 Mo, zéro téléchargement) | Proposé ; choix du mainteneur : un seul paquet, léger. Reste possible pour une DSI (`docs/deploiement.md`). |
+
+**Ce qui change.** `tools/release.mjs` : noms des fichiers du zip sans préfixe (`entryName`). Le
+paquet reste reproductible (§18.1) : 40 fichiers, 22,9 Mo pour la 4.5.0. Test `test/release.mjs` :
+`Lowsper.html` et `app/` à la racine, aucun dossier `Lowsper-` autour. Vérifié : le zip extrait par
+`unzip` dans un dossier `Lowsper-4.5.0` s'ouvre dans Chromium sur l'écran de bienvenue, sans erreur
+ni requête réseau. La recherche du dossier Lowsper depuis un dossier parent (§38) est gardée : elle
+sert encore aux copies d'anciennes versions.
+
+**Limite.** Un outil qui extrait « ici », sans créer de dossier, répand les fichiers dans le dossier
+courant (Téléchargements) : non vérifié avec les outils d'archive autres que celui de Windows,
+et le guide conseille « Extraire tout ». Comportement de « Extraire tout » de Windows non revérifié
+sur le portable de référence (non vérifié).

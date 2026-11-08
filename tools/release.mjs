@@ -35,6 +35,11 @@ export function selectFiles(tracked) {
     .sort();
 }
 
+// Nom de chaque fichier dans le zip : à la racine, sans dossier « Lowsper-X.Y.Z/ » autour.
+// « Extraire tout » de Windows crée déjà un dossier du nom du zip : avec un dossier de plus dans
+// le zip, on obtenait Lowsper-X.Y.Z\Lowsper-X.Y.Z\Lowsper.html (decision.md §45).
+export const entryName = (file) => file;
+
 // --- Écriture d'un zip minimal (méthode « deflate », sans chiffrement ni extension) ---
 // Date fixe (1er janvier 2020, format DOS) : le paquet ne dépend pas du moment où il est construit.
 const DOS_TIME = 0;
@@ -91,7 +96,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const files = selectFiles(tracked);
   const base = `Lowsper-${version}`;
   const entries = [];
-  for (const f of files) entries.push({ name: `${base}/${f}`, data: await readFile(join(root, f)) });
+  for (const f of files) entries.push({ name: entryName(f), data: await readFile(join(root, f)) });
   const archive = zip(entries);
   const dist = join(here, 'dist');
   await mkdir(dist, { recursive: true });
