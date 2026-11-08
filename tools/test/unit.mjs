@@ -804,6 +804,52 @@ await test('son de l’ordinateur : demandé sans réglage obligatoire, essai si
   await assert.rejects(L.getSystemAudio(false, none), (e) => e.code === 'NO_AUDIO');
 });
 
+await test('compte rendu : pas de phrase anglaise dans une réunion en français seulement (§49)', () => {
+  const X = L.Extract;
+  const items = [
+    { start: 1, speaker: 'A', text: "I'll put them in the full body and they will go play, right?" },
+    { start: 5, speaker: 'A', text: 'On a décidé de garder le même profil de jeu.' },
+  ];
+  const fr = X.extract(items, { langs: ['fr'] });
+  assert.ok(!fr.some((f) => /I'll/.test(f.text)), 'phrase anglaise écartée');
+  assert.ok(
+    fr.some((f) => /décidé/.test(f.text)),
+    'décision française gardée'
+  );
+  assert.ok(
+    X.extract(items, { langs: ['fr', 'en'] }).some((f) => /I'll/.test(f.text)),
+    'gardée si l’anglais est parlé'
+  );
+  assert.ok(
+    X.extract(items).some((f) => /I'll/.test(f.text)),
+    'sans langues connues, inchangé'
+  );
+  assert.equal(X.looksEnglish("C'est le planning de la semaine, on valide."), false);
+});
+
+await test('passage transcrit deux fois : la seconde version est écartée (decision.md §49)', () => {
+  const t = new L.Transcript({ language: 'fr' });
+  const seg = (start, end) => ({ start, end, speech: end - start });
+  const a =
+    "Il y avait des clubs en sous-sol avec de vrais DJ et des sept listes de fous, sur invitation seulement, peu importe l'heure.";
+  const b =
+    "Il y avait des clubs en sous-sol avec de vrais DJ et des 7 lises de fou, sur invitation seulement, peu importe l'heure en fait.";
+  t.addSegment('others', seg(10, 20), { chunks: [{ from: 0, to: 10, text: a }] });
+  t.addSegment('others', seg(20, 30), { chunks: [{ from: 0, to: 10, text: b }] });
+  assert.equal(t.lines.length, 1, 'doublon écarté');
+  // Une phrase de mots courants n'est pas prise pour un doublon d'un long paragraphe voisin
+  const long =
+    "Je pense que c'est vraiment important de le dire parce que dans le monde réel il y a toujours un moment où les problèmes deviennent plus compliqués que prévu et c'est pour ça que je le dis.";
+  t.addSegment('others', seg(40, 60), { chunks: [{ from: 0, to: 20, text: long }] });
+  t.addSegment('others', seg(60, 64), {
+    chunks: [{ from: 0, to: 4, text: 'Et je pense que le monde va changer très vite maintenant, vraiment.' }],
+  });
+  assert.equal(t.lines.length, 3, 'phrase différente gardée');
+  // Même phrase répétée plus tard (plus de 5 s après) : gardée
+  t.addSegment('others', seg(120, 130), { chunks: [{ from: 0, to: 10, text: a }] });
+  assert.equal(t.lines.length, 4);
+});
+
 await test('correction de casse : un terme en minuscules garde la majuscule d’un début de phrase', () => {
   assert.equal(L.fixCase('Planning validé. Le planning bouge.', 'planning'), 'Planning validé. Le planning bouge.');
   assert.equal(L.fixCase('copil demain', 'COPIL'), 'COPIL demain');

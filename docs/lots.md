@@ -42,6 +42,8 @@ lancement manuel du workflow de release (`decision.md` §42).
 4.5.0 pour le lot Étude, avec un paquet sans dossier en double (`decision.md` §45). Correctif
 4.5.1 : son de l'ordinateur et micro captés avec tous les équipements (`decision.md` §46). Correctif 4.5.2 :
 l'onglet de la visio, son pris dans le navigateur, quand Windows refuse le son (`decision.md` §47).
+4.6.0 : plusieurs sons partagés à la fois, doublons retirés, pas d'anglais dans le compte rendu
+d'une réunion en français (`decision.md` §48 et §49).
 
 Après la refonte : correctif 4.2.1 (dossier Lowsper : accès d'une ancienne version oublié, chemin
 de nouveau affiché à l'installation, dossier parent accepté ; `decision.md` §38). Correctif 4.2.2 :

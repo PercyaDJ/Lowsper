@@ -234,11 +234,41 @@
    * Retourne [{ kind: 'decision' | 'action' | 'question', start, speaker, text }], dans l'ordre
    * du transcript ; text est une sous-chaîne exacte d'une réplique.
    */
-  function extract(items) {
+  // Phrase manifestement anglaise : plus de petits mots anglais que français (decision.md §49)
+  const EN_WORDS = new Set(
+    "the and you they we it's i'll i'm is are was to of that this with for on what don't can will be have".split(' ')
+  );
+  const FR_WORDS = new Set(
+    "le la les des et je tu il elle on nous vous ils un une est sont pas que qui dans pour avec ce ça c'est de du au".split(
+      ' '
+    )
+  );
+  function looksEnglish(s) {
+    let en = 0;
+    let fr = 0;
+    for (const w of norm(s).match(/[\p{L}']+/gu) || []) {
+      if (EN_WORDS.has(w)) en++;
+      if (FR_WORDS.has(w)) fr++;
+    }
+    return en >= 2 && en > fr;
+  }
+
+  /**
+   * opts.langs : langues parlées de la réunion. Une réunion sans l'anglais ne reçoit pas de
+   * phrase anglaise dans son compte rendu (extrait de vidéo, citation, passage mal reconnu).
+   */
+  function extract(items, opts) {
+    const langs = opts && opts.langs;
+    const noEnglish = Array.isArray(langs) && langs.length > 0 && !langs.includes('en');
     const flat = [];
     for (const it of items || []) {
       for (const text of sentences(it.text))
-        flat.push({ start: it.start, speaker: it.speaker, text, kind: classify(text) });
+        flat.push({
+          start: it.start,
+          speaker: it.speaker,
+          text,
+          kind: noEnglish && looksEnglish(text) ? null : classify(text),
+        });
     }
     const out = [];
     const skip = new Set();
@@ -270,5 +300,5 @@
     return out;
   }
 
-  Lowsper.Extract = { extract, classify, sentences, KINDS: ['decision', 'action', 'question'] };
+  Lowsper.Extract = { extract, classify, sentences, looksEnglish, KINDS: ['decision', 'action', 'question'] };
 })();

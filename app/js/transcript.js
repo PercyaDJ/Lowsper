@@ -253,6 +253,19 @@
     return hit / wa.length;
   }
 
+  // Part des paires de mots consécutifs de a présentes dans b : bien plus sélectif que les mots
+  // seuls (une phrase de mots courants n'est pas retrouvée dans un long paragraphe par hasard).
+  function pairOverlap(a, b) {
+    const wa = words(a);
+    const wb = words(b);
+    if (wa.length < 3) return 0;
+    const pairs = new Set();
+    for (let i = 0; i + 1 < wb.length; i++) pairs.add(wb[i] + ' ' + wb[i + 1]);
+    let hit = 0;
+    for (let i = 0; i + 1 < wa.length; i++) if (pairs.has(wa[i] + ' ' + wa[i + 1])) hit++;
+    return hit / (wa.length - 1);
+  }
+
   class Transcript {
     constructor(meta) {
       this.meta = Object.assign(
@@ -319,6 +332,10 @@
         }
         if (opts && opts.block != null) line.block = opts.block;
         if (opts && opts.draft) line.draft = true;
+        // Passage déjà transcrit, retrouvé une seconde fois (rattrapage d'un passage cru perdu,
+        // blocs qui se recouvrent) : même source, à moins de 5 s, 10 mots ou plus, et au moins
+        // 60 % de paires de mots communes. On garde la première version (decision.md §49).
+        if (!line.draft && this.isDuplicate(line)) return;
         // Empreinte vocale de la phrase du micro : en mémoire seulement (non enregistrée)
         if (opts && opts.embs && opts.embs[i])
           Object.defineProperty(line, 'emb', { value: opts.embs[i], enumerable: false });
@@ -327,6 +344,19 @@
       this.lines.sort((a, b) => a.start - b.start);
       this.removeEcho();
       this.emit();
+    }
+
+    /** Phrase déjà présente : même source, proche dans le temps, presque les mêmes mots. */
+    isDuplicate(line) {
+      if (words(line.text).length < 10) return false;
+      return this.lines.some(
+        (o) =>
+          o.source === line.source &&
+          !o.draft &&
+          o.start < line.end + 5 &&
+          o.end > line.start - 5 &&
+          pairOverlap(line.text, o.text) >= 0.6
+      );
     }
 
     // --- Couverture : part de la parole détectée qui a bien été transcrite ---
@@ -797,7 +827,7 @@
       const items = this.lines
         .filter((l) => !l.draft && l.text)
         .map((l) => ({ start: l.start, end: l.end, speaker: this.speakerName(l, links), text: l.text }));
-      return Lowsper.Extract.extract(items);
+      return Lowsper.Extract.extract(items, { langs: this.spokenLanguages() });
     }
 
     /**

@@ -1223,17 +1223,42 @@
     t.emit();
   }
 
-  function attachSource(id, stream) {
-    app.capture.attach(id, stream);
+  function attachSource(id, stream, add) {
+    const count = add ? app.capture.addInput(id, stream) : (app.capture.attach(id, stream), 1);
     if (!app.transcript.meta.sources.includes(id)) app.transcript.meta.sources.push(id);
     const track = stream.getAudioTracks()[0];
     if (track) {
       track.addEventListener('ended', () => {
         if (app.state !== 'recording' || !app.capture || !app.capture.sources[id]) return;
-        app.capture.detach(id);
+        // Plusieurs sons partagés (§48) : seul celui qui s'arrête est retiré
+        if (app.capture.removeInput(id, stream) > 0) {
+          toast(tr('rec.soundRemoved'));
+          return;
+        }
         setMeter(id, 'off');
         notice(id === 'others' ? tr('rec.othersStopped') : tr('rec.micStopped'), id);
       });
+    }
+    return count;
+  }
+
+  // Un son de plus pour la réunion (onglet d'une vidéo présentée, autre fenêtre), additionné aux
+  // sons déjà partagés (decision.md §48). Nécessite un clic : appelé depuis le bouton.
+  async function addOthers() {
+    if (app.state !== 'recording' || !app.capture) return;
+    try {
+      const stream = await L.getSystemAudio(store.get('lowsper.share.surface') === 'tab' ? 'tab' : 'screen');
+      rememberSurface(stream);
+      const n = attachSource('others', stream, true);
+      setMeter('others', 'on');
+      $('rec-notice').hidden = true;
+      toast(tr('rec.soundAdded', { n }));
+    } catch (err) {
+      journal('partage-son', {
+        erreur: err && (err.code || err.name),
+        message: String((err && err.message) || err).slice(0, 120),
+      });
+      explainOthersError(err);
     }
   }
 
@@ -3349,6 +3374,8 @@
   $('mini-pause').addEventListener('click', togglePause);
   // « Comment corriger » : l'explication, avec un bouton pour partager de nouveau le son
   $('others-fix').addEventListener('click', () => notice(tr('meet.fixHelp'), 'others'));
+  $('others-add').addEventListener('click', addOthers);
+  $('add-sound-line').hidden = !(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
   // Nom de la réunion, modifiable pendant la réunion (note et contexte donné à Whisper)
   $('meet-title').addEventListener('input', () => {
     if (!app.transcript || app.state !== 'recording') return;

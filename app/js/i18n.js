@@ -607,6 +607,10 @@
     'meet.textLate': '{s} s de retard',
     'meet.textPreparing': 'Le moteur se prépare',
     'meet.howToFix': 'Comment corriger',
+    'meet.addSound': 'Ajouter un autre son',
+    'meet.addSoundSub': 'Un onglet ou une fenêtre de plus, par exemple une vidéo présentée pendant la réunion.',
+    'rec.soundAdded': 'Son ajouté : {n} sons de la réunion captés ensemble.',
+    'rec.soundRemoved': 'Un son partagé a été arrêté ; les autres restent captés.',
     'meet.fixShort': 'Vérifiez le partage du son.',
     'meet.fixHelp':
       "Lowsper n'entend pas la réunion. Partagez à nouveau l'écran ou l'onglet de la visio, et cochez « Partager l'audio ». ",
@@ -1436,6 +1440,10 @@
     'meet.textLate': '{s} s behind',
     'meet.textPreparing': 'The engine is getting ready',
     'meet.howToFix': 'How to fix',
+    'meet.addSound': 'Add another sound',
+    'meet.addSoundSub': 'One more tab or window, for example a video shown during the meeting.',
+    'rec.soundAdded': 'Sound added: {n} meeting sounds captured together.',
+    'rec.soundRemoved': 'One shared sound was stopped; the others are still captured.',
     'meet.fixShort': 'Check the sound sharing.',
     'meet.fixHelp':
       'Lowsper cannot hear the meeting. Share the screen or the video call tab again, and tick “Share audio”. ',
