@@ -623,7 +623,9 @@
     let othersError = null;
     if (withOthers) {
       try {
-        others = await L.getSystemAudio();
+        // Après un échec du son de tout l'ordinateur, la fenêtre de choix s'ouvre sur les onglets
+        others = await L.getSystemAudio(store.get('lowsper.share.surface') === 'tab' ? 'tab' : 'screen');
+        rememberSurface(others);
       } catch (err) {
         othersError = err;
         journal('partage-son', {
@@ -1246,8 +1248,10 @@
       err &&
       (err.name === 'NotReadableError' || err.name === 'OverconstrainedError' || err.name === 'AbortError')
     ) {
-      // Le son de l'ordinateur n'a pas pu s'ouvrir : le prochain essai demande le strict minimum
+      // Le son de l'ordinateur n'a pas pu s'ouvrir : le prochain essai demande le strict minimum,
+      // et les prochaines réunions proposent d'abord les onglets (son pris dans le navigateur)
       app.othersStartFailed = true;
+      store.set('lowsper.share.surface', 'tab');
       msg = tr('rec.othersStartFailed', { error: err.message || err.name });
     } else {
       msg = tr('rec.othersFailed', { error: (err && err.message) || tr('start.unknownError') });
@@ -1256,11 +1260,19 @@
   }
 
   // Relance du partage audio en cours de réunion (nécessite un clic : on est dans un handler)
-  async function retryOthers() {
+  // Retient la surface qui a marché : un écran ou une fenêtre qui donne le son rétablit le choix
+  // par défaut ; un onglet garde la présélection des onglets.
+  function rememberSurface(stream) {
+    if (!stream) return;
+    journal('partage-son', { essai: stream._lowsperAttempt, surface: stream._lowsperSurface, ok: true });
+    if (stream._lowsperSurface === 'monitor' || stream._lowsperSurface === 'window')
+      store.set('lowsper.share.surface', 'screen');
+  }
+
+  async function retryOthers(mode) {
     try {
-      const simple = !!app.othersStartFailed;
-      const stream = await L.getSystemAudio(simple);
-      journal('partage-son', { essai: simple ? 'simple' : 'normal', ok: true });
+      const stream = await L.getSystemAudio(mode === 'tab' ? 'tab' : app.othersStartFailed ? 'simple' : 'screen');
+      rememberSurface(stream);
       attachSource('others', stream);
       setMeter('others', 'on');
       $('rec-notice').hidden = true;
@@ -1278,10 +1290,18 @@
     const el = $('rec-notice');
     el.textContent = text;
     if (retryFor === 'others' && navigator.mediaDevices.getDisplayMedia) {
-      const b = document.createElement('button');
-      b.textContent = tr('rec.shareOthers');
-      b.addEventListener('click', retryOthers);
-      el.appendChild(b);
+      // Deux chemins : l'onglet de la visio (son pris dans le navigateur, quel que soit le casque),
+      // ou l'écran entier et les fenêtres d'application (son passé par Windows)
+      for (const [key, mode] of [
+        ['rec.shareTab', 'tab'],
+        ['rec.shareOthers', 'screen'],
+      ]) {
+        const b = document.createElement('button');
+        b.textContent = tr(key);
+        b.dataset.mode = mode;
+        b.addEventListener('click', () => retryOthers(mode));
+        el.appendChild(b);
+      }
     }
     el.hidden = false;
   }

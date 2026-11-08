@@ -13,6 +13,19 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [4.5.2] - 2026-11-08
+
+Rien à faire en passant à cette version : copiez `app\models`, `app\reglages.txt` et `Notes` comme
+d'habitude.
+
+### Corrigé
+- **Son des participants capté avec tous les casques** : quand Windows refuse le son de tout
+  l'ordinateur (« Could not start audio source », vu avec un casque de jeu sans fil), Lowsper
+  propose « Partager l'onglet de la visio » : le son de l'onglet est pris dans le navigateur, sans
+  passer par la sortie son de Windows. Lowsper s'en souvient et ouvre ensuite la fenêtre de partage
+  sur les onglets. Pour une visio en application, la fenêtre choisie peut donner son propre son.
+  La fenêtre « Avant de commencer » explique les deux cas (decision.md §47).
+
 ## [4.5.1] - 2026-11-08
 
 Rien à faire en passant à cette version : copiez `app\models`, `app\reglages.txt` et `Notes` comme

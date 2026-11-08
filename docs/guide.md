@@ -84,8 +84,11 @@ réunion qui travaille hors ligne.
    ![Accueil : nom de la réunion, emplacement de la note, Démarrer](images/accueil.png)
 6. La fenêtre **« Avant de commencer »** rappelle les trois étapes ; cliquez sur **« Continuer »** :
    - **prévenez les participants** que la réunion est transcrite ;
-   - le navigateur propose un **partage d'écran** : choisissez l'écran entier (ou l'onglet de la
-     réunion) et **cochez « Partager l'audio »**. Seul le son est utilisé, rien n'est filmé ;
+   - le navigateur propose un **partage d'écran**. Visio dans le navigateur (Teams, Meet, Webex
+     en ligne...) : choisissez l'**onglet de la visio** et cochez **« Partager l'audio de
+     l'onglet »** ; ce son est pris dans le navigateur, il marche avec tous les casques. Visio dans
+     une application : choisissez l'**écran entier** et cochez **« Partager aussi le son du
+     système »**. Seul le son est utilisé, rien n'est filmé ;
    - autorisez le **micro**.
    Pour les habitués, « Ne plus afficher » supprime cette fenêtre.
 
@@ -408,14 +411,16 @@ ou l'onglet de la visio qui est partagé. Cliquez sur « Comment corriger », pu
 nouveau, avec le son. Si vous présentez seul pendant longtemps, l'alerte peut aussi apparaître :
 elle disparaît dès que quelqu'un d'autre parle.
 
-**« Le navigateur n'a pas pu ouvrir le son de l'ordinateur (Could not start audio source) ».**
-C'est Chrome ou Edge qui n'a pas réussi à ouvrir le son de Windows, quels que soient le casque,
-les haut-parleurs ou le micro. Depuis la 4.5.1, Lowsper demande ce son sans aucun réglage
-obligatoire, ce qui évite la cause connue de ce message. S'il apparaît quand même, cliquez sur
-**« Partager le son des participants »** : Lowsper réessaie avec la demande la plus simple
-possible. Si l'erreur revient, et que la visio est dans le navigateur, partagez l'**onglet** de la
-visio en cochant « Partager l'audio de l'onglet » : ce son ne passe pas par Windows. Le micro, lui,
-est essayé avec ses réglages, puis sans, puis chacun des autres micros du PC.
+**« Windows n'a pas laissé le navigateur capter le son de tout l'ordinateur (Could not start audio source) ».**
+Le son de l'écran entier passe par la sortie son de Windows ; sur certains PC (casques de jeu
+en son surround, par exemple), Chrome et Edge n'arrivent pas à l'ouvrir, et une page web ne peut
+rien y changer. Cliquez sur **« Partager l'onglet de la visio »** et choisissez l'onglet de la
+visio ou de la vidéo : ce son est pris dans le navigateur, avant Windows, il marche avec tous
+les casques et toutes les sorties son. Lowsper s'en souvient : aux réunions suivantes, la
+fenêtre de partage s'ouvre directement sur les onglets (vous pouvez toujours choisir l'écran).
+Pour une visio dans une application, « Partager le son des participants » propose aussi ses
+fenêtres : Chrome peut prendre le son de la fenêtre choisie (non vérifié sous Windows). Le micro,
+lui, est essayé avec ses réglages, puis sans, puis chacun des autres micros du PC.
 
 **Où régler le nombre de personnes ?**
 Dans les paramètres, rubrique « Transcription » : **« Nombre de personnes dans vos réunions »**.

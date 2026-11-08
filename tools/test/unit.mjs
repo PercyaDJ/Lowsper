@@ -789,7 +789,14 @@ await test('son de l’ordinateur : demandé sans réglage obligatoire, essai si
   assert.equal(asked[0].systemAudio, 'include');
   assert.equal(s._lowsperProcessed, false, 'réglage refusé sans faire échouer le partage');
   await L.getSystemAudio(true, md);
-  assert.deepEqual(Object.keys(asked[1]).sort(), ['audio', 'systemAudio', 'video']);
+  assert.deepEqual(Object.keys(asked[1]).sort(), ['audio', 'systemAudio', 'video', 'windowAudio']);
+  // Onglets présélectionnés : le son d'un onglet ne passe pas par Windows (§47)
+  const t = await L.getSystemAudio('tab', md);
+  assert.equal(asked[2].video.displaySurface, 'browser');
+  assert.equal(asked[2].audio, true);
+  assert.equal(t._lowsperAttempt, 'tab');
+  assert.equal(asked[0].windowAudio, 'window', 'fenêtre d’application : son de la fenêtre');
+  assert.equal(asked[0].video.displaySurface, undefined, 'par défaut, aucune surface imposée');
   // Partage sans son : erreur explicite
   const none = {
     getDisplayMedia: async () => ({ getAudioTracks: () => [], getVideoTracks: () => [], getTracks: () => [] }),

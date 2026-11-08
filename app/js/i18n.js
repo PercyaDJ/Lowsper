@@ -566,7 +566,8 @@
     'before.tell': 'Prévenez les autres participants',
     'before.tellSub': 'Dites-leur que la réunion est transcrite. Tout reste sur cet ordinateur.',
     'before.screen': "Choisissez l'écran de la réunion",
-    'before.screenSub': "Puis cochez « Partager l'audio ». Rien n'est filmé.",
+    'before.screenSub':
+      "Visio dans le navigateur : son onglet, avec « Partager l'audio de l'onglet » (marche avec tous les casques). Sinon l'écran entier, avec le son du système. Rien n'est filmé.",
     'before.mic': 'Autorisez le micro',
     'before.micSub': 'Lowsper se réduit ensuite en petite fenêtre.',
     'before.skip': 'Ne plus afficher',
@@ -623,6 +624,7 @@
     'rec.draftTitle': 'Transcription rapide provisoire : la version précise arrive dès que le moteur est disponible.',
     'rec.speaker': '{name} :',
     'rec.shareOthers': 'Partager le son des participants',
+    'rec.shareTab': "Partager l'onglet de la visio",
     'rec.othersCaptured': 'Son des participants capté.',
     'rec.noMic': 'Micro indisponible : seule la voix des participants est transcrite.',
     'rec.micOnly': 'Seul votre micro est capté (option « participants » désactivée).',
@@ -632,7 +634,7 @@
     'rec.shareCancelled': 'Partage annulé : seule votre voix est captée. ',
     'rec.othersFailed': "Le son des participants n'a pas pu être capté ({error}). ",
     'rec.othersStartFailed':
-      "Le navigateur n'a pas pu ouvrir le son de l'ordinateur ({error}). Cliquez sur « Partager le son des participants » : Lowsper réessaie avec des réglages plus simples. Si l'erreur revient, partagez plutôt l'onglet de la visio, en cochant « Partager l'audio de l'onglet ». ",
+      "Windows n'a pas laissé le navigateur capter le son de tout l'ordinateur ({error}). Partagez plutôt l'onglet de la visio ou de la vidéo : ce son est pris dans le navigateur, quel que soit votre casque. Pour une application (Teams, Jabber), « Partager le son des participants » propose aussi ses fenêtres. ",
     'rec.gap':
       'Un passage n’a pas pu être transcrit : il sera signalé dans le transcript, et vous pourrez le relancer à la fin.',
     'rec.slow':
@@ -1394,7 +1396,8 @@
     'before.tell': 'Tell the other people',
     'before.tellSub': 'Let them know the meeting is being transcribed. Everything stays on this computer.',
     'before.screen': 'Pick the meeting screen',
-    'before.screenSub': 'Then tick “Share audio”. Nothing is filmed.',
+    'before.screenSub':
+      'Meeting in the browser: its tab, with “Share tab audio” (works with every headset). Otherwise the entire screen, with system audio. Nothing is filmed.',
     'before.mic': 'Allow the microphone',
     'before.micSub': 'Lowsper then shrinks to a small window.',
     'before.skip': "Don't show again",
@@ -1450,6 +1453,7 @@
     'rec.draftTitle': 'Quick draft transcription: the accurate version comes as soon as the engine is free.',
     'rec.speaker': '{name}:',
     'rec.shareOthers': 'Share the sound of the other people',
+    'rec.shareTab': 'Share the meeting tab',
     'rec.othersCaptured': 'Sound of the other people captured.',
     'rec.noMic': 'Microphone unavailable: only the voices of the other people are transcribed.',
     'rec.micOnly': 'Only your microphone is captured (“other people” option turned off).',
@@ -1459,7 +1463,7 @@
     'rec.shareCancelled': 'Sharing cancelled: only your voice is captured. ',
     'rec.othersFailed': 'The sound of the other people could not be captured ({error}). ',
     'rec.othersStartFailed':
-      'The browser could not open the computer sound ({error}). Click “Share the sound of the other people”: Lowsper tries again with simpler settings. If the error comes back, share the meeting tab instead and tick “Share tab audio”. ',
+      'Windows did not let the browser capture the sound of the whole computer ({error}). Share the meeting or video tab instead: its sound is taken inside the browser, whatever your headset. For an application (Teams, Jabber), “Share the sound of the other people” also offers its windows. ',
     'rec.gap':
       'A passage could not be transcribed: it will be marked in the transcript, and you can try it again at the end.',
     'rec.slow':
