@@ -850,6 +850,30 @@ await test('passage transcrit deux fois : la seconde version est écartée (deci
   assert.equal(t.lines.length, 4);
 });
 
+await test('compte rendu : expressions des règles, saisies piégées sans ReDoS (decision.md §50)', () => {
+  const X = L.Extract;
+  const traps = (n) => [
+    'a'.repeat(n),
+    ' '.repeat(n) + 'x',
+    'si on '.repeat(n / 6) + 'avait',
+    "j'ai ".repeat(n / 5),
+    'on va '.repeat(n / 6),
+    'é'.repeat(n),
+    'we could '.repeat(n / 9),
+    '- '.repeat(n / 2),
+    "d'".repeat(n / 2) + 'accord',
+    'décidé '.repeat(n / 7),
+    'qui '.repeat(n / 4) + '?',
+    'if we had '.repeat(n / 10),
+  ];
+  const t0 = Date.now();
+  for (const t of traps(20000)) {
+    X.classify(t);
+    X.extract([{ start: 0, speaker: 'A', text: t }]);
+  }
+  assert.ok(Date.now() - t0 < 2000, `${Date.now() - t0} ms pour 12 textes piégés de 20 000 caractères`);
+});
+
 await test('correction de casse : un terme en minuscules garde la majuscule d’un début de phrase', () => {
   assert.equal(L.fixCase('Planning validé. Le planning bouge.', 'planning'), 'Planning validé. Le planning bouge.');
   assert.equal(L.fixCase('copil demain', 'COPIL'), 'COPIL demain');

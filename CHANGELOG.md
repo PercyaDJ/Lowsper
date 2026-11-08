@@ -13,6 +13,11 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+### Sécurité
+- Résultat Semgrep `detect-non-literal-regexp` sur `app/js/extract.js` : faux positif (règles écrites
+  en dur, jamais une saisie), mesuré sans emballement sur des textes piégés de 20 000 caractères,
+  documenté et couvert par un test (decision.md §50). Rien ne change pour l'utilisateur.
+
 ## [4.6.0] - 2026-11-08
 
 Rien à faire en passant à cette version : copiez `app\models`, `app\reglages.txt` et `Notes` comme

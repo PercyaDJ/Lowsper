@@ -23,7 +23,13 @@
   // Limite de mot qui connaît les lettres accentuées (\b de JavaScript ne les connaît pas)
   const W = '[\\p{L}\\p{N}]';
   const BOUND = `(?:(?<!${W})(?=${W})|(?<=${W})(?!${W}))`;
-  /** Expression régulière où « \b » est une limite de mot Unicode. */
+  /**
+   * Expression régulière où « \b » est une limite de mot Unicode. src est toujours une chaîne
+   * écrite en dur dans ce fichier, jamais une saisie : seules les limites de mot sont remplacées.
+   * Mesuré (decision.md §50) : sur des textes piégés de 20 000 caractères, temps linéaire, quelques
+   * dizaines de millisecondes ; un test unitaire le vérifie.
+   */
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
   const rx = (src) => new RegExp(src.replace(/\\b/g, BOUND), 'u');
   const any = (list) => list.map(rx);
   const test = (list, s) => list.some((r) => r.test(s));

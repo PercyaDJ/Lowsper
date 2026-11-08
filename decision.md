@@ -3203,3 +3203,23 @@ français, avec un court passage en anglais. Erreurs relevées à la lecture :
   marque n'est ajoutée aux vocabulaires (règle n° 9).
 - Point 4 : non traité ici. Le regroupement des voix (§37) demanderait une étude mesurée sur corpus,
   pas un réglage fait sur un seul essai.
+
+## 50. Résultat Semgrep du 8 novembre 2026 sur `extract.js` : faux positif, mesuré
+
+**Contexte.** Lysbor (§32) signale `detect-non-literal-regexp` (CWE-1333, sévérité moyenne) sur
+`app/js/extract.js`, fonction `rx` du compte rendu extractif (§40) : `new RegExp(src...)`.
+
+**Analyse.** `rx` ne reçoit que des chaînes écrites en dur dans le fichier (les règles en français
+et en anglais) ; elle remplace seulement `\b` par une limite de mot Unicode. Aucune saisie de
+l'utilisateur ne devient une expression. Reste le risque réel visé par la règle : une expression
+qui s'emballe sur un texte de réunion (ReDoS). Mesure, Node.js 22, toutes les règles (`classify`
+et `extract`) sur douze textes piégés (lettre répétée, espaces, « si on » répété, « j'ai » répété,
+« on va », lettres accentuées, « we could », tirets, apostrophes, « décidé », « qui ... ? »,
+« if we had ») : pire cas 53 ms à 5 000 caractères, 11 ms à 10 000, 22 ms à 20 000 ; pas de
+croissance plus rapide que la longueur.
+
+**Arbitrage.** Faux positif : commentaire `nosemgrep` sur la ligne, avec la raison, comme pour
+`vocabulary.js` et `transcript.js` (§33). Réécrire les quelque soixante règles en expressions
+littérales dupliquerait la limite de mot dans chacune, sans rien changer au risque. Un test
+unitaire rejoue les textes piégés (moins de 2 s pour 20 000 caractères) : une règle ajoutée plus
+tard qui s'emballerait le ferait échouer.
