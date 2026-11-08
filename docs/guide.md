@@ -418,14 +418,20 @@ elle disparaît dès que quelqu'un d'autre parle.
 
 **« Windows n'a pas laissé le navigateur capter le son de tout l'ordinateur (Could not start audio source) ».**
 Le son de l'écran entier passe par la sortie son de Windows ; sur certains PC (casques de jeu
-en son surround, par exemple), Chrome et Edge n'arrivent pas à l'ouvrir, et une page web ne peut
-rien y changer. Cliquez sur **« Partager l'onglet de la visio »** et choisissez l'onglet de la
-visio ou de la vidéo : ce son est pris dans le navigateur, avant Windows, il marche avec tous
-les casques et toutes les sorties son. Lowsper s'en souvient : aux réunions suivantes, la
-fenêtre de partage s'ouvre directement sur les onglets (vous pouvez toujours choisir l'écran).
-Pour une visio dans une application, « Partager le son des participants » propose aussi ses
-fenêtres : Chrome peut prendre le son de la fenêtre choisie (non vérifié sous Windows). Le micro,
-lui, est essayé avec ses réglages, puis sans, puis chacun des autres micros du PC.
+en son surround, par exemple), Chrome et Edge n'arrivent pas à l'ouvrir.
+- **Windows 11, Chrome, Edge ou Brave récents** : cliquez sur **« Partager le son de toutes les
+  applications »**, choisissez de nouveau l'écran entier et cochez le son. Le navigateur prend
+  alors le son de chaque application (Teams, Jabber, lecteur vidéo, autre navigateur) au lieu de
+  la sortie son, quel que soit le casque. Le son des onglets du navigateur où tourne Lowsper
+  n'est pas compris : pour une visio ou une vidéo dans l'un de ces onglets, cliquez sur
+  « Ajouter un autre son » et choisissez l'onglet. Lowsper s'en souvient : aux réunions
+  suivantes, il demande directement le son de toutes les applications. Vérifié sur un PC
+  Windows 11 avec un casque de jeu sans fil en son surround, dans Chrome et Brave.
+- **Sinon** (Windows 10, navigateur plus ancien) : cliquez sur **« Partager l'onglet de la
+  visio »** et choisissez l'onglet de la visio ou de la vidéo : ce son est pris dans le
+  navigateur, avant Windows. Une visio dans une application installée n'a pas d'onglet : sans le
+  son de toutes les applications, une page web ne peut pas capter son son.
+Le micro, lui, est essayé avec ses réglages, puis sans, puis chacun des autres micros du PC.
 
 **Où régler le nombre de personnes ?**
 Dans les paramètres, rubrique « Transcription » : **« Nombre de personnes dans vos réunions »**.

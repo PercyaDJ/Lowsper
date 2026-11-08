@@ -110,6 +110,7 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Décodage des fichiers importés, 7 formats (10 s, Chrome) ; `--long` : 3 h, mémoire | `npm run test:import` |
 | Bout en bout de l'import de fichiers (après `--embed`, 3 min) | `npm run test:e2e-import` |
 | Bout en bout des profils et des notes, faux dossier (après `--embed`, 5 min) | `npm run test:e2e-notes` |
+| Bout en bout du son de la réunion après un refus de Windows, partage simulé (après `--embed`, 1 min, `decision.md` §51) | `npm run test:e2e-share` |
 | Mesure de vitesse du moteur (après `node build.mjs --embed whisper-small`) | `npm run bench` |
 | Paquet de distribution `tools/dist/Lowsper-X.Y.Z.zip` (et son test) | `npm run release`, `npm run test:release` |
 | Captures d'écran de la documentation (après `--embed`, 5 min) | `node test/screenshots.mjs` |
@@ -125,6 +126,7 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Vitesse des modèles selon le nombre de moteurs (après `--embed whisper-small whisper-base`) | `npm run bench -- --cores` |
 | Essai à la main de la fenêtre de choix de dossier (`startIn`) dans Chrome et Edge | ouvrir `tools/test/startin.html` |
 | Essai à la main des tailles de la mini-fenêtre dans Chrome et Edge | ouvrir `tools/test/pip-sizes.html` |
+| Essai à la main du son de l'ordinateur (quatre façons) et du micro, sur le PC Windows (`decision.md` §51) | ouvrir `tools/test/son-systeme.html` |
 | Mémoire des voix d'une visio à l'autre : corpus multi-appareils, empreintes, banc avant et après (`decision.md` §37) | `python corpus/make-voices.py` (dans `test/`, 1 h 15), `node test/embed-voices.mjs` (1 h, Chromium), `node test/eval-voices.mjs [--sweep\|--explore\|--curve\|--stats]` (secondes) |
 | Paroles simultanées : corpus, puis mesure par type de chevauchement (`decision.md` §39) | `python corpus/make-overlap.py` puis `python corpus/make-variants.py simultane` (dans `test/corpus/`), `node test/eval-hebdo.mjs whisper-small --corpus=simultane [--teams] [--echo]`, puis `node test/eval-overlap.mjs whisper-small [--teams] [--echo]` |
 | Séparation des voix (MossFormer2, `.cache/sep`, `decision.md` §39 ; ConvTasNet, `.cache/sep-convtasnet`, exporté par `python test/export-convtasnet.py`, §44) | `node test/eval-separation.mjs [--teams] [--max=N] [--model=mossformer2\|convtasnet]` |
@@ -155,7 +157,7 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/js/browser.js` | Reconnaissance du navigateur (Brave, Edge, Chrome, Firefox) et messages quand l'écriture dans un dossier est impossible |
 | `app/js/engine.js` | Chargement des fichiers embarqués, moteur Whisper dans un Worker (glossaire, langue, reprise, boucles) |
 | `app/js/analyzer.js` | Détection de parole (Silero) et empreintes vocales (WeSpeaker), dans des Workers |
-| `app/js/capture.js` | Micro et partage d'écran (ouverts sans réglage obligatoire, plusieurs essais, onglet présélectionné après un refus de Windows, plusieurs sons additionnés, `decision.md` §46 à §48), rééchantillonnage 16 kHz, découpage en blocs, son gardé en mémoire |
+| `app/js/capture.js` | Micro et partage d'écran (ouverts sans réglage obligatoire, plusieurs essais, son de toutes les applications puis onglet après un refus de Windows, plusieurs sons additionnés, `decision.md` §46 à §48 et §51), rééchantillonnage 16 kHz, découpage en blocs, son gardé en mémoire |
 | `app/js/audiofile.js` | Fichiers importés : lecteurs de conteneur (WAV, MP3, AAC, M4A, Ogg, WebM), décodage WebCodecs en flux |
 | `app/js/speakers.js` | Distinction, regroupement et mémoire des voix (cinq empreintes au plus par personne, comparaison à la plus proche, `decision.md` §37) ; voix du micro (anti-écho) |
 | `app/js/extract.js` | Compte rendu extractif : phrases de décision, d'action et de question ouverte recopiées mot pour mot (règles en français et en anglais, `decision.md` §40) |

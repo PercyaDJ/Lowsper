@@ -682,7 +682,11 @@
    *   - 'simple' : le même, avec le strict minimum, après un échec ;
    *   - 'tab' : la fenêtre de choix s'ouvre sur les onglets. Le son d'un onglet est pris dans le
    *     navigateur, avant Windows : il ne dépend ni du casque ni de la sortie son.
+   *   - 'apps' : écran entier, son de toutes les applications sauf ce navigateur
+   *     (restrictOwnAudio). Sous Windows 11, Chromium copie alors le son de chaque application au
+   *     lieu de la sortie son : il marche quand la sortie est refusée (casque surround, §51).
    * Toutes les surfaces restent proposées : le mode ne fait que présélectionner.
+   * Lowsper.canRestrictOwnAudio() dit si le navigateur connaît restrictOwnAudio.
    * La vidéo est obligatoire pour la plupart des navigateurs : on la demande au minimum
    * (1 image/s, petite taille) et on ne l'utilise jamais. Le son est demandé sans réglage
    * (audio: true) ; l'absence de traitement (anti-écho, gain) est tentée ensuite sur la piste.
@@ -692,12 +696,15 @@
     md = md || navigator.mediaDevices;
     if (mode === true) mode = 'simple';
     const small = { frameRate: 1, width: { max: 640 }, height: { max: 360 } };
+    const surface = { tab: 'browser', apps: 'monitor' }[mode];
     const options =
       mode === 'simple'
         ? { video: true, audio: true, systemAudio: 'include', windowAudio: 'window' }
         : {
-            video: mode === 'tab' ? { ...small, displaySurface: 'browser' } : small,
-            audio: true,
+            video: surface ? { ...small, displaySurface: surface } : small,
+            // Le seul réglage demandé à l'ouverture, et seulement ici : c'est lui qui change le
+            // chemin pris dans Windows (decision.md §51)
+            audio: mode === 'apps' ? { restrictOwnAudio: true } : true,
             systemAudio: 'include',
             // Fenêtre d'une application (Teams, Jabber) : son de cette fenêtre plutôt que du système
             windowAudio: 'window',
@@ -722,7 +729,20 @@
     // Surface réellement choisie (monitor, window, browser), pour retenir ce qui marche
     const video = stream.getVideoTracks()[0];
     out._lowsperSurface = (video && video.getSettings && video.getSettings().displaySurface) || '';
+    // Son de ce navigateur exclu (restrictOwnAudio appliqué) : ses onglets sont à ajouter à part
+    const set = audio[0].getSettings ? audio[0].getSettings() : {};
+    out._lowsperRestricted = set.restrictOwnAudio === true;
     return out;
+  };
+
+  /** Le navigateur sait-il exclure son propre son du partage (restrictOwnAudio) ? */
+  Lowsper.canRestrictOwnAudio = function (md) {
+    md = md || navigator.mediaDevices;
+    try {
+      return !!(md && md.getSupportedConstraints && md.getSupportedConstraints().restrictOwnAudio);
+    } catch {
+      return false;
+    }
   };
 
   Lowsper.Capture = Capture;

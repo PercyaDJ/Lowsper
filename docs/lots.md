@@ -43,7 +43,8 @@ lancement manuel du workflow de release (`decision.md` §42).
 4.5.1 : son de l'ordinateur et micro captés avec tous les équipements (`decision.md` §46). Correctif 4.5.2 :
 l'onglet de la visio, son pris dans le navigateur, quand Windows refuse le son (`decision.md` §47).
 4.6.0 : plusieurs sons partagés à la fois, doublons retirés, pas d'anglais dans le compte rendu
-d'une réunion en français (`decision.md` §48 et §49).
+d'une réunion en français (`decision.md` §48 et §49). 4.7.0 : son de toutes les applications quand
+Windows refuse le son du système (`decision.md` §51).
 
 Après la refonte : correctif 4.2.1 (dossier Lowsper : accès d'une ancienne version oublié, chemin
 de nouveau affiché à l'installation, dossier parent accepté ; `decision.md` §38). Correctif 4.2.2 :
@@ -61,6 +62,7 @@ sans carte graphique, 16 Go, Edge ou Chrome. Pas de discussion avec la réunion 
 | C2 | Notes rapides tapées pendant la réunion, reprises dans la note ; consigne « e-mail de suivi » | Livré (4.4.0) |
 | C3 | Compte rendu rédigé par une IA locale, seulement là où une mesure sur le portable de référence le valide | Étudié : rien d'intégré |
 | Étude | Séparation des voix plus légère ; vocabulaire « IA et informatique » | Livré : vocabulaire intégré, séparation étudiée |
+| Son | Tout le son de Windows (applications installées) et le micro, quand le son du système est refusé | Livré (4.7.0) : son de toutes les applications, mesuré sur le PC du mainteneur (`decision.md` §51) |
 
 ## Étude : vocabulaire « IA et informatique » et séparation des voix plus légère (livré)
 
