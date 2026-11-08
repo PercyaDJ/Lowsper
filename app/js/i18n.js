@@ -631,6 +631,8 @@
     'rec.noAudio': "Le partage ne contient pas de son : la case « Partager l'audio » n'était pas cochée. ",
     'rec.shareCancelled': 'Partage annulé : seule votre voix est captée. ',
     'rec.othersFailed': "Le son des participants n'a pas pu être capté ({error}). ",
+    'rec.othersStartFailed':
+      "Le navigateur n'a pas pu ouvrir le son de l'ordinateur ({error}). Cliquez sur « Partager le son des participants » : Lowsper réessaie avec des réglages plus simples. Si l'erreur revient, partagez plutôt l'onglet de la visio, en cochant « Partager l'audio de l'onglet ». ",
     'rec.gap':
       'Un passage n’a pas pu être transcrit : il sera signalé dans le transcript, et vous pourrez le relancer à la fin.',
     'rec.slow':
@@ -1456,6 +1458,8 @@
     'rec.noAudio': 'The sharing has no sound: the “Share audio” box was not ticked. ',
     'rec.shareCancelled': 'Sharing cancelled: only your voice is captured. ',
     'rec.othersFailed': 'The sound of the other people could not be captured ({error}). ',
+    'rec.othersStartFailed':
+      'The browser could not open the computer sound ({error}). Click “Share the sound of the other people”: Lowsper tries again with simpler settings. If the error comes back, share the meeting tab instead and tick “Share tab audio”. ',
     'rec.gap':
       'A passage could not be transcribed: it will be marked in the transcript, and you can try it again at the end.',
     'rec.slow':

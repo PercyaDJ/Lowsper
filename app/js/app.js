@@ -626,6 +626,10 @@
         others = await L.getSystemAudio();
       } catch (err) {
         othersError = err;
+        journal('partage-son', {
+          erreur: err && (err.code || err.name),
+          message: String((err && err.message) || err).slice(0, 120),
+        });
       }
     }
 
@@ -690,7 +694,9 @@
       coeurs: navigator.hardwareConcurrency,
       memoire_go: navigator.deviceMemory,
       micro: !!mic,
+      micro_essai: mic && mic._lowsperAttempt,
       participants: !!others,
+      son_traitement_coupe: others ? !!others._lowsperProcessed : null,
       navigateur: navigator.userAgent.slice(0, 120),
     });
     app.lastHealth = 0;
@@ -1231,10 +1237,18 @@
 
   function explainOthersError(err) {
     let msg;
+    app.othersStartFailed = false;
     if (err && err.code === 'NO_AUDIO') {
       msg = tr('rec.noAudio');
     } else if (err && err.name === 'NotAllowedError') {
       msg = tr('rec.shareCancelled');
+    } else if (
+      err &&
+      (err.name === 'NotReadableError' || err.name === 'OverconstrainedError' || err.name === 'AbortError')
+    ) {
+      // Le son de l'ordinateur n'a pas pu s'ouvrir : le prochain essai demande le strict minimum
+      app.othersStartFailed = true;
+      msg = tr('rec.othersStartFailed', { error: err.message || err.name });
     } else {
       msg = tr('rec.othersFailed', { error: (err && err.message) || tr('start.unknownError') });
     }
@@ -1244,12 +1258,18 @@
   // Relance du partage audio en cours de réunion (nécessite un clic : on est dans un handler)
   async function retryOthers() {
     try {
-      const stream = await L.getSystemAudio();
+      const simple = !!app.othersStartFailed;
+      const stream = await L.getSystemAudio(simple);
+      journal('partage-son', { essai: simple ? 'simple' : 'normal', ok: true });
       attachSource('others', stream);
       setMeter('others', 'on');
       $('rec-notice').hidden = true;
       toast(tr('rec.othersCaptured'));
     } catch (err) {
+      journal('partage-son', {
+        erreur: err && (err.code || err.name),
+        message: String((err && err.message) || err).slice(0, 120),
+      });
       explainOthersError(err);
     }
   }

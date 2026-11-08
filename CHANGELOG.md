@@ -13,6 +13,20 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [4.5.1] - 2026-11-08
+
+Rien à faire en passant à cette version : copiez `app\models`, `app\reglages.txt` et `Notes` comme
+d'habitude.
+
+### Corrigé
+- **Son de l'ordinateur et micro captés avec tous les équipements** (haut-parleurs, casque
+  filaire, USB ou Bluetooth ; micro intégré, de webcam ou de casque). Le son partagé était demandé
+  avec des réglages imposés (sans anti-écho, sans gain automatique) ; un PC qui ne savait pas les
+  appliquer refusait d'ouvrir le son (« Could not start audio source »). Il est désormais demandé
+  sans réglage obligatoire, et les réglages sont tentés ensuite. Après un échec, « Partager le son
+  des participants » réessaie avec la demande la plus simple, et le message dit quoi faire. Le
+  micro est essayé avec ses réglages, puis sans, puis chacun des autres micros (decision.md §46).
+
 ## [4.5.0] - 2026-11-08
 
 Rien à faire en passant à cette version : copiez `app\models`, `app\reglages.txt` et `Notes` comme

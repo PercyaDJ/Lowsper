@@ -408,6 +408,15 @@ ou l'onglet de la visio qui est partagé. Cliquez sur « Comment corriger », pu
 nouveau, avec le son. Si vous présentez seul pendant longtemps, l'alerte peut aussi apparaître :
 elle disparaît dès que quelqu'un d'autre parle.
 
+**« Le navigateur n'a pas pu ouvrir le son de l'ordinateur (Could not start audio source) ».**
+C'est Chrome ou Edge qui n'a pas réussi à ouvrir le son de Windows, quels que soient le casque,
+les haut-parleurs ou le micro. Depuis la 4.5.1, Lowsper demande ce son sans aucun réglage
+obligatoire, ce qui évite la cause connue de ce message. S'il apparaît quand même, cliquez sur
+**« Partager le son des participants »** : Lowsper réessaie avec la demande la plus simple
+possible. Si l'erreur revient, et que la visio est dans le navigateur, partagez l'**onglet** de la
+visio en cochant « Partager l'audio de l'onglet » : ce son ne passe pas par Windows. Le micro, lui,
+est essayé avec ses réglages, puis sans, puis chacun des autres micros du PC.
+
 **Où régler le nombre de personnes ?**
 Dans les paramètres, rubrique « Transcription » : **« Nombre de personnes dans vos réunions »**.
 Laissez-le vide (automatique) dans la plupart des cas. C'est un plafond, gardé d'une réunion à

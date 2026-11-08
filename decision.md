@@ -3056,3 +3056,50 @@ sert encore aux copies d'anciennes versions.
 courant (Téléchargements) : non vérifié avec les outils d'archive autres que celui de Windows,
 et le guide conseille « Extraire tout ». Comportement de « Extraire tout » de Windows non revérifié
 sur le portable de référence (non vérifié).
+
+## 46. Capter le son de l'ordinateur et le micro avec tous les équipements (4.5.1)
+
+**Contexte.** Retour du mainteneur, Windows, casque Bluetooth, « Écran entier » avec le son du
+système, une vidéo en cours : Chrome affiche « Le son des participants n'a pas pu être capté
+(Could not start audio source) » ; Brave n'entend pas la réunion. Exigence : quels que soient la
+sortie (haut-parleurs, casque filaire, USB, Bluetooth) et le micro (intégré, webcam, casque),
+Lowsper doit capter le son sortant et le son entrant.
+
+**Ce que l'on sait.** Le message est l'erreur `NotReadableError` de Chromium. Lowsper ouvre le
+partage avant le micro : l'erreur vient de l'ouverture du son de Windows, pas du micro de Lowsper.
+D'après MDN, `getDisplayMedia` lève `NotReadableError` quand les réglages demandés ne peuvent pas
+être appliqués à la source ; or Lowsper en imposait quatre au son partagé (`echoCancellation`,
+`noiseSuppression`, `autoGainControl` à `false`, `suppressLocalAudioPlayback`). Des rapports de
+développeurs (non officiels) citent aussi la capture du son de Windows (WASAPI) qui échoue avec
+certaines sorties (sortie multicanal, mode exclusif). **Non vérifié** : la cause exacte sur le
+poste du mainteneur ; aucun Windows ni casque Bluetooth dans l'environnement de développement.
+
+**Options.**
+| Option | Verdict |
+|---|---|
+| Message seul, conseillant de partager l'onglet | Ne corrige rien pour une visio en application (Teams installé). Insuffisant seul. |
+| Nouvel essai automatique juste après l'échec | Impossible : `getDisplayMedia` exige un clic récent, et la fenêtre de choix a déjà consommé ce délai. |
+| **Son demandé sans réglage obligatoire, réglages tentés ensuite ; essai le plus simple au clic suivant ; micro essayé de plusieurs façons** | **Retenu.** |
+
+**Ce qui change** (`app/js/capture.js`, `app/js/app.js`).
+- Son de l'ordinateur : `audio: true` (la demande que tout navigateur sait satisfaire), puis
+  `applyConstraints` tente de couper anti-écho, réduction de bruit et gain ; un refus ne fait plus
+  échouer le partage (consigné dans le journal : `son_traitement_coupe`).
+- Après `NotReadableError`, `OverconstrainedError` ou `AbortError` : message qui dit quoi faire,
+  et le bouton « Partager le son des participants » redemande avec le strict minimum (`video`,
+  `audio`, `systemAudio`), sans les options de surface.
+- Micro : réglages souhaités (anti-écho, bruit, gain, mono), puis sans réglage, puis chacun des
+  autres micros du PC ; un refus de l'utilisateur arrête tout. Essai retenu dans le journal
+  (`micro_essai`).
+- Chaque échec du partage est consigné dans le journal technique (nom et message de l'erreur).
+
+**Vérifié.** Tests unitaires (essais du micro, demande sans réglage, essai simple) ; dans Chromium,
+un premier partage refusé avec `NotReadableError` affiche le message, et le clic sur « Partager le
+son des participants » redemande le strict minimum puis capte le son ; `npm test` et
+`npm run test:e2e` verts. Le chemin du direct (traitement du son, moteur) ne change pas : seule
+l'ouverture des sources change, pas de mesure `npm run bench`.
+
+**Limites.** Aucun essai sur Windows ni avec un vrai casque Bluetooth ici : à vérifier par le
+mainteneur sur le portable de référence (essai décrit dans le guide). Si Windows lui-même refuse le
+son, aucune page web ne peut le capter autrement ; il reste alors le partage de l'onglet de la
+visio, quand elle est dans le navigateur.

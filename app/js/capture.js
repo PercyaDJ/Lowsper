@@ -567,38 +567,96 @@
   // Demandes d'accès aux périphériques
   // ---------------------------------------------------------------------------
 
-  Lowsper.getMicrophone = function () {
-    return navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        channelCount: 1,
-      },
-      video: false,
-    });
+  // Réglages souhaités, jamais exigés : un PC qui ne sait pas les appliquer doit quand même
+  // donner le son (decision.md §46). Chrome refuse parfois d'ouvrir une source quand il ne peut
+  // pas appliquer un réglage demandé (« Could not start audio source », NotReadableError).
+  const MIC_WANTED = { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 };
+  const OTHERS_WANTED = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+  // Erreurs après lesquelles un autre essai a un sens (pas un refus de l'utilisateur)
+  const RETRY = new Set(['NotReadableError', 'OverconstrainedError', 'AbortError', 'NotFoundError', 'TypeError']);
+
+  /** Applique des réglages à une piste déjà ouverte, sans jamais échouer. Retourne true si appliqués. */
+  async function tryConstraints(track, wanted) {
+    if (!track || !track.applyConstraints) return false;
+    try {
+      await track.applyConstraints(wanted);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Micro, quel qu'il soit (intégré, webcam, casque filaire, USB, Bluetooth). Essais successifs :
+   *   1. le micro par défaut avec ses réglages (anti-écho, réduction de bruit, gain) ;
+   *   2. le micro par défaut sans aucun réglage (les réglages sont ensuite tentés sur la piste) ;
+   *   3. chacun des autres micros, sans réglage.
+   * Un refus de l'utilisateur (NotAllowedError) arrête tout. md : navigator.mediaDevices (tests).
+   */
+  Lowsper.getMicrophone = async function (md) {
+    md = md || navigator.mediaDevices;
+    const tries = [
+      { audio: MIC_WANTED, video: false, note: 'réglages' },
+      { audio: true, video: false, note: 'simple' },
+    ];
+    let last = null;
+    const attempt = async (c) => {
+      const stream = await md.getUserMedia({ audio: c.audio, video: false });
+      if (c.note !== 'réglages')
+        stream._lowsperProcessed = await tryConstraints(stream.getAudioTracks()[0], MIC_WANTED);
+      stream._lowsperAttempt = c.note;
+      return stream;
+    };
+    for (const c of tries) {
+      try {
+        return await attempt(c);
+      } catch (err) {
+        last = err;
+        if (!RETRY.has(err && err.name)) throw err;
+      }
+    }
+    // Un autre micro : le micro par défaut peut être occupé ou indisponible (casque débranché...)
+    let devices = [];
+    try {
+      devices = (await md.enumerateDevices()).filter(
+        (d) => d.kind === 'audioinput' && d.deviceId && d.deviceId !== 'default'
+      );
+    } catch {}
+    for (const d of devices) {
+      try {
+        return await attempt({ audio: { deviceId: { exact: d.deviceId } }, note: 'autre micro' });
+      } catch (err) {
+        last = err;
+        if (!RETRY.has(err && err.name)) throw err;
+      }
+    }
+    throw last;
   };
 
   /**
-   * Demande le partage d'écran pour récupérer le son des participants.
+   * Demande le partage d'écran pour récupérer le son de l'ordinateur (les participants), quelle
+   * que soit la sortie : haut-parleurs, casque filaire, USB ou Bluetooth.
    * La vidéo est obligatoire pour la plupart des navigateurs : on la demande au minimum
    * (1 image/s, petite taille) et on ne l'utilise jamais.
+   * simple : nouvel essai après un échec, sans aucune option facultative.
+   * Le son est demandé sans réglage (audio: true) : c'est la demande que tous les navigateurs
+   * savent satisfaire ; l'absence de traitement (anti-écho, gain) est tentée ensuite sur la piste.
    * Retourne un MediaStream audio seul, ou lève une erreur explicite.
    */
-  Lowsper.getSystemAudio = async function () {
-    const stream = await navigator.mediaDevices.getDisplayMedia({
-      video: { frameRate: 1, width: { max: 640 }, height: { max: 360 } },
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-        suppressLocalAudioPlayback: false,
-      },
-      systemAudio: 'include',
-      selfBrowserSurface: 'exclude',
-      surfaceSwitching: 'include',
-      monitorTypeSurfaces: 'include',
-    });
+  Lowsper.getSystemAudio = async function (simple, md) {
+    md = md || navigator.mediaDevices;
+    const stream = await md.getDisplayMedia(
+      simple
+        ? { video: true, audio: true, systemAudio: 'include' }
+        : {
+            video: { frameRate: 1, width: { max: 640 }, height: { max: 360 } },
+            audio: true,
+            systemAudio: 'include',
+            selfBrowserSurface: 'exclude',
+            surfaceSwitching: 'include',
+            monitorTypeSurfaces: 'include',
+          }
+    );
     const audio = stream.getAudioTracks();
     if (!audio.length) {
       stream.getTracks().forEach((t) => t.stop());
@@ -610,6 +668,8 @@
     // mais elle n'est lue par personne. On garde une référence pour l'arrêter à la fin.
     const out = new MediaStream(audio);
     out._lowsperVideo = stream.getVideoTracks();
+    out._lowsperProcessed = await tryConstraints(audio[0], OTHERS_WANTED);
+    out._lowsperAttempt = simple ? 'simple' : 'normal';
     return out;
   };
 
