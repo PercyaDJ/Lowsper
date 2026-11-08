@@ -646,7 +646,10 @@ await test('vocabulaires : les trois listes d’origine sont inchangées en fran
   assert.equal(V.merge('', ['cyber']).split(', ').length, 49);
   assert.equal(V.merge('', ['it']).split(', ').length, 31);
   const ids = Object.keys(L.VOCABULARIES);
-  assert.equal(ids.length, 12);
+  assert.equal(ids.length, 13);
+  // Domaine « IA et informatique » (decision.md §44) : jargon relevé au §39, dans les deux langues
+  for (const term of ['IA', 'LLM', 'carte graphique', 'RAM']) assert.ok(V.terms('ia', 'fr').includes(term), term);
+  for (const term of ['AI', 'LLM', 'graphics card', 'RAM']) assert.ok(V.terms('ia', 'en').includes(term), term);
   for (const id of ids) {
     assert.match(id, /^[a-z]+$/, 'identifiant gardé dans les réglages : court, sans accent');
     for (const lang of ['fr', 'en']) {

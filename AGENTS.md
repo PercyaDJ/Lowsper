@@ -116,6 +116,7 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Qualité sur corpus réaliste | `node test/eval-hebdo.mjs whisper-small` |
 | Qualité par langue parlée, corpus synthétique (après `corpus/make-langs.py` et `--embed`) | `node test/eval-langs.mjs whisper-small [langues...]` |
 | Effet de plusieurs vocabulaires métier cochés (après `corpus/make-langs.py vocab` et `--embed`) | `node test/eval-vocab.mjs whisper-small [domaines...]` |
+| Vocabulaire « IA et informatique », avant et après, français et anglais (après `corpus/make-langs.py vocab-ia` et `--embed`, 25 min, `decision.md` §44) | `node test/eval-vocab.mjs whisper-small --corpus=vocab-ia [fr\|en]` |
 | Sonde de l'IA intégrée, page en `file://`, fausse IA (20 s, Chromium) | `npm run test:localai` |
 | Interface en français et en anglais : catalogue, page, bascule (5 s, Chromium) | `npm run test:i18n` |
 | Écran de bienvenue : matériel simulé, recommandation, installation simulée (10 s, Chromium) | `npm run test:welcome` |
@@ -126,7 +127,7 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Essai à la main des tailles de la mini-fenêtre dans Chrome et Edge | ouvrir `tools/test/pip-sizes.html` |
 | Mémoire des voix d'une visio à l'autre : corpus multi-appareils, empreintes, banc avant et après (`decision.md` §37) | `python corpus/make-voices.py` (dans `test/`, 1 h 15), `node test/embed-voices.mjs` (1 h, Chromium), `node test/eval-voices.mjs [--sweep\|--explore\|--curve\|--stats]` (secondes) |
 | Paroles simultanées : corpus, puis mesure par type de chevauchement (`decision.md` §39) | `python corpus/make-overlap.py` puis `python corpus/make-variants.py simultane` (dans `test/corpus/`), `node test/eval-hebdo.mjs whisper-small --corpus=simultane [--teams] [--echo]`, puis `node test/eval-overlap.mjs whisper-small [--teams] [--echo]` |
-| Séparation des voix (MossFormer2, `.cache/sep`, `decision.md` §39) | `node test/eval-separation.mjs [--teams] [--max=N]` |
+| Séparation des voix (MossFormer2, `.cache/sep`, `decision.md` §39 ; ConvTasNet, `.cache/sep-convtasnet`, exporté par `python test/export-convtasnet.py`, §44) | `node test/eval-separation.mjs [--teams] [--max=N] [--model=mossformer2\|convtasnet]` |
 | Kyutai STT sur processeur (environnement Python à part, `.cache/kyutai`, `decision.md` §39) | `python test/eval-kyutai.py [--threads=4] [corpus...]` |
 | Compte rendu extractif : texte exact (secondes), puis audio par la chaîne Lowsper (`decision.md` §40) | `node test/eval-extract.mjs [--list]` ; audio : `python corpus/make-cr.py` (dans `test/`), `node build.mjs --embed whisper-small`, `node test/eval-extract.mjs --transcribe` (1 h 30, Chromium), `node test/eval-hebdo.mjs whisper-small` (et `--corpus=entretien`), puis `node test/eval-extract.mjs --audio` |
 | Étude du résumé local (modèles dans `.cache/llm/<auteur>/<nom>`, decision.md §22 et §43) | `node test/eval-summary.mjs <modèle ou auteur/modèle> [--dtype=q8\|q4\|q4f16\|fp32] [--sanity] [--long] [--extrait]` |

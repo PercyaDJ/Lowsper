@@ -53,7 +53,7 @@ confiée à une IA pour le compte rendu. Ni le son ni le texte ne quittent l'ord
   commencé à les taper. « Obtenir un résumé » propose aussi un **e-mail de suivi** pour les
   participants.
 - **Mots à reconnaître** (noms, sigles) et **corrections automatiques** des mots mal compris,
-  gardés d'une réunion à l'autre ; douze vocabulaires métier intégrés, en français et en anglais.
+  gardés d'une réunion à l'autre ; treize vocabulaires métier intégrés, dont « IA et informatique », en français et en anglais.
 - **Emplacements** : chacun est un dossier et un format de note. « Pour les applications de
   notes » ajoute des propriétés et des liens `[[Nom]]` lisibles par des applications comme
   Obsidian.

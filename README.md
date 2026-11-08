@@ -50,7 +50,7 @@ to an AI for the minutes. Neither the sound nor the text leaves the computer.
 - **Quick notes** typed during the meeting, added to the note with the time you started typing
   them. « Get a summary » also offers a **follow-up email** for the participants.
 - **Words to recognize** (names, acronyms) and **automatic fixes** for misheard words, kept from
-  one meeting to the next; twelve built-in industry vocabularies, in English and French.
+  one meeting to the next; thirteen built-in industry vocabularies, AI and computing included, in English and French.
 - **Places**: each one is a folder and a note format. « For note apps » adds properties and
   `[[Name]]` links readable by apps like Obsidian.
 - **Audio files** (WAV, MP3, M4A, OGG, WebM), even several hours long, with the same engine.

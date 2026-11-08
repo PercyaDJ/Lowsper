@@ -83,7 +83,9 @@ logistique: {
   (`decision.md` §35).
 - **Seulement des termes génériques du domaine** : sigles, jargon, noms de lois, de normes ou
   d'organismes publics. **Jamais** de nom d'entreprise, de marque, de produit ou de personne
-  (règle n° 9 d'`AGENTS.md`).
+  (règle n° 9 d'`AGENTS.md`). Seule exception, décidée par le mainteneur : le domaine « IA et
+  informatique » (`ia`) cite des langages et des logiciels libres très courants (Python, Linux,
+  Git...), jamais une marque d'éditeur commercial (`decision.md` §44).
 - **Inutile** d'ajouter un mot courant que Whisper écrit déjà bien (« budget », « réunion ») : il
   prend de la place sans rien apporter. Pas de virgule ni de point-virgule dans un terme.
 - **Une langue parlée** ne reçoit que les termes de sa liste : une liste française n'est jamais
@@ -95,7 +97,8 @@ logistique: {
 
 **Vérifier.** `npm run test:unit` contrôle le format (identifiant, doublons, nom dans les deux
 langues) et que les termes ne ralentissent pas la correction du texte. Pour mesurer l'effet d'une
-liste sur la reconnaissance, voir `tools/test/eval-vocab.mjs`.
+liste sur la reconnaissance, voir `tools/test/eval-vocab.mjs` (option `--corpus=` pour un corpus
+qui nomme ses propres listes cochées, comme `corpus/vocab-ia.json`).
 
 ## Signaler une faille
 

@@ -59,9 +59,10 @@ réunion qui travaille hors ligne.
    votre PC (processeurs, mémoire, carte graphique) et coche le modèle **« Le meilleur pour ce
    PC »**. Cliquez sur **« Télécharger et installer »**. La fenêtre du navigateur s'ouvre sur vos
    Téléchargements : choisissez le **dossier Lowsper** affiché à l'écran (celui qui contient
-   `Lowsper.html`) et acceptez que Lowsper y enregistre des fichiers. « Extraire tout » de Windows
-   crée souvent deux dossiers du même nom l'un dans l'autre (`Lowsper-4.2.1\Lowsper-4.2.1`) :
-   choisir le premier suffit, Lowsper retrouve seul celui qui contient `Lowsper.html`. Le téléchargement (80 à 330 Mo selon le modèle)
+   `Lowsper.html`) et acceptez que Lowsper y enregistre des fichiers. Depuis la 4.5.0, le zip
+   contient directement les fichiers : « Extraire tout » donne un seul dossier `Lowsper-X.Y.Z`
+   (avec une version plus ancienne, deux dossiers du même nom l'un dans l'autre : choisir le
+   premier suffit, Lowsper retrouve seul celui qui contient `Lowsper.html`). Le téléchargement (80 à 330 Mo selon le modèle)
    prend une à quelques minutes, la page redémarre toute seule à la fin. Ce même accord sert
    ensuite à garder une copie de vos réglages dans ce dossier, et à y ranger vos notes
    (`Notes\<emplacement>`).
@@ -271,8 +272,8 @@ mal reconnu, n'est pas proposé.
 
 ### Vocabulaires métier
 
-Paramètres, onglet **Transcription**, **« Vocabulaire métier »** : douze domaines (cybersécurité,
-informatique et cloud, gestion de projet, santé, juridique, finance et comptabilité, ressources
+Paramètres, onglet **Transcription**, **« Vocabulaire métier »** : treize domaines (cybersécurité,
+informatique et cloud, IA et informatique, gestion de projet, santé, juridique, finance et comptabilité, ressources
 humaines, éducation, commerce et marketing, secteur public, ingénierie et industrie, immobilier).
 Leurs sigles et termes habituels sont donnés à Whisper, dans la langue parlée : chaque domaine a
 une liste en français et une en anglais ; pour une autre langue, seuls vos « Mots à reconnaître »
@@ -285,6 +286,15 @@ avec plusieurs listes, chacune garde ses termes les plus utiles, mais plus il y 
 chacune a de place. Avec une liste, 37 termes métier sur 44 sont bien écrits dans notre mesure ;
 avec trois, 35 ; avec les douze, 30, presque comme sans liste (26). Vos « Mots à reconnaître »
 passent toujours en priorité. Pour proposer un domaine ou une langue : `CONTRIBUTING.md`.
+
+**IA et informatique** : le jargon des réunions sur l'IA et l'informatique (IA, LLM, carte
+graphique, GPU, RAM, prompt, RAG, fine-tuning...) et quelques langages et logiciels libres très
+courants (Python, Linux, Git, PostgreSQL, PyTorch), jamais une marque d'éditeur commercial. Dans
+notre mesure sur des voix de synthèse, en français, 24 de ces termes sur 31 sont bien écrits avec
+la liste, contre 15 sans ; en anglais, Whisper les connaît déjà presque tous (29 sur 31 sans
+liste, 30 avec). Les noms de logiciels commerciaux ou propres à votre entreprise s'ajoutent dans
+vos « Mots à reconnaître ». Cocher en plus « Informatique et cloud » coûte un ou deux termes sur
+31 : cochez les deux si vos réunions mêlent les deux sujets, sinon « IA et informatique » seule.
 
 ### Interface en français ou en anglais
 
@@ -375,7 +385,8 @@ Lowsper oublie cet accès sans rien demander et n'utilise que le dossier de la p
 
 **Lowsper me dit que le dossier choisi ne contient pas Lowsper.html.**
 Choisissez le dossier affiché sur l'écran de bienvenue, ou l'un des dossiers qui le contiennent
-(par exemple le premier des deux dossiers `Lowsper-4.2.1` créés par « Extraire tout ») : Lowsper
+(avant la 4.5.0, par exemple le premier des deux dossiers `Lowsper-4.2.1` créés par « Extraire
+tout ») : Lowsper
 regarde dans les dossiers qu'il contient. Le navigateur ne permet pas d'ouvrir sa fenêtre
 directement sur le bon dossier : elle s'ouvre sur vos Téléchargements.
 

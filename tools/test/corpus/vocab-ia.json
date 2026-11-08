@@ -1,0 +1,49 @@
+{
+  "about": "Corpus synthétique du vocabulaire « IA et informatique » (lot Étude, decision.md §44) : douze phrases fictives par langue parlée, avec le jargon mal reconnu relevé au §39 (IA, LLM, carte graphique, RAM, noms de logiciels libres). Termes pris au début, au milieu et à la fin de la liste « ia » (app/js/vocabularies.js). Phrases et liste écrites ensemble : corpus de réglage, pas à l'aveugle. Audio généré par make-langs.py vocab-ia ; mesure par eval-vocab.mjs --corpus=vocab-ia.",
+  "match": "word",
+  "conditions": {
+    "aucun": [],
+    "informatique et cloud": ["it"],
+    "IA et informatique": ["ia"],
+    "IA + informatique et cloud": ["ia", "it"],
+    "IA + informatique + cybersécurité": ["ia", "it", "cyber"]
+  },
+  "langs": {
+    "fr": {
+      "voices": ["fr_FR-siwis-medium", "fr_FR-tom-medium"],
+      "lines": [
+        "L'IA générative ne doit pas recevoir de données clients sans validation.",
+        "Le LLM tourne en local, sur le processeur, sans carte graphique.",
+        "Il faut au moins seize gigaoctets de RAM pour charger ce modèle de langage.",
+        "Le GPU accélère l'entraînement, mais l'inférence se fait sur le CPU.",
+        "On a réécrit le prompt pour limiter les hallucinations du chatbot.",
+        "Le RAG récupère les passages utiles grâce aux embeddings.",
+        "Le script Python appelle l'API et compte les tokens consommés.",
+        "Le serveur Linux héberge le dépôt Git et la base PostgreSQL.",
+        "Le fine-tuning du réseau de neurones demande un jeu de données propre.",
+        "La quantification réduit la taille du modèle sur le SSD.",
+        "Le NPU du portable n'est pas encore utilisé par PyTorch.",
+        "L'AI Act impose de documenter les usages du machine learning."
+      ],
+      "terms": ["IA générative", "LLM", "processeur", "carte graphique", "gigaoctet", "RAM", "modèle de langage", "GPU", "entraînement", "inférence", "CPU", "prompt", "hallucination", "chatbot", "RAG", "embeddings", "Python", "API", "tokens", "Linux", "Git", "PostgreSQL", "fine-tuning", "réseau de neurones", "jeu de données", "quantification", "SSD", "NPU", "PyTorch", "AI Act", "machine learning"]
+    },
+    "en": {
+      "voices": ["en_US-lessac-medium", "en_GB-alan-medium"],
+      "lines": [
+        "Generative AI must not receive customer data without approval.",
+        "The LLM runs locally on the CPU, without a graphics card.",
+        "You need sixteen gigabytes of RAM to load this language model.",
+        "The GPU speeds up training, but inference runs on the NPU.",
+        "We rewrote the prompt to reduce the chatbot's hallucinations.",
+        "RAG retrieves the right passages using embeddings.",
+        "The Python script calls the API and counts the tokens.",
+        "The Linux server hosts the Git repository and the PostgreSQL database.",
+        "Fine-tuning the neural network requires a clean dataset.",
+        "Quantization shrinks the model on the SSD.",
+        "The PyTorch build does not use the NPU yet.",
+        "The AI Act requires us to document our machine learning use cases."
+      ],
+      "terms": ["generative AI", "LLM", "CPU", "graphics card", "gigabyte", "RAM", "language model", "GPU", "training", "inference", "NPU", "prompt", "chatbot", "hallucination", "RAG", "embeddings", "Python", "API", "tokens", "Linux", "Git", "PostgreSQL", "fine-tuning", "neural network", "dataset", "quantization", "SSD", "PyTorch", "AI Act", "machine learning"]
+    }
+  }
+}
