@@ -3103,3 +3103,49 @@ l'ouverture des sources change, pas de mesure `npm run bench`.
 mainteneur sur le portable de référence (essai décrit dans le guide). Si Windows lui-même refuse le
 son, aucune page web ne peut le capter autrement ; il reste alors le partage de l'onglet de la
 visio, quand elle est dans le navigateur.
+
+## 47. Son des participants : l'onglet, chemin qui ne passe pas par Windows (4.5.2)
+
+**Contexte.** Après la 4.5.1 (§46), le mainteneur voit toujours « Could not start audio source »,
+sur un PC fixe Windows, avec un casque sans fil Logitech G733, dans Chrome et Brave, en partageant
+l'écran entier pendant une vidéo YouTube. La demande sans réglage ne suffit donc pas : c'est
+l'ouverture du son de Windows par le navigateur qui échoue. Exigence du mainteneur : ne rien
+changer aux réglages du casque ni de Windows ; Lowsper doit capter le son sortant et le son
+entrant avec tous les équipements.
+
+**Ce qu'une page web peut faire.** Le son de l'ordinateur n'est accessible que par le partage
+d'écran (`getDisplayMedia`), sous trois formes :
+| Surface | D'où vient le son | Dépend de la sortie son de Windows |
+|---|---|---|
+| Écran entier, « son du système » | Capture de la sortie son de Windows | Oui : c'est elle qui échoue ici |
+| Onglet, « audio de l'onglet » | Le navigateur lui-même, avant d'envoyer le son à Windows | **Non** |
+| Fenêtre (`windowAudio: 'window'`) | Le son de l'application de la fenêtre | Non vérifié sous Windows |
+Rapports de développeurs (non officiels) : la capture du son de Windows échoue notamment avec une
+sortie multicanal (surround 7.1), ce qu'offrent les casques de jeu. Non vérifié sur le PC du
+mainteneur, qui ne veut pas changer de format (exigence légitime : la qualité de son).
+
+**Retenu.**
+- Après un échec du son de tout l'ordinateur, le message propose d'abord **« Partager l'onglet de
+  la visio »** (fenêtre de choix présélectionnée sur les onglets, `displaySurface: 'browser'`), puis
+  « Partager le son des participants » (écran ou fenêtre).
+- Lowsper retient l'échec (`lowsper.share.surface`) : aux réunions suivantes, la fenêtre de choix
+  s'ouvre sur les onglets ; un écran ou une fenêtre qui donne le son rétablit le choix par défaut.
+  Toutes les surfaces restent proposées : ce n'est qu'une présélection.
+- Pour les applications de visio, `windowAudio: 'window'` demande le son de la fenêtre choisie
+  plutôt que celui du système (indication que le navigateur peut ignorer).
+- « Avant de commencer » et le guide expliquent les deux cas : visio dans le navigateur, son
+  onglet ; visio en application, l'écran entier ou sa fenêtre.
+
+**Vérifié** (Chromium sous Linux, écran virtuel, conteneur **sans aucune carte son**) : un onglet lit
+un enregistrement fictif ; `Lowsper.getSystemAudio('tab')` donne la piste « Tab audio », niveau
+efficace 0,28 pendant la lecture, presque nul onglet en pause : le son vient bien de l'onglet, sans
+sortie son du système. Chaîne complète : avec l'onglet présélectionné, la réunion transcrit le son
+de l'onglet en direct (« Julien, tu peux commencer... »). Premier partage refusé avec
+`NotReadableError` : les deux boutons s'affichent, « Partager l'onglet de la visio » capte le son et
+retient la préférence. `npm test` et `npm run test:e2e` verts.
+
+**Limites.** Non vérifié sous Windows, ni dans Brave (même moteur), ni avec le G733. Une visio en
+application (Teams installé, Jabber) n'a pas d'onglet : si le son du système et celui de la
+fenêtre échouent tous deux, aucune page web ne peut capter son son ; seul un composant installé le
+pourrait, ce que la contrainte n° 2 interdit. Le chemin du direct (traitement, moteur) ne change
+pas : pas de mesure `npm run bench`.

@@ -636,27 +636,35 @@
   /**
    * Demande le partage d'écran pour récupérer le son de l'ordinateur (les participants), quelle
    * que soit la sortie : haut-parleurs, casque filaire, USB ou Bluetooth.
+   * mode (decision.md §46 et §47) :
+   *   - 'screen' (par défaut) : écran entier ou fenêtre, avec le son du système ou de la fenêtre ;
+   *   - 'simple' : le même, avec le strict minimum, après un échec ;
+   *   - 'tab' : la fenêtre de choix s'ouvre sur les onglets. Le son d'un onglet est pris dans le
+   *     navigateur, avant Windows : il ne dépend ni du casque ni de la sortie son.
+   * Toutes les surfaces restent proposées : le mode ne fait que présélectionner.
    * La vidéo est obligatoire pour la plupart des navigateurs : on la demande au minimum
-   * (1 image/s, petite taille) et on ne l'utilise jamais.
-   * simple : nouvel essai après un échec, sans aucune option facultative.
-   * Le son est demandé sans réglage (audio: true) : c'est la demande que tous les navigateurs
-   * savent satisfaire ; l'absence de traitement (anti-écho, gain) est tentée ensuite sur la piste.
+   * (1 image/s, petite taille) et on ne l'utilise jamais. Le son est demandé sans réglage
+   * (audio: true) ; l'absence de traitement (anti-écho, gain) est tentée ensuite sur la piste.
    * Retourne un MediaStream audio seul, ou lève une erreur explicite.
    */
-  Lowsper.getSystemAudio = async function (simple, md) {
+  Lowsper.getSystemAudio = async function (mode, md) {
     md = md || navigator.mediaDevices;
-    const stream = await md.getDisplayMedia(
-      simple
-        ? { video: true, audio: true, systemAudio: 'include' }
+    if (mode === true) mode = 'simple';
+    const small = { frameRate: 1, width: { max: 640 }, height: { max: 360 } };
+    const options =
+      mode === 'simple'
+        ? { video: true, audio: true, systemAudio: 'include', windowAudio: 'window' }
         : {
-            video: { frameRate: 1, width: { max: 640 }, height: { max: 360 } },
+            video: mode === 'tab' ? { ...small, displaySurface: 'browser' } : small,
             audio: true,
             systemAudio: 'include',
+            // Fenêtre d'une application (Teams, Jabber) : son de cette fenêtre plutôt que du système
+            windowAudio: 'window',
             selfBrowserSurface: 'exclude',
             surfaceSwitching: 'include',
             monitorTypeSurfaces: 'include',
-          }
-    );
+          };
+    const stream = await md.getDisplayMedia(options);
     const audio = stream.getAudioTracks();
     if (!audio.length) {
       stream.getTracks().forEach((t) => t.stop());
@@ -669,7 +677,10 @@
     const out = new MediaStream(audio);
     out._lowsperVideo = stream.getVideoTracks();
     out._lowsperProcessed = await tryConstraints(audio[0], OTHERS_WANTED);
-    out._lowsperAttempt = simple ? 'simple' : 'normal';
+    out._lowsperAttempt = mode || 'screen';
+    // Surface réellement choisie (monitor, window, browser), pour retenir ce qui marche
+    const video = stream.getVideoTracks()[0];
+    out._lowsperSurface = (video && video.getSettings && video.getSettings().displaySurface) || '';
     return out;
   };
 
