@@ -74,6 +74,9 @@ await page.fill('#glossary', corpus.glossary);
 await page.click('#page-glossary [data-back]');
 await page.click('#settings-close');
 await page.fill('#title', 'Point hebdo du centre de service');
+// Accueil tel que le voit l'utilisateur après l'installation, dossier Lowsper accordé : sans la
+// proposition « Choisir le dossier Lowsper » d'un navigateur qui n'y a pas encore accès (§52)
+await page.evaluate(() => (document.getElementById('profile-access').hidden = true));
 await page.screenshot({ path: join(out, 'accueil.png') });
 
 // « Avant de commencer », capturée puis passée

@@ -44,7 +44,9 @@ lancement manuel du workflow de release (`decision.md` §42).
 l'onglet de la visio, son pris dans le navigateur, quand Windows refuse le son (`decision.md` §47).
 4.6.0 : plusieurs sons partagés à la fois, doublons retirés, pas d'anglais dans le compte rendu
 d'une réunion en français (`decision.md` §48 et §49). 4.7.0 : son de toutes les applications quand
-Windows refuse le son du système (`decision.md` §51).
+Windows refuse le son du système (`decision.md` §51). 4.8.0 : aucun message d'erreur sous Windows 11,
+même dossier de notes dans tous les navigateurs, fenêtre de réunion sans défilement, bulles
+(`decision.md` §52).
 
 Après la refonte : correctif 4.2.1 (dossier Lowsper : accès d'une ancienne version oublié, chemin
 de nouveau affiché à l'installation, dossier parent accepté ; `decision.md` §38). Correctif 4.2.2 :

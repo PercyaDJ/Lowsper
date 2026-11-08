@@ -812,6 +812,14 @@ await test('son de l’ordinateur : demandé sans réglage obligatoire, essai si
   assert.equal(L.canRestrictOwnAudio({ getSupportedConstraints: () => ({ restrictOwnAudio: true }) }), true);
   assert.equal(L.canRestrictOwnAudio({ getSupportedConstraints: () => ({}) }), false);
   assert.equal(L.canRestrictOwnAudio({}), false);
+  // Windows 11 : platformVersion 13 ou plus (Client Hints), §52
+  const nav = (platform, v) => ({
+    userAgentData: { platform, getHighEntropyValues: async () => ({ platformVersion: v }) },
+  });
+  assert.equal(await L.isWindows11(nav('Windows', '19.0.0')), true);
+  assert.equal(await L.isWindows11(nav('Windows', '10.0.0')), false, 'Windows 10');
+  assert.equal(await L.isWindows11(nav('macOS', '15.0.0')), false);
+  assert.equal(await L.isWindows11({}), false, 'sans Client Hints (Firefox)');
   // Partage sans son : erreur explicite
   const none = {
     getDisplayMedia: async () => ({ getAudioTracks: () => [], getVideoTracks: () => [], getTracks: () => [] }),

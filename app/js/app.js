@@ -714,9 +714,9 @@
     }
     setMeter('me', mic ? 'on' : 'off');
     setMeter('others', others ? 'on' : 'off');
+    labelAddSound(others);
     if (!mic) notice(tr('rec.noMic'));
     else if (withOthers && !others) explainOthersError(othersError);
-    else if (others && others._lowsperRestricted) notice(tr('rec.appsCaptured'));
     else if (!withOthers) notice(tr('rec.micOnly'));
 
     app.timer = setInterval(tick, 100);
@@ -1266,6 +1266,18 @@
     }
   }
 
+  /**
+   * « Ajouter un onglet » quand le son de toutes les applications est capté (il exclut ce
+   * navigateur : une visio ou une vidéo dans un de ses onglets s'ajoute d'un clic), sinon
+   * « Ajouter un son ».
+   */
+  function labelAddSound(stream) {
+    const tab = !!(stream && stream._lowsperRestricted);
+    const b = $('others-add');
+    b.textContent = tr(tab ? 'meet.addTab' : 'meet.addSound');
+    b.title = tr(tab ? 'meet.addTabSub' : 'meet.addSoundSub');
+  }
+
   function explainOthersError(err) {
     let msg;
     app.othersStartFailed = false;
@@ -1316,12 +1328,20 @@
       store.set('lowsper.share.surface', 'screen');
   }
 
-  /** Façon de demander le son de la réunion, d'après ce qui a marché ou échoué sur ce PC. */
+  /**
+   * Façon de demander le son de la réunion. Sous Windows 11, quand le navigateur sait exclure son
+   * propre son, le son de toutes les applications d'emblée : il ne passe pas par la sortie son de
+   * Windows, qui échoue avec certains casques, et évite tout message d'erreur (decision.md §52).
+   * Sinon, ce qui a marché ou échoué sur ce PC.
+   */
   function shareMode() {
     const pref = store.get('lowsper.share.surface');
-    if (pref === 'apps' && L.canRestrictOwnAudio()) return 'apps';
+    if (L.canRestrictOwnAudio() && pref !== 'tab' && (pref === 'apps' || app.windows11)) return 'apps';
     return pref === 'tab' ? 'tab' : 'screen';
   }
+  // Windows 11 ? Connu à l'avance (la demande de partage doit suivre le clic sans attendre)
+  app.windows11 = false;
+  L.isWindows11().then((yes) => (app.windows11 = yes));
 
   async function retryOthers(mode) {
     try {
@@ -1331,8 +1351,8 @@
       attachSource('others', stream);
       setMeter('others', 'on');
       $('rec-notice').hidden = true;
-      if (stream._lowsperRestricted) notice(tr('rec.appsCaptured'));
-      else toast(tr('rec.othersCaptured'));
+      labelAddSound(stream);
+      toast(tr('rec.othersCaptured'));
     } catch (err) {
       journal('partage-son', {
         erreur: err && (err.code || err.name),
@@ -1787,7 +1807,7 @@
     let renamable = false;
     for (const para of t.paragraphs()) {
       const p = document.createElement('div');
-      p.className = 'done-line' + (para.draft ? ' draft' : '');
+      p.className = 'done-line' + (para.source === 'me' ? ' me' : '') + (para.draft ? ' draft' : '');
       if (para.draft) p.title = tr('rec.draftTitle');
       const head = document.createElement('div');
       head.className = 'done-who';
@@ -1930,6 +1950,7 @@
     $('view-import').hidden = state !== 'importing';
     $('view-finish').hidden = state !== 'finishing';
     $('view-done').hidden = state !== 'done';
+    if (state === 'recording') setTimeout(fitLive, 0);
     // Langue de l'interface : changeable seulement quand rien ne tourne (textes en cours stables)
     const busy = state === 'recording' || state === 'finishing' || state === 'importing';
     $('row-ui-lang').disabled = busy;
@@ -2262,7 +2283,7 @@
     const p = L.Notes.current();
     let acc = { state: 'aucun' };
     try {
-      acc = await L.Notes.access(p, false);
+      acc = (await L.Notes.access(p, false)) || acc;
     } catch {}
     const box = $('profile-access');
     app.profileAccess = acc.state;
@@ -2272,19 +2293,46 @@
     } else if (acc.state === 'oublie') {
       $('profile-access-text').textContent = tr('prof.access.forgotten', { name: p.name, folder: p.folderName });
       $('profile-allow').textContent = tr('prof.access.repick');
+    } else if (acc.state === 'aucun' && !p.folderName) {
+      // Emplacement par défaut (Lowsper/Notes/...) et navigateur sans accès au dossier Lowsper :
+      // c'est le cas d'un autre navigateur ouvert sur la même copie. L'accord d'un navigateur ne
+      // vaut que pour lui ; un clic, une seule fois, suffit pour retrouver le même dossier de
+      // notes (decision.md §52). Sans écriture dans un dossier (Brave, Firefox) : le dire.
+      let base = null;
+      try {
+        base = await L.Settings.folder();
+      } catch {}
+      if (!base) {
+        acc = { state: L.canInstall() ? 'lowsper' : 'impossible' };
+        app.profileAccess = acc.state;
+        $('profile-access-text').textContent =
+          acc.state === 'lowsper' ? tr('prof.access.lowsper') : L.Browser.folderMessage('notes');
+        $('profile-allow').textContent = tr('prof.access.pickLowsper');
+        $('profile-allow').hidden = acc.state !== 'lowsper';
+      }
     }
-    box.hidden = !(acc.state === 'a-demander' || acc.state === 'oublie');
+    if (acc.state !== 'impossible') $('profile-allow').hidden = false;
+    box.hidden = !['a-demander', 'oublie', 'lowsper', 'impossible'].includes(acc.state);
   }
 
   async function allowProfileFolder() {
     const p = L.Notes.current();
     try {
-      if (app.profileAccess === 'oublie') {
+      if (app.profileAccess === 'lowsper') {
+        // Doit suivre immédiatement le clic : la fenêtre de choix s'ouvre sur Téléchargements
+        const folder = await L.pickLowsperFolder();
+        await L.Settings.setFolder(folder);
+        await L.Settings.save({ force: true });
+        await refreshLowsper();
+        renderSaved();
+        toast(tr('prof.access.lowsperDone'));
+      } else if (app.profileAccess === 'oublie') {
         const name = await L.Notes.pickFolder(p.id);
         if (name) updateProfile(p.id, { folderName: name });
       } else await L.Notes.access(p, true);
     } catch (e) {
-      toast(e.code === 'unsupported' ? e.message : tr('prof.folderError', { error: e.message }), 8000);
+      if (e.code !== 'CANCELLED')
+        toast(e.code === 'unsupported' ? e.message : tr('prof.folderError', { error: e.message }), 8000);
     }
     renderProfiles();
   }
@@ -3007,7 +3055,7 @@
     if (had !== app.hasLowsper) {
       renderProfiles();
       renderPlace();
-    }
+    } else renderProfileAccess();
   }
   refreshLowsper();
 
@@ -3413,7 +3461,7 @@
   // « Comment corriger » : l'explication, avec un bouton pour partager de nouveau le son
   $('others-fix').addEventListener('click', () => notice(tr('meet.fixHelp'), 'others'));
   $('others-add').addEventListener('click', addOthers);
-  $('add-sound-line').hidden = !(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+  $('others-add').hidden = !(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
   // Nom de la réunion, modifiable pendant la réunion (note et contexte donné à Whisper)
   $('meet-title').addEventListener('input', () => {
     if (!app.transcript || app.state !== 'recording') return;
@@ -3427,7 +3475,26 @@
     store.set('lowsper.opt.showLive', e.target.checked ? '1' : '0');
     $('live').hidden = !e.target.checked;
     if (e.target.checked) renderLive();
+    fitLive();
   });
+  /**
+   * Texte en direct : il prend la hauteur qui reste dans la fenêtre, et c'est lui qui défile, pas
+   * la page (decision.md §52). Plancher de 120 px : une fenêtre très basse défile comme avant.
+   */
+  function fitLive() {
+    const box = $('live');
+    if (box.hidden || $('view-rec').hidden) return;
+    const top = box.getBoundingClientRect().top + window.scrollY;
+    const h = Math.max(120, Math.floor(window.innerHeight - top - 12));
+    box.style.height = h + 'px';
+    // Marges du bas de page : ce qui dépasse encore est retiré du texte en direct
+    const over = document.documentElement.scrollHeight - window.innerHeight;
+    if (over > 0) box.style.height = Math.max(120, h - over) + 'px';
+  }
+  window.addEventListener('resize', fitLive);
+  // Ce qui est au-dessus change de hauteur : notes rapides ajoutées, message affiché ou retiré
+  const aboveLive = new ResizeObserver(() => fitLive());
+  for (const id of ['qn-list', 'rec-notice', 'row-others']) aboveLive.observe($(id));
   $('chain').addEventListener('click', chainNext);
   // Notes rapides : l'heure retenue est celle de la première frappe, Entrée ajoute, Échap efface
   $('qn-input').addEventListener('input', () => {

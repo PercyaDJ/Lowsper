@@ -8,6 +8,7 @@
 // 3. « Démarrer » : fenêtre « Avant de commencer » (trois étapes), Annuler, Continuer, et
 //    « Ne plus afficher » ; Entrée dans le nom suit le même chemin.
 // 4. « Nombre de personnes » dans les paramètres : gardé, vide par défaut (automatique).
+// 5. Navigateur sans accès au dossier Lowsper : « Choisir le dossier Lowsper » proposé (§52).
 // Aucune erreur de page, aucune requête réseau.
 //
 // Usage : node test/home.mjs   (CHROMIUM_PATH si besoin ; aucun modèle requis)
@@ -196,6 +197,27 @@ await test('« Nombre de personnes » dans les paramètres : automatique par dé
   await load();
   assert.equal(await page.inputValue('#people'), '6');
   assert.equal(await page.evaluate(() => localStorage.getItem('lowsper.opt.people')), '6');
+});
+
+await test('nouveau navigateur sans accès au dossier Lowsper : un clic proposé, une fois (§52)', async () => {
+  // Emplacement « Par défaut » (dossier Lowsper/Notes/...), comme au premier lancement
+  await page.evaluate(() => localStorage.removeItem('lowsper.profile'));
+  await load();
+  await page.waitForSelector('#profile-access:not([hidden])');
+  assert.match(await page.textContent('#profile-access-text'), /pas encore accès au dossier Lowsper/);
+  assert.equal(await page.textContent('#profile-allow'), 'Choisir le dossier Lowsper');
+  assert.equal(await page.isVisible('#profile-allow'), true);
+  // Navigateur qui ne sait pas écrire dans un dossier (Brave par défaut, Firefox) : le dire, sans bouton
+  const other = await context.newPage();
+  await other.addInitScript(() => {
+    window.LOWSPER_INSTALLED = [{ id: 'whisper-small', label: 'Whisper small' }];
+    delete window.showDirectoryPicker;
+  });
+  await other.goto(url);
+  await other.waitForSelector('#profile-access:not([hidden])');
+  assert.match(await other.textContent('#profile-access-text'), /Téléchargements/);
+  assert.equal(await other.isVisible('#profile-allow'), false);
+  await other.close();
 });
 
 await test('aucune erreur de page, aucune requête réseau', async () => {

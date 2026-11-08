@@ -4,11 +4,14 @@
 // comme sur le PC Windows 11 du mainteneur avec un casque surround.
 //   1. premier partage refusé : le message propose d'abord « Partager le son de toutes les
 //      applications », qui redemande l'écran entier avec restrictOwnAudio et capte le son ;
-//   2. le message dit que le son de ce navigateur est exclu, et le choix est retenu ;
+//   2. plus de message une fois le son capté, le bouton devient « Ajouter un onglet », et le choix
+//      est retenu ;
 //   3. réunion suivante : restrictOwnAudio est demandé d'emblée, sans échec ;
-//   4. « Ajouter un autre son » ouvre la fenêtre de choix sur les onglets ;
+//   4. « Ajouter un onglet » ouvre la fenêtre de choix sur les onglets ;
 //   5. navigateur qui ne connaît pas restrictOwnAudio : comportement d'avant (onglet d'abord) ;
-//   6. aucune requête réseau.
+//   6. Windows 11 (simulé) : le son de toutes les applications d'emblée, aucun message, bouton
+//      « Ajouter un onglet » (decision.md §52) ;
+//   7. aucune requête réseau.
 // Prérequis : node build.mjs --embed whisper-small   (CHROMIUM_PATH si besoin)
 // Usage : node test/e2e-share.mjs
 import { chromium } from 'playwright-core';
@@ -30,7 +33,7 @@ const browser = await chromium.launch({
   ],
 });
 
-async function open(restrictKnown) {
+async function open(restrictKnown, windows11) {
   const context = await browser.newContext({ locale: 'fr-FR', viewport: { width: 900, height: 1000 } });
   const page = await context.newPage();
   const network = [];
@@ -38,30 +41,37 @@ async function open(restrictKnown) {
     if (!/^(file|blob|data):/.test(r.url())) network.push(r.url());
   });
   page.on('pageerror', (e) => console.log('[pageerror]', e.message));
-  await context.addInitScript((known) => {
-    const md = navigator.mediaDevices;
-    const supported = md.getSupportedConstraints.bind(md);
-    md.getSupportedConstraints = () => ({ ...supported(), restrictOwnAudio: known });
-    window.__asked = [];
-    md.getDisplayMedia = async (opts) => {
-      window.__asked.push(JSON.parse(JSON.stringify(opts)));
-      const restrict = !!(opts.audio && opts.audio.restrictOwnAudio);
-      // Le son du système passe par la sortie son de Windows : refusé, comme sur le PC du mainteneur
-      if (!restrict && (!opts.video || !opts.video.displaySurface || opts.video.displaySurface === 'monitor'))
-        throw new DOMException('Could not start audio source', 'NotReadableError');
-      const ctx = new AudioContext();
-      const osc = ctx.createOscillator();
-      const dest = ctx.createMediaStreamDestination();
-      osc.connect(dest);
-      osc.start();
-      const track = dest.stream.getAudioTracks()[0];
-      const settings = track.getSettings.bind(track);
-      track.getSettings = () => ({ ...settings(), restrictOwnAudio: restrict });
-      const video = document.createElement('canvas').captureStream(1).getVideoTracks();
-      video[0].getSettings = () => ({ displaySurface: restrict ? 'monitor' : opts.video.displaySurface });
-      return new MediaStream([track, ...video]);
-    };
-  }, restrictKnown);
+  await context.addInitScript(
+    ([known, win11]) => {
+      if (win11)
+        Object.defineProperty(navigator, 'userAgentData', {
+          value: { platform: 'Windows', getHighEntropyValues: async () => ({ platformVersion: '19.0.0' }) },
+        });
+      const md = navigator.mediaDevices;
+      const supported = md.getSupportedConstraints.bind(md);
+      md.getSupportedConstraints = () => ({ ...supported(), restrictOwnAudio: known });
+      window.__asked = [];
+      md.getDisplayMedia = async (opts) => {
+        window.__asked.push(JSON.parse(JSON.stringify(opts)));
+        const restrict = !!(opts.audio && opts.audio.restrictOwnAudio);
+        // Le son du système passe par la sortie son de Windows : refusé, comme sur le PC du mainteneur
+        if (!restrict && (!opts.video || !opts.video.displaySurface || opts.video.displaySurface === 'monitor'))
+          throw new DOMException('Could not start audio source', 'NotReadableError');
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const dest = ctx.createMediaStreamDestination();
+        osc.connect(dest);
+        osc.start();
+        const track = dest.stream.getAudioTracks()[0];
+        const settings = track.getSettings.bind(track);
+        track.getSettings = () => ({ ...settings(), restrictOwnAudio: restrict });
+        const video = document.createElement('canvas').captureStream(1).getVideoTracks();
+        video[0].getSettings = () => ({ displaySurface: restrict ? 'monitor' : opts.video.displaySurface });
+        return new MediaStream([track, ...video]);
+      };
+    },
+    [restrictKnown, !!windows11]
+  );
   await page.goto(pathToFileURL(join(root, 'Lowsper.html')).href);
   await page.waitForSelector('#engine[data-state="ready"]', { timeout: 180000 });
   return { context, page, network };
@@ -96,17 +106,18 @@ const pref = (page) => page.evaluate(() => localStorage.getItem('lowsper.share.s
   const last = asked[asked.length - 1];
   if (!last.audio || last.audio.restrictOwnAudio !== true)
     fail('restrictOwnAudio non demandé : ' + JSON.stringify(last));
-  if (!/sauf celui de ce navigateur/.test(await notice(page))) fail('le son exclu du navigateur doit être dit');
+  if (!(await page.isHidden('#rec-notice'))) fail('aucun message attendu une fois le son capté');
+  if ((await page.textContent('#others-add')) !== 'Ajouter un onglet') fail('bouton « Ajouter un onglet » attendu');
   if ((await pref(page)) !== 'apps') fail('choix « apps » non gardé après succès');
-  console.log('Son de toutes les applications capté ; message :', (await notice(page)).trim().slice(0, 80) + '...');
+  console.log('Son de toutes les applications capté, bouton « Ajouter un onglet »');
 
-  // 4. Ajouter un autre son : onglets présélectionnés
+  // 4. Ajouter un onglet : onglets présélectionnés
   await page.evaluate(() => document.getElementById('others-add').click());
   await page.waitForTimeout(800);
   asked = await page.evaluate(() => window.__asked);
   if (asked[asked.length - 1].video.displaySurface !== 'browser')
-    fail('« Ajouter un autre son » doit proposer les onglets');
-  console.log('Ajouter un autre son : onglets présélectionnés');
+    fail('« Ajouter un onglet » doit proposer les onglets');
+  console.log('Ajouter un onglet : onglets présélectionnés');
 
   // 3. Réunion suivante : restrictOwnAudio d'emblée, aucun refus
   await page.click('#stop');
@@ -131,6 +142,20 @@ const pref = (page) => page.evaluate(() => localStorage.getItem('lowsper.share.s
   console.log('Sans restrictOwnAudio :', b.join(' | '));
   if (b[0] !== "Partager l'onglet de la visio") fail('sans restrictOwnAudio, l’onglet doit rester proposé en premier');
   if ((await pref(page)) !== 'tab') fail('préférence « tab » attendue');
+  if (network.length) fail('requêtes réseau : ' + network.join(', '));
+  await context.close();
+}
+
+// 6. Windows 11 : toutes les applications d'emblée, sans aucun message
+{
+  const { context, page, network } = await open(true, true);
+  await startMeeting(page);
+  const asked = await page.evaluate(() => window.__asked);
+  if (asked.length !== 1 || !asked[0].audio.restrictOwnAudio) fail('Windows 11 : restrictOwnAudio attendu d’emblée');
+  if (!(await page.isHidden('#rec-notice'))) fail('Windows 11 : aucun message attendu');
+  if ((await page.textContent('#others-add')) !== 'Ajouter un onglet')
+    fail('Windows 11 : « Ajouter un onglet » attendu');
+  console.log('Windows 11 : son de toutes les applications d’emblée, aucun message');
   if (network.length) fail('requêtes réseau : ' + network.join(', '));
   await context.close();
 }

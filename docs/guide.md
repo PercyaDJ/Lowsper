@@ -84,10 +84,13 @@ réunion qui travaille hors ligne.
    ![Accueil : nom de la réunion, emplacement de la note, Démarrer](images/accueil.png)
 6. La fenêtre **« Avant de commencer »** rappelle les trois étapes ; cliquez sur **« Continuer »** :
    - **prévenez les participants** que la réunion est transcrite ;
-   - le navigateur propose un **partage d'écran**. Visio dans le navigateur (Teams, Meet, Webex
-     en ligne...) : choisissez l'**onglet de la visio** et cochez **« Partager l'audio de
-     l'onglet »** ; ce son est pris dans le navigateur, il marche avec tous les casques. Visio dans
-     une application : choisissez l'**écran entier** et cochez **« Partager aussi le son du
+   - le navigateur propose un **partage d'écran**. **Windows 11** : la fenêtre s'ouvre sur l'écran
+     entier ; cochez le son. Lowsper prend le son de toutes les applications (Teams, Jabber,
+     lecteur vidéo, autre navigateur), quel que soit le casque, sans message d'erreur ; seul le son
+     du navigateur de Lowsper n'est pas compris (voir « Ajouter un onglet » plus bas). **Autres
+     systèmes** : visio dans le navigateur (Teams, Meet, Webex en ligne...), choisissez
+     l'**onglet de la visio** et cochez **« Partager l'audio de l'onglet »** ; visio dans une
+     application, choisissez l'**écran entier** et cochez **« Partager aussi le son du
      système »**. Seul le son est utilisé, rien n'est filmé ;
    - autorisez le **micro**.
    Pour les habitués, « Ne plus afficher » supprime cette fenêtre.
@@ -99,20 +102,25 @@ réunion qui travaille hors ligne.
 
    ![La mini-fenêtre : durée, niveaux du micro et de la réunion, pause, fin](images/barre.png)
 
-   La **fenêtre de Lowsper** (bouton « Réduire » pour revenir à la mini-fenêtre) montre un grand
-   chronomètre, le nom de la réunion (modifiable) et un **contrôle d'état** en langage simple :
+   La **fenêtre de Lowsper** (bouton « Réduire » pour revenir à la mini-fenêtre) tient sans
+   défiler, même sur un portable : chronomètre, nom de la réunion (modifiable) et un **contrôle
+   d'état** en langage simple :
    - **votre micro** : « Je vous entends » ;
    - **le son de la réunion** : « Le son arrive », ou « Rien ne passe » avec un bouton **« Comment
      corriger »** qui permet de partager de nouveau le son ;
    - **le texte écrit** : « À jour », ou le retard en secondes si le PC prend du retard.
    Le texte en direct est masqué par défaut : l'interrupteur « Afficher le texte pendant la
-   réunion » l'affiche (choix gardé). « Commencer une nouvelle réunion sans arrêter » enchaîne
+   réunion » l'affiche (choix gardé), dans toute la hauteur qui reste ; c'est lui qui défile, pas
+   la fenêtre. Sur un écran bas, les légendes des boutons ronds passent dans leur infobulle. « Commencer une nouvelle réunion sans arrêter » enchaîne
    sur la suivante sans repartager l'écran.
 
-   **Plusieurs sons à la fois** : « Ajouter un autre son » capte un onglet ou une fenêtre de plus,
-   en même temps que le premier. Exemple : la visio est dans un onglet et vous présentez une
-   vidéo dans un autre ; partagez l'onglet de la visio au démarrage, puis ajoutez celui de la
-   vidéo. Arrêter le partage de l'un ne coupe pas les autres.
+   **Plusieurs sons à la fois** : le bouton de la ligne « Son de la réunion » capte un son de
+   plus, en même temps que le premier. Il s'appelle **« Ajouter un onglet »** quand le son de
+   toutes les applications est capté (Windows 11) : une visio ou une vidéo dans un onglet du
+   navigateur de Lowsper s'ajoute ainsi d'un clic. Sinon, **« Ajouter un son »** capte un onglet
+   ou une fenêtre de plus : la visio est dans un onglet et vous présentez une vidéo dans un autre,
+   partagez l'onglet de la visio au démarrage, puis ajoutez celui de la vidéo. Arrêter le partage
+   de l'un ne coupe pas les autres.
 
    **Notes rapides** : tapez une note dans le champ « Note rapide », puis Entrée (ou « Ajouter »).
    Elle est reprise dans la note, dans la section « Vos notes », avec l'heure où vous avez
@@ -125,7 +133,8 @@ réunion qui travaille hors ligne.
 7. En fin de réunion, cliquez sur **« Terminer »** (carré rouge). La note est enregistrée dans le
    dossier de l'emplacement (par défaut `Lowsper\Notes\Par défaut`) : la carte « Note
    enregistrée » dit où. L'écran
-   de fin montre le texte de la réunion à gauche, lisible. Pour nommer un intervenant, cliquez sur
+   de fin montre le texte de la réunion à gauche, en bulles comme des SMS : ce que vous avez dit
+   au micro en vert clair, à droite ; les autres en gris, à gauche. Pour nommer un intervenant, cliquez sur
    son étiquette (« Intervenant 2 ») et tapez son nom : il change sur toutes ses répliques et dans
    la note (Entrée valide, Échap annule). À droite, « Et maintenant ? » :
    - **« Obtenir un résumé »** copie une consigne pour l'IA suivie de la note, à coller dans
@@ -419,14 +428,13 @@ elle disparaît dès que quelqu'un d'autre parle.
 **« Windows n'a pas laissé le navigateur capter le son de tout l'ordinateur (Could not start audio source) ».**
 Le son de l'écran entier passe par la sortie son de Windows ; sur certains PC (casques de jeu
 en son surround, par exemple), Chrome et Edge n'arrivent pas à l'ouvrir.
-- **Windows 11, Chrome, Edge ou Brave récents** : cliquez sur **« Partager le son de toutes les
-  applications »**, choisissez de nouveau l'écran entier et cochez le son. Le navigateur prend
-  alors le son de chaque application (Teams, Jabber, lecteur vidéo, autre navigateur) au lieu de
-  la sortie son, quel que soit le casque. Le son des onglets du navigateur où tourne Lowsper
+- **Windows 11, Chrome, Edge ou Brave récents** : ce message n'apparaît plus. Lowsper demande
+  d'emblée le son de chaque application (Teams, Jabber, lecteur vidéo, autre navigateur) au lieu
+  de la sortie son, quel que soit le casque. Le son des onglets du navigateur où tourne Lowsper
   n'est pas compris : pour une visio ou une vidéo dans l'un de ces onglets, cliquez sur
-  « Ajouter un autre son » et choisissez l'onglet. Lowsper s'en souvient : aux réunions
-  suivantes, il demande directement le son de toutes les applications. Vérifié sur un PC
-  Windows 11 avec un casque de jeu sans fil en son surround, dans Chrome et Brave.
+  « Ajouter un onglet ». Vérifié sur un PC Windows 11 avec un casque de jeu sans fil en son
+  surround, dans Chrome et Brave. Si le message apparaît malgré tout, cliquez sur « Partager le
+  son de toutes les applications ».
 - **Sinon** (Windows 10, navigateur plus ancien) : cliquez sur **« Partager l'onglet de la
   visio »** et choisissez l'onglet de la visio ou de la vidéo : ce son est pris dans le
   navigateur, avant Windows. Une visio dans une application installée n'a pas d'onglet : sans le
@@ -491,6 +499,15 @@ Créez un emplacement, choisissez comme dossier celui de votre coffre (ou un sou
 liens `[[Nom]]` : la note arrive dans le coffre à la fin
 de la réunion, avec ses propriétés lisibles par Obsidian, et les intervenants que vous nommez
 renvoient vers leurs notes.
+
+**J'ai ouvert Lowsper dans un autre navigateur : mes notes vont ailleurs.**
+L'accès au dossier Lowsper est donné à chaque navigateur séparément : c'est une règle de
+sécurité des navigateurs, qu'une page web ne peut pas contourner. Dans un navigateur qui n'a pas
+encore cet accès, l'accueil affiche **« Choisir le dossier Lowsper »** : un clic, une seule fois,
+et les notes reviennent dans le même `Lowsper\Notes\...`, avec les mêmes réglages. Brave
+n'écrit pas dans un dossier tant que son option « File System Access API » est désactivée
+(`brave://flags`) : l'accueil le dit, et les notes vont alors dans les Téléchargements. Les
+réglages, eux, sont relus du dossier Lowsper dans tous les navigateurs, sans rien faire.
 
 **Ma note est partie dans les Téléchargements et pas dans mon dossier.**
 Le navigateur demande votre accord pour écrire dans un dossier (le dossier Lowsper ou celui que

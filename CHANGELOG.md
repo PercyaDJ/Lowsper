@@ -13,6 +13,21 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [4.8.0] - 2026-11-08
+
+### Modifié
+- Windows 11 : le son de toutes les applications est demandé dès la première réunion, sans
+  message d'erreur ; le bouton de la ligne « Son de la réunion » devient « Ajouter un onglet »
+  pour une visio ou une vidéo dans le navigateur de Lowsper (decision.md §52).
+- Fenêtre de réunion sans défilement, même sur un portable : état, note rapide et texte en
+  direct visibles d'un coup d'œil, le texte en direct prenant la hauteur qui reste.
+- Écran de fin : les répliques en bulles, comme des SMS ; ce que vous avez dit au micro en vert
+  clair, à droite.
+
+### Ajouté
+- Accueil d'un navigateur qui n'a pas encore accès au dossier Lowsper : « Choisir le dossier
+  Lowsper », un clic une fois, pour retrouver les notes au même endroit dans tous les navigateurs.
+
 ## [4.7.0] - 2026-11-08
 
 ### Ajouté

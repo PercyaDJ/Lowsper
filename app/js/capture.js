@@ -735,6 +735,22 @@
     return out;
   };
 
+  /**
+   * Windows 11 ? Sous Windows, platformVersion 13 ou plus désigne Windows 11 (Client Hints). Le
+   * code de Chromium ne copie le son par application qu'à partir de Windows 11 (decision.md §51).
+   */
+  Lowsper.isWindows11 = async function (nav) {
+    nav = nav || navigator;
+    try {
+      const ua = nav.userAgentData;
+      if (!ua || ua.platform !== 'Windows') return false;
+      const h = await ua.getHighEntropyValues(['platformVersion']);
+      return parseInt(h.platformVersion, 10) >= 13;
+    } catch {
+      return false;
+    }
+  };
+
   /** Le navigateur sait-il exclure son propre son du partage (restrictOwnAudio) ? */
   Lowsper.canRestrictOwnAudio = function (md) {
     md = md || navigator.mediaDevices;
