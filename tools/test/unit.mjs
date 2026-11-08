@@ -713,6 +713,90 @@ await test('vocabulaires : expressions construites depuis les listes, saisies pi
   assert.equal(L.fixCase('cixcd', 'CI.CD'), 'cixcd', 'point littéral');
 });
 
+await test('micro : quel que soit le micro, un essai simple puis les autres micros (decision.md §46)', async () => {
+  const err = (name) => Object.assign(new Error(name), { name });
+  const track = (fail) => ({
+    applyConstraints: async () => {
+      if (fail) throw err('OverconstrainedError');
+    },
+  });
+  const stream = (fail) => ({ getAudioTracks: () => [track(fail)] });
+  // Le micro par défaut refuse ses réglages, il s'ouvre sans
+  let calls = [];
+  let md = {
+    getUserMedia: async (c) => {
+      calls.push(c.audio);
+      if (calls.length === 1) throw err('NotReadableError');
+      return stream(true);
+    },
+  };
+  let s = await L.getMicrophone(md);
+  assert.equal(s._lowsperAttempt, 'simple');
+  assert.equal(s._lowsperProcessed, false, 'réglages tentés ensuite, sans échec');
+  assert.equal(calls[1], true, 'second essai sans aucun réglage');
+  // Le micro par défaut est indisponible : un autre micro est essayé
+  calls = [];
+  md = {
+    getUserMedia: async (c) => {
+      calls.push(c.audio);
+      if (!(c.audio.deviceId && c.audio.deviceId.exact === 'usb')) throw err('NotReadableError');
+      return stream(false);
+    },
+    enumerateDevices: async () => [
+      { kind: 'audiooutput', deviceId: 'hp' },
+      { kind: 'audioinput', deviceId: 'default' },
+      { kind: 'audioinput', deviceId: 'webcam' },
+      { kind: 'audioinput', deviceId: 'usb' },
+    ],
+  };
+  s = await L.getMicrophone(md);
+  assert.equal(s._lowsperAttempt, 'autre micro');
+  assert.equal(s._lowsperProcessed, true);
+  assert.equal(calls.length, 4, 'réglages, simple, webcam, usb');
+  // Un refus de l'utilisateur arrête tout, sans essayer d'autres micros
+  calls = [];
+  md = {
+    getUserMedia: async (c) => {
+      calls.push(c);
+      throw err('NotAllowedError');
+    },
+    enumerateDevices: async () => [],
+  };
+  await assert.rejects(L.getMicrophone(md), { name: 'NotAllowedError' });
+  assert.equal(calls.length, 1);
+});
+
+await test('son de l’ordinateur : demandé sans réglage obligatoire, essai simple après un échec (§46)', async () => {
+  sandbox.MediaStream = class {
+    constructor(tracks) {
+      this.tracks = tracks;
+    }
+  };
+  const asked = [];
+  const audio = {
+    applyConstraints: async () => {
+      throw new Error('non');
+    },
+  };
+  const md = {
+    getDisplayMedia: async (c) => {
+      asked.push(c);
+      return { getAudioTracks: () => [audio], getVideoTracks: () => [{}], getTracks: () => [] };
+    },
+  };
+  const s = await L.getSystemAudio(false, md);
+  assert.equal(asked[0].audio, true, 'aucun réglage exigé à l’ouverture du son');
+  assert.equal(asked[0].systemAudio, 'include');
+  assert.equal(s._lowsperProcessed, false, 'réglage refusé sans faire échouer le partage');
+  await L.getSystemAudio(true, md);
+  assert.deepEqual(Object.keys(asked[1]).sort(), ['audio', 'systemAudio', 'video']);
+  // Partage sans son : erreur explicite
+  const none = {
+    getDisplayMedia: async () => ({ getAudioTracks: () => [], getVideoTracks: () => [], getTracks: () => [] }),
+  };
+  await assert.rejects(L.getSystemAudio(false, none), (e) => e.code === 'NO_AUDIO');
+});
+
 await test('correction de casse : un terme en minuscules garde la majuscule d’un début de phrase', () => {
   assert.equal(L.fixCase('Planning validé. Le planning bouge.', 'planning'), 'Planning validé. Le planning bouge.');
   assert.equal(L.fixCase('copil demain', 'COPIL'), 'COPIL demain');
