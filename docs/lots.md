@@ -65,8 +65,9 @@ quelques langages et logiciels libres très courants (Python, Linux, Git...), ja
 d'éditeur commercial. Mesuré sur un corpus fictif (`corpus/vocab-ia.json`, douze phrases par
 langue) : en français, 15 termes sur 31 bien écrits sans liste, 24 avec ; en anglais, 29 puis 30.
 Séparation des voix : ConvTasNet (5 millions de paramètres) mesuré sur le corpus « paroles
-simultanées », environ 40 fois plus rapide que MossFormer2 ; rien n'est intégré (voir §44 pour
-les gains, les limites et la suite proposée). Le chemin du direct n'a pas changé (données
+simultanées » : 35 fois plus rapide que MossFormer2 (0,52 s de calcul par seconde de son), la
+seconde voix d'un long chevauchement passe de 25 % à 94 % de mots retrouvés, mais les répliques
+courtes (« oui », « pardon ») ne sont pas récupérées ; rien n'est intégré (§44). Le chemin du direct n'a pas changé (données
 seulement). Non vérifié : de vraies réunions, et le portable de référence.
 
 ## C3 : compte rendu rédigé par une IA locale (étudié, rien d'intégré)

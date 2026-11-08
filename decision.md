@@ -2987,4 +2987,45 @@ le mélange et sur chaque piste.
 régénéré ; le fichier du dépôt n'est pas modifié. 24 chevauchements côté participants (le §39 en
 mesurait 4 avec MossFormer2), découpés aux bornes connues des répliques, plus 0,5 s.
 
-MESURES_SEPARATION
+**Mesures** (part des mots de chaque personne retrouvés ; « séparé » : la meilleure des deux pistes ;
+« même piste » : les deux personnes dans la même piste, séparation ratée).
+
+| Son propre, 24 cas | Mélange, 2e personne | ConvTasNet, 1re / 2e | MossFormer2, 1re / 2e | Même piste (CT / MF) |
+|---|---|---|---|---|
+| « Oui », « d'accord » par-dessus une phrase (6) | 8 % | 83 % / 8 % | 88 % / 22 % | 5 / 0 |
+| « Pardon, vas-y » en même temps (6) | 0 % | 79 % / 6 % | 88 % / 0 % | 2 / 1 |
+| Interruption de 1 à 2 s (6) | 70 % | 82 % / 78 % | 90 % / 92 % | 3 / 0 |
+| Long chevauchement (6) | 25 % | 87 % / **94 %** | 89 % / **95 %** | 0 / 0 |
+| Tous (1re personne au mélange : 87 %) | 26 % | 83 % / 46 % | 89 % / 52 % | 10 / 1 |
+
+Son de visio (ConvTasNet seul) : seconde personne 31 % au mélange, 45 % séparée ; longs
+chevauchements 42 % puis 82 %, interruptions 75 % puis 90 %, courtes répliques inchangées.
+
+| Calcul (WebAssembly, un fil) | Chargement | Par seconde de son | Une heure avec 5 min de chevauchements |
+|---|---|---|---|
+| ConvTasNet, 20 Mo | 1,1 à 1,7 s | **0,52 s** | environ 2 min 40 |
+| MossFormer2, 91 Mo | 7,0 s | 18,3 s | environ 1 h 30 |
+
+**Lecture.**
+1. ConvTasNet est **35 fois plus rapide** que MossFormer2, plus vite que la parole sur un fil, et
+   récupère presque autant : la seconde voix d'un long chevauchement passe de 25 % à 94 % de ses
+   mots retrouvés (MossFormer2 : 95 %).
+2. Les répliques courtes (« oui », « pardon, vas-y »), la vraie perte du §39, ne sont **pas**
+   récupérées par ConvTasNet, et seulement un peu par MossFormer2 (22 % pour les acquiescements).
+3. ConvTasNet laisse plus souvent les deux voix dans la même piste (10 cas sur 24, contre 1) et
+   abaisse un peu la première personne (87 % à 83 %) : il faudrait garder le mélange pour elle.
+4. Sur 24 cas, MossFormer2 apporte un gain que l'échantillon de 4 cas du §39 ne montrait pas
+   (c'étaient des acquiescements).
+
+**Arbitrage proposé : rien n'est intégré dans ce lot.** Une intégration demande trois briques non
+mesurées ici : repérer les passages qui se chevauchent sans connaître les bornes (le banc les
+découpe aux bornes vraies), attribuer chaque piste séparée à la bonne voix, et fusionner le texte
+des pistes avec celui du mélange sans doublon. Il faudrait aussi vérifier que la licence
+CC-BY-SA 4.0 des poids peut être distribuée avec Lowsper (MIT) : **non vérifié**. ConvTasNet est
+le bon candidat pour un lot à part, après la réunion (2 à 3 min de calcul par heure) avant d'être
+tenté en direct.
+
+**Limites.** Voix de synthèse françaises, alors que ConvTasNet a été entraîné sur de l'anglais lu ;
+bornes des chevauchements connues ; MossFormer2 mesuré sur le son propre seulement (1 h 06 de
+calcul) ; Whisper small exécuté dans Node pour les pistes ; machine de développement, pas le
+portable de référence (non vérifié). Le chemin du direct ne change pas.
