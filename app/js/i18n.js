@@ -629,6 +629,11 @@
     'rec.speaker': '{name} :',
     'rec.shareOthers': 'Partager le son des participants',
     'rec.shareTab': "Partager l'onglet de la visio",
+    'rec.shareApps': 'Partager le son de toutes les applications',
+    'rec.appsCaptured':
+      'Son de toutes les applications capté (Teams, Jabber, vidéos...), sauf celui de ce navigateur. Pour une visio ou une vidéo dans un onglet de ce navigateur, cliquez sur « Ajouter un autre son ». ',
+    'rec.othersStartFailedApps':
+      "Windows n'a pas laissé le navigateur capter le son de tout l'ordinateur ({error}). « Partager le son de toutes les applications » le prend dans chaque application plutôt qu'à la sortie son : choisissez de nouveau l'écran entier et cochez le son. Lowsper s'en souviendra pour les prochaines réunions. ",
     'rec.othersCaptured': 'Son des participants capté.',
     'rec.noMic': 'Micro indisponible : seule la voix des participants est transcrite.',
     'rec.micOnly': 'Seul votre micro est capté (option « participants » désactivée).',
@@ -1462,6 +1467,11 @@
     'rec.speaker': '{name}:',
     'rec.shareOthers': 'Share the sound of the other people',
     'rec.shareTab': 'Share the meeting tab',
+    'rec.shareApps': 'Share the sound of all applications',
+    'rec.appsCaptured':
+      'Sound of all applications captured (Teams, Jabber, videos...), except this browser. For a meeting or a video in a tab of this browser, click “Add another sound”. ',
+    'rec.othersStartFailedApps':
+      'Windows did not let the browser capture the sound of the whole computer ({error}). “Share the sound of all applications” takes it from each application instead of the sound output: choose the entire screen again and tick the sound. Lowsper will remember it for the next meetings. ',
     'rec.othersCaptured': 'Sound of the other people captured.',
     'rec.noMic': 'Microphone unavailable: only the voices of the other people are transcribed.',
     'rec.micOnly': 'Only your microphone is captured (“other people” option turned off).',

@@ -13,11 +13,17 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [4.7.0] - 2026-11-08
+
 ### Ajouté
-- Page d'essai `tools/test/son-systeme.html` : sur le PC de l'utilisateur, essaie les quatre façons
-  de capter le son de l'ordinateur (son du système, toutes les applications sauf le navigateur,
-  fenêtre d'une application, onglet) et le micro en même temps, avec une jauge et un journal à
-  copier. Étude du code de Chromium : decision.md §51. Rien ne change encore dans Lowsper.
+- Son de toutes les applications quand Windows refuse le son de tout l'ordinateur (« Could not
+  start audio source », casque surround) : le message propose « Partager le son de toutes les
+  applications », qui prend le son de chaque application (Teams, Jabber, vidéos) au lieu de la
+  sortie son de Windows, et Lowsper le demande directement aux réunions suivantes. Le son du
+  navigateur de Lowsper en est exclu : « Ajouter un autre son » propose alors les onglets.
+  Windows 11 et navigateur récent (decision.md §51).
+- Page d'essai `tools/test/son-systeme.html` : les quatre façons de capter le son de l'ordinateur
+  et le micro, avec une jauge et un journal à copier.
 
 ### Sécurité
 - Résultat Semgrep `detect-non-literal-regexp` sur `app/js/extract.js` : faux positif (règles écrites

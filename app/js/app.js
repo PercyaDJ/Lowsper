@@ -623,8 +623,9 @@
     let othersError = null;
     if (withOthers) {
       try {
-        // Après un échec du son de tout l'ordinateur, la fenêtre de choix s'ouvre sur les onglets
-        others = await L.getSystemAudio(store.get('lowsper.share.surface') === 'tab' ? 'tab' : 'screen');
+        // Après un échec du son de tout l'ordinateur : son de toutes les applications (§51), ou
+        // fenêtre de choix ouverte sur les onglets
+        others = await L.getSystemAudio((app.lastShareMode = shareMode()));
         rememberSurface(others);
       } catch (err) {
         othersError = err;
@@ -715,6 +716,7 @@
     setMeter('others', others ? 'on' : 'off');
     if (!mic) notice(tr('rec.noMic'));
     else if (withOthers && !others) explainOthersError(othersError);
+    else if (others && others._lowsperRestricted) notice(tr('rec.appsCaptured'));
     else if (!withOthers) notice(tr('rec.micOnly'));
 
     app.timer = setInterval(tick, 100);
@@ -1247,7 +1249,9 @@
   async function addOthers() {
     if (app.state !== 'recording' || !app.capture) return;
     try {
-      const stream = await L.getSystemAudio(store.get('lowsper.share.surface') === 'tab' ? 'tab' : 'screen');
+      // Le son de toutes les applications exclut ce navigateur : on ajoute alors un onglet
+      const mode = shareMode() === 'screen' ? 'screen' : 'tab';
+      const stream = await L.getSystemAudio((app.lastShareMode = mode));
       rememberSurface(stream);
       const n = attachSource('others', stream, true);
       setMeter('others', 'on');
@@ -1265,6 +1269,7 @@
   function explainOthersError(err) {
     let msg;
     app.othersStartFailed = false;
+    app.othersOffer = 'tab';
     if (err && err.code === 'NO_AUDIO') {
       msg = tr('rec.noAudio');
     } else if (err && err.name === 'NotAllowedError') {
@@ -1273,11 +1278,20 @@
       err &&
       (err.name === 'NotReadableError' || err.name === 'OverconstrainedError' || err.name === 'AbortError')
     ) {
-      // Le son de l'ordinateur n'a pas pu s'ouvrir : le prochain essai demande le strict minimum,
-      // et les prochaines réunions proposent d'abord les onglets (son pris dans le navigateur)
+      // Le son de l'ordinateur n'a pas pu s'ouvrir. Si le navigateur sait exclure son propre son,
+      // il copie alors le son de chaque application au lieu de la sortie son de Windows, qui est
+      // ce qui échoue (casque surround, decision.md §51) : c'est le chemin proposé en premier et
+      // retenu pour les réunions suivantes. Sinon, comme avant : l'onglet et le strict minimum.
       app.othersStartFailed = true;
-      store.set('lowsper.share.surface', 'tab');
-      msg = tr('rec.othersStartFailed', { error: err.message || err.name });
+      if (app.lastShareMode !== 'apps' && L.canRestrictOwnAudio()) {
+        store.set('lowsper.share.surface', 'apps');
+        app.othersOffer = 'apps';
+        msg = tr('rec.othersStartFailedApps', { error: err.message || err.name });
+      } else {
+        store.set('lowsper.share.surface', 'tab');
+        app.othersOffer = 'tab';
+        msg = tr('rec.othersStartFailed', { error: err.message || err.name });
+      }
     } else {
       msg = tr('rec.othersFailed', { error: (err && err.message) || tr('start.unknownError') });
     }
@@ -1289,19 +1303,36 @@
   // par défaut ; un onglet garde la présélection des onglets.
   function rememberSurface(stream) {
     if (!stream) return;
-    journal('partage-son', { essai: stream._lowsperAttempt, surface: stream._lowsperSurface, ok: true });
-    if (stream._lowsperSurface === 'monitor' || stream._lowsperSurface === 'window')
+    journal('partage-son', {
+      essai: stream._lowsperAttempt,
+      surface: stream._lowsperSurface,
+      sans_navigateur: !!stream._lowsperRestricted,
+      ok: true,
+    });
+    // Le son de toutes les applications reste le choix tant qu'il marche ; il n'est pas remplacé
+    // par l'écran entier, qui échouerait de nouveau sur ce PC
+    if (stream._lowsperAttempt === 'apps') store.set('lowsper.share.surface', 'apps');
+    else if (stream._lowsperSurface === 'monitor' || stream._lowsperSurface === 'window')
       store.set('lowsper.share.surface', 'screen');
+  }
+
+  /** Façon de demander le son de la réunion, d'après ce qui a marché ou échoué sur ce PC. */
+  function shareMode() {
+    const pref = store.get('lowsper.share.surface');
+    if (pref === 'apps' && L.canRestrictOwnAudio()) return 'apps';
+    return pref === 'tab' ? 'tab' : 'screen';
   }
 
   async function retryOthers(mode) {
     try {
-      const stream = await L.getSystemAudio(mode === 'tab' ? 'tab' : app.othersStartFailed ? 'simple' : 'screen');
+      app.lastShareMode = mode === 'tab' || mode === 'apps' ? mode : app.othersStartFailed ? 'simple' : 'screen';
+      const stream = await L.getSystemAudio(app.lastShareMode);
       rememberSurface(stream);
       attachSource('others', stream);
       setMeter('others', 'on');
       $('rec-notice').hidden = true;
-      toast(tr('rec.othersCaptured'));
+      if (stream._lowsperRestricted) notice(tr('rec.appsCaptured'));
+      else toast(tr('rec.othersCaptured'));
     } catch (err) {
       journal('partage-son', {
         erreur: err && (err.code || err.name),
@@ -1317,10 +1348,17 @@
     if (retryFor === 'others' && navigator.mediaDevices.getDisplayMedia) {
       // Deux chemins : l'onglet de la visio (son pris dans le navigateur, quel que soit le casque),
       // ou l'écran entier et les fenêtres d'application (son passé par Windows)
-      for (const [key, mode] of [
-        ['rec.shareTab', 'tab'],
-        ['rec.shareOthers', 'screen'],
-      ]) {
+      const offers =
+        app.othersOffer === 'apps'
+          ? [
+              ['rec.shareApps', 'apps'],
+              ['rec.shareTab', 'tab'],
+            ]
+          : [
+              ['rec.shareTab', 'tab'],
+              ['rec.shareOthers', 'screen'],
+            ];
+      for (const [key, mode] of offers) {
         const b = document.createElement('button');
         b.textContent = tr(key);
         b.dataset.mode = mode;

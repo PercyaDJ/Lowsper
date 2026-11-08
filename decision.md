@@ -3224,7 +3224,7 @@ littérales dupliquerait la limite de mot dans chacune, sans rien changer au ris
 unitaire rejoue les textes piégés (moins de 2 s pour 20 000 caractères) : une règle ajoutée plus
 tard qui s'emballerait le ferait échouer.
 
-## 51. Son de toutes les applications quand Windows refuse le son du système : ce que fait Chromium
+## 51. Son de toutes les applications quand Windows refuse le son du système (4.7.0)
 
 **Contexte.** Après la 4.6.0, l'exigence du mainteneur est précisée : pendant une réunion, Lowsper
 doit capter **tout** le son qui sort de Windows (Teams, puis Jabber, puis une vidéo, quelle que
@@ -3268,16 +3268,55 @@ essais 2 et 3 de la page ci-dessous marchent là où l'essai 1 échoue.
   un autre navigateur que la visio ou la vidéo ;
 - l'essai 3 ne capte qu'une application : utile seulement si l'essai 2 échoue.
 
-**Retenu à ce stade.** Rien n'est changé dans Lowsper tant que l'essai n'est pas fait sur le PC du
-mainteneur : les correctifs 4.5.1 et 4.5.2 ont été écrits sans mesure sous Windows et n'ont pas
-suffi. Page d'essai `tools/test/son-systeme.html` : les quatre demandes ci-dessus, une jauge du son
+**Mesure avant de changer Lowsper.** Les correctifs 4.5.1 et 4.5.2 avaient été écrits sans mesure
+sous Windows et n'ont pas suffi : cette fois, l'essai sur le PC du mainteneur précède le code. Page d'essai `tools/test/son-systeme.html` : les quatre demandes ci-dessus, une jauge du son
 partagé et une du micro, un journal à copier (versions du navigateur et de Windows, réglages
 réellement appliqués à la piste, dont `restrictOwnAudio`, et niveau le plus fort sur 8 s). Vérifié
 ici : la page s'ouvre en `file://` dans Chromium 153 sous Linux, sans erreur, et les quatre essais
 et le micro donnent un son factice ; sous Linux, `restrictOwnAudio` reste `false` (non pris en
 charge), ce qui est attendu.
 
-**Suite.** Selon le journal du mainteneur : si l'essai 2 capte Teams et la vidéo d'une autre
-application, Lowsper le proposera après l'échec du son du système, suivi de l'ajout de l'onglet ;
-sinon, l'essai 3 ; si aucun ne marche, aucune page web ne peut capter le son d'une application
-installée sur ce PC (contrainte n° 2).
+**Mesuré sur le PC du mainteneur** (8 novembre 2026, Windows 11, casque Logitech G733, son
+surround gardé ; journaux de la page d'essai) :
+| Essai | Chrome 156 (vidéo dans Brave) | Brave 157 (vidéo dans Brave) |
+|---|---|---|
+| 1. Son du système | Échec `NotReadableError` | Échec `NotReadableError` |
+| 2. Toutes les applications (`restrictOwnAudio`) | Son « System Audio », `restrictOwnAudio: true`, niveau 0,323 | Son « System Audio », `restrictOwnAudio: true`, niveau 0,510 |
+| 3. Fenêtre (`windowAudio`) | Son « Application Audio », niveau 0,355 | Son « Application Audio », niveau 0,258 |
+| 4. Onglet | Échec `NotReadableError` (deux fois) | Son « Tab audio », niveau 0,500 |
+| 5. Micro | Webcam, 0,114 | Micro du casque, 0,021 |
+L'hypothèse est confirmée : seule la copie de la sortie son échoue ; les deux copies par
+processus marchent dans les deux navigateurs. Restent **non expliqués** : l'échec de l'onglet dans
+Chrome (le mainteneur l'avait vu marcher en 4.5.2) ; et, dans Brave, un niveau de 0,510 à l'essai
+2 alors que la vidéo jouait dans Brave, dont le son devrait être exclu (un autre son jouait
+peut-être ; non vérifié). Le mainteneur précise aussi que son micro n'entend jamais ses
+haut-parleurs (casque) : l'anti-écho ne retire alors rien.
+
+**Retenu (4.7.0).**
+- Mode `apps` de `Lowsper.getSystemAudio` : écran entier présélectionné, `audio:
+  { restrictOwnAudio: true }` (seul réglage demandé à l'ouverture, puisque c'est lui qui change le
+  chemin dans Windows) ; la piste dit si l'exclusion est appliquée (`_lowsperRestricted`).
+- Après `NotReadableError` (ou `OverconstrainedError`, `AbortError`), si le navigateur connaît
+  `restrictOwnAudio` : message dédié, bouton « Partager le son de toutes les applications » en
+  premier, « Partager l'onglet de la visio » ensuite ; la préférence `lowsper.share.surface`
+  passe à `apps` et reste tant que ce chemin marche. Les réunions suivantes demandent `apps`
+  d'emblée, sans passer par l'échec. Si `apps` échoue aussi, ou si le navigateur ne le connaît
+  pas : comportement de la 4.5.2 (onglet d'abord).
+- Son capté avec l'exclusion : un message dit que le son de ce navigateur n'est pas compris, et
+  « Ajouter un autre son » ouvre alors la fenêtre de choix sur les onglets (§48).
+- Option écartée : demander `restrictOwnAudio` dès la première réunion, sur tous les PC. Elle
+  retirerait sans prévenir le son d'une visio dans un onglet chez ceux dont le son du système
+  marche.
+- Le micro reste une source à part (« me »), inchangée.
+
+**Vérifié.** Tests unitaires (demande `apps`, exclusion lue sur la piste,
+`canRestrictOwnAudio`) ; nouveau test de bout en bout `test/e2e-share.mjs` (Chromium, partage
+simulé qui échoue sauf avec `restrictOwnAudio`) : bouton proposé en premier, son capté, message,
+choix retenu, réunion suivante sans échec, onglets proposés pour l'ajout, ancien comportement sans
+`restrictOwnAudio`, aucune requête réseau ; `npm test` et `npm run test:e2e` verts. Le chemin du
+direct (traitement du son, moteur) ne change pas : seule l'ouverture du partage change, pas de
+mesure `npm run bench`.
+
+**Limites.** Windows 11 seulement (code de Chromium) ; non vérifié dans Edge ni sur le portable de
+référence. Une visio ou une vidéo dans un onglet du navigateur de Lowsper doit être ajoutée à la
+main (« Ajouter un autre son ») : un clic de plus par réunion, exigé par le navigateur.

@@ -1,7 +1,7 @@
 {
   "name": "lowsper-tools",
   "private": true,
-  "version": "4.6.0",
+  "version": "4.7.0",
   "description": "Outils de construction de Lowsper (réservés aux développeurs, inutiles pour l'utilisateur final)",
   "type": "module",
   "scripts": {
@@ -17,6 +17,7 @@
     "test:import": "node test/import.mjs",
     "test:e2e-import": "node test/e2e-import.mjs",
     "test:e2e-notes": "node test/e2e-notes.mjs",
+    "test:e2e-share": "node test/e2e-share.mjs",
     "test:release": "node test/release.mjs",
     "test:localai": "node test/localai.mjs",
     "test:i18n": "node test/i18n.mjs",

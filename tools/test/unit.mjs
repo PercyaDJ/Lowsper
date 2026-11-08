@@ -797,6 +797,21 @@ await test('son de l’ordinateur : demandé sans réglage obligatoire, essai si
   assert.equal(t._lowsperAttempt, 'tab');
   assert.equal(asked[0].windowAudio, 'window', 'fenêtre d’application : son de la fenêtre');
   assert.equal(asked[0].video.displaySurface, undefined, 'par défaut, aucune surface imposée');
+  // Son de toutes les applications (§51) : écran entier, restrictOwnAudio seul réglage demandé
+  audio.getSettings = () => ({ restrictOwnAudio: true });
+  const a = await L.getSystemAudio('apps', md);
+  assert.equal(asked[3].audio.restrictOwnAudio, true);
+  assert.deepEqual(Object.keys(asked[3].audio), ['restrictOwnAudio'], 'aucun autre réglage exigé');
+  assert.equal(asked[3].video.displaySurface, 'monitor');
+  assert.equal(asked[3].systemAudio, 'include');
+  assert.equal(a._lowsperAttempt, 'apps');
+  assert.equal(a._lowsperRestricted, true, 'son du navigateur exclu : onglets à ajouter à part');
+  audio.getSettings = () => ({ restrictOwnAudio: false });
+  assert.equal((await L.getSystemAudio('apps', md))._lowsperRestricted, false);
+  delete audio.getSettings;
+  assert.equal(L.canRestrictOwnAudio({ getSupportedConstraints: () => ({ restrictOwnAudio: true }) }), true);
+  assert.equal(L.canRestrictOwnAudio({ getSupportedConstraints: () => ({}) }), false);
+  assert.equal(L.canRestrictOwnAudio({}), false);
   // Partage sans son : erreur explicite
   const none = {
     getDisplayMedia: async () => ({ getAudioTracks: () => [], getVideoTracks: () => [], getTracks: () => [] }),
