@@ -61,6 +61,7 @@ sans carte graphique, 16 Go, Edge ou Chrome. Pas de discussion avec la réunion 
 | C2 | Notes rapides tapées pendant la réunion, reprises dans la note ; consigne « e-mail de suivi » | Livré (4.4.0) |
 | C3 | Compte rendu rédigé par une IA locale, seulement là où une mesure sur le portable de référence le valide | Étudié : rien d'intégré |
 | Étude | Séparation des voix plus légère ; vocabulaire « IA et informatique » | Livré : vocabulaire intégré, séparation étudiée |
+| Son | Tout le son de Windows (applications installées) et le micro, quand le son du système est refusé | En cours : code de Chromium étudié, essai `tools/test/son-systeme.html` à faire sur le PC du mainteneur (`decision.md` §51) |
 
 ## Étude : vocabulaire « IA et informatique » et séparation des voix plus légère (livré)
 

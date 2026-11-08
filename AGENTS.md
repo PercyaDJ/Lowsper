@@ -125,6 +125,7 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Vitesse des modèles selon le nombre de moteurs (après `--embed whisper-small whisper-base`) | `npm run bench -- --cores` |
 | Essai à la main de la fenêtre de choix de dossier (`startIn`) dans Chrome et Edge | ouvrir `tools/test/startin.html` |
 | Essai à la main des tailles de la mini-fenêtre dans Chrome et Edge | ouvrir `tools/test/pip-sizes.html` |
+| Essai à la main du son de l'ordinateur (quatre façons) et du micro, sur le PC Windows (`decision.md` §51) | ouvrir `tools/test/son-systeme.html` |
 | Mémoire des voix d'une visio à l'autre : corpus multi-appareils, empreintes, banc avant et après (`decision.md` §37) | `python corpus/make-voices.py` (dans `test/`, 1 h 15), `node test/embed-voices.mjs` (1 h, Chromium), `node test/eval-voices.mjs [--sweep\|--explore\|--curve\|--stats]` (secondes) |
 | Paroles simultanées : corpus, puis mesure par type de chevauchement (`decision.md` §39) | `python corpus/make-overlap.py` puis `python corpus/make-variants.py simultane` (dans `test/corpus/`), `node test/eval-hebdo.mjs whisper-small --corpus=simultane [--teams] [--echo]`, puis `node test/eval-overlap.mjs whisper-small [--teams] [--echo]` |
 | Séparation des voix (MossFormer2, `.cache/sep`, `decision.md` §39 ; ConvTasNet, `.cache/sep-convtasnet`, exporté par `python test/export-convtasnet.py`, §44) | `node test/eval-separation.mjs [--teams] [--max=N] [--model=mossformer2\|convtasnet]` |

@@ -13,6 +13,12 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+### Ajouté
+- Page d'essai `tools/test/son-systeme.html` : sur le PC de l'utilisateur, essaie les quatre façons
+  de capter le son de l'ordinateur (son du système, toutes les applications sauf le navigateur,
+  fenêtre d'une application, onglet) et le micro en même temps, avec une jauge et un journal à
+  copier. Étude du code de Chromium : decision.md §51. Rien ne change encore dans Lowsper.
+
 ### Sécurité
 - Résultat Semgrep `detect-non-literal-regexp` sur `app/js/extract.js` : faux positif (règles écrites
   en dur, jamais une saisie), mesuré sans emballement sur des textes piégés de 20 000 caractères,

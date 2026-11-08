@@ -3223,3 +3223,61 @@ croissance plus rapide que la longueur.
 littérales dupliquerait la limite de mot dans chacune, sans rien changer au risque. Un test
 unitaire rejoue les textes piégés (moins de 2 s pour 20 000 caractères) : une règle ajoutée plus
 tard qui s'emballerait le ferait échouer.
+
+## 51. Son de toutes les applications quand Windows refuse le son du système : ce que fait Chromium
+
+**Contexte.** Après la 4.6.0, l'exigence du mainteneur est précisée : pendant une réunion, Lowsper
+doit capter **tout** le son qui sort de Windows (Teams, puis Jabber, puis une vidéo, quelle que
+soit l'application) et le micro en même temps, quels que soient la sortie et l'entrée, sans
+toucher aux réglages de Windows ni du casque. Sur son PC, « Écran entier » avec le son du système
+échoue (« Could not start audio source ») ; l'onglet marche (§47). Question posée : que donne le
+partage d'une fenêtre (`windowAudio`) pour Teams et Jabber ?
+
+**Deux canaux : déjà le cas.** Le micro (source « me ») et le son partagé (source « others ») sont
+deux sources séparées depuis le début : chacune a sa détection de parole et ses passages envoyés au
+moteur ; l'anti-écho retire du micro ce qui répète le son partagé (§39). Un son de vidéo continu et
+la voix au micro sont donc traités chacun de son côté. Limite connue : une personne qui parle en
+même temps que d'autres **dans le même son** se chevauche pour Whisper (§39).
+
+**Ce que dit le code de Chromium** (branche principale, et branches 141 à 146 consultées le
+8 novembre 2026 sur chromium.googlesource.com ; lecture du code, **pas un essai sous Windows**).
+Le son partagé passe par l'un de deux mécanismes de Windows :
+| Ce que la page demande | Identifiant interne | Mécanisme de Windows |
+|---|---|---|
+| Écran entier, son du système (Lowsper aujourd'hui) | `loopback` | Copie de la **sortie son** (« endpoint loopback ») : s'ouvre dans le format de la sortie |
+| Écran entier, `restrictOwnAudio: true` | `loopbackWithoutChrome` | Copie **par processus** (`AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK`) : tout le son de Windows **sauf** celui du navigateur ; périphérique virtuel, sans le format de la sortie |
+| Fenêtre, `windowAudio: 'window'` | `applicationLoopback:<processus>` | Copie **par processus** : le son de l'application de la fenêtre et de ses processus enfants |
+| Onglet | (son pris dans le navigateur) | Aucun : Windows n'intervient pas (§47) |
+Conditions relevées dans le code : la copie par processus exige **Windows 11**
+(`IsWindowsProcessLoopbackCaptureSupported`) ; `restrictOwnAudio` est stable dans le moteur depuis
+la branche 141 au moins ; le son d'une application pour une fenêtre (`kApplicationAudioCaptureWin`,
+activé par défaut) apparaît dans la branche 146 et pas dans les branches 141 à 145 consultées. La
+version de Chrome, d'Edge et de Brave du mainteneur et la version de Windows ne sont pas connues.
+
+**Hypothèse sur la cause** (non vérifiée). L'échec viendrait de la copie de la sortie son, qui doit
+s'ouvrir dans le format de la sortie (le casque de jeu en son surround, §47). La copie par
+processus ne dépend pas de ce format : dans le code, Chromium lui impose son propre format, car
+`GetMixFormat` n'est pas disponible pour ce périphérique virtuel. Si l'hypothèse est juste, les
+essais 2 et 3 de la page ci-dessous marchent là où l'essai 1 échoue.
+
+**Ce que cela donnerait pour le mainteneur** (à confirmer par l'essai) :
+- Teams, Jabber, une vidéo dans une autre application : captés tous ensemble par l'essai 2, sans
+  choisir de fenêtre, même quand on passe de l'un à l'autre ;
+- le son des onglets du navigateur où tourne Lowsper est exclu par l'essai 2 (c'est son
+  principe) : il faut l'ajouter par « Ajouter un autre son » (onglet, §48), ou ouvrir Lowsper dans
+  un autre navigateur que la visio ou la vidéo ;
+- l'essai 3 ne capte qu'une application : utile seulement si l'essai 2 échoue.
+
+**Retenu à ce stade.** Rien n'est changé dans Lowsper tant que l'essai n'est pas fait sur le PC du
+mainteneur : les correctifs 4.5.1 et 4.5.2 ont été écrits sans mesure sous Windows et n'ont pas
+suffi. Page d'essai `tools/test/son-systeme.html` : les quatre demandes ci-dessus, une jauge du son
+partagé et une du micro, un journal à copier (versions du navigateur et de Windows, réglages
+réellement appliqués à la piste, dont `restrictOwnAudio`, et niveau le plus fort sur 8 s). Vérifié
+ici : la page s'ouvre en `file://` dans Chromium 153 sous Linux, sans erreur, et les quatre essais
+et le micro donnent un son factice ; sous Linux, `restrictOwnAudio` reste `false` (non pris en
+charge), ce qui est attendu.
+
+**Suite.** Selon le journal du mainteneur : si l'essai 2 capte Teams et la vidéo d'une autre
+application, Lowsper le proposera après l'échec du son du système, suivi de l'ajout de l'onglet ;
+sinon, l'essai 3 ; si aucun ne marche, aucune page web ne peut capter le son d'une application
+installée sur ce PC (contrainte n° 2).
