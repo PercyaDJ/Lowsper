@@ -570,15 +570,18 @@ label.home-row { cursor: text; }
 .sheet #before-cancel { display: block; margin: 8px auto 0; }
 
 /* Réunion, fenêtre agrandie (lot R5) : centrée, sans carte, comme la maquette */
-.card.meeting { max-width: 600px; margin: 16px auto; padding: 0; background: none; box-shadow: none; display: flex; flex-direction: column; gap: 18px; }
-.meet-head { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.meet-head .rec-status { font-weight: 400; font-size: 15px; gap: 8px; }
-.meet-head .timer { font-family: var(--font-display); font-size: 60px; font-weight: 300; letter-spacing: -.02em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.card.meeting { max-width: 600px; margin: 8px auto; padding: 0; background: none; box-shadow: none; display: flex; flex-direction: column; gap: 14px; }
+/* Fenêtre de réunion sans défilement (decision.md §52) : en-tête sur deux lignes, le reste compact */
+.meet-head { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.meet-head .rec-status { font-weight: 400; font-size: 14px; gap: 8px; }
+.meet-head .timer { font-family: var(--font-display); font-size: 46px; font-weight: 300; letter-spacing: -.02em; line-height: 1.05; font-variant-numeric: tabular-nums; }
 #meet-title { width: min(360px, 100%); height: 32px; padding: 0 8px; border: 1px solid transparent; border-radius: 8px; background: transparent; box-shadow: none; color: var(--muted); font: inherit; font-size: 15px; text-align: center; }
 #meet-title:hover { border-color: var(--border); }
 #meet-title:focus { border-color: var(--accent); color: var(--text); outline: none; }
 .checks { margin: 0; }
-.check-row { display: flex; align-items: center; gap: 12px; min-height: 54px; padding: 8px 16px; box-sizing: border-box; }
+.check-row { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 16px; box-sizing: border-box; }
+.check-row .add-btn { flex: none; }
+.check-row .add-btn[hidden] { display: none; }
 .check-row + .check-row { border-top: 1px solid var(--border); }
 .check-mark { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 700; background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
 .check-mark svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; display: none; }
@@ -595,11 +598,9 @@ label.home-row { cursor: text; }
 .level i { display: block; height: 100%; width: 0; background: var(--ok); border-radius: 3px; transition: width .08s linear; }
 .meeting .notice { margin: 0; }
 /* Ajouter un autre son (onglet d'une vidéo présentée...), sous le contrôle d'état */
-.meeting .add-sound { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
-.meeting .add-sound[hidden] { display: none; }
 .big-actions { display: flex; justify-content: center; gap: 40px; }
 .round-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
-.round-btn .round { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); }
+.round-btn .round { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); }
 .round-btn .ico { width: 24px; height: 24px; margin: 0; fill: currentColor; stroke: none; }
 #pip .ico { fill: none; stroke: currentColor; }
 .round-btn.danger .round { background: var(--danger); color: #fff; }
@@ -607,20 +608,24 @@ label.home-row { cursor: text; }
 .round-btn:hover .round { filter: brightness(.96); }
 .round-btn:focus-visible { outline: none; }
 .round-btn:focus-visible .round { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 2px; }
-.chain-link { align-self: center; margin-top: -6px; font-size: 15px; text-decoration: none; padding: 8px 12px; }
+.chain-link { align-self: center; margin-top: -10px; font-size: 14px; text-decoration: none; padding: 4px 12px; }
 /* Notes rapides (lot C2) : un champ, Entrée pour ajouter, la liste dessous */
-.quick-note { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px solid var(--border); }
+.quick-note { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px solid var(--border); }
 .qn-label { font-size: 15px; font-weight: 600; }
 .qn-row { display: flex; gap: 8px; align-items: center; }
 .qn-row input { flex: 1; min-width: 0; }
 .quick-note .fine { margin: 0; font-size: 13px; }
-.qn-list { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; max-height: 180px; overflow-y: auto; }
+.qn-list { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; max-height: 120px; overflow-y: auto; }
 .qn-list li { display: flex; align-items: baseline; gap: 10px; padding: 6px 0; border-top: 1px solid var(--border); font-size: 15px; }
 .qn-list .t { flex: none; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .qn-list .txt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .qn-list .linkish { flex: none; font-size: 13px; }
-.live-toggle { justify-content: space-between; flex-direction: row-reverse; padding-top: 10px; border-top: 1px solid var(--border); color: var(--muted); font-size: 15px; }
-.meeting .feed { margin: 0; }
+.live-toggle { justify-content: space-between; flex-direction: row-reverse; padding-top: 8px; border-top: 1px solid var(--border); color: var(--muted); font-size: 15px; }
+/* Hauteur du texte en direct : ce qui reste de la fenêtre (fitLive, app.js), sans défilement de la page */
+.meeting .feed { margin: 0; min-height: 120px; }
+.meeting .feed .placeholder { margin-top: 24px; }
+/* Pendant la réunion, la mention du bas de page ne fait pas défiler la fenêtre */
+body:has(#view-rec:not([hidden])) .foot { display: none; }
 
 /* Mini-barre : dans la mini-fenêtre (Document Picture-in-Picture, 248 × 52), ou seule quand la
    fenêtre de Lowsper est très basse. Temps, niveaux du micro et de la réunion, pause, fin. */
@@ -654,11 +659,25 @@ body.mini .card.meeting { margin: 0; max-width: none; }
   .meet-head .timer { font-size: 40px; }
   .check-row { min-height: 44px; padding: 6px 12px; }
   .check-text { width: auto; flex: 1; }
-  /* Fenêtre réduite : le bouton seul, l'explication est dans son infobulle et le guide */
-  .meeting .add-sound .fine { display: none; }
   .check-row .level { flex: 0 0 25%; }
   .big-actions { gap: 24px; }
   .round-btn .round { width: 52px; height: 52px; }
+}
+/* Portable (fenêtre de 860 px de haut ou moins) : tout tient sans défiler, texte en direct compris
+   (decision.md §52). En-tête sur une ligne, état sur une ligne, légendes des boutons dans
+   l'infobulle, titre de la note rapide dans son champ. */
+@media (max-height: 860px) {
+  .top { margin-top: 6px; margin-bottom: 0; }
+  .card.meeting { gap: 10px; }
+  .meet-head { flex-direction: row; justify-content: center; gap: 14px; }
+  .meet-head .timer { font-size: 32px; }
+  #meet-title { width: min(240px, 40%); }
+  .check-row { min-height: 40px; padding: 4px 12px; }
+  .check-text { width: auto; flex: 1; min-width: 0; flex-direction: row; align-items: baseline; gap: 8px; white-space: nowrap; }
+  .check-row .level { flex: 0 0 28%; }
+  .round-btn .lbl, .qn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .round-btn .round { width: 48px; height: 48px; }
+  .chain-link { margin-top: -6px; }
 }
 
 /* Fin de réunion (lot R6, decision.md §29) : le texte à gauche, « Et maintenant ? » à droite */
@@ -675,8 +694,12 @@ main:has(> #view-done:not([hidden])) { max-width: 1200px; }
 .done-hint { display: flex; align-items: center; gap: 10px; margin: 0; padding: 10px 14px; border-radius: 10px; background: var(--accent-soft); font-size: 15px; }
 .done-hint .ico { margin: 0; color: var(--link); }
 .done-lines { display: flex; flex-direction: column; gap: 18px; }
-.done-line { display: flex; flex-direction: column; gap: 6px; line-height: 1.5; }
-.done-line p { margin: 0; overflow-wrap: anywhere; }
+.done-line { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; line-height: 1.5; }
+/* Répliques en bulles, comme des SMS (decision.md §52) : les autres en gris à gauche, vous (micro)
+   en vert clair à droite */
+.done-line p { margin: 0; overflow-wrap: anywhere; max-width: 85%; padding: 10px 14px; border-radius: 18px 18px 18px 6px; background: var(--surface-2); }
+.done-line.me { align-items: flex-end; }
+.done-line.me p { border-radius: 18px 18px 6px 18px; background: color-mix(in srgb, var(--ok) 20%, var(--surface)); }
 .done-line.draft p { color: var(--muted); }
 .done-who { display: flex; align-items: center; gap: 10px; }
 .done-time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }

@@ -193,6 +193,10 @@
     'prof.access.ask':
       'Les notes de l’emplacement « {name} » vont dans le dossier « {folder} » : le navigateur demande votre accord.',
     'prof.access.allow': 'Autoriser maintenant',
+    'prof.access.lowsper':
+      "Ce navigateur n'a pas encore accès au dossier Lowsper : la note irait dans vos Téléchargements. Désignez-le une fois pour retrouver vos notes et vos réglages au même endroit.",
+    'prof.access.pickLowsper': 'Choisir le dossier Lowsper',
+    'prof.access.lowsperDone': 'Dossier Lowsper retrouvé : les notes y seront enregistrées.',
     'prof.access.forgotten':
       'Le navigateur a oublié le dossier « {folder} » de l’emplacement « {name} » (données de navigation effacées ?). En attendant, les notes vont dans vos Téléchargements.',
     'prof.access.repick': 'Désigner à nouveau le dossier',
@@ -607,7 +611,10 @@
     'meet.textLate': '{s} s de retard',
     'meet.textPreparing': 'Le moteur se prépare',
     'meet.howToFix': 'Comment corriger',
-    'meet.addSound': 'Ajouter un autre son',
+    'meet.addSound': 'Ajouter un son',
+    'meet.addTab': 'Ajouter un onglet',
+    'meet.addTabSub':
+      "Le son de toutes les applications est capté, sauf celui de ce navigateur : ajoutez ici l'onglet d'une visio ou d'une vidéo.",
     'meet.addSoundSub': 'Un onglet ou une fenêtre de plus, par exemple une vidéo présentée pendant la réunion.',
     'rec.soundAdded': 'Son ajouté : {n} sons de la réunion captés ensemble.',
     'rec.soundRemoved': 'Un son partagé a été arrêté ; les autres restent captés.',
@@ -630,8 +637,6 @@
     'rec.shareOthers': 'Partager le son des participants',
     'rec.shareTab': "Partager l'onglet de la visio",
     'rec.shareApps': 'Partager le son de toutes les applications',
-    'rec.appsCaptured':
-      'Son de toutes les applications capté (Teams, Jabber, vidéos...), sauf celui de ce navigateur. Pour une visio ou une vidéo dans un onglet de ce navigateur, cliquez sur « Ajouter un autre son ». ',
     'rec.othersStartFailedApps':
       "Windows n'a pas laissé le navigateur capter le son de tout l'ordinateur ({error}). « Partager le son de toutes les applications » le prend dans chaque application plutôt qu'à la sortie son : choisissez de nouveau l'écran entier et cochez le son. Lowsper s'en souviendra pour les prochaines réunions. ",
     'rec.othersCaptured': 'Son des participants capté.',
@@ -1049,6 +1054,10 @@
     'prof.deleteConfirm': 'Delete the place “{name}”? Notes already saved stay in their folder.',
     'prof.access.ask': 'Notes of the place “{name}” go to the folder “{folder}”: the browser asks for your permission.',
     'prof.access.allow': 'Allow now',
+    'prof.access.lowsper':
+      'This browser cannot reach the Lowsper folder yet: the note would go to your Downloads. Choose it once to keep your notes and settings in the same place.',
+    'prof.access.pickLowsper': 'Choose the Lowsper folder',
+    'prof.access.lowsperDone': 'Lowsper folder found: notes will be saved there.',
     'prof.access.forgotten':
       'The browser forgot the folder “{folder}” of the place “{name}” (browsing data erased?). Until then, notes go to your Downloads.',
     'prof.access.repick': 'Choose the folder again',
@@ -1445,7 +1454,10 @@
     'meet.textLate': '{s} s behind',
     'meet.textPreparing': 'The engine is getting ready',
     'meet.howToFix': 'How to fix',
-    'meet.addSound': 'Add another sound',
+    'meet.addSound': 'Add a sound',
+    'meet.addTab': 'Add a tab',
+    'meet.addTabSub':
+      'The sound of all applications is captured, except this browser: add the tab of a meeting or a video here.',
     'meet.addSoundSub': 'One more tab or window, for example a video shown during the meeting.',
     'rec.soundAdded': 'Sound added: {n} meeting sounds captured together.',
     'rec.soundRemoved': 'One shared sound was stopped; the others are still captured.',
@@ -1468,8 +1480,6 @@
     'rec.shareOthers': 'Share the sound of the other people',
     'rec.shareTab': 'Share the meeting tab',
     'rec.shareApps': 'Share the sound of all applications',
-    'rec.appsCaptured':
-      'Sound of all applications captured (Teams, Jabber, videos...), except this browser. For a meeting or a video in a tab of this browser, click “Add another sound”. ',
     'rec.othersStartFailedApps':
       'Windows did not let the browser capture the sound of the whole computer ({error}). “Share the sound of all applications” takes it from each application instead of the sound output: choose the entire screen again and tick the sound. Lowsper will remember it for the next meetings. ',
     'rec.othersCaptured': 'Sound of the other people captured.',

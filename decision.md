@@ -3226,6 +3226,8 @@ tard qui s'emballerait le ferait échouer.
 
 ## 51. Son de toutes les applications quand Windows refuse le son du système (4.7.0)
 
+_Complété par le §52 : sous Windows 11, ce son est demandé d'emblée._
+
 **Contexte.** Après la 4.6.0, l'exigence du mainteneur est précisée : pendant une réunion, Lowsper
 doit capter **tout** le son qui sort de Windows (Teams, puis Jabber, puis une vidéo, quelle que
 soit l'application) et le micro en même temps, quels que soient la sortie et l'entrée, sans
@@ -3320,3 +3322,66 @@ mesure `npm run bench`.
 **Limites.** Windows 11 seulement (code de Chromium) ; non vérifié dans Edge ni sur le portable de
 référence. Une visio ou une vidéo dans un onglet du navigateur de Lowsper doit être ajoutée à la
 main (« Ajouter un autre son ») : un clic de plus par réunion, exigé par le navigateur.
+
+## 52. Sans message d'erreur, même dossier dans tous les navigateurs, écran de réunion sans défilement (4.8.0)
+
+**Contexte.** Essai de la 4.7.0 par le mainteneur (Windows 11, Chrome et Brave, une vidéo
+publique en fond, non versée au dépôt, règle n° 9) : la note est juste, la vidéo et le micro sont
+captés, mais (1) le message « Windows n'a pas laissé le navigateur... » apparaît au premier
+démarrage de chaque navigateur, et il faut repartager le son ; (2) ouvert dans un autre
+navigateur, Lowsper n'enregistre plus les notes dans `Lowsper/Notes/Par défaut` ; (3) la fenêtre
+de réunion oblige à faire défiler, même texte en direct masqué ; (4) souhait : dans le transcript
+de fin, ce qui a été dit au micro mis en avant, comme des SMS envoyés.
+
+**Causes.**
+1. Lowsper demandait d'abord le son du système, que Windows refuse sur ce PC (§51) ; après un
+   refus, un nouvel essai exige un nouveau clic (règle des navigateurs). La préférence apprise
+   (`lowsper.share.surface`) était propre à chaque navigateur tant qu'elle n'était pas recopiée
+   dans le dossier Lowsper.
+2. L'accès à un dossier (File System Access) est accordé **par navigateur** : le second
+   navigateur n'a pas d'accès au dossier Lowsper, et rien ne le lui proposait, car le modèle, lu par
+   une balise `<script>`, ne demande pas d'installation. La note partait donc dans les
+   Téléchargements sans prévenir.
+3. Mise en page pensée pour un grand écran : chronomètre de 60 px, explication du bouton d'ajout
+   sur sa propre ligne, aide sous la note rapide, texte en direct de 300 px fixe. Mesure dans
+   Chromium à 1280 × 800 : 936 px de haut sans le texte en direct, 1 254 px avec.
+
+**Retenu (choix du mainteneur, présentés sous forme de choix).**
+- **Son** : sous Windows 11 (Client Hints, `platformVersion` 13 ou plus ; `Lowsper.isWindows11`),
+  quand le navigateur connaît `restrictOwnAudio`, le son de toutes les applications est demandé
+  dès la première réunion : jamais de message d'erreur. Le bouton de la ligne « Son de la
+  réunion » devient « Ajouter un onglet » (son du navigateur de Lowsper, exclu par principe) ; son
+  explication passe dans l'infobulle. Plus de message après une capture réussie. Ailleurs,
+  comportement de la 4.7.0. Écartés : l'essai suivi d'une mémoire commune aux navigateurs (un
+  message par PC resterait), et une question « où est la visio ? » avant chaque partage.
+- **Dossier** : sur l'accueil, emplacement par défaut et navigateur sans accès au dossier Lowsper :
+  « Choisir le dossier Lowsper », un clic une fois par navigateur (même vérification qu'à
+  l'installation, §38). Le navigateur ne peut pas hériter de l'accord d'un autre : c'est une
+  limite de la plateforme, dite dans le guide. Navigateur qui n'écrit pas dans un dossier (Brave
+  sans son option, Firefox) : le message existant, sans bouton. Les réglages étaient déjà relus du
+  dossier dans tous les navigateurs (`app/reglages.txt`, lu par `app/js/settings.js`).
+- **Écran de réunion** : visibles sans défiler le contrôle d'état, la note rapide et le texte en
+  direct (choix du mainteneur). « Ajouter un son » dans la ligne « Son de la réunion » ; aide de la
+  note rapide gardée pour les lecteurs d'écran seulement ; mention du bas de page masquée pendant
+  la réunion ; fenêtre de 860 px de haut ou moins : chronomètre et nom sur une ligne, état sur une
+  ligne, légendes des boutons ronds et titre de la note rapide masqués à l'écran (toujours lus par
+  les lecteurs d'écran). Le texte en direct prend la hauteur qui reste (`fitLive`, plancher de
+  120 px) et défile seul.
+- **Bulles** : répliques du micro en vert clair à droite, les autres en gris à gauche (thème clair
+  et sombre).
+
+**Mesuré** (Chromium, page réelle, moteur chargé, capture simulée) : hauteur de la page égale à
+celle de la fenêtre, texte en direct masqué ou affiché, à 1280 × 800 (texte en direct : 314 px),
+1366 × 657 (188 px) et 1920 × 960 (265 px) ; fenêtre de 560 px : 29 px de défilement (texte en
+direct au plancher ; la mini-fenêtre reste la réponse aux très petites fenêtres).
+
+**Vérifié.** Tests unitaires (`isWindows11`) ; `test/e2e-share.mjs` : Windows 11 simulé, son de
+toutes les applications d'emblée, aucun message, « Ajouter un onglet » ; `test/home.mjs` : bouton
+« Choisir le dossier Lowsper » dans un navigateur sans accès, message sans bouton sans écriture
+dans un dossier ; `npm test`, `npm run test:e2e`, `test:e2e-notes`, `test:e2e-import` verts ;
+captures de la documentation régénérées. Le chemin du direct (traitement, moteur) ne change pas :
+pas de mesure `npm run bench`.
+
+**Limites.** Non vérifié sur le PC du mainteneur ni dans Edge. Windows 11 est reconnu par les
+Client Hints : un navigateur qui les bloque est traité comme les autres systèmes (essai du son du
+système, puis bouton). Un clic par navigateur pour le dossier reste nécessaire.
