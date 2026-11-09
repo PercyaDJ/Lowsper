@@ -79,6 +79,13 @@ await page.fill('#title', 'Point hebdo du centre de service');
 await page.evaluate(() => (document.getElementById('profile-access').hidden = true));
 await page.screenshot({ path: join(out, 'accueil.png') });
 
+// Test du son de la réunion (§56) : la fenêtre telle qu'elle s'ouvre depuis l'accueil
+await page.click('#sound-check-btn');
+await page.waitForSelector('#sound-test[open]');
+await page.waitForTimeout(300);
+await page.locator('#sound-test').screenshot({ path: join(out, 'test-son.png') });
+await page.click('#sound-test-close');
+
 // « Avant de commencer », capturée puis passée
 await page.click('#start');
 await page.waitForSelector('#before[open]');

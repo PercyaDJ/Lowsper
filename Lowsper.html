@@ -109,6 +109,10 @@
                 <span class="set-text"><span class="set-label" data-i18n="set.withOthers">Écouter aussi le son de la réunion</span><span class="set-sub" data-i18n="set.withOthersSub">Pas seulement votre micro : le son partagé avec l'écran.</span></span>
                 <input type="checkbox" id="with-others" checked>
               </label>
+              <button type="button" class="set-row" id="row-sound-test">
+                <span class="set-text"><span class="set-label" data-i18n="row.soundTest">Tester le son de la réunion</span><span class="set-sub" data-i18n="row.soundTestSub">Trouve une fois pour toutes comment ce PC laisse passer le son de Teams, de Jabber ou d'une vidéo.</span></span>
+                <span class="set-value" id="v-sound-test"></span>
+              </button>
               <label class="set-row check">
                 <span class="set-text"><span class="set-label" data-i18n="set.distinguish">Reconnaître qui parle</span><span class="set-sub" data-i18n="set.distinguishSub">Intervenant 1, 2, 3...</span></span>
                 <input type="checkbox" id="distinguish" checked>
@@ -556,6 +560,11 @@
       <button class="btn primary big" id="start">
         <span class="rec-dot"></span> <span data-i18n="home.start">Démarrer</span>
       </button>
+      <!-- Son de la réunion jamais vérifié sur ce PC : le test, en dehors de toute réunion (§56) -->
+      <p class="fine sound-check" id="sound-check" hidden>
+        <span data-i18n="home.soundUnverified">Son de la réunion pas encore vérifié sur ce PC.</span>
+        <button class="btn small" id="sound-check-btn" type="button" data-i18n="home.soundTest">Tester</button>
+      </p>
 
       <!-- Enregistrement fait ailleurs (dictaphone, téléphone) : même moteur que le direct. Le
            glisser-déposer d'un fichier n'importe où dans la page fonctionne toujours. -->
@@ -591,6 +600,14 @@
       </label>
       <button class="btn primary big" id="before-continue" type="button" data-i18n="before.continue">Continuer</button>
       <button class="btn ghost" id="before-cancel" type="button" data-i18n="before.cancel">Annuler</button>
+    </dialog>
+
+    <!-- Test du son de la réunion (decision.md §56) -->
+    <dialog class="sheet" id="sound-test" aria-labelledby="sound-test-title">
+      <h2 id="sound-test-title" data-i18n="st.title">Tester le son de la réunion</h2>
+      <p id="sound-test-text" aria-live="polite"></p>
+      <div class="sound-test-actions" id="sound-test-actions"></div>
+      <button class="btn ghost" id="sound-test-close" type="button" data-i18n="st.close">Fermer</button>
     </dialog>
 
     <!-- Pendant la réunion (lot R5, decision.md §28) : fenêtre agrandie -->
@@ -814,6 +831,7 @@
   <script src="app/js/installer.js"></script>
   <script src="app/js/settings.js"></script>
   <script src="app/js/capture.js"></script>
+  <script src="app/js/soundtest.js"></script>
   <script src="app/js/audiofile.js"></script>
   <script src="app/js/languages.js"></script>
   <script src="app/js/vocabularies.js"></script>

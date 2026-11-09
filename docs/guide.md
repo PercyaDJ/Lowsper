@@ -82,6 +82,17 @@ réunion qui travaille hors ligne.
    la note** (menu des emplacements, avec leur dossier ; « Nouvel emplacement… » en crée un). Cliquez sur **« Démarrer »**.
 
    ![Accueil : nom de la réunion, emplacement de la note, Démarrer](images/accueil.png)
+
+   **Une fois par PC, avant la première réunion : « Tester ».** Sous « Démarrer », la ligne « Son
+   de la réunion pas encore vérifié sur ce PC » ouvre le **test du son** (aussi dans les
+   paramètres : « Tester le son de la réunion »). Cliquez sur « Lancer le test », choisissez
+   l'écran entier et cochez le son : Lowsper joue un court signal et vérifie qu'il l'entend. Si
+   le son du système n'arrive pas sur ce PC, Lowsper propose le son de toutes les applications :
+   faites alors jouer un son dans une autre application (l'appel de test de Teams, une vidéo dans
+   un autre navigateur). Le chemin qui marche est retenu : aux réunions suivantes, un seul clic,
+   sans message. Rien n'est enregistré pendant le test.
+
+   ![Test du son de la réunion : lancer le test, choisir l'écran entier avec le son](images/test-son.png)
 6. La fenêtre **« Avant de commencer »** rappelle les trois étapes ; cliquez sur **« Continuer »** :
    - **prévenez les participants** que la réunion est transcrite ;
    - le navigateur propose un **partage d'écran**. **Windows 11** : la fenêtre s'ouvre sur l'écran
@@ -253,7 +264,8 @@ jamais perdre ce que vous avez tapé.
 
 Trois onglets ; chaque élément à choix ouvre un sous-écran (« ‹ Paramètres » ou Échap pour revenir).
 - **Transcription** : langue de l'interface, langues parlées, mots à reconnaître, corrections
-  automatiques, vocabulaire métier, options de la réunion.
+  automatiques, vocabulaire métier, options de la réunion, test du son de la réunion (avec le
+  chemin retenu sur ce PC).
 - **Notes et compte rendu** : emplacements, dossier, format de la note, compte rendu en haut de
   la note, consigne de « Obtenir un résumé » et éditeur des consignes.
 - **Avancé** : modèle, vitesse, thème, mémoire des voix, sauvegarde, IA intégrée du navigateur
@@ -455,7 +467,8 @@ fenêtre de Teams restaient muets alors que le son du système marchait. Lowsper
 son passe vraiment : si rien n'arrive pendant 20 secondes, il propose les autres chemins.
 Cliquez sur **« Partager le son du système »**, choisissez l'écran entier et cochez le son.
 Lowsper retient le chemin qui a laissé passer du son et le demande d'emblée aux réunions
-suivantes. Le message peut aussi apparaître si personne n'a encore parlé ni rien joué : si la
+suivantes. Pour éviter ce message en pleine réunion, faites une fois le **test du son** depuis
+l'accueil ou les paramètres (« Tester le son de la réunion »). Le message peut aussi apparaître si personne n'a encore parlé ni rien joué : si la
 réunion n'a pas commencé, ignorez-le. Un clic reste nécessaire pour chaque nouveau partage : c'est
 une règle des navigateurs, aucune page web ne peut l'éviter.
 

@@ -706,7 +706,8 @@
    *     navigateur, avant Windows : il ne dépend ni du casque ni de la sortie son.
    *   - 'apps' : écran entier, son de toutes les applications sauf ce navigateur
    *     (restrictOwnAudio). Sous Windows 11, Chromium copie alors le son de chaque application au
-   *     lieu de la sortie son : il marche quand la sortie est refusée (casque surround, §51).
+   *     lieu de la sortie son : il marche quand la sortie est refusée (casque surround, §51) ;
+   *   - 'system' : écran entier présélectionné, son du système (test du son, decision.md §56).
    * Toutes les surfaces restent proposées : le mode ne fait que présélectionner.
    * Lowsper.canRestrictOwnAudio() dit si le navigateur connaît restrictOwnAudio.
    * La vidéo est obligatoire pour la plupart des navigateurs : on la demande au minimum
@@ -718,7 +719,7 @@
     md = md || navigator.mediaDevices;
     if (mode === true) mode = 'simple';
     const small = { frameRate: 1, width: { max: 640 }, height: { max: 360 } };
-    const surface = { tab: 'browser', apps: 'monitor' }[mode];
+    const surface = { tab: 'browser', apps: 'monitor', system: 'monitor' }[mode];
     const options =
       mode === 'simple'
         ? { video: true, audio: true, systemAudio: 'include', windowAudio: 'window' }

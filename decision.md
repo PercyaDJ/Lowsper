@@ -3516,3 +3516,56 @@ soit 0,006 % d'un cœur ; zéro dès le premier son entendu.
 **Limites.** Non vérifié sur le PC d'entreprise : à confirmer par le mainteneur après la release.
 Si personne ne parle ni ne joue de son pendant les 20 premières secondes, le message apparaît à
 tort ; il le dit et s'ignore. Un clic par nouveau partage reste nécessaire.
+
+## 56. Test du son de la réunion, une fois par PC (4.10.0)
+
+**Contexte.** Après le §55, le mainteneur demande que Lowsper capte le son de l'ordinateur sans
+que l'utilisateur ait à « tester et bidouiller » : un PC difficile ne doit pas être découvert en
+pleine réunion. Contraintes : chaque demande de partage exige un clic et la fenêtre de choix du
+navigateur, et aucune installation n'est permise (contrainte n° 2). Choix du mainteneur, présenté
+sous forme de choix : un réglage du son fait une fois, en dehors des réunions.
+
+**Principe.** On ne peut pas éviter le clic ; on peut le déplacer hors réunion et le faire
+compter. Pour le son du système, Lowsper joue lui-même un court signal et vérifie qu'il revient :
+la copie de la sortie son de Windows (§51) contient tout ce qui sort, ce navigateur compris, donc
+le test n'a besoin d'aucun autre son. Le son de toutes les applications exclut par principe ce
+navigateur : le signal n'y revient pas, il faut un son venu d'une autre application.
+
+**Non vérifié.** Que le signal joué par la page revienne bien dans le son du système sous
+Windows (Chrome, Edge) : c'est le fonctionnement attendu de la copie de la sortie son, mais il
+n'a pas été mesuré. Essai 6 ajouté à `tools/test/son-systeme.html` pour le vérifier sur le PC du
+mainteneur. Sous Linux (Chromium, partage simulé), le signal ne revient pas : attendu, le faux
+partage n'est pas une copie de la sortie.
+
+**Options.**
+| Option | Verdict |
+|---|---|
+| Test sur l'écran de bienvenue seulement | Écarté seul : il ne s'affiche qu'avant l'installation du modèle ; les PC déjà équipés (dont celui du mainteneur) ne le verraient jamais. |
+| **Ligne de l'accueil tant que rien n'est vérifié, et ligne des paramètres** | **Retenu** : vue juste après l'installation comme sur un PC déjà équipé, discrète, et le test reste disponible. |
+| Son de toutes les applications d'abord dans le test | Écarté : il ne se vérifie pas seul. Le son du système, vérifié par le signal, couvre en plus les onglets du navigateur. |
+
+**Retenu.**
+- `app/js/soundtest.js` : `toneRatio` (algorithme de Goertzel, part de l'énergie à 1 000 Hz),
+  `toneHeard` (niveau au moins `SOUND_RMS` du §55 et part au moins 0,25), `probeTone` (trois
+  bips de 1 000 Hz, signal reconnu sur deux lectures, 4 s au plus), `waitForSound` (30 s au plus).
+- Déroulé : « Lancer le test », écran entier présélectionné (mode `system` de
+  `getSystemAudio`), signal. Entendu : chemin retenu. Muet ou refusé, et navigateur qui connaît
+  `restrictOwnAudio` : « Essayer le son de toutes les applications », puis un son d'une autre
+  application en 30 s. Sinon : conseil de l'onglet et renvoi vers la FAQ. Le partage est arrêté
+  à la fin de chaque essai ; rien n'est enregistré.
+- Le chemin retenu (`lowsper.share.surface` : `system` ou `apps`, comme au §55) est noté
+  vérifié (`lowsper.sound.verified`), aussi quand une réunion l'apprend. La ligne de l'accueil
+  disparaît alors ; la ligne des paramètres affiche le chemin. Les deux réglages sont recopiés
+  dans `app/reglages.txt` avec les autres : un test sert à tous les navigateurs du PC dès que la
+  copie est écrite.
+
+**Vérifié.** Tests unitaires (signal seul et dans le bruit à 44,1 et 48 kHz, « parole » de
+plusieurs fréquences écartée, silence et signal trop faible écartés). `test/e2e-share.mjs`, deux
+scénarios : PC d'entreprise simulé (signal revenu par le son du système, `system` retenu, ligne de
+l'accueil masquée, valeur « Son du système ») ; PC du §51 simulé (son du système refusé, son des
+applications attesté par un son d'une autre application, `apps` retenu). Capture
+`docs/images/test-son.png`. Le chemin du direct ne change pas : pas de mesure `npm run bench`.
+
+**Limites.** Le signal s'entend (trois bips courts, pendant le test seulement). Un test réussi sur
+le son de toutes les applications ne couvre pas une visio dans le navigateur de Lowsper : elle
+s'ajoute pendant la réunion (« Ajouter un onglet », §52). Non vérifié sous Windows.

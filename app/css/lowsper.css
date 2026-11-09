@@ -458,6 +458,9 @@ input[type="number"]:focus { border-color: var(--accent); }
 
 /* Profils de sortie : choix à l'accueil, éditeur dans les paramètres, état sur l'écran de fin */
 .profile-access { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: -6px 0 14px; }
+.sound-check { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px; margin: 10px 0 0; }
+.sound-test-actions { display: grid; gap: 8px; margin: 0 0 8px; }
+.sound-test-actions:empty { display: none; }
 .prof-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 10px; }
 .prof-folder { font-size: 14px; color: var(--text); margin-right: auto; }
 .prof-front { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: grid; gap: 10px; margin: 0; }
