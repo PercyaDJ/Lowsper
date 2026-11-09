@@ -13,6 +13,11 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+### Sécurité
+- Agent Lysbor mis à jour par son éditeur : le suivi des vulnérabilités s'arrêtait sur
+  l'empreinte figée (le verrou a joué son rôle). Nouveau script relu en entier, empreinte
+  remplacée après accord du mainteneur (decision.md §54). Rien ne change pour l'utilisateur.
+
 ## [4.9.0] - 2026-11-09
 
 ### Ajouté

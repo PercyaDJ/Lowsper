@@ -3412,3 +3412,34 @@ mesure `npm run bench`.
 **Limites.** La coupure de Lowsper est indépendante de celle de Teams ou de Jabber : se couper
 dans la visio ne coupe pas Lowsper (aucune page web ne peut lire l'état d'une autre application).
 Non vérifié sur le PC du mainteneur.
+
+## 54. Agent Lysbor : nouvelle version relue, empreinte remplacée
+
+**Contexte.** Le 9 novembre 2026, le workflow Lysbor échoue : `sha256sum: WARNING: 1 computed
+checksum did NOT match`. Le script `https://lysbor.com/agent/lysbor-scan.sh` a changé (servi avec
+`last-modified: Sun, 08 Nov 2026 18:15:38 GMT`) : son empreinte n'est plus celle figée au §32.
+C'est le comportement voulu : une version modifiée n'est pas exécutée tant qu'elle n'est pas relue.
+
+**Relecture du nouveau script** (313 lignes, empreinte `e3d42cde...a973`, identique sur trois
+téléchargements). L'ancienne version n'étant plus servie, la comparaison ligne à ligne n'a pas été
+possible : tout le script a été relu.
+- Hôtes contactés : l'instance Lysbor (`$LYSBOR_URL`, envoi de l'inventaire et des rapports SARIF,
+  avec la clé API) ; les archives publiées de Syft et de Trivy sur GitHub, chacune vérifiée contre
+  le fichier d'empreintes de sa release (versions figées inchangées : Syft 1.52.0, Trivy 0.74.0).
+- Nouveauté : si ces téléchargements échouent, Syft et Trivy sont construits depuis leurs sources
+  par `go install`, chaque module vérifié par la base d'empreintes de Go (`sum.golang.org`). Rien
+  de non vérifié n'est installé ; ce chemin ne sert que si GitHub ne répond pas.
+- Nouveauté : les dépendances npm de développement sont marquées `scope: excluded` dans
+  l'inventaire (outillage de `tools/`), pour distinguer ce qui est livré de ce qui sert à construire.
+- Sous-commande `gate` (contrôle de pull request, commentaire avec `GITHUB_TOKEN`) : présente, non
+  utilisée par ce workflow, qui n'appelle que `install-tools` et `--all`.
+- Aucune lecture ni envoi d'autres variables d'environnement ; aucun `eval` ; aucun script
+  téléchargé passé à un interpréteur ; `bash -n` sans erreur.
+
+**Arbitrage.** Le mainteneur, éditeur de Lysbor, a validé le remplacement après ce compte rendu.
+Empreinte remplacée dans `.github/workflows/lysbor.yml` ; le reste du workflow (déclencheurs,
+exclusions, Semgrep figé, ne bloque jamais) est inchangé. La CI principale et l'application ne
+sont pas touchées : aucune nouvelle version de Lowsper.
+
+**Limites.** Non exécuté ici (pas de clé Lysbor dans cet environnement) : le premier passage du
+workflow sur `main` après la fusion le vérifie (il se lance seul, le workflow ayant changé).
