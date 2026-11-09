@@ -3207,6 +3207,9 @@
   // À la fermeture des paramètres (geste de l'utilisateur) : copie des réglages dans le dossier
   // Lowsper si quelque chose a changé. Le dossier est d'ordinaire accordé dès l'installation.
   $('settings').addEventListener('close', () => {
+    // Vers l'écran d'installation (« Installer ou ajouter des modèles ») : l'installation demande
+    // elle-même le dossier, avec son explication, puis recopie les réglages (§57)
+    if (app.state === 'install') return;
     L.Settings.save({ interactive: true })
       .then(renderSaved)
       .then(refreshLowsper)

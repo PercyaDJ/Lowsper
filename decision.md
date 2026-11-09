@@ -3605,6 +3605,9 @@ page (`Lowsper.pageFolder()`), rappel que la fenêtre s'ouvre sur Téléchargeme
 parent convient aussi. « Choisir le dossier » ouvre la fenêtre du navigateur (le clic sert de
 geste) ; un mauvais dossier affiche le message existant sans fermer l'explication ; une annulation
 la laisse ouverte. « Plus tard » ou Échap : plus de question jusqu'au prochain lancement.
+Paramètres fermés par « Installer ou ajouter des modèles » : pas d'explication, l'installation
+demande elle-même le dossier avec son texte, puis recopie les réglages (trouvé par
+`test/welcome.mjs`, où la fenêtre se superposait à l'écran d'installation).
 
 **Vérifié.** `test/settings.mjs` : explication et chemin affichés à la fermeture des paramètres
 après un changement, fenêtre du navigateur ouverte par « Choisir le dossier », explication gardée
