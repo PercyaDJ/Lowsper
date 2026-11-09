@@ -8,7 +8,9 @@
 // 5. Corrections automatiques et nombre de mots : la valeur de la ligne suit.
 // 6. Exporter : un fichier JSON sans empreintes vocales ; importer : réglages remplacés, page
 //    rechargée, message ; fichier qui n'est pas un fichier de réglages : message clair.
-// 7. Aucune erreur de page, aucune requête réseau.
+// 7. Réglage changé sans dossier Lowsper accordé : explication et chemin avant la fenêtre de choix
+//    du navigateur, « Plus tard » sans nouvelle question (decision.md §57).
+// 8. Aucune erreur de page, aucune requête réseau.
 //
 // Usage : node test/settings.mjs   (CHROMIUM_PATH si besoin ; aucun modèle requis)
 import { chromium } from 'playwright-core';
@@ -151,6 +153,25 @@ await test('sous-écran : titre, choix au clavier, Échap revient puis ferme', a
   assert.equal(await page.textContent('#v-language'), 'Français, Anglais');
   await page.keyboard.press('Escape');
   assert.equal(await page.isHidden('#settings'), true);
+  // Réglage changé, aucun dossier Lowsper accordé : avant la fenêtre de choix du navigateur,
+  // une explication et le chemin du dossier à choisir (decision.md §57)
+  await page.waitForSelector('#folder-ask[open]');
+  assert.match(await page.textContent('#folder-ask'), /Lowsper\.html/);
+  assert.ok((await page.textContent('#folder-ask-path')).length > 0, 'chemin du dossier affiché');
+  // « Choisir le dossier » ouvre la fenêtre du navigateur ; annulée, l'explication reste
+  await page.evaluate(() => {
+    window.__picked = 0;
+    window.showDirectoryPicker = async () => {
+      window.__picked++;
+      throw new DOMException('annulé', 'AbortError');
+    };
+  });
+  await page.click('#folder-ask-pick');
+  assert.equal(await page.evaluate(() => window.__picked), 1);
+  assert.equal(await page.isVisible('#folder-ask'), true);
+  // « Plus tard » : fermée, et plus de question avant le prochain lancement
+  await page.click('#folder-ask-later');
+  assert.equal(await page.isHidden('#folder-ask'), true);
   // Liste redessinée par son propre choix (thème) : le focus reste sur le choix actuel
   await page.click('#settings-open');
   await page.click('#tab-advanced');
@@ -256,6 +277,9 @@ await test('« Ajouter un emplacement » : page ouverte, nom prêt à saisir, li
   assert.equal(await page.textContent('#v-folder'), 'Vos Téléchargements');
   await page.screenshot({ path: join(out, 'notes.png') });
   await page.click('#settings-close');
+  // Page rechargée par l'import : nouveau lancement, l'explication du dossier revient (§57)
+  await page.waitForSelector('#folder-ask[open]');
+  await page.click('#folder-ask-later');
   // Réouverture : l'emplacement montré est celui choisi sur l'accueil
   await page.click('#settings-open');
   await page.click('#tab-notes');

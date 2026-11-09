@@ -93,6 +93,13 @@
     'row.people': 'Nombre de personnes',
     'set.distinguishSub': 'Intervenant 1, 2, 3...',
     'set.withOthersSub': "Pas seulement votre micro : le son partagé avec l'écran.",
+    'fa.title': 'Garder vos réglages dans le dossier Lowsper',
+    'fa.text':
+      "Lowsper recopie vos réglages (mots à reconnaître, corrections automatiques, langue...) dans son propre dossier, pour les retrouver même si le navigateur efface ses données. Dans la fenêtre qui va s'ouvrir, choisissez ce dossier, celui qui contient Lowsper.html :",
+    'fa.hint':
+      "La fenêtre s'ouvre sur vos Téléchargements : si vous y choisissez le dossier qui contient Lowsper, il est retrouvé tout seul. Le navigateur demande cet accord une fois par copie de Lowsper.",
+    'fa.pick': 'Choisir le dossier',
+    'fa.later': 'Plus tard',
     'home.soundUnverified': 'Son de la réunion pas encore vérifié sur ce PC.',
     'home.soundTest': 'Tester',
     'row.soundTest': 'Tester le son de la réunion',
@@ -993,6 +1000,13 @@
     'row.people': 'Number of people',
     'set.distinguishSub': 'Speaker 1, 2, 3...',
     'set.withOthersSub': 'Not only your microphone: the sound shared with the screen.',
+    'fa.title': 'Keep your settings in the Lowsper folder',
+    'fa.text':
+      'Lowsper copies your settings (words to recognize, automatic fixes, language...) into its own folder, so that they come back even if the browser clears its data. In the window that opens next, choose this folder, the one that contains Lowsper.html:',
+    'fa.hint':
+      'The window opens on your Downloads: if you choose the folder that contains Lowsper there, it is found automatically. The browser asks for this permission once per copy of Lowsper.',
+    'fa.pick': 'Choose the folder',
+    'fa.later': 'Later',
     'home.soundUnverified': 'Meeting sound not yet checked on this PC.',
     'home.soundTest': 'Test',
     'row.soundTest': 'Test the meeting sound',

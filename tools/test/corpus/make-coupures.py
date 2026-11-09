@@ -1,4 +1,4 @@
-# Génère le corpus « coupures » (decision.md §57) : des réunions synthétiques où chacun parle
+# Génère le corpus « coupures » (decision.md §58) : des réunions synthétiques où chacun parle
 # longtemps d'affilée, pour mesurer combien de fois une même personne est coupée en deux
 # intervenants au milieu de ce qu'elle dit. Aucune donnée réelle : il assemble les prises de
 # parole du corpus de la mémoire des voix (make-voices.py, voix de synthèse Piper, appareils

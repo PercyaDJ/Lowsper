@@ -3579,3 +3579,37 @@ réglage `lowsper.share.surface` vaut bien `apps` avant l'arrêt, avant et aprè
 trouvée ; non établi si le défaut existait avant le §55. Choix du mainteneur : le test garde un
 diagnostic qui note chaque écriture du réglage, avec son origine, et l'affiche avec l'état de la
 page en cas d'échec ; la prochaine occurrence dira qui écrit quoi.
+
+## 57. Explication avant la fenêtre de choix du dossier Lowsper (4.10.1)
+
+**Contexte.** Retour du mainteneur, sur une nouvelle copie de Lowsper (4.10.0 extraite dans un
+nouveau dossier) : après avoir modifié ses « Mots à reconnaître », une fenêtre de choix de dossier
+s'ouvre, sans dire quoi choisir ni pourquoi.
+
+**Cause** (lecture du code). L'accord d'écrire dans le dossier Lowsper est donné par navigateur et
+par copie (§38, §52). Sans accord, `Settings.save` appelé depuis un clic (fermeture des
+paramètres, correction appliquée sur l'écran de fin) ouvrait directement `showDirectoryPicker`,
+sur Téléchargements. L'installation du modèle et le bouton « Choisir le dossier Lowsper » de
+l'accueil avaient déjà leur texte ; ces deux chemins-là n'en avaient aucun.
+
+**Options.**
+| Option | Verdict |
+|---|---|
+| Ouvrir la fenêtre directement sur le dossier Lowsper | Impossible : `startIn` n'accepte qu'un dossier connu (Téléchargements, Documents...) ou un dossier déjà autorisé, pas un chemin. |
+| Ne plus rien demander, réglages gardés par le navigateur seulement | Écarté : les réglages seraient perdus sur les postes qui effacent les données du navigateur (§15.16). |
+| **Une explication avant la fenêtre, avec le chemin exact** | **Retenu** (choix du mainteneur). |
+
+**Retenu.** `Lowsper.askLowsperFolder` (`app.js`), utilisé par `Settings.save` quand l'interface
+est là : fenêtre « Garder vos réglages dans le dossier Lowsper », raison, chemin du dossier de la
+page (`Lowsper.pageFolder()`), rappel que la fenêtre s'ouvre sur Téléchargements et que le dossier
+parent convient aussi. « Choisir le dossier » ouvre la fenêtre du navigateur (le clic sert de
+geste) ; un mauvais dossier affiche le message existant sans fermer l'explication ; une annulation
+la laisse ouverte. « Plus tard » ou Échap : plus de question jusqu'au prochain lancement.
+
+**Vérifié.** `test/settings.mjs` : explication et chemin affichés à la fermeture des paramètres
+après un changement, fenêtre du navigateur ouverte par « Choisir le dossier », explication gardée
+après une annulation, « Plus tard » qui ferme sans nouvelle question ; question revenue après le
+rechargement de la page. Le chemin du direct n'est pas touché : pas de mesure `npm run bench`.
+
+**Limites.** Non vérifié sous Windows dans Edge : la fenêtre de choix elle-même est celle du
+navigateur, inchangée.

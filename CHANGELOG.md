@@ -13,6 +13,14 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [4.10.1] - 2026-11-09
+
+### Corrigé
+- La fenêtre de choix de dossier ne s'ouvre plus sans explication en fermant les paramètres (ou en
+  appliquant une correction sur l'écran de fin) : Lowsper dit d'abord pourquoi il la demande et
+  affiche le chemin exact du dossier à choisir, avec « Choisir le dossier » et « Plus tard »
+  (decision.md §57).
+
 ## [4.10.0] - 2026-11-09
 
 ### Ajouté

@@ -1,4 +1,4 @@
-// Mesure des coupures d'une même personne en deux intervenants (decision.md §57).
+// Mesure des coupures d'une même personne en deux intervenants (decision.md §58).
 // Lit les phrases produites par eval-hebdo.mjs (test/output/<corpus><variante>-<modèle>-lignes.json)
 // et la vérité du corpus, sans navigateur, en quelques secondes. Pour chaque réplique réelle d'un
 // participant, regarde les phrases transcrites qui la composent :

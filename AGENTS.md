@@ -122,7 +122,7 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Interface en français et en anglais : catalogue, page, bascule (5 s, Chromium) | `npm run test:i18n` |
 | Écran de bienvenue : matériel simulé, recommandation, installation simulée (10 s, Chromium) | `npm run test:welcome` |
 | Accueil : menu, fenêtre « Avant de commencer », nombre de personnes (10 s, Chromium) | `npm run test:home` |
-| Paramètres en onglets : clavier, sous-écrans, listes dessinées, export et import (15 s, Chromium) | `npm run test:settings` |
+| Paramètres en onglets : clavier, sous-écrans, listes dessinées, export et import, explication avant le choix du dossier (15 s, Chromium) | `npm run test:settings` |
 | Vitesse des modèles selon le nombre de moteurs (après `--embed whisper-small whisper-base`) | `npm run bench -- --cores` |
 | Essai à la main de la fenêtre de choix de dossier (`startIn`) dans Chrome et Edge | ouvrir `tools/test/startin.html` |
 | Essai à la main des tailles de la mini-fenêtre dans Chrome et Edge | ouvrir `tools/test/pip-sizes.html` |
