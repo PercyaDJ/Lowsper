@@ -3620,3 +3620,66 @@ rechargement de la page. Le chemin du direct n'est pas touché : pas de mesure `
 
 **Limites.** Non vérifié sous Windows dans Edge : la fenêtre de choix elle-même est celle du
 navigateur, inchangée.
+
+## 58. Une même personne coupée en deux intervenants : mesure, aucun réglage
+
+**Contexte.** Constat du mainteneur : dans une réunion, une même personne est parfois coupée en
+deux intervenants au milieu de ce qu'elle dit. Demande : une étude mesurée sur corpus synthétique,
+et un réglage seulement si la mesure le valide. Le phénomène relève du regroupement des voix dans
+la réunion (§15.14), pas de la mémoire d'une réunion à l'autre (§37).
+
+**Mécanisme** (lecture de `speakers.js`). Le son est analysé par fenêtres de 2 s (pas de 1 s) ;
+chaque phrase rendue par Whisper prend la voix majoritaire des fenêtres qu'elle recouvre, puis le
+regroupement final réattribue les voix. Une phrase courte ne recouvre qu'une ou deux fenêtres :
+son vote est fragile.
+
+**Mesure.** `tools/test/eval-split.mjs` (hors ligne, secondes) relit les phrases produites par
+`eval-hebdo.mjs` et compte, pour chaque réplique réelle d'un participant : réplique coupée (ses
+phrases ont reçu au moins deux intervenants) et changement d'intervenant entre deux phrases
+consécutives de la même réplique.
+- Corpus existants, toute la chaîne Lowsper (Whisper small) : entretien (1 voix) 0 coupure sur 8
+  répliques en plusieurs phrases ; hebdo 1 sur 11 (son propre) et 1 sur 13 (son Teams). Trop peu de
+  répliques pour conclure.
+- Nouveau corpus « coupures » (`tools/test/corpus/make-coupures.py`, non versionné, graine fixe) :
+  8 réunions synthétiques de 6 personnes, assemblées à partir du corpus du §37 (voix Piper,
+  appareils simulés, compression d'une visio) ; chaque personne parle deux fois, 15 à 60 s
+  d'affilée ; 39 min de son, 96 répliques.
+
+| Réunion | Voix trouvées (6 réelles) | Répliques coupées | Changements en cours de réplique |
+|---|---|---|---|
+| 1 | 2 | 1 / 12 | 1 / 55 |
+| 2 | 8 | 4 / 12 | 6 / 45 |
+| 3 | 6 | 2 / 12 | 2 / 49 |
+| 4 | 5 | 1 / 12 | 2 / 53 |
+| 5 | 3 | 3 / 12 | 4 / 86 |
+| 6 | 5 | 2 / 11 | 2 / 44 |
+| 7 | 7 | 1 / 12 | 1 / 53 |
+| 8 | 3 | 2 / 12 | 3 / 56 |
+| **Total** | | **16 / 95 (17 %)** | **21 / 441 (4,8 %)** |
+
+**Ce que montrent les coupures.** Sur les 20 phrases qui ont reçu une autre voix que celle de leur
+personne : 15 durent moins de 3 s (médiane de toutes les phrases : 3,6 s), dont 7 à 1,0 s ; elles
+tombent au début (6), au milieu (7) ou à la fin (7) de la réplique ; 3 seulement prennent la voix
+de la personne qui parle juste avant ou après. Cause principale : les phrases courtes, jugées sur
+une ou deux fenêtres. À côté, le nombre de voix trouvées varie beaucoup (2 à 8 pour 6) : le
+regroupement fusionne autant qu'il coupe.
+
+**Piste essayée** (simulée sur les mêmes phrases, sans relancer le moteur) : une phrase courte,
+encadrée de près par deux phrases d'une même autre voix, prend leur voix.
+
+| Phrase courte de moins de | Écart avec les voisines | Répliques coupées | Changements |
+|---|---|---|---|
+| (sans lissage) | | 17 % | 4,8 % |
+| 2,5 s | 0,6 s | 16 % | 4,5 % |
+| 3 s | 1 s | 14 % | 3,9 % |
+| 4 s | 1 s | 13 % | 3,6 % |
+
+**Arbitrage (choix du mainteneur) : aucun réglage.** Le gain est faible (1 à 4 points), et le
+risque n'est pas mesurable ici : le corpus ne contient aucune intervention courte d'une autre
+personne (« oui », « d'accord ») au milieu d'une réplique, que ce lissage avalerait. La mesure ne
+valide donc pas de réglage. Les outils restent pour la suite : un corpus avec de telles
+interventions, ou une étude du nombre de voix trouvées (§15.14), sont les deux pistes.
+
+**Limites.** Voix de synthèse d'un même modèle Piper, appareils et visio simulés ; une seule
+répétition par réunion (pas de mesure de la variance d'un passage à l'autre). Le résultat sur une
+vraie réunion n'est pas vérifié.

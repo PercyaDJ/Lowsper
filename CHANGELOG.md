@@ -13,6 +13,12 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+### Documentation
+- Étude mesurée d'une même personne coupée en deux intervenants, sur 8 réunions synthétiques :
+  17 % des répliques coupées, surtout sur des phrases de moins de 3 s ; aucun réglage, la mesure
+  ne le valide pas (decision.md §58). Outils : `tools/test/eval-split.mjs`,
+  `tools/test/corpus/make-coupures.py`.
+
 ## [4.10.1] - 2026-11-09
 
 ### Corrigé
