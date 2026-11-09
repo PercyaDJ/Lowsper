@@ -39,7 +39,8 @@ env:
   LYSBOR_URL: https://lysbor.com
   # Agent servi par l'instance, figé par son empreinte : une version modifiée n'est pas exécutée.
   # Pour passer à une nouvelle version : vérifier le script, puis remplacer l'empreinte.
-  AGENT_SHA256: 69ac853778c4e4aee0c95677fa67f3bcaed00b48bfab847592eddf1957d6f6f6
+  # Version relue le 9 novembre 2026, remplacement validé par le mainteneur (decision.md §54).
+  AGENT_SHA256: e3d42cdee8a2e271f38185cc6cc4480f794479845aab01371e9f9bde85d8a973
   SEMGREP_VERSION: 1.177.0
 
 jobs:
