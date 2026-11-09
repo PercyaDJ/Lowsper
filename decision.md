@@ -3569,3 +3569,13 @@ applications attesté par un son d'une autre application, `apps` retenu). Captur
 **Limites.** Le signal s'entend (trois bips courts, pendant le test seulement). Un test réussi sur
 le son de toutes les applications ne couvre pas une visio dans le navigateur de Lowsper : elle
 s'ajoute pendant la réunion (« Ajouter un onglet », §52). Non vérifié sous Windows.
+
+**Échec intermittent non expliqué** (`test/e2e-share.mjs`, local seulement, la CI ne le lance
+pas). Pendant ce lot, 3 échecs sur 21 passages, chaque fois au premier passage d'une série, à la
+même étape : après « Terminer » et le rechargement de la page, la réunion suivante demande le son
+du système au lieu du chemin retenu (scénario 1 deux fois, scénario 8 une fois). Mesuré : le
+réglage `lowsper.share.surface` vaut bien `apps` avant l'arrêt, avant et après le rechargement
+(6 passages réduits sur 6) ; il est lu directement dans le stockage du navigateur. Cause non
+trouvée ; non établi si le défaut existait avant le §55. Choix du mainteneur : le test garde un
+diagnostic qui note chaque écriture du réglage, avec son origine, et l'affiche avec l'état de la
+page en cas d'échec ; la prochaine occurrence dira qui écrit quoi.
