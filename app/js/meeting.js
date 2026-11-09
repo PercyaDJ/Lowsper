@@ -90,7 +90,7 @@
    */
   function soundOffers(failed, canRestrict) {
     const all = ['apps', 'screen', 'tab'].filter((m) => m !== 'apps' || canRestrict);
-    const same = failed === 'simple' ? 'screen' : failed;
+    const same = failed === 'simple' || failed === 'system' ? 'screen' : failed;
     return all.filter((m) => m !== same);
   }
 
@@ -101,7 +101,8 @@
    */
   function soundLearned(attempt, windows11, canRestrict) {
     if (attempt === 'apps') return 'apps';
-    if (attempt === 'screen' || attempt === 'simple') return windows11 && canRestrict ? 'system' : 'screen';
+    if (attempt === 'screen' || attempt === 'simple' || attempt === 'system')
+      return windows11 && canRestrict ? 'system' : 'screen';
     return null;
   }
 

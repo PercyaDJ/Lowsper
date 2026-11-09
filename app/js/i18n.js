@@ -93,6 +93,34 @@
     'row.people': 'Nombre de personnes',
     'set.distinguishSub': 'Intervenant 1, 2, 3...',
     'set.withOthersSub': "Pas seulement votre micro : le son partagé avec l'écran.",
+    'home.soundUnverified': 'Son de la réunion pas encore vérifié sur ce PC.',
+    'home.soundTest': 'Tester',
+    'row.soundTest': 'Tester le son de la réunion',
+    'row.soundTestSub':
+      "Trouve une fois pour toutes comment ce PC laisse passer le son de Teams, de Jabber ou d'une vidéo.",
+    'st.title': 'Tester le son de la réunion',
+    'st.intro':
+      "Lowsper va ouvrir la fenêtre de partage : choisissez l'écran entier et cochez le partage du son. Un court signal sonore sera joué, et Lowsper vérifie qu'il l'entend. Rien n'est enregistré.",
+    'st.start': 'Lancer le test',
+    'st.listening': 'Écoute du signal…',
+    'st.okSystem':
+      "Le son de l'ordinateur arrive bien, celui de Teams, de Jabber, des vidéos et des onglets du navigateur compris. Lowsper le demandera ainsi à chaque réunion.",
+    'st.systemSilent':
+      "Le signal n'est pas revenu : sur ce PC, le son du système n'arrive pas au navigateur. Essayez le son de toutes les applications.",
+    'st.systemError': 'Windows a refusé le son du système ({error}). Essayez le son de toutes les applications.',
+    'st.tryApps': 'Essayer le son de toutes les applications',
+    'st.playOther':
+      "Faites jouer un son dans une autre application que ce navigateur : l'appel de test de Teams, ou une vidéo dans un autre navigateur. Lowsper écoute pendant 30 secondes.",
+    'st.okApps':
+      "Le son des applications arrive bien. Lowsper le demandera ainsi à chaque réunion. Une visio dans ce navigateur s'ajoute pendant la réunion avec « Ajouter un onglet ».",
+    'st.none':
+      "Aucun son n'est arrivé. Si votre visio est dans le navigateur, partagez son onglet au début de la réunion. Sinon, la question « Aucun son n'arrive par ce partage » du guide donne les autres pistes.",
+    'st.cancelled': 'Partage annulé.',
+    'st.retry': 'Réessayer',
+    'st.close': 'Fermer',
+    'st.vSystem': 'Son du système',
+    'st.vApps': 'Toutes les applications',
+    'st.vNone': 'Pas encore vérifié',
     'grp.during': 'Pendant la réunion',
     'set.savedBrowser': 'Gardés par ce navigateur seulement : il ne permet pas d’écrire dans le dossier Lowsper.',
     'set.savedPending': 'Pas encore copiés dans le dossier Lowsper : ce sera fait en fermant les paramètres.',
@@ -965,6 +993,33 @@
     'row.people': 'Number of people',
     'set.distinguishSub': 'Speaker 1, 2, 3...',
     'set.withOthersSub': 'Not only your microphone: the sound shared with the screen.',
+    'home.soundUnverified': 'Meeting sound not yet checked on this PC.',
+    'home.soundTest': 'Test',
+    'row.soundTest': 'Test the meeting sound',
+    'row.soundTestSub': 'Finds once and for all how this PC lets the sound of Teams, Jabber or a video through.',
+    'st.title': 'Test the meeting sound',
+    'st.intro':
+      'Lowsper will open the sharing window: choose the entire screen and tick the sound sharing. A short beep will play, and Lowsper checks that it hears it. Nothing is recorded.',
+    'st.start': 'Start the test',
+    'st.listening': 'Listening for the beep…',
+    'st.okSystem':
+      'The computer sound comes through, including Teams, Jabber, videos and browser tabs. Lowsper will ask for it this way at every meeting.',
+    'st.systemSilent':
+      'The beep did not come back: on this PC, the system sound does not reach the browser. Try the sound of all applications.',
+    'st.systemError': 'Windows refused the system sound ({error}). Try the sound of all applications.',
+    'st.tryApps': 'Try the sound of all applications',
+    'st.playOther':
+      'Play a sound in an application other than this browser: the Teams test call, or a video in another browser. Lowsper listens for 30 seconds.',
+    'st.okApps':
+      'The sound of the applications comes through. Lowsper will ask for it this way at every meeting. A video call in this browser is added during the meeting with “Add a tab”.',
+    'st.none':
+      'No sound came through. If your video call is in the browser, share its tab at the start of the meeting. Otherwise, the guide’s FAQ (“Aucun son n’arrive par ce partage”, in French) gives the other options.',
+    'st.cancelled': 'Sharing cancelled.',
+    'st.retry': 'Try again',
+    'st.close': 'Close',
+    'st.vSystem': 'System sound',
+    'st.vApps': 'All applications',
+    'st.vNone': 'Not checked yet',
     'grp.during': 'During the meeting',
     'set.savedBrowser': 'Kept by this browser only: it cannot write to the Lowsper folder.',
     'set.savedPending': 'Not yet copied to the Lowsper folder: this happens when you close the settings.',

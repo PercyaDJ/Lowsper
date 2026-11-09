@@ -13,6 +13,17 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [4.10.0] - 2026-11-09
+
+### Ajouté
+- Test du son de la réunion, une fois par PC, depuis l'accueil (« Son de la réunion pas encore
+  vérifié sur ce PC : Tester ») ou les paramètres. Lowsper joue un court signal et vérifie qu'il
+  revient par le son du système ; sinon il essaie le son de toutes les applications avec un son
+  lancé dans une autre application. Le chemin qui marche est retenu pour les réunions
+  (decision.md §56).
+- Page d'essai `tools/test/son-systeme.html` : essai 6, le signal du navigateur revient-il dans
+  le partage.
+
 ## [4.9.1] - 2026-11-09
 
 ### Corrigé

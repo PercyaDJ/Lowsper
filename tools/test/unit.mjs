@@ -32,6 +32,7 @@ for (const f of [
   'browser.js',
   'engine.js',
   'capture.js',
+  'soundtest.js',
   'audiofile.js',
   'languages.js',
   'vocabularies.js',
@@ -1978,6 +1979,37 @@ await test('réunion : contrôle d’état, seuils réglés sur les corpus', asy
   assert.deepEqual([r.text.state, r.text.key, r.text.vars.s], ['warn', 'meet.textLate', 47]);
   assert.equal(c({ engineReady: false }).text.key, 'meet.textPreparing');
   assert.equal(c({ engineReady: false, engineError: 'x', delayS: 0 }).text.key, 'meet.textOk');
+});
+
+await test('test du son : signal de 1 000 Hz reconnu, parole et silence écartés (§56)', () => {
+  const T = L.SoundTest;
+  // Bruit pseudo-aléatoire reproductible
+  let seed = 7;
+  const noise = () => ((seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5) * 2;
+  const block = (rate, f) => Float32Array.from({ length: 2048 }, (_, i) => f(i, rate));
+  for (const rate of [44100, 48000]) {
+    const tone = block(rate, (i, r) => 0.2 * Math.sin((2 * Math.PI * T.TONE_HZ * i) / r));
+    assert.ok(T.toneRatio(tone, rate, T.TONE_HZ) > 0.8, `signal seul, ${rate} Hz`);
+    assert.equal(T.toneHeard(tone, rate), true);
+    // Signal faible au milieu d'un bruit plus fort : le signal domine encore
+    const mixed = block(rate, (i, r) => 0.1 * Math.sin((2 * Math.PI * T.TONE_HZ * i) / r) + 0.05 * noise());
+    assert.equal(T.toneHeard(mixed, rate), true, `signal dans le bruit, ${rate} Hz`);
+    // « Parole » : plusieurs fréquences hors du signal, et bruit
+    const speech = block(rate, (i, r) =>
+      [220, 440, 660, 1500, 2300].reduce((a, f) => a + 0.04 * Math.sin((2 * Math.PI * f * i) / r), 0.02 * noise())
+    );
+    assert.ok(T.toneRatio(speech, rate, T.TONE_HZ) < T.TONE_RATIO, `parole, ${rate} Hz`);
+    assert.equal(T.toneHeard(speech, rate), false);
+    // Silence absolu, et signal sous le seuil de niveau
+    assert.equal(T.toneHeard(new Float32Array(2048), rate), false);
+    const faint = block(rate, (i, r) => 0.0002 * Math.sin((2 * Math.PI * T.TONE_HZ * i) / r));
+    assert.equal(T.toneHeard(faint, rate), false, 'trop faible');
+  }
+  assert.equal(T.rms(new Float32Array(0)), 0);
+  // Le test retient le chemin comme une réunion le ferait (§55)
+  assert.equal(L.Meeting.soundLearned('system', true, true), 'system');
+  assert.equal(L.Meeting.soundLearned('system', false, false), 'screen');
+  assert.deepEqual([...L.Meeting.soundOffers('system', true)], ['apps', 'tab']);
 });
 
 await test('son de la réunion : chemin muet, chemins suivants, choix retenu (§55)', () => {

@@ -1350,7 +1350,11 @@
     if (c.heard && !s.heard) {
       s.heard = true;
       const learned = L.Meeting.soundLearned(s.attempt, app.windows11, L.canRestrictOwnAudio());
-      if (learned) store.set('lowsper.share.surface', learned);
+      if (learned) {
+        store.set('lowsper.share.surface', learned);
+        store.set('lowsper.sound.verified', learned);
+        renderSoundCheck();
+      }
       journal('partage-son', { essai: s.attempt, son: 'entendu', retenu: learned });
     }
     if (L.Meeting.soundMuted({ attempt: s.attempt, heard: s.heard, elapsedS: c.elapsedS, offered: s.offered })) {
@@ -2920,6 +2924,7 @@
   function relabel() {
     renderUiLang();
     renderSettingsValues();
+    renderSoundCheck();
     if (app.pip) L.i18n.apply(app.pip.document);
     if (app.engineStatus) setEngine(app.engineStatus.state, app.engineStatus.key, app.engineStatus.vars);
     renderTheme();
@@ -3283,6 +3288,101 @@
     start();
   });
   $('before-cancel').addEventListener('click', () => $('before').close());
+
+  /*
+   * Test du son de la réunion (decision.md §56), en dehors de toute réunion. Son du système
+   * d'abord : Lowsper joue un signal et vérifie qu'il revient, sans rien demander d'autre. Sinon,
+   * le son de toutes les applications, avec un son lancé dans une autre application (ce chemin
+   * exclut le son de ce navigateur). Le chemin qui laisse passer le son est retenu pour les
+   * réunions, comme quand il est appris pendant une réunion (§55).
+   */
+  function renderSoundCheck() {
+    const verified = store.get('lowsper.sound.verified');
+    const can = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+    $('sound-check').hidden = !can || !!verified || !$('with-others').checked;
+    $('row-sound-test').hidden = !can;
+    $('v-sound-test').textContent = tr(verified === 'apps' ? 'st.vApps' : verified ? 'st.vSystem' : 'st.vNone');
+  }
+
+  function soundTestStep(key, actions, vars) {
+    $('sound-test-text').textContent = tr(key, vars);
+    const box = $('sound-test-actions');
+    box.textContent = '';
+    for (const [label, run, primary] of actions || []) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn' + (primary ? ' primary' : '');
+      b.textContent = tr(label);
+      b.addEventListener('click', run);
+      box.appendChild(b);
+    }
+    const first = box.querySelector('button') || $('sound-test-close');
+    first.focus();
+  }
+
+  function soundTestDone(path) {
+    const learned = L.Meeting.soundLearned(path, app.windows11, L.canRestrictOwnAudio());
+    store.set('lowsper.share.surface', learned);
+    store.set('lowsper.sound.verified', learned);
+    journal('test-son', { essai: path, son: 'entendu', retenu: learned });
+    renderSoundCheck();
+    soundTestStep(path === 'apps' ? 'st.okApps' : 'st.okSystem');
+  }
+
+  const stopShare = (stream) => {
+    for (const t of [...stream.getTracks(), ...(stream._lowsperVideo || [])]) t.stop();
+  };
+
+  async function soundTestRun(path) {
+    const T = L.SoundTest;
+    const busy = (key) => soundTestStep(key);
+    let stream;
+    try {
+      stream = await L.getSystemAudio(path);
+    } catch (err) {
+      journal('test-son', { essai: path, erreur: err && (err.code || err.name) });
+      if (err && err.name === 'NotAllowedError')
+        return soundTestStep('st.cancelled', [['st.retry', () => soundTestRun(path), true]]);
+      if (path === 'system' && L.canRestrictOwnAudio())
+        return soundTestStep('st.systemError', [['st.tryApps', () => soundTestRun('apps'), true]], {
+          error: (err && (err.message || err.name)) || '',
+        });
+      return soundTestStep('st.none');
+    }
+    app.soundTestStream = stream;
+    try {
+      if (path === 'system') {
+        busy('st.listening');
+        if (await T.probeTone(stream, 4000)) return soundTestDone('system');
+        journal('test-son', { essai: 'system', son: 'muet' });
+        return L.canRestrictOwnAudio()
+          ? soundTestStep('st.systemSilent', [['st.tryApps', () => soundTestRun('apps'), true]])
+          : soundTestStep('st.none');
+      }
+      busy('st.playOther');
+      if (await T.waitForSound(stream, 30000, () => !$('sound-test').open)) return soundTestDone('apps');
+      journal('test-son', { essai: 'apps', son: 'muet' });
+      if ($('sound-test').open) soundTestStep('st.none');
+    } finally {
+      stopShare(stream);
+      app.soundTestStream = null;
+    }
+  }
+
+  function openSoundTest() {
+    if (app.state !== 'idle') return;
+    if ($('settings').open) $('settings').close();
+    $('sound-test').showModal();
+    soundTestStep('st.intro', [['st.start', () => soundTestRun('system'), true]]);
+  }
+  $('sound-check-btn').addEventListener('click', openSoundTest);
+  $('row-sound-test').addEventListener('click', openSoundTest);
+  $('sound-test-close').addEventListener('click', () => $('sound-test').close());
+  $('sound-test').addEventListener('close', () => {
+    if (app.soundTestStream) stopShare(app.soundTestStream);
+  });
+  $('with-others').addEventListener('change', renderSoundCheck);
+  renderSoundCheck();
   // Paramètres : remettre la fenêtre après « Ne plus afficher »
   $('show-before').checked = store.get('lowsper.opt.skipBefore') !== '1';
   $('show-before').addEventListener('change', (e) => store.set('lowsper.opt.skipBefore', e.target.checked ? '0' : '1'));

@@ -29,6 +29,7 @@
 <button id="b3">3. Fenêtre d'une application (Teams, Jabber) : son de cette fenêtre (windowAudio)</button>
 <button id="b4">4. Onglet de ce navigateur : son de l'onglet</button>
 <button id="b5">5. Micro seul (en même temps que le partage en cours)</button>
+<button id="b6">6. Pendant un partage : jouer un court signal de ce navigateur et vérifier qu'il revient (decision.md §56)</button>
 <button id="stop">Arrêter tous les partages</button>
 <div class="meters">
   <span>Son partagé</span><meter id="mo" min="0" max="0.3" value="0"></meter><span id="vo">-</span>
@@ -135,6 +136,35 @@
 
   for (const id of Object.keys(tries)) document.getElementById(id).addEventListener('click', () => share(id));
   document.getElementById('b5').addEventListener('click', mic);
+
+  // Le signal joué par cette page revient-il dans le son partagé ? Attendu : oui pour le son du
+  // système (essai 1), non pour le son de toutes les applications (essai 2, qui exclut ce navigateur)
+  function goertzel(buf, rate, f) {
+    const c = 2 * Math.cos((2 * Math.PI * f) / rate);
+    let s1 = 0, s2 = 0, e = 0;
+    for (const x of buf) { const s0 = x + c * s1 - s2; s2 = s1; s1 = s0; e += x * x; }
+    return e > 0 ? (s1 * s1 + s2 * s2 - c * s1 * s2) / ((buf.length / 2) * e) : 0;
+  }
+  document.getElementById('b6').addEventListener('click', async () => {
+    const an = live.o;
+    if (!an) return log('6 : lancez d\'abord un partage (essai 1 ou 2)');
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.frequency.value = 1000;
+    g.gain.value = 0.2;
+    osc.connect(g).connect(ctx.destination);
+    osc.start();
+    let best = 0;
+    const buf = new Float32Array(an.fftSize);
+    const end = Date.now() + 1500;
+    while (Date.now() < end) {
+      await new Promise((r) => setTimeout(r, 50));
+      an.getFloatTimeDomainData(buf);
+      best = Math.max(best, goertzel(buf, ctx.sampleRate, 1000));
+    }
+    osc.stop();
+    log(`6 : signal de ce navigateur dans le partage : ${best >= 0.25 ? 'OUI' : 'non'} (part à 1 000 Hz : ${best.toFixed(3)})`);
+  });
   document.getElementById('stop').addEventListener('click', () => {
     shared.forEach((s) => s.getTracks().forEach((t) => t.stop()));
     shared = [];

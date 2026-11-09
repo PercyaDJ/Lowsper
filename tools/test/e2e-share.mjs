@@ -16,7 +16,11 @@
 //      sans erreur mais reste muet, le son du système marche. Au bout de 20 s, « Partager le son
 //      du système » est proposé ; une fois le son entendu, ce choix est retenu et la réunion
 //      suivante le demande d'emblée ;
-//   9. aucune requête réseau.
+//   9. test du son (decision.md §56), PC d'entreprise : le signal de Lowsper revient par le son du
+//      système, chemin retenu, ligne de l'accueil masquée, valeur dans les paramètres ;
+//  10. test du son, PC du §51 : son du système refusé, son de toutes les applications essayé, un
+//      son d'une autre application l'atteste, chemin retenu ;
+//  11. aucune requête réseau.
 // Prérequis : node build.mjs --embed whisper-small   (CHROMIUM_PATH si besoin)
 // Usage : node test/e2e-share.mjs
 import { chromium } from 'playwright-core';
@@ -48,6 +52,22 @@ async function open(restrictKnown, windows11, mutedApps) {
   page.on('pageerror', (e) => console.log('[pageerror]', e.message));
   await context.addInitScript(
     ([known, win11, muted]) => {
+      // Diagnostic : chaque écriture du chemin retenu, avec son origine, gardée d'un chargement à l'autre
+      const setItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (k, v) {
+        if (k === 'lowsper.share.surface') {
+          const w = JSON.parse(sessionStorage.getItem('__writes') || '[]');
+          w.push(
+            v +
+              ' @' +
+              new Date().toISOString().slice(14, 23) +
+              ' ' +
+              (new Error().stack.split('\n')[2] || '').trim().replace(/.*\//, '')
+          );
+          setItem.call(sessionStorage, '__writes', JSON.stringify(w));
+        }
+        return setItem.call(this, k, v);
+      };
       // Pas de mini-fenêtre automatique : la mini-barre reste dans la page, où le test la lit
       localStorage.setItem('lowsper.opt.autopip', '0');
       if (win11)
@@ -71,8 +91,10 @@ async function open(restrictKnown, windows11, mutedApps) {
         const ctx = new AudioContext();
         const osc = ctx.createOscillator();
         const dest = ctx.createMediaStreamDestination();
-        // PC d'entreprise (§55) : la copie par processus s'ouvre mais ne laisse rien passer
+        // PC d'entreprise (§55) : la copie par processus s'ouvre mais ne laisse rien passer ; la
+        // copie de la sortie son rend tout ce qui sort, le signal du test du son compris (§56)
         if (!(muted && restrict)) osc.connect(dest);
+        if (muted && !restrict) osc.frequency.value = 1000;
         osc.start();
         const track = dest.stream.getAudioTracks()[0];
         const settings = track.getSettings.bind(track);
@@ -139,7 +161,20 @@ const pref = (page) => page.evaluate(() => localStorage.getItem('lowsper.share.s
   await startMeeting(page);
   asked = await page.evaluate(() => window.__asked);
   if (asked.length !== 1 || !asked[0].audio.restrictOwnAudio)
-    fail('réunion suivante : restrictOwnAudio attendu d’emblée');
+    fail(
+      'réunion suivante : restrictOwnAudio attendu d’emblée : ' +
+        JSON.stringify(asked) +
+        ' ; ' +
+        (await page.evaluate(() =>
+          JSON.stringify({
+            vues: [...document.querySelectorAll('.view')].filter((v) => !v.hidden).map((v) => v.id),
+            dialogues: [...document.querySelectorAll('dialog[open]')].map((d) => d.id),
+            avis: document.getElementById('rec-notice').textContent,
+            toast: (document.querySelector('.toast') || {}).textContent,
+            écritures: JSON.parse(sessionStorage.getItem('__writes') || '[]'),
+          })
+        ))
+    );
   if ((await buttons(page)).length) fail('aucun refus attendu à la réunion suivante');
   console.log('Réunion suivante : son de toutes les applications demandé d’emblée');
   if (network.length) fail('requêtes réseau : ' + network.join(', '));
@@ -222,10 +257,57 @@ const pref = (page) => page.evaluate(() => localStorage.getItem('lowsper.share.s
   await page.waitForSelector('#engine[data-state="ready"]', { timeout: 180000 });
   await startMeeting(page);
   asked = await page.evaluate(() => window.__asked);
-  if (asked.length !== 1 || asked[0].audio !== true) fail('réunion suivante : son du système attendu d’emblée');
+  if (asked.length !== 1 || asked[0].audio !== true)
+    fail('réunion suivante : son du système attendu d’emblée : ' + JSON.stringify(asked));
   await page.waitForTimeout(2000);
   if ((await pref(page)) !== 'system') fail('choix « system » perdu');
   console.log('Réunion suivante : son du système demandé d’emblée');
+  if (network.length) fail('requêtes réseau : ' + network.join(', '));
+  await context.close();
+}
+
+// 9 et 10. Test du son de la réunion, en dehors de toute réunion (§56)
+async function soundTest(page) {
+  if (await page.isHidden('#sound-check')) fail('ligne « pas encore vérifié » attendue sur l’accueil');
+  await page.click('#sound-check-btn');
+  await page.waitForSelector('#sound-test[open]');
+  await page.click('#sound-test-actions button');
+}
+const stText = (page) => page.textContent('#sound-test-text');
+{
+  const { context, page, network } = await open(true, true, true);
+  await soundTest(page);
+  await page.waitForFunction(() => /arrive bien/.test(document.getElementById('sound-test-text').textContent), null, {
+    timeout: 8000,
+  });
+  const asked = await page.evaluate(() => window.__asked);
+  if (asked.length !== 1 || asked[0].audio !== true || asked[0].video.displaySurface !== 'monitor')
+    fail('test du son : son du système et écran entier attendus : ' + JSON.stringify(asked));
+  if ((await pref(page)) !== 'system') fail('test du son : choix « system » attendu');
+  if (!/Teams/.test(await stText(page))) fail('message de réussite attendu');
+  await page.click('#sound-test-close');
+  if (!(await page.isHidden('#sound-check'))) fail('ligne de l’accueil attendue masquée après le test');
+  if ((await page.textContent('#v-sound-test')) !== 'Son du système') fail('valeur « Son du système » attendue');
+  console.log('Test du son (PC d’entreprise) : signal revenu par le son du système, chemin retenu');
+  if (network.length) fail('requêtes réseau : ' + network.join(', '));
+  await context.close();
+}
+{
+  const { context, page, network } = await open(true, true);
+  await soundTest(page);
+  await page.waitForSelector('#sound-test-actions button');
+  if (!/refusé le son du système/.test(await stText(page)))
+    fail('refus du son du système attendu : ' + (await stText(page)));
+  await page.click('#sound-test-actions button');
+  await page.waitForFunction(() => /arrive bien/.test(document.getElementById('sound-test-text').textContent), null, {
+    timeout: 35000,
+  });
+  const asked = await page.evaluate(() => window.__asked);
+  if (!asked[asked.length - 1].audio.restrictOwnAudio) fail('son de toutes les applications attendu');
+  if ((await pref(page)) !== 'apps') fail('test du son : choix « apps » attendu');
+  if ((await page.textContent('#v-sound-test')) !== 'Toutes les applications')
+    fail('valeur « Toutes les applications » attendue');
+  console.log('Test du son (PC du §51) : son du système refusé, son des applications attesté et retenu');
   if (network.length) fail('requêtes réseau : ' + network.join(', '));
   await context.close();
 }
