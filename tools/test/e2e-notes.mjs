@@ -357,6 +357,10 @@ check(
   await page.textContent('#v-folder')
 );
 await page.click('#settings-close');
+// Le faux dossier ne sert qu'aux notes (Settings.folder) : la copie des réglages, elle, demande
+// encore le dossier, et la page a été rechargée par l'import (§57)
+if (await page.waitForSelector('#folder-ask[open]', { timeout: 1500 }).catch(() => null))
+  await page.click('#folder-ask-later');
 const before = downloads.length;
 await importFile('extrait.mp3', '');
 const inNotes = await page.evaluate(() => {
