@@ -52,6 +52,22 @@ async function open(restrictKnown, windows11, mutedApps) {
   page.on('pageerror', (e) => console.log('[pageerror]', e.message));
   await context.addInitScript(
     ([known, win11, muted]) => {
+      // Diagnostic : chaque écriture du chemin retenu, avec son origine, gardée d'un chargement à l'autre
+      const setItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (k, v) {
+        if (k === 'lowsper.share.surface') {
+          const w = JSON.parse(sessionStorage.getItem('__writes') || '[]');
+          w.push(
+            v +
+              ' @' +
+              new Date().toISOString().slice(14, 23) +
+              ' ' +
+              (new Error().stack.split('\n')[2] || '').trim().replace(/.*\//, '')
+          );
+          setItem.call(sessionStorage, '__writes', JSON.stringify(w));
+        }
+        return setItem.call(this, k, v);
+      };
       // Pas de mini-fenêtre automatique : la mini-barre reste dans la page, où le test la lit
       localStorage.setItem('lowsper.opt.autopip', '0');
       if (win11)
@@ -155,6 +171,7 @@ const pref = (page) => page.evaluate(() => localStorage.getItem('lowsper.share.s
             dialogues: [...document.querySelectorAll('dialog[open]')].map((d) => d.id),
             avis: document.getElementById('rec-notice').textContent,
             toast: (document.querySelector('.toast') || {}).textContent,
+            écritures: JSON.parse(sessionStorage.getItem('__writes') || '[]'),
           })
         ))
     );
