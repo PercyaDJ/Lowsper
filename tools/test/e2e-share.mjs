@@ -145,7 +145,19 @@ const pref = (page) => page.evaluate(() => localStorage.getItem('lowsper.share.s
   await startMeeting(page);
   asked = await page.evaluate(() => window.__asked);
   if (asked.length !== 1 || !asked[0].audio.restrictOwnAudio)
-    fail('réunion suivante : restrictOwnAudio attendu d’emblée');
+    fail(
+      'réunion suivante : restrictOwnAudio attendu d’emblée : ' +
+        JSON.stringify(asked) +
+        ' ; ' +
+        (await page.evaluate(() =>
+          JSON.stringify({
+            vues: [...document.querySelectorAll('.view')].filter((v) => !v.hidden).map((v) => v.id),
+            dialogues: [...document.querySelectorAll('dialog[open]')].map((d) => d.id),
+            avis: document.getElementById('rec-notice').textContent,
+            toast: (document.querySelector('.toast') || {}).textContent,
+          })
+        ))
+    );
   if ((await buttons(page)).length) fail('aucun refus attendu à la réunion suivante');
   console.log('Réunion suivante : son de toutes les applications demandé d’emblée');
   if (network.length) fail('requêtes réseau : ' + network.join(', '));
@@ -228,7 +240,8 @@ const pref = (page) => page.evaluate(() => localStorage.getItem('lowsper.share.s
   await page.waitForSelector('#engine[data-state="ready"]', { timeout: 180000 });
   await startMeeting(page);
   asked = await page.evaluate(() => window.__asked);
-  if (asked.length !== 1 || asked[0].audio !== true) fail('réunion suivante : son du système attendu d’emblée : ' + JSON.stringify(asked));
+  if (asked.length !== 1 || asked[0].audio !== true)
+    fail('réunion suivante : son du système attendu d’emblée : ' + JSON.stringify(asked));
   await page.waitForTimeout(2000);
   if ((await pref(page)) !== 'system') fail('choix « system » perdu');
   console.log('Réunion suivante : son du système demandé d’emblée');
