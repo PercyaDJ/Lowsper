@@ -1,220 +1,149 @@
 <!doctype html>
 <html lang="fr">
-  <meta charset="utf-8" />
-  <meta
-    http-equiv="Content-Security-Policy"
-    content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'"
-  />
-  <title>Lowsper : essai du son de l'ordinateur</title>
-  <style>
-    body {
-      font:
-        15px/1.5 system-ui,
-        sans-serif;
-      max-width: 820px;
-      margin: 32px auto;
-      padding: 0 16px;
-    }
-    button {
-      font: inherit;
-      padding: 6px 14px;
-      margin: 4px 0;
-      display: block;
-      text-align: left;
-    }
-    pre {
-      background: #f2f4f3;
-      padding: 12px;
-      white-space: pre-wrap;
-    }
-    .meters {
-      display: grid;
-      grid-template-columns: 9em 1fr 5em;
-      gap: 4px 10px;
-      align-items: center;
-      margin: 12px 0;
-    }
-    meter {
-      width: 100%;
-      height: 18px;
-    }
-  </style>
-  <h1>Essai du son de l'ordinateur et du micro</h1>
-  <p>
-    Page d'essai (decision.md §51). Elle n'écrit rien, n'enregistre rien et ne fait aucune requête réseau : le son est
-    seulement mesuré (niveau), jamais gardé. Ouvrez-la par un double clic, dans Chrome puis dans Edge, avec le casque
-    habituel et sans rien changer aux réglages de Windows.
-  </p>
-  <ol>
-    <li>
-      Lancez une vidéo dans <strong>une autre application</strong> que ce navigateur (Teams, Jabber, ou une vidéo dans
-      un autre navigateur), puis une vidéo dans <strong>un onglet de ce navigateur</strong>.
-    </li>
-    <li>
-      Cliquez sur chaque bouton, dans l'ordre. Dans la fenêtre de partage, choisissez ce que dit le bouton et cochez le
-      partage du son. Parlez dans le micro pendant quelques secondes.
-    </li>
-    <li>Notez pour chaque essai les jauges qui bougent, puis copiez le journal en bas de page.</li>
-  </ol>
-  <button id="b1">1. Écran entier, son du système (ce que fait Lowsper aujourd'hui)</button>
-  <button id="b2">2. Écran entier, son de toutes les applications sauf ce navigateur (restrictOwnAudio)</button>
-  <button id="b3">3. Fenêtre d'une application (Teams, Jabber) : son de cette fenêtre (windowAudio)</button>
-  <button id="b4">4. Onglet de ce navigateur : son de l'onglet</button>
-  <button id="b5">5. Micro seul (en même temps que le partage en cours)</button>
-  <button id="stop">Arrêter tous les partages</button>
-  <div class="meters">
-    <span>Son partagé</span><meter id="mo" min="0" max="0.3" value="0"></meter><span id="vo">-</span> <span>Micro</span
-    ><meter id="mm" min="0" max="0.3" value="0"></meter><span id="vm">-</span>
-  </div>
-  <button id="copy">Copier le journal</button>
-  <pre id="log"></pre>
-  <script>
-    const out = document.getElementById('log');
-    const log = (m) => (out.textContent += m + '\n');
-    const small = { frameRate: 1, width: { max: 640 }, height: { max: 360 } };
-    const common = {
-      systemAudio: 'include',
-      selfBrowserSurface: 'exclude',
-      surfaceSwitching: 'include',
-      monitorTypeSurfaces: 'include',
-    };
-    const tries = {
-      b1: { video: small, audio: true, windowAudio: 'window', ...common },
-      b2: { video: small, audio: { restrictOwnAudio: true }, windowAudio: 'window', ...common },
-      b3: { video: { ...small, displaySurface: 'window' }, audio: true, windowAudio: 'window', ...common },
-      b4: { video: { ...small, displaySurface: 'browser' }, audio: true, ...common },
-    };
-    let ctx = null;
-    const live = { o: null, m: null };
-    const peaks = { o: 0, m: 0 };
-    // Trames contenant au moins un échantillon différent de zéro : distingue le silence numérique
-    // absolu (chemin muet) d'un son très faible (decision.md §55)
-    const nonzero = { o: 0, m: 0 };
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'">
+<title>Lowsper : essai du son de l'ordinateur</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 820px; margin: 32px auto; padding: 0 16px; }
+  button { font: inherit; padding: 6px 14px; margin: 4px 0; display: block; text-align: left; }
+  pre { background: #f2f4f3; padding: 12px; white-space: pre-wrap; }
+  .meters { display: grid; grid-template-columns: 9em 1fr 5em; gap: 4px 10px; align-items: center; margin: 12px 0; }
+  meter { width: 100%; height: 18px; }
+</style>
+<h1>Essai du son de l'ordinateur et du micro</h1>
+<p>
+  Page d'essai (decision.md §51). Elle n'écrit rien, n'enregistre rien et ne fait aucune requête
+  réseau : le son est seulement mesuré (niveau), jamais gardé. Ouvrez-la par un double clic, dans
+  Chrome puis dans Edge, avec le casque habituel et sans rien changer aux réglages de Windows.
+</p>
+<ol>
+  <li>Lancez une vidéo dans <strong>une autre application</strong> que ce navigateur (Teams,
+    Jabber, ou une vidéo dans un autre navigateur), puis une vidéo dans <strong>un onglet de ce
+    navigateur</strong>.</li>
+  <li>Cliquez sur chaque bouton, dans l'ordre. Dans la fenêtre de partage, choisissez ce que dit
+    le bouton et cochez le partage du son. Parlez dans le micro pendant quelques secondes.</li>
+  <li>Notez pour chaque essai les jauges qui bougent, puis copiez le journal en bas de page.</li>
+</ol>
+<button id="b1">1. Écran entier, son du système (ce que fait Lowsper aujourd'hui)</button>
+<button id="b2">2. Écran entier, son de toutes les applications sauf ce navigateur (restrictOwnAudio)</button>
+<button id="b3">3. Fenêtre d'une application (Teams, Jabber) : son de cette fenêtre (windowAudio)</button>
+<button id="b4">4. Onglet de ce navigateur : son de l'onglet</button>
+<button id="b5">5. Micro seul (en même temps que le partage en cours)</button>
+<button id="stop">Arrêter tous les partages</button>
+<div class="meters">
+  <span>Son partagé</span><meter id="mo" min="0" max="0.3" value="0"></meter><span id="vo">-</span>
+  <span>Micro</span><meter id="mm" min="0" max="0.3" value="0"></meter><span id="vm">-</span>
+</div>
+<button id="copy">Copier le journal</button>
+<pre id="log"></pre>
+<script>
+  const out = document.getElementById('log');
+  const log = (m) => (out.textContent += m + '\n');
+  const small = { frameRate: 1, width: { max: 640 }, height: { max: 360 } };
+  const common = { systemAudio: 'include', selfBrowserSurface: 'exclude', surfaceSwitching: 'include', monitorTypeSurfaces: 'include' };
+  const tries = {
+    b1: { video: small, audio: true, windowAudio: 'window', ...common },
+    b2: { video: small, audio: { restrictOwnAudio: true }, windowAudio: 'window', ...common },
+    b3: { video: { ...small, displaySurface: 'window' }, audio: true, windowAudio: 'window', ...common },
+    b4: { video: { ...small, displaySurface: 'browser' }, audio: true, ...common },
+  };
+  let ctx = null;
+  const live = { o: null, m: null };
+  const peaks = { o: 0, m: 0 };
+  // Trames contenant au moins un échantillon différent de zéro : distingue le silence numérique
+  // absolu (chemin muet) d'un son très faible (decision.md §55)
+  const nonzero = { o: 0, m: 0 };
 
-    async function info() {
-      log('Navigateur : ' + navigator.userAgent);
-      try {
-        const h = await navigator.userAgentData.getHighEntropyValues(['platformVersion', 'fullVersionList']);
-        const major = parseInt(h.platformVersion, 10);
-        // Sous Windows, platformVersion 13 ou plus désigne Windows 11
-        log(
-          'Système : ' +
-            navigator.userAgentData.platform +
-            ' ' +
-            h.platformVersion +
-            (navigator.userAgentData.platform === 'Windows'
-              ? major >= 13
-                ? ' (Windows 11)'
-                : ' (Windows 10 ou avant)'
-              : '')
-        );
-        log('Versions : ' + h.fullVersionList.map((b) => b.brand + ' ' + b.version).join(', '));
-      } catch (e) {
-        log('Version du système : inconnue (' + e.name + ')');
+  async function info() {
+    log('Navigateur : ' + navigator.userAgent);
+    try {
+      const h = await navigator.userAgentData.getHighEntropyValues(['platformVersion', 'fullVersionList']);
+      const major = parseInt(h.platformVersion, 10);
+      // Sous Windows, platformVersion 13 ou plus désigne Windows 11
+      log('Système : ' + navigator.userAgentData.platform + ' ' + h.platformVersion + (navigator.userAgentData.platform === 'Windows' ? (major >= 13 ? ' (Windows 11)' : ' (Windows 10 ou avant)') : ''));
+      log('Versions : ' + h.fullVersionList.map((b) => b.brand + ' ' + b.version).join(', '));
+    } catch (e) {
+      log('Version du système : inconnue (' + e.name + ')');
+    }
+    const sc = navigator.mediaDevices.getSupportedConstraints();
+    log('restrictOwnAudio connu du navigateur : ' + !!sc.restrictOwnAudio + ' ; suppressLocalAudioPlayback : ' + !!sc.suppressLocalAudioPlayback);
+  }
+
+  function meter(id, stream) {
+    ctx = ctx || new AudioContext();
+    if (live[id]) live[id].disconnect();
+    const an = ctx.createAnalyser();
+    an.fftSize = 2048;
+    ctx.createMediaStreamSource(stream).connect(an);
+    live[id] = an;
+    peaks[id] = 0;
+    nonzero[id] = 0;
+  }
+
+  function tick() {
+    for (const id of ['o', 'm']) {
+      const an = live[id];
+      let rms = 0;
+      if (an) {
+        const buf = new Float32Array(an.fftSize);
+        an.getFloatTimeDomainData(buf);
+        rms = Math.sqrt(buf.reduce((s, x) => s + x * x, 0) / buf.length);
+        peaks[id] = Math.max(peaks[id], rms);
+        if (buf.some((x) => x !== 0)) nonzero[id]++;
       }
-      const sc = navigator.mediaDevices.getSupportedConstraints();
-      log(
-        'restrictOwnAudio connu du navigateur : ' +
-          !!sc.restrictOwnAudio +
-          ' ; suppressLocalAudioPlayback : ' +
-          !!sc.suppressLocalAudioPlayback
-      );
+      document.getElementById('m' + id).value = rms;
+      document.getElementById('v' + id).textContent = an ? rms.toFixed(3) : '-';
     }
+    requestAnimationFrame(tick);
+  }
 
-    function meter(id, stream) {
-      ctx = ctx || new AudioContext();
-      if (live[id]) live[id].disconnect();
-      const an = ctx.createAnalyser();
-      an.fftSize = 2048;
-      ctx.createMediaStreamSource(stream).connect(an);
-      live[id] = an;
-      peaks[id] = 0;
-      nonzero[id] = 0;
+  function describe(track) {
+    const s = track.getSettings ? track.getSettings() : {};
+    const keep = ['sampleRate', 'channelCount', 'echoCancellation', 'restrictOwnAudio', 'suppressLocalAudioPlayback'];
+    return '« ' + track.label + ' » ' + JSON.stringify(Object.fromEntries(keep.filter((k) => k in s).map((k) => [k, s[k]])));
+  }
+
+  let shared = [];
+  async function share(id) {
+    const label = id.slice(1);
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia(tries[id]);
+      shared.push(stream);
+      const v = stream.getVideoTracks()[0];
+      const surface = (v && v.getSettings().displaySurface) || '?';
+      const a = stream.getAudioTracks();
+      if (!a.length) return log(`${label} : partage accepté (surface ${surface}) mais SANS son`);
+      log(`${label} : son obtenu, surface ${surface}, piste ${describe(a[0])}`);
+      meter('o', new MediaStream(a));
+      setTimeout(() => log(`${label} : niveau le plus fort en 8 s : ${peaks.o.toFixed(6)} ; trames non nulles : ${nonzero.o} (0 : silence absolu)`), 8000);
+      a[0].onended = () => log(`${label} : partage arrêté`);
+    } catch (e) {
+      log(`${label} : ÉCHEC ${e.name} : ${e.message}`);
     }
+  }
 
-    function tick() {
-      for (const id of ['o', 'm']) {
-        const an = live[id];
-        let rms = 0;
-        if (an) {
-          const buf = new Float32Array(an.fftSize);
-          an.getFloatTimeDomainData(buf);
-          rms = Math.sqrt(buf.reduce((s, x) => s + x * x, 0) / buf.length);
-          peaks[id] = Math.max(peaks[id], rms);
-          if (buf.some((x) => x !== 0)) nonzero[id]++;
-        }
-        document.getElementById('m' + id).value = rms;
-        document.getElementById('v' + id).textContent = an ? rms.toFixed(3) : '-';
-      }
-      requestAnimationFrame(tick);
+  async function mic() {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      log('5 : micro ' + describe(s.getAudioTracks()[0]));
+      meter('m', s);
+      setTimeout(() => log(`5 : niveau le plus fort du micro en 8 s : ${peaks.m.toFixed(6)} ; trames non nulles : ${nonzero.m}`), 8000);
+    } catch (e) {
+      log(`5 : ÉCHEC ${e.name} : ${e.message}`);
     }
+  }
 
-    function describe(track) {
-      const s = track.getSettings ? track.getSettings() : {};
-      const keep = ['sampleRate', 'channelCount', 'echoCancellation', 'restrictOwnAudio', 'suppressLocalAudioPlayback'];
-      return (
-        '« ' +
-        track.label +
-        ' » ' +
-        JSON.stringify(Object.fromEntries(keep.filter((k) => k in s).map((k) => [k, s[k]])))
-      );
-    }
-
-    let shared = [];
-    async function share(id) {
-      const label = id.slice(1);
-      try {
-        const stream = await navigator.mediaDevices.getDisplayMedia(tries[id]);
-        shared.push(stream);
-        const v = stream.getVideoTracks()[0];
-        const surface = (v && v.getSettings().displaySurface) || '?';
-        const a = stream.getAudioTracks();
-        if (!a.length) return log(`${label} : partage accepté (surface ${surface}) mais SANS son`);
-        log(`${label} : son obtenu, surface ${surface}, piste ${describe(a[0])}`);
-        meter('o', new MediaStream(a));
-        setTimeout(
-          () =>
-            log(
-              `${label} : niveau le plus fort en 8 s : ${peaks.o.toFixed(6)} ; trames non nulles : ${nonzero.o} (0 : silence absolu)`
-            ),
-          8000
-        );
-        a[0].onended = () => log(`${label} : partage arrêté`);
-      } catch (e) {
-        log(`${label} : ÉCHEC ${e.name} : ${e.message}`);
-      }
-    }
-
-    async function mic() {
-      try {
-        const s = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        log('5 : micro ' + describe(s.getAudioTracks()[0]));
-        meter('m', s);
-        setTimeout(
-          () =>
-            log(`5 : niveau le plus fort du micro en 8 s : ${peaks.m.toFixed(6)} ; trames non nulles : ${nonzero.m}`),
-          8000
-        );
-      } catch (e) {
-        log(`5 : ÉCHEC ${e.name} : ${e.message}`);
-      }
-    }
-
-    for (const id of Object.keys(tries)) document.getElementById(id).addEventListener('click', () => share(id));
-    document.getElementById('b5').addEventListener('click', mic);
-    document.getElementById('stop').addEventListener('click', () => {
-      shared.forEach((s) => s.getTracks().forEach((t) => t.stop()));
-      shared = [];
-      if (live.o) live.o.disconnect();
-      live.o = null;
-      log('Partages arrêtés');
-    });
-    document
-      .getElementById('copy')
-      .addEventListener('click', () =>
-        navigator.clipboard.writeText(out.textContent).then(() => log('(journal copié)'))
-      );
-    info();
-    tick();
-  </script>
+  for (const id of Object.keys(tries)) document.getElementById(id).addEventListener('click', () => share(id));
+  document.getElementById('b5').addEventListener('click', mic);
+  document.getElementById('stop').addEventListener('click', () => {
+    shared.forEach((s) => s.getTracks().forEach((t) => t.stop()));
+    shared = [];
+    if (live.o) live.o.disconnect();
+    live.o = null;
+    log('Partages arrêtés');
+  });
+  document.getElementById('copy').addEventListener('click', () => navigator.clipboard.writeText(out.textContent).then(() => log('(journal copié)')));
+  info();
+  tick();
+</script>
 </html>
