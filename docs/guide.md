@@ -504,6 +504,17 @@ Il faut avoir autorisé Lowsper une fois à écrire dans le dossier : c'est fait
 modèle, sinon à la fermeture des paramètres. La phrase sous « Mots » (onglet Transcription) dit
 si la copie est faite.
 
+**Où enregistrer mes « Mots à reconnaître » et « Corrections automatiques » ?**
+Nulle part à la main : Lowsper les garde dans le navigateur et en recopie un double dans son propre
+dossier (`app\reglages.txt`). Quand le navigateur n'a pas encore l'accord d'écrire dans ce dossier
+(nouvelle copie de Lowsper, autre navigateur), la fermeture des paramètres affiche « Garder vos
+réglages dans le dossier Lowsper », avec le chemin exact du dossier à choisir : celui qui contient
+`Lowsper.html`. Cliquez sur « Choisir le dossier », puis choisissez-le dans la fenêtre qui s'ouvre
+sur vos Téléchargements (le dossier qui le contient convient aussi). « Plus tard » laisse les
+réglages dans le navigateur ; la question revient au lancement suivant.
+
+![Garder vos réglages dans le dossier Lowsper : la raison, le chemin du dossier à choisir, « Choisir le dossier » et « Plus tard »](images/dossier.png)
+
 **Comment déplacer mes réglages vers un autre PC ?**
 Paramètres, onglet Avancé, « Exporter les réglages dans un fichier », puis sur l'autre PC
 « Importer des réglages depuis un fichier ». Le fichier `lowsper-reglages_AAAA-MM-JJ.json` contient

@@ -602,6 +602,17 @@
       <button class="btn ghost" id="before-cancel" type="button" data-i18n="before.cancel">Annuler</button>
     </dialog>
 
+    <!-- Avant la fenêtre de choix de dossier : où et pourquoi (decision.md §57) -->
+    <dialog class="sheet" id="folder-ask" aria-labelledby="folder-ask-title">
+      <h2 id="folder-ask-title" data-i18n="fa.title">Garder vos réglages dans le dossier Lowsper</h2>
+      <p data-i18n="fa.text">Lowsper recopie vos réglages (mots à reconnaître, corrections automatiques, langue...) dans son propre dossier, pour les retrouver même si le navigateur efface ses données. Dans la fenêtre qui va s'ouvrir, choisissez ce dossier, celui qui contient Lowsper.html :</p>
+      <p><code id="folder-ask-path"></code></p>
+      <p class="fine" data-i18n="fa.hint">La fenêtre s'ouvre sur vos Téléchargements : si vous y choisissez le dossier qui contient Lowsper, il est retrouvé tout seul. Le navigateur demande cet accord une fois par copie de Lowsper.</p>
+      <div class="notice" id="folder-ask-error" hidden></div>
+      <button class="btn primary big" id="folder-ask-pick" type="button" data-i18n="fa.pick">Choisir le dossier</button>
+      <button class="btn ghost" id="folder-ask-later" type="button" data-i18n="fa.later">Plus tard</button>
+    </dialog>
+
     <!-- Test du son de la réunion (decision.md §56) -->
     <dialog class="sheet" id="sound-test" aria-labelledby="sound-test-title">
       <h2 id="sound-test-title" data-i18n="st.title">Tester le son de la réunion</h2>

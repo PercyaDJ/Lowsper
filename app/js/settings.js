@@ -189,7 +189,8 @@
     let dir = await savedHandle();
     if (!dir) {
       if (!interactive || !Lowsper.pickLowsperFolder) return 'needs-folder';
-      dir = await Lowsper.pickLowsperFolder();
+      // Avec l'interface : d'abord une explication et le chemin du dossier à choisir (§57)
+      dir = await (Lowsper.askLowsperFolder || Lowsper.pickLowsperFolder)();
       await setFolder(dir);
     }
     let perm = 'prompt';

@@ -3162,9 +3162,54 @@
     const d = $('settings');
     if (d.open) d.close();
   }
+  /*
+   * Avant la fenêtre de choix de dossier du navigateur, qui s'ouvre sur Téléchargements sans rien
+   * dire : pourquoi Lowsper la demande et quel dossier choisir, chemin compris (decision.md §57).
+   * Le navigateur ne peut pas ouvrir sa fenêtre directement sur ce dossier (seulement sur un dossier
+   * connu, comme Téléchargements, ou déjà autorisé). « Plus tard » : plus de question avant le
+   * prochain lancement ; les réglages restent gardés par le navigateur.
+   */
+  L.askLowsperFolder = () =>
+    new Promise((resolve, reject) => {
+      const later = () => Object.assign(new Error(tr('err.cancelled')), { code: 'CANCELLED' });
+      if (app.folderLater) return reject(later());
+      const d = $('folder-ask');
+      const err = $('folder-ask-error');
+      $('folder-ask-path').textContent = L.pageFolder();
+      err.hidden = true;
+      const finish = (fn, v) => {
+        $('folder-ask-pick').onclick = null;
+        $('folder-ask-later').onclick = null;
+        d.oncancel = null;
+        if (d.open) d.close();
+        fn(v);
+      };
+      $('folder-ask-pick').onclick = async () => {
+        try {
+          finish(resolve, await L.pickLowsperFolder()); // doit suivre immédiatement le clic
+        } catch (e) {
+          if (e.code === 'CANCELLED') return;
+          err.textContent = e.message;
+          err.hidden = false;
+        }
+      };
+      const giveUp = (e) => {
+        if (e) e.preventDefault();
+        app.folderLater = true;
+        finish(reject, later());
+      };
+      $('folder-ask-later').onclick = () => giveUp();
+      d.oncancel = giveUp;
+      d.showModal();
+      $('folder-ask-pick').focus();
+    });
+
   // À la fermeture des paramètres (geste de l'utilisateur) : copie des réglages dans le dossier
   // Lowsper si quelque chose a changé. Le dossier est d'ordinaire accordé dès l'installation.
   $('settings').addEventListener('close', () => {
+    // Vers l'écran d'installation (« Installer ou ajouter des modèles ») : l'installation demande
+    // elle-même le dossier, avec son explication, puis recopie les réglages (§57)
+    if (app.state === 'install') return;
     L.Settings.save({ interactive: true })
       .then(renderSaved)
       .then(refreshLowsper)

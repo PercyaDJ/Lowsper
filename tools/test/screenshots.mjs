@@ -73,6 +73,14 @@ await page.click('[data-open="glossary"]');
 await page.fill('#glossary', corpus.glossary);
 await page.click('#page-glossary [data-back]');
 await page.click('#settings-close');
+// Explication avant la fenêtre de choix du dossier Lowsper (§57), avec un chemin Windows fictif
+await page.waitForSelector('#folder-ask[open]');
+await page.evaluate(
+  () => (document.getElementById('folder-ask-path').textContent = 'C:\\Users\\utilisateur\\Downloads\\Lowsper')
+);
+await page.waitForTimeout(300);
+await page.locator('#folder-ask').screenshot({ path: join(out, 'dossier.png') });
+await page.click('#folder-ask-later');
 await page.fill('#title', 'Point hebdo du centre de service');
 // Accueil tel que le voit l'utilisateur après l'installation, dossier Lowsper accordé : sans la
 // proposition « Choisir le dossier Lowsper » d'un navigateur qui n'y a pas encore accès (§52)
@@ -230,6 +238,8 @@ await page.click('[data-open="ui-lang"]');
 await page.click('#ui-lang [data-value="fr"]');
 await page.click('#page-ui-lang [data-back]');
 await page.click('#settings-close');
+if (await page.waitForSelector('#folder-ask[open]', { timeout: 1000 }).catch(() => null))
+  await page.click('#folder-ask-later');
 
 // Écran de bienvenue (premier lancement) : copie du dossier sans modèle, PC simulé à 8 fils,
 // 8 Go et sans carte graphique (configuration courante d'un portable de bureau)

@@ -13,6 +13,20 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+### Documentation
+- Étude mesurée d'une même personne coupée en deux intervenants, sur 8 réunions synthétiques :
+  17 % des répliques coupées, surtout sur des phrases de moins de 3 s ; aucun réglage, la mesure
+  ne le valide pas (decision.md §58). Outils : `tools/test/eval-split.mjs`,
+  `tools/test/corpus/make-coupures.py`.
+
+## [4.10.1] - 2026-11-09
+
+### Corrigé
+- La fenêtre de choix de dossier ne s'ouvre plus sans explication en fermant les paramètres (ou en
+  appliquant une correction sur l'écran de fin) : Lowsper dit d'abord pourquoi il la demande et
+  affiche le chemin exact du dossier à choisir, avec « Choisir le dossier » et « Plus tard »
+  (decision.md §57).
+
 ## [4.10.0] - 2026-11-09
 
 ### Ajouté

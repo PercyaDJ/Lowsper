@@ -271,6 +271,9 @@ await page.fill('#glossary', corpusInfo.glossary);
 await page.click('#page-glossary [data-back]');
 await page.screenshot({ path: join(out, '2b-parametres.png') });
 await page.click('#settings-close');
+// Sans accord pour le dossier Lowsper : explication avant la fenêtre de choix (§57), « Plus tard »
+if (await page.waitForSelector('#folder-ask[open]', { timeout: 1500 }).catch(() => null))
+  await page.click('#folder-ask-later');
 await page.click('#start');
 // « Avant de commencer » : les trois étapes, puis Continuer (le clic sert au partage d'écran)
 await page.waitForSelector('#before[open]');

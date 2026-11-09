@@ -3579,3 +3579,107 @@ réglage `lowsper.share.surface` vaut bien `apps` avant l'arrêt, avant et aprè
 trouvée ; non établi si le défaut existait avant le §55. Choix du mainteneur : le test garde un
 diagnostic qui note chaque écriture du réglage, avec son origine, et l'affiche avec l'état de la
 page en cas d'échec ; la prochaine occurrence dira qui écrit quoi.
+
+## 57. Explication avant la fenêtre de choix du dossier Lowsper (4.10.1)
+
+**Contexte.** Retour du mainteneur, sur une nouvelle copie de Lowsper (4.10.0 extraite dans un
+nouveau dossier) : après avoir modifié ses « Mots à reconnaître », une fenêtre de choix de dossier
+s'ouvre, sans dire quoi choisir ni pourquoi.
+
+**Cause** (lecture du code). L'accord d'écrire dans le dossier Lowsper est donné par navigateur et
+par copie (§38, §52). Sans accord, `Settings.save` appelé depuis un clic (fermeture des
+paramètres, correction appliquée sur l'écran de fin) ouvrait directement `showDirectoryPicker`,
+sur Téléchargements. L'installation du modèle et le bouton « Choisir le dossier Lowsper » de
+l'accueil avaient déjà leur texte ; ces deux chemins-là n'en avaient aucun.
+
+**Options.**
+| Option | Verdict |
+|---|---|
+| Ouvrir la fenêtre directement sur le dossier Lowsper | Impossible : `startIn` n'accepte qu'un dossier connu (Téléchargements, Documents...) ou un dossier déjà autorisé, pas un chemin. |
+| Ne plus rien demander, réglages gardés par le navigateur seulement | Écarté : les réglages seraient perdus sur les postes qui effacent les données du navigateur (§15.16). |
+| **Une explication avant la fenêtre, avec le chemin exact** | **Retenu** (choix du mainteneur). |
+
+**Retenu.** `Lowsper.askLowsperFolder` (`app.js`), utilisé par `Settings.save` quand l'interface
+est là : fenêtre « Garder vos réglages dans le dossier Lowsper », raison, chemin du dossier de la
+page (`Lowsper.pageFolder()`), rappel que la fenêtre s'ouvre sur Téléchargements et que le dossier
+parent convient aussi. « Choisir le dossier » ouvre la fenêtre du navigateur (le clic sert de
+geste) ; un mauvais dossier affiche le message existant sans fermer l'explication ; une annulation
+la laisse ouverte. « Plus tard » ou Échap : plus de question jusqu'au prochain lancement.
+Paramètres fermés par « Installer ou ajouter des modèles » : pas d'explication, l'installation
+demande elle-même le dossier avec son texte, puis recopie les réglages (trouvé par
+`test/welcome.mjs`, où la fenêtre se superposait à l'écran d'installation). Plus largement, aucune
+explication tant que la page est sur l'écran d'installation (aucun modèle) : l'installation
+demandera le dossier, une seule fois. La CI, sans modèle, est dans ce cas : `test/settings.mjs`
+vérifie alors l'absence d'explication, puis appelle directement la copie des réglages pour
+vérifier la fenêtre elle-même.
+
+**Vérifié.** `test/settings.mjs` : explication et chemin affichés à la fermeture des paramètres
+après un changement, fenêtre du navigateur ouverte par « Choisir le dossier », explication gardée
+après une annulation, « Plus tard » qui ferme sans nouvelle question ; question revenue après le
+rechargement de la page. Le chemin du direct n'est pas touché : pas de mesure `npm run bench`.
+
+**Limites.** Non vérifié sous Windows dans Edge : la fenêtre de choix elle-même est celle du
+navigateur, inchangée.
+
+## 58. Une même personne coupée en deux intervenants : mesure, aucun réglage
+
+**Contexte.** Constat du mainteneur : dans une réunion, une même personne est parfois coupée en
+deux intervenants au milieu de ce qu'elle dit. Demande : une étude mesurée sur corpus synthétique,
+et un réglage seulement si la mesure le valide. Le phénomène relève du regroupement des voix dans
+la réunion (§15.14), pas de la mémoire d'une réunion à l'autre (§37).
+
+**Mécanisme** (lecture de `speakers.js`). Le son est analysé par fenêtres de 2 s (pas de 1 s) ;
+chaque phrase rendue par Whisper prend la voix majoritaire des fenêtres qu'elle recouvre, puis le
+regroupement final réattribue les voix. Une phrase courte ne recouvre qu'une ou deux fenêtres :
+son vote est fragile.
+
+**Mesure.** `tools/test/eval-split.mjs` (hors ligne, secondes) relit les phrases produites par
+`eval-hebdo.mjs` et compte, pour chaque réplique réelle d'un participant : réplique coupée (ses
+phrases ont reçu au moins deux intervenants) et changement d'intervenant entre deux phrases
+consécutives de la même réplique.
+- Corpus existants, toute la chaîne Lowsper (Whisper small) : entretien (1 voix) 0 coupure sur 8
+  répliques en plusieurs phrases ; hebdo 1 sur 11 (son propre) et 1 sur 13 (son Teams). Trop peu de
+  répliques pour conclure.
+- Nouveau corpus « coupures » (`tools/test/corpus/make-coupures.py`, non versionné, graine fixe) :
+  8 réunions synthétiques de 6 personnes, assemblées à partir du corpus du §37 (voix Piper,
+  appareils simulés, compression d'une visio) ; chaque personne parle deux fois, 15 à 60 s
+  d'affilée ; 39 min de son, 96 répliques.
+
+| Réunion | Voix trouvées (6 réelles) | Répliques coupées | Changements en cours de réplique |
+|---|---|---|---|
+| 1 | 2 | 1 / 12 | 1 / 55 |
+| 2 | 8 | 4 / 12 | 6 / 45 |
+| 3 | 6 | 2 / 12 | 2 / 49 |
+| 4 | 5 | 1 / 12 | 2 / 53 |
+| 5 | 3 | 3 / 12 | 4 / 86 |
+| 6 | 5 | 2 / 11 | 2 / 44 |
+| 7 | 7 | 1 / 12 | 1 / 53 |
+| 8 | 3 | 2 / 12 | 3 / 56 |
+| **Total** | | **16 / 95 (17 %)** | **21 / 441 (4,8 %)** |
+
+**Ce que montrent les coupures.** Sur les 20 phrases qui ont reçu une autre voix que celle de leur
+personne : 15 durent moins de 3 s (médiane de toutes les phrases : 3,6 s), dont 7 à 1,0 s ; elles
+tombent au début (6), au milieu (7) ou à la fin (7) de la réplique ; 3 seulement prennent la voix
+de la personne qui parle juste avant ou après. Cause principale : les phrases courtes, jugées sur
+une ou deux fenêtres. À côté, le nombre de voix trouvées varie beaucoup (2 à 8 pour 6) : le
+regroupement fusionne autant qu'il coupe.
+
+**Piste essayée** (simulée sur les mêmes phrases, sans relancer le moteur) : une phrase courte,
+encadrée de près par deux phrases d'une même autre voix, prend leur voix.
+
+| Phrase courte de moins de | Écart avec les voisines | Répliques coupées | Changements |
+|---|---|---|---|
+| (sans lissage) | | 17 % | 4,8 % |
+| 2,5 s | 0,6 s | 16 % | 4,5 % |
+| 3 s | 1 s | 14 % | 3,9 % |
+| 4 s | 1 s | 13 % | 3,6 % |
+
+**Arbitrage (choix du mainteneur) : aucun réglage.** Le gain est faible (1 à 4 points), et le
+risque n'est pas mesurable ici : le corpus ne contient aucune intervention courte d'une autre
+personne (« oui », « d'accord ») au milieu d'une réplique, que ce lissage avalerait. La mesure ne
+valide donc pas de réglage. Les outils restent pour la suite : un corpus avec de telles
+interventions, ou une étude du nombre de voix trouvées (§15.14), sont les deux pistes.
+
+**Limites.** Voix de synthèse d'un même modèle Piper, appareils et visio simulés ; une seule
+répétition par réunion (pas de mesure de la variance d'un passage à l'autre). Le résultat sur une
+vraie réunion n'est pas vérifié.

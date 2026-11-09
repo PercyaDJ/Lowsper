@@ -42,6 +42,9 @@ await page.click('[data-open="glossary"]');
 await page.fill('#glossary', 'ServiceNow, COPIL, KPI');
 await page.click('#page-glossary [data-back]');
 await page.click('#settings-close');
+// Sans accord pour le dossier Lowsper : explication avant la fenêtre de choix (§57), « Plus tard »
+if (await page.waitForSelector('#folder-ask[open]', { timeout: 1500 }).catch(() => null))
+  await page.click('#folder-ask-later');
 
 let failed = 0;
 const check = (ok, name, detail = '') => {
