@@ -155,6 +155,15 @@ await test('sous-écran : titre, choix au clavier, Échap revient puis ferme', a
   assert.equal(await page.isHidden('#settings'), true);
   // Réglage changé, aucun dossier Lowsper accordé : avant la fenêtre de choix du navigateur,
   // une explication et le chemin du dossier à choisir (decision.md §57)
+  if (await page.isVisible('#view-install')) {
+    // Sans modèle (CI) : l'installation demandera elle-même le dossier, pas d'explication en
+    // fermant les paramètres ; la copie des réglages est alors demandée directement
+    await page.waitForTimeout(300);
+    assert.equal(await page.isHidden('#folder-ask'), true, 'pas d’explication sur l’écran d’installation');
+    await page.evaluate(() => {
+      window.Lowsper.Settings.save({ interactive: true }).catch(() => {});
+    });
+  }
   await page.waitForSelector('#folder-ask[open]');
   assert.match(await page.textContent('#folder-ask'), /Lowsper\.html/);
   assert.ok((await page.textContent('#folder-ask-path')).length > 0, 'chemin du dossier affiché');
@@ -277,9 +286,10 @@ await test('« Ajouter un emplacement » : page ouverte, nom prêt à saisir, li
   assert.equal(await page.textContent('#v-folder'), 'Vos Téléchargements');
   await page.screenshot({ path: join(out, 'notes.png') });
   await page.click('#settings-close');
-  // Page rechargée par l'import : nouveau lancement, l'explication du dossier revient (§57)
-  await page.waitForSelector('#folder-ask[open]');
-  await page.click('#folder-ask-later');
+  // Page rechargée par l'import : nouveau lancement, l'explication du dossier revient (§57),
+  // sauf sur l'écran d'installation (sans modèle, en CI)
+  if (await page.waitForSelector('#folder-ask[open]', { timeout: 1500 }).catch(() => null))
+    await page.click('#folder-ask-later');
   // Réouverture : l'emplacement montré est celui choisi sur l'accueil
   await page.click('#settings-open');
   await page.click('#tab-notes');

@@ -3607,7 +3607,11 @@ geste) ; un mauvais dossier affiche le message existant sans fermer l'explicatio
 la laisse ouverte. « Plus tard » ou Échap : plus de question jusqu'au prochain lancement.
 Paramètres fermés par « Installer ou ajouter des modèles » : pas d'explication, l'installation
 demande elle-même le dossier avec son texte, puis recopie les réglages (trouvé par
-`test/welcome.mjs`, où la fenêtre se superposait à l'écran d'installation).
+`test/welcome.mjs`, où la fenêtre se superposait à l'écran d'installation). Plus largement, aucune
+explication tant que la page est sur l'écran d'installation (aucun modèle) : l'installation
+demandera le dossier, une seule fois. La CI, sans modèle, est dans ce cas : `test/settings.mjs`
+vérifie alors l'absence d'explication, puis appelle directement la copie des réglages pour
+vérifier la fenêtre elle-même.
 
 **Vérifié.** `test/settings.mjs` : explication et chemin affichés à la fermeture des paramètres
 après un changement, fenêtre du navigateur ouverte par « Choisir le dossier », explication gardée
