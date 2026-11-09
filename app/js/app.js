@@ -687,6 +687,8 @@
     );
     await app.capture.init();
     if (mic) attachSource('me', mic);
+    app.micTrack = mic ? mic.getAudioTracks()[0] : null;
+    setMuted(false);
     if (others) attachSource('others', others);
 
     setState('recording');
@@ -1427,6 +1429,7 @@
       othersWanted: app.othersWanted,
       othersSilentMs: Date.now() - ((app.heard && app.heard.others) || 0),
       paused: app.capture.paused,
+      micMuted: !!app.micMuted,
       engineReady: app.engineReady,
       engineError: app.engineError,
       delayS: textDelay(),
@@ -1493,6 +1496,29 @@
     $('rec-label').textContent = paused ? tr('rec.paused') : tr('rec.recording');
     $('mini-state').title = paused ? tr('rec.paused') : tr('rec.recording');
   }
+
+  /**
+   * Couper le micro, comme dans la visio (decision.md §53) : la piste du micro ne donne plus que
+   * du silence (track.enabled), donc rien n'est transcrit, ni en direct ni au rattrapage de fin de
+   * réunion. Le son de la réunion continue d'être capté.
+   */
+  function setMuted(muted) {
+    app.micMuted = !!muted && !!app.micTrack;
+    if (app.micTrack) app.micTrack.enabled = !app.micMuted;
+    const b = $('mic-mute');
+    b.hidden = !app.micTrack;
+    b.setAttribute('aria-pressed', String(app.micMuted));
+    b.textContent = tr(app.micMuted ? 'meet.unmute' : 'meet.mute');
+    b.title = tr(app.micMuted ? 'meet.unmuteTitle' : 'meet.muteTitle');
+    $('row-me').classList.toggle('muted', app.micMuted);
+    const m = $('mini-mute');
+    m.setAttribute('aria-pressed', String(app.micMuted));
+    m.title = tr(app.micMuted ? 'meet.unmuteTitle' : 'meet.muteTitle');
+    m.setAttribute('aria-label', m.title);
+    if (app.transcript) journal('micro', { coupe: app.micMuted });
+    renderChecks();
+  }
+  app.setMuted = setMuted; // tests
 
   function togglePause() {
     if (!app.capture) return;
@@ -3458,6 +3484,8 @@
   $('stop').addEventListener('click', stop);
   $('mini-stop').addEventListener('click', stop);
   $('mini-pause').addEventListener('click', togglePause);
+  $('mic-mute').addEventListener('click', () => setMuted(!app.micMuted));
+  $('mini-mute').addEventListener('click', () => setMuted(!app.micMuted));
   // « Comment corriger » : l'explication, avec un bouton pour partager de nouveau le son
   $('others-fix').addEventListener('click', () => notice(tr('meet.fixHelp'), 'others'));
   $('others-add').addEventListener('click', addOthers);

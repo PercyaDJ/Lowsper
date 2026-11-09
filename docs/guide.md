@@ -105,7 +105,10 @@ réunion qui travaille hors ligne.
    La **fenêtre de Lowsper** (bouton « Réduire » pour revenir à la mini-fenêtre) tient sans
    défiler, même sur un portable : chronomètre, nom de la réunion (modifiable) et un **contrôle
    d'état** en langage simple :
-   - **votre micro** : « Je vous entends » ;
+   - **votre micro** : « Je vous entends ». Le bouton **« Couper »** coupe votre micro, comme
+     dans la visio : votre voix n'est plus transcrite, ni pendant ni après la réunion, jusqu'à
+     « Rétablir ». Dans la mini-fenêtre, cliquez sur l'icône du micro (barrée quand il est
+     coupé). Le son de la réunion, lui, continue d'être capté ;
    - **le son de la réunion** : « Le son arrive », ou « Rien ne passe » avec un bouton **« Comment
      corriger »** qui permet de partager de nouveau le son ;
    - **le texte écrit** : « À jour », ou le retard en secondes si le PC prend du retard.

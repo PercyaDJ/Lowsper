@@ -3385,3 +3385,30 @@ pas de mesure `npm run bench`.
 **Limites.** Non vérifié sur le PC du mainteneur ni dans Edge. Windows 11 est reconnu par les
 Client Hints : un navigateur qui les bloque est traité comme les autres systèmes (essai du son du
 système, puis bouton). Un clic par navigateur pour le dossier reste nécessaire.
+
+## 53. Couper le micro pendant la réunion (4.9.0)
+
+**Contexte.** Demande du mainteneur, sur son PC d'entreprise : pouvoir se couper dans Lowsper
+d'un clic sur le micro, comme dans Teams ou Jabber.
+
+**Options.**
+| Option | Verdict |
+|---|---|
+| Détacher la source « micro » de la capture | Écarté : le découpeur et la détection de parole repartent de zéro au rétablissement, et le rattrapage de fin de réunion perd son alignement. |
+| Laisser passer le son et retirer ensuite les passages | Écarté : la voix coupée serait quand même transcrite et gardée en mémoire. |
+| **`track.enabled = false` sur la piste du micro** | **Retenu** : la piste ne donne plus que du silence ; la chaîne (découpeur, détection de parole, son gardé pour le rattrapage) continue sans rupture, et rien de ce qui est dit pendant la coupure n'est transcrit, ni en direct ni en fin de réunion. |
+
+**Ce qui change.** Bouton « Couper » / « Rétablir » (`aria-pressed`) dans la ligne « Votre
+micro », icône du micro cliquable et barrée dans la mini-barre ; l'état dit « Coupé » sans alerte
+(`meeting.js`, `micMuted`) et la jauge du micro disparaît. Chaque changement est consigné dans le
+journal technique (`micro`, `coupe`). Le micro est rétabli au début de chaque réunion ; il reste
+coupé quand on enchaîne sur la réunion suivante sans arrêter, comme dans une visio.
+
+**Vérifié.** Test unitaire de l'état ; `test/e2e-share.mjs` : coupé depuis la fenêtre, rétabli
+depuis la mini-barre, piste muette puis rétablie ; `npm test` et `npm run test:e2e` verts. Le
+chemin du direct n'est pas modifié (une piste muette donne du silence, déjà traité) : pas de
+mesure `npm run bench`.
+
+**Limites.** La coupure de Lowsper est indépendante de celle de Teams ou de Jabber : se couper
+dans la visio ne coupe pas Lowsper (aucune page web ne peut lire l'état d'une autre application).
+Non vérifié sur le PC du mainteneur.
