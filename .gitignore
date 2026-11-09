@@ -13,3 +13,5 @@ tools/dist/
 /Notes/
 # Corpus « paroles simultanées » : sons régénérés à l'identique par tools/test/corpus/make-overlap.py
 tools/test/corpus/simultane-*.wav
+# Corpus « coupures » : réunions assemblées à l'identique par tools/test/corpus/make-coupures.py
+tools/test/corpus/coupures*
