@@ -13,6 +13,13 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [4.9.0] - 2026-11-09
+
+### Ajouté
+- Bouton « Couper » du micro pendant la réunion, et icône du micro cliquable dans la
+  mini-fenêtre : votre voix n'est plus transcrite jusqu'à « Rétablir », le son de la réunion
+  continue d'être capté (decision.md §53).
+
 ## [4.8.0] - 2026-11-08
 
 ### Modifié

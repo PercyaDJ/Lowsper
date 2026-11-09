@@ -580,7 +580,11 @@ label.home-row { cursor: text; }
 #meet-title:focus { border-color: var(--accent); color: var(--text); outline: none; }
 .checks { margin: 0; }
 .check-row { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 16px; box-sizing: border-box; }
-.check-row .add-btn { flex: none; }
+.check-row .add-btn, .check-row .mute-btn { flex: none; }
+.check-row .mute-btn[hidden] { display: none; }
+.check-row.muted .level { visibility: hidden; }
+.check-status { overflow: hidden; text-overflow: ellipsis; }
+.mute-btn[aria-pressed="true"] { background: var(--danger); border-color: var(--danger); color: #fff; }
 .check-row .add-btn[hidden] { display: none; }
 .check-row + .check-row { border-top: 1px solid var(--border); }
 .check-mark { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 700; background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
@@ -640,6 +644,14 @@ body.pip .mini-bar, body.mini .mini-bar { display: flex; }
 .mini-level .ico { width: 11px; height: 11px; margin: 0; }
 .mini-level .level { flex: 1; height: 4px; }
 .mini-level.warn { color: var(--warn-ink); }
+/* Micro de la mini-barre : bouton pour couper ou rétablir le micro (decision.md §53) */
+.mini-mute { border: 0; background: none; padding: 2px 4px; margin: -2px -4px; border-radius: 6px; font: inherit; cursor: pointer; }
+.mini-mute:hover { background: var(--surface-2); }
+.mini-mute:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mini-mute .slash { display: none; }
+.mini-mute[aria-pressed="true"] { color: var(--danger); }
+.mini-mute[aria-pressed="true"] .slash { display: inline; }
+.mini-mute[aria-pressed="true"] .level { visibility: hidden; }
 .mini-level.warn .level { background: var(--warn-border); }
 .mini-btn { flex: none; width: 34px; height: 34px; border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); color: var(--text); cursor: pointer; }
 .mini-btn .ico { width: 14px; height: 14px; margin: 0; fill: currentColor; stroke: none; }

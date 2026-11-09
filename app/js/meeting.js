@@ -28,6 +28,7 @@
    *   othersWanted : l'option « son des participants » est cochée ;
    *   othersSilentMs : temps depuis la dernière parole entendue dans le son de la réunion ;
    *   paused, engineReady, engineError ;
+   *   micMuted : micro coupé par l'utilisateur (decision.md §53) ;
    *   delayS : âge du plus ancien passage en attente (secondes).
    * }
    * Retourne { me, others, text } : chacun { state, key, vars? } ; others.fix : bouton
@@ -37,9 +38,11 @@
     const me =
       s.me !== 'on'
         ? { state: 'warn', key: 'meet.micOff' }
-        : s.paused
-          ? { state: 'idle', key: 'meet.paused' }
-          : { state: 'ok', key: 'meet.micOk' };
+        : s.micMuted
+          ? { state: 'idle', key: 'meet.micMuted' }
+          : s.paused
+            ? { state: 'idle', key: 'meet.paused' }
+            : { state: 'ok', key: 'meet.micOk' };
 
     let others;
     if (s.others !== 'on')

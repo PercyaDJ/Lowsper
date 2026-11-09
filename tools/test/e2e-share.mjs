@@ -11,7 +11,8 @@
 //   5. navigateur qui ne connaît pas restrictOwnAudio : comportement d'avant (onglet d'abord) ;
 //   6. Windows 11 (simulé) : le son de toutes les applications d'emblée, aucun message, bouton
 //      « Ajouter un onglet » (decision.md §52) ;
-//   7. aucune requête réseau.
+//   7. bouton « Couper » du micro, dans la fenêtre et la mini-barre (decision.md §53) ;
+//   8. aucune requête réseau.
 // Prérequis : node build.mjs --embed whisper-small   (CHROMIUM_PATH si besoin)
 // Usage : node test/e2e-share.mjs
 import { chromium } from 'playwright-core';
@@ -43,6 +44,8 @@ async function open(restrictKnown, windows11) {
   page.on('pageerror', (e) => console.log('[pageerror]', e.message));
   await context.addInitScript(
     ([known, win11]) => {
+      // Pas de mini-fenêtre automatique : la mini-barre reste dans la page, où le test la lit
+      localStorage.setItem('lowsper.opt.autopip', '0');
       if (win11)
         Object.defineProperty(navigator, 'userAgentData', {
           value: { platform: 'Windows', getHighEntropyValues: async () => ({ platformVersion: '19.0.0' }) },
@@ -156,6 +159,25 @@ const pref = (page) => page.evaluate(() => localStorage.getItem('lowsper.share.s
   if ((await page.textContent('#others-add')) !== 'Ajouter un onglet')
     fail('Windows 11 : « Ajouter un onglet » attendu');
   console.log('Windows 11 : son de toutes les applications d’emblée, aucun message');
+  // Couper le micro (§53) : dans la fenêtre et la mini-barre, piste muette, état dit en clair
+  await page.click('#mic-mute');
+  const muted = await page.evaluate(() => ({
+    pressed: document.getElementById('mic-mute').getAttribute('aria-pressed'),
+    mini: document.getElementById('mini-mute').getAttribute('aria-pressed'),
+    label: document.getElementById('mic-mute').textContent,
+    status: document.getElementById('me-status').textContent,
+    track: LowsperApp.micTrack.enabled,
+  }));
+  if (muted.pressed !== 'true' || muted.mini !== 'true' || muted.track !== false || muted.label !== 'Rétablir')
+    fail('micro non coupé : ' + JSON.stringify(muted));
+  if (!/Coupé/.test(muted.status)) fail('état « Coupé » attendu : ' + muted.status);
+  await page.evaluate(() => document.getElementById('mini-mute').click());
+  const back = await page.evaluate(() => [
+    document.getElementById('mic-mute').getAttribute('aria-pressed'),
+    LowsperApp.micTrack.enabled,
+  ]);
+  if (back[0] !== 'false' || back[1] !== true) fail('micro non rétabli : ' + JSON.stringify(back));
+  console.log('Micro coupé puis rétabli (fenêtre et mini-barre)');
   if (network.length) fail('requêtes réseau : ' + network.join(', '));
   await context.close();
 }

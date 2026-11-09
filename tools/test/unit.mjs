@@ -1936,6 +1936,9 @@ await test('réunion : contrôle d’état, seuils réglés sur les corpus', asy
   let r = c({});
   assert.deepEqual([r.me.state, r.others.state, r.text.state], ['ok', 'ok', 'ok']);
   assert.deepEqual([r.me.key, r.others.key, r.text.key], ['meet.micOk', 'meet.soundOk', 'meet.textOk']);
+  // Micro coupé par l'utilisateur (§53) : dit tel quel, sans alerte, le son de la réunion inchangé
+  r = c({ micMuted: true });
+  assert.deepEqual([r.me.state, r.me.key, r.others.key], ['idle', 'meet.micMuted', 'meet.soundOk']);
   // Seuil du son de la réunion : au-dessus du plus long silence naturel mesuré sur les corpus
   const corpus = [];
   for (const name of ['hebdo', 'entretien']) {

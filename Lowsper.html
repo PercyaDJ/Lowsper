@@ -607,6 +607,8 @@
           <span class="check-mark" aria-hidden="true"><svg class="i-ok" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><svg class="i-warn" viewBox="0 0 24 24"><path d="M12 6v8M12 18.5v.5"/></svg><svg class="i-idle" viewBox="0 0 24 24"><path d="M7 12h10"/></svg></span>
           <span class="check-text"><span data-i18n="meet.mic">Votre micro</span><span class="check-status" id="me-status" aria-live="polite"></span></span>
           <span class="level"><i id="me-level"></i></span>
+          <!-- Couper le micro, comme dans la visio : votre voix n'est plus transcrite (decision.md §53) -->
+          <button class="btn small mute-btn" id="mic-mute" type="button" aria-pressed="false" title="Couper votre micro : votre voix n’est plus transcrite" data-i18n="meet.mute" data-i18n-attr="title:meet.muteTitle">Couper</button>
         </div>
         <div class="check-row" id="row-others" data-state="ok">
           <span class="check-mark" aria-hidden="true"><svg class="i-ok" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><svg class="i-warn" viewBox="0 0 24 24"><path d="M12 6v8M12 18.5v.5"/></svg><svg class="i-idle" viewBox="0 0 24 24"><path d="M7 12h10"/></svg></span>
@@ -667,7 +669,7 @@
       <div class="mini-bar" id="mini">
         <span class="mini-time" id="mini-state" title="Enregistrement" data-i18n-attr="title:rec.recording"><span class="rec-dot"></span><span id="mini-timer">00:00</span></span>
         <span class="mini-levels">
-          <span class="mini-level" title="Votre micro" data-i18n-attr="title:meet.mic"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg><span class="level"><i id="mini-me"></i></span></span>
+          <button class="mini-level mini-mute" id="mini-mute" type="button" aria-pressed="false" title="Couper votre micro : votre voix n’est plus transcrite" aria-label="Couper votre micro : votre voix n’est plus transcrite" data-i18n-attr="title:meet.muteTitle;aria-label:meet.muteTitle"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/><path class="slash" d="M4 4l16 16"/></svg><span class="level"><i id="mini-me"></i></span></button>
           <span class="mini-level" id="mini-others-row" title="Son de la réunion" data-i18n-attr="title:meet.sound"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg><span class="level"><i id="mini-others"></i></span></span>
         </span>
         <button class="mini-btn" id="mini-pause" type="button" aria-label="Pause" title="Pause" data-i18n-attr="aria-label:rec.pause;title:rec.pause"><svg class="ico i-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/></svg><svg class="ico i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg></button>
