@@ -3443,3 +3443,76 @@ sont pas touchées : aucune nouvelle version de Lowsper.
 
 **Limites.** Non exécuté ici (pas de clé Lysbor dans cet environnement) : le premier passage du
 workflow sur `main` après la fusion le vérifie (il se lance seul, le workflow ayant changé).
+
+## 55. Son de la réunion muet : vérifier que le son passe, proposer les autres chemins (4.9.1)
+
+**Contexte.** Sur un PC d'entreprise du mainteneur (Windows 11 Entreprise 24H2, build
+26100.9711, Edge 156, sortie Realtek), Lowsper capte le micro mais pas le son de Teams
+(application installée) ni de Jabber. Aucun message d'erreur.
+
+**Mesuré** (journal de `tools/test/son-systeme.html` dans Edge, pendant un appel de test Teams) :
+| Essai | Mécanisme de Windows (§51) | Résultat |
+|---|---|---|
+| 1. Son du système | Copie de la sortie son | « System Audio », niveau 0,383 |
+| 2. Toutes les applications (`restrictOwnAudio`), fenêtre puis écran entier | Copie par processus | Piste ouverte, `restrictOwnAudio: true`, niveau 0,000 les deux fois |
+| 3. Fenêtre de Teams (`windowAudio`) | Copie par processus | « Application Audio », niveau 0,000 |
+| 4. Onglet | | Annulé par l'utilisateur |
+| 5. Micro | | Niveau 0,037 |
+C'est l'inverse du PC du §51 : ici la copie de la sortie son marche, et les deux copies par
+processus s'ouvrent sans erreur mais ne laissent rien passer (niveau le plus fort inférieur à
+0,0005, la page affichant trois décimales).
+
+**Cause dans Lowsper** (lecture du code). Depuis le §52, sous Windows 11, `shareMode()` demande
+d'emblée le son de toutes les applications. Sur ce PC, la piste s'ouvre : aucune erreur, donc
+aucun autre chemin proposé, et `rememberSurface()` retenait même ce choix pour les réunions
+suivantes. Seule l'alerte « Rien ne passe depuis 1 min » apparaissait, avec un conseil (« partagez
+à nouveau ») qui redemandait le même chemin.
+
+**Non établi.** Pourquoi Windows ne laisse rien passer par processus sur ce poste (stratégie de
+l'entreprise, pilote, autre) : le journal ne permet pas de le dire. Le journal ne prouve pas non
+plus que Teams jouait du son pendant les essais 2 et 3 (un appel de test alterne
+enregistrement et lecture) : un relevé de confirmation, avec un son continu, est demandé au
+mainteneur ; la page d'essai affiche désormais six décimales et le nombre de trames non nulles
+pour distinguer un silence absolu d'un son très faible. Le correctif ne dépend pas de cette
+cause : il juge chaque chemin sur le son qui passe.
+
+**Options.**
+| Option | Verdict |
+|---|---|
+| Son du système d'abord sous Windows 11 (ordre de la 4.7.0) | Écarté : le PC du §51 revoit un message d'erreur une fois par navigateur, ce que le §52 avait supprimé. |
+| Ouvrir deux chemins à la fois et garder celui qui sonne | Impossible : chaque demande de partage exige son propre clic (règle des navigateurs). |
+| Câble audio virtuel, pilote | Écarté : installation (contrainte n° 2). |
+| **Garder le son de toutes les applications d'abord, vérifier que du son passe, sinon proposer les autres chemins** | **Retenu** (choix du mainteneur). |
+
+**Retenu.**
+- `Capture.attach` note pour chaque source si du son est passé (`heard`, bloc brut dont le niveau
+  efficace atteint 0,0005) ; le calcul s'arrête dès le premier son entendu.
+  `Capture.soundCheck(id)` le donne avec le temps écoulé depuis l'ouverture.
+- `Lowsper.Meeting` (fonctions pures, testées) : `soundMuted` (rien passé pendant 20 s,
+  `SOUND_MUTED_S`, plus du double du plus long silence naturel des participants, 8,3 s),
+  `soundOffers` (les autres chemins, chacun par un mécanisme différent de Windows),
+  `soundLearned` (choix à retenir).
+- Partage muet : message « Aucun son n'arrive par ce partage depuis 20 secondes » et boutons des
+  autres chemins (« Partager le son du système », puis l'onglet), une fois par partage, jamais en
+  pause.
+- Le choix n'est retenu que quand du son est vraiment passé : `apps` pour le son de toutes les
+  applications ; `system` (nouvelle valeur de `lowsper.share.surface`) pour le son du système
+  sous Windows 11, respecté par `shareMode()` à la place du son de toutes les applications. La
+  simple ouverture d'un écran ne remplace pas `system`. Les anciennes valeurs gardent leur sens :
+  rien à migrer (contrainte n° 8). Le choix est recopié dans `app/reglages.txt` comme les autres
+  réglages.
+
+**Vérifié.** Tests unitaires (seuils, chemins proposés, choix retenu) ; `test/e2e-share.mjs`,
+nouveau scénario : Windows 11 simulé, choix `apps` laissé par la 4.9.0, son de toutes les
+applications muet et son du système qui marche ; aucun message avant 20 s, puis « Partager le son
+du système » en premier, son capté, `system` retenu, réunion suivante sans `restrictOwnAudio`,
+aucune requête réseau. Les scénarios du §51 au §53 restent verts.
+
+**Performance du direct.** `npm run bench` mesure le moteur, que ce lot ne touche pas. Le seul
+calcul ajouté est dans la capture, et seulement tant qu'aucun son n'est passé : mesuré ici (Node 22,
+blocs de 128 échantillons à 48 kHz), une heure entière de son muet coûte 225 à 230 ms de calcul,
+soit 0,006 % d'un cœur ; zéro dès le premier son entendu.
+
+**Limites.** Non vérifié sur le PC d'entreprise : à confirmer par le mainteneur après la release.
+Si personne ne parle ni ne joue de son pendant les 20 premières secondes, le message apparaît à
+tort ; il le dit et s'ignore. Un clic par nouveau partage reste nécessaire.

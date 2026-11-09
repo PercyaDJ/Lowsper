@@ -64,5 +64,55 @@
     return { me, others, text };
   }
 
-  Lowsper.Meeting = { OTHERS_SILENT_MS, TEXT_LATE_S, checks };
+  /*
+   * Son de la réunion muet (decision.md §55). Un chemin de Windows peut ouvrir une piste sans
+   * erreur qui ne laisse passer aucun son : sur le PC d'entreprise du mainteneur (Windows 11 24H2,
+   * Edge 156), le son de toutes les applications et celui d'une fenêtre donnaient un niveau
+   * inférieur à 0,0005 pendant que le son du système donnait 0,383. Le chemin est jugé muet
+   * quand aucun bloc n'a atteint SOUND_RMS pendant SOUND_MUTED_S depuis l'ouverture.
+   */
+  const SOUND_RMS = 0.0005;
+  const SOUND_MUTED_S = 20;
+
+  /**
+   * s : { attempt : chemin ouvert ('apps', 'screen', 'simple', 'tab'), heard : du son est passé,
+   * elapsedS : secondes depuis l'ouverture, offered : déjà proposé pour ce partage }.
+   */
+  function soundMuted(s) {
+    return !!s.attempt && !s.heard && !s.offered && s.elapsedS >= SOUND_MUTED_S;
+  }
+
+  /**
+   * Chemins à proposer, dans l'ordre, quand le chemin `failed` a échoué ou reste muet. Chaque
+   * chemin passe par un mécanisme différent de Windows (§51) : un PC qui en ferme un laisse en
+   * général passer un autre. Le son de toutes les applications n'est proposé que si le
+   * navigateur connaît restrictOwnAudio.
+   */
+  function soundOffers(failed, canRestrict) {
+    const all = ['apps', 'screen', 'tab'].filter((m) => m !== 'apps' || canRestrict);
+    const same = failed === 'simple' ? 'screen' : failed;
+    return all.filter((m) => m !== same);
+  }
+
+  /**
+   * Préférence à retenir quand du son est vraiment passé par le chemin `attempt`. 'system' : le
+   * son du système, retenu même sous Windows 11, où le son de toutes les applications est
+   * demandé d'emblée sinon. null : ne rien changer (l'onglet dépend de la visio du jour).
+   */
+  function soundLearned(attempt, windows11, canRestrict) {
+    if (attempt === 'apps') return 'apps';
+    if (attempt === 'screen' || attempt === 'simple') return windows11 && canRestrict ? 'system' : 'screen';
+    return null;
+  }
+
+  Lowsper.Meeting = {
+    OTHERS_SILENT_MS,
+    TEXT_LATE_S,
+    SOUND_RMS,
+    SOUND_MUTED_S,
+    checks,
+    soundMuted,
+    soundOffers,
+    soundLearned,
+  };
 })();

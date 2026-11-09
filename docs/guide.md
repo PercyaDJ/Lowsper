@@ -87,7 +87,9 @@ réunion qui travaille hors ligne.
    - le navigateur propose un **partage d'écran**. **Windows 11** : la fenêtre s'ouvre sur l'écran
      entier ; cochez le son. Lowsper prend le son de toutes les applications (Teams, Jabber,
      lecteur vidéo, autre navigateur), quel que soit le casque, sans message d'erreur ; seul le son
-     du navigateur de Lowsper n'est pas compris (voir « Ajouter un onglet » plus bas). **Autres
+     du navigateur de Lowsper n'est pas compris (voir « Ajouter un onglet » plus bas). Si rien
+     n'arrive par ce chemin sur votre PC, Lowsper le remarque au bout de 20 secondes et propose
+     le son du système (voir « Aucun son n'arrive par ce partage » dans la FAQ). **Autres
      systèmes** : visio dans le navigateur (Teams, Meet, Webex en ligne...), choisissez
      l'**onglet de la visio** et cochez **« Partager l'audio de l'onglet »** ; visio dans une
      application, choisissez l'**écran entier** et cochez **« Partager aussi le son du
@@ -443,6 +445,19 @@ en son surround, par exemple), Chrome et Edge n'arrivent pas à l'ouvrir.
   navigateur, avant Windows. Une visio dans une application installée n'a pas d'onglet : sans le
   son de toutes les applications, une page web ne peut pas capter son son.
 Le micro, lui, est essayé avec ses réglages, puis sans, puis chacun des autres micros du PC.
+
+**« Aucun son n'arrive par ce partage depuis 20 secondes ».**
+Windows a plusieurs chemins pour donner le son de l'ordinateur à un navigateur : la sortie son,
+le son de chaque application, le son d'une fenêtre, le son d'un onglet. Selon le PC (pilote,
+réglages de l'entreprise), l'un d'eux peut s'ouvrir sans erreur et ne rien laisser passer. Sur
+un PC d'entreprise Windows 11 avec Edge, le son de toutes les applications et celui de la
+fenêtre de Teams restaient muets alors que le son du système marchait. Lowsper écoute donc si du
+son passe vraiment : si rien n'arrive pendant 20 secondes, il propose les autres chemins.
+Cliquez sur **« Partager le son du système »**, choisissez l'écran entier et cochez le son.
+Lowsper retient le chemin qui a laissé passer du son et le demande d'emblée aux réunions
+suivantes. Le message peut aussi apparaître si personne n'a encore parlé ni rien joué : si la
+réunion n'a pas commencé, ignorez-le. Un clic reste nécessaire pour chaque nouveau partage : c'est
+une règle des navigateurs, aucune page web ne peut l'éviter.
 
 **Où régler le nombre de personnes ?**
 Dans les paramètres, rubrique « Transcription » : **« Nombre de personnes dans vos réunions »**.

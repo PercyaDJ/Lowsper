@@ -12,7 +12,11 @@
 //   6. Windows 11 (simulé) : le son de toutes les applications d'emblée, aucun message, bouton
 //      « Ajouter un onglet » (decision.md §52) ;
 //   7. bouton « Couper » du micro, dans la fenêtre et la mini-barre (decision.md §53) ;
-//   8. aucune requête réseau.
+//   8. PC d'entreprise (Windows 11, decision.md §55) : le son de toutes les applications s'ouvre
+//      sans erreur mais reste muet, le son du système marche. Au bout de 20 s, « Partager le son
+//      du système » est proposé ; une fois le son entendu, ce choix est retenu et la réunion
+//      suivante le demande d'emblée ;
+//   9. aucune requête réseau.
 // Prérequis : node build.mjs --embed whisper-small   (CHROMIUM_PATH si besoin)
 // Usage : node test/e2e-share.mjs
 import { chromium } from 'playwright-core';
@@ -34,7 +38,7 @@ const browser = await chromium.launch({
   ],
 });
 
-async function open(restrictKnown, windows11) {
+async function open(restrictKnown, windows11, mutedApps) {
   const context = await browser.newContext({ locale: 'fr-FR', viewport: { width: 900, height: 1000 } });
   const page = await context.newPage();
   const network = [];
@@ -43,7 +47,7 @@ async function open(restrictKnown, windows11) {
   });
   page.on('pageerror', (e) => console.log('[pageerror]', e.message));
   await context.addInitScript(
-    ([known, win11]) => {
+    ([known, win11, muted]) => {
       // Pas de mini-fenêtre automatique : la mini-barre reste dans la page, où le test la lit
       localStorage.setItem('lowsper.opt.autopip', '0');
       if (win11)
@@ -58,12 +62,17 @@ async function open(restrictKnown, windows11) {
         window.__asked.push(JSON.parse(JSON.stringify(opts)));
         const restrict = !!(opts.audio && opts.audio.restrictOwnAudio);
         // Le son du système passe par la sortie son de Windows : refusé, comme sur le PC du mainteneur
-        if (!restrict && (!opts.video || !opts.video.displaySurface || opts.video.displaySurface === 'monitor'))
+        if (
+          !muted &&
+          !restrict &&
+          (!opts.video || !opts.video.displaySurface || opts.video.displaySurface === 'monitor')
+        )
           throw new DOMException('Could not start audio source', 'NotReadableError');
         const ctx = new AudioContext();
         const osc = ctx.createOscillator();
         const dest = ctx.createMediaStreamDestination();
-        osc.connect(dest);
+        // PC d'entreprise (§55) : la copie par processus s'ouvre mais ne laisse rien passer
+        if (!(muted && restrict)) osc.connect(dest);
         osc.start();
         const track = dest.stream.getAudioTracks()[0];
         const settings = track.getSettings.bind(track);
@@ -73,7 +82,7 @@ async function open(restrictKnown, windows11) {
         return new MediaStream([track, ...video]);
       };
     },
-    [restrictKnown, !!windows11]
+    [restrictKnown, !!windows11, !!mutedApps]
   );
   await page.goto(pathToFileURL(join(root, 'Lowsper.html')).href);
   await page.waitForSelector('#engine[data-state="ready"]', { timeout: 180000 });
@@ -178,6 +187,45 @@ const pref = (page) => page.evaluate(() => localStorage.getItem('lowsper.share.s
   ]);
   if (back[0] !== 'false' || back[1] !== true) fail('micro non rétabli : ' + JSON.stringify(back));
   console.log('Micro coupé puis rétabli (fenêtre et mini-barre)');
+  if (network.length) fail('requêtes réseau : ' + network.join(', '));
+  await context.close();
+}
+
+// 8. PC d'entreprise : son de toutes les applications muet, son du système qui marche (§55)
+{
+  const { context, page, network } = await open(true, true, true);
+  // Choix laissé par la 4.9.0 sur ce PC : le son de toutes les applications
+  await page.evaluate(() => localStorage.setItem('lowsper.share.surface', 'apps'));
+  await startMeeting(page);
+  let asked = await page.evaluate(() => window.__asked);
+  if (asked.length !== 1 || !asked[0].audio.restrictOwnAudio)
+    fail('PC d’entreprise : restrictOwnAudio attendu d’abord');
+  await page.waitForTimeout(10000);
+  if (!(await page.isHidden('#rec-notice'))) fail('aucun message attendu avant 20 s');
+  await page.waitForSelector('#rec-notice:not([hidden])', { timeout: 20000 });
+  const b = await buttons(page);
+  console.log('Partage muet :', b.join(' | '));
+  if (b[0] !== 'Partager le son du système') fail('« Partager le son du système » attendu en premier');
+  if (!/Aucun son n'arrive/.test(await notice(page))) fail('message du partage muet attendu');
+  if ((await pref(page)) !== 'apps') fail('le choix ne doit pas changer avant que du son passe');
+  await page.click('#rec-notice button[data-mode="screen"]');
+  await page.waitForTimeout(1500);
+  asked = await page.evaluate(() => window.__asked);
+  const last = asked[asked.length - 1];
+  if (last.audio !== true) fail('son du système attendu : ' + JSON.stringify(last.audio));
+  if (!(await page.isHidden('#rec-notice'))) fail('message attendu masqué une fois le son capté');
+  if ((await pref(page)) !== 'system') fail('choix « system » attendu une fois le son entendu : ' + (await pref(page)));
+  console.log('Son du système capté et retenu');
+  await page.click('#stop');
+  await page.waitForSelector('#view-rec[hidden]', { timeout: 120000 }).catch(() => {});
+  await page.goto(pathToFileURL(join(root, 'Lowsper.html')).href);
+  await page.waitForSelector('#engine[data-state="ready"]', { timeout: 180000 });
+  await startMeeting(page);
+  asked = await page.evaluate(() => window.__asked);
+  if (asked.length !== 1 || asked[0].audio !== true) fail('réunion suivante : son du système attendu d’emblée');
+  await page.waitForTimeout(2000);
+  if ((await pref(page)) !== 'system') fail('choix « system » perdu');
+  console.log('Réunion suivante : son du système demandé d’emblée');
   if (network.length) fail('requêtes réseau : ' + network.join(', '));
   await context.close();
 }
