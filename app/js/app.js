@@ -690,6 +690,7 @@
     app.micTrack = mic ? mic.getAudioTracks()[0] : null;
     setMuted(false);
     if (others) attachSource('others', others);
+    watchSound(others);
 
     setState('recording');
     journal('début', {
@@ -1284,6 +1285,7 @@
     let msg;
     app.othersStartFailed = false;
     app.othersOffer = 'tab';
+    app.othersOffers = null;
     if (err && err.code === 'NO_AUDIO') {
       msg = tr('rec.noAudio');
     } else if (err && err.name === 'NotAllowedError') {
@@ -1323,11 +1325,40 @@
       sans_navigateur: !!stream._lowsperRestricted,
       ok: true,
     });
-    // Le son de toutes les applications reste le choix tant qu'il marche ; il n'est pas remplacé
-    // par l'écran entier, qui échouerait de nouveau sur ce PC
-    if (stream._lowsperAttempt === 'apps') store.set('lowsper.share.surface', 'apps');
-    else if (stream._lowsperSurface === 'monitor' || stream._lowsperSurface === 'window')
+    // Le son de toutes les applications n'est retenu que quand du son est vraiment passé
+    // (heardSound, decision.md §55) : une piste ouverte peut rester muette selon le PC. Le son du
+    // système retenu de cette façon ('system') n'est pas remplacé par la simple ouverture.
+    if (stream._lowsperAttempt === 'apps') return;
+    const pref = store.get('lowsper.share.surface');
+    if ((stream._lowsperSurface === 'monitor' || stream._lowsperSurface === 'window') && pref !== 'system')
       store.set('lowsper.share.surface', 'screen');
+  }
+
+  /**
+   * Suivi du son du partage principal (decision.md §55) : le chemin est retenu dès que du son y
+   * passe ; s'il reste muet SOUND_MUTED_S secondes, les autres chemins sont proposés, une fois.
+   */
+  function watchSound(stream) {
+    app.sound = stream ? { attempt: stream._lowsperAttempt, heard: false, offered: false } : null;
+    app.othersOffers = null;
+  }
+
+  function checkSound() {
+    const s = app.sound;
+    const c = s && app.capture.soundCheck('others');
+    if (!c || app.capture.paused) return;
+    if (c.heard && !s.heard) {
+      s.heard = true;
+      const learned = L.Meeting.soundLearned(s.attempt, app.windows11, L.canRestrictOwnAudio());
+      if (learned) store.set('lowsper.share.surface', learned);
+      journal('partage-son', { essai: s.attempt, son: 'entendu', retenu: learned });
+    }
+    if (L.Meeting.soundMuted({ attempt: s.attempt, heard: s.heard, elapsedS: c.elapsedS, offered: s.offered })) {
+      s.offered = true;
+      journal('partage-son', { essai: s.attempt, son: 'muet', secondes: Math.round(c.elapsedS) });
+      app.othersOffers = L.Meeting.soundOffers(s.attempt, L.canRestrictOwnAudio());
+      notice(tr('rec.soundMuted'), 'others');
+    }
   }
 
   /**
@@ -1338,6 +1369,8 @@
    */
   function shareMode() {
     const pref = store.get('lowsper.share.surface');
+    // Son du système retenu parce qu'il a laissé passer du son sur ce PC (decision.md §55)
+    if (pref === 'system') return 'screen';
     if (L.canRestrictOwnAudio() && pref !== 'tab' && (pref === 'apps' || app.windows11)) return 'apps';
     return pref === 'tab' ? 'tab' : 'screen';
   }
@@ -1351,6 +1384,7 @@
       const stream = await L.getSystemAudio(app.lastShareMode);
       rememberSurface(stream);
       attachSource('others', stream);
+      watchSound(stream);
       setMeter('others', 'on');
       $('rec-notice').hidden = true;
       labelAddSound(stream);
@@ -1370,8 +1404,10 @@
     if (retryFor === 'others' && navigator.mediaDevices.getDisplayMedia) {
       // Deux chemins : l'onglet de la visio (son pris dans le navigateur, quel que soit le casque),
       // ou l'écran entier et les fenêtres d'application (son passé par Windows)
-      const offers =
-        app.othersOffer === 'apps'
+      const label = { apps: 'rec.shareApps', tab: 'rec.shareTab', screen: 'rec.shareSystem' };
+      const offers = app.othersOffers
+        ? app.othersOffers.map((m) => [label[m], m])
+        : app.othersOffer === 'apps'
           ? [
               ['rec.shareApps', 'apps'],
               ['rec.shareTab', 'tab'],
@@ -1452,6 +1488,7 @@
 
   function tick() {
     if (!app.capture) return;
+    checkSound();
     // Minutes:secondes, comme la maquette ; les heures seulement au-delà d'une heure
     const full = L.formatTime(meetingNow());
     const short = full.startsWith('00:') ? full.slice(3) : full.replace(/^0/, '');

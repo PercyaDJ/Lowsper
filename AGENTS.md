@@ -110,7 +110,7 @@ Depuis `tools/`, Node.js 20 ou plus.
 | Décodage des fichiers importés, 7 formats (10 s, Chrome) ; `--long` : 3 h, mémoire | `npm run test:import` |
 | Bout en bout de l'import de fichiers (après `--embed`, 3 min) | `npm run test:e2e-import` |
 | Bout en bout des profils et des notes, faux dossier (après `--embed`, 5 min) | `npm run test:e2e-notes` |
-| Bout en bout du son de la réunion (refus de Windows, Windows 11, micro coupé), partage simulé (après `--embed`, 1 min, `decision.md` §51 à §53) | `npm run test:e2e-share` |
+| Bout en bout du son de la réunion (refus de Windows, Windows 11, micro coupé, chemin muet), partage simulé (après `--embed`, 2 min, `decision.md` §51 à §53 et §55) | `npm run test:e2e-share` |
 | Mesure de vitesse du moteur (après `node build.mjs --embed whisper-small`) | `npm run bench` |
 | Paquet de distribution `tools/dist/Lowsper-X.Y.Z.zip` (et son test) | `npm run release`, `npm run test:release` |
 | Captures d'écran de la documentation (après `--embed`, 5 min) | `node test/screenshots.mjs` |
@@ -149,7 +149,7 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 |---|---|
 | `Lowsper.html` | Page à ouvrir : interface et politique de sécurité (CSP) |
 | `app/js/theme.js` | Thème clair ou sombre (système par défaut, choix mémorisé), chargé dans `<head>` |
-| `app/js/meeting.js` | Contrôle d'état de la réunion (micro, coupé ou non, son, texte) et ses seuils (`decision.md` §28 et §53) |
+| `app/js/meeting.js` | Contrôle d'état de la réunion (micro, coupé ou non, son, texte) et ses seuils (`decision.md` §28 et §53) ; chemin du son muet, chemins suivants, chemin retenu (§55) |
 | `app/js/menu.js` | Menu dessiné par Lowsper, composant commun (clavier, lecteur d'écran) : langue, « Enregistrer la note dans », consigne de « Obtenir un résumé » |
 | `app/js/panel.js` | Paramètres : onglets, sous-écrans et listes à choix dessinées, composant commun (clavier, lecteur d'écran, `decision.md` §30) |
 | `app/js/recommend.js` | Détection du PC, moteurs autorisés, modèle recommandé au premier lancement (`decision.md` §26) |
@@ -157,7 +157,7 @@ Changer de révision d'un modèle : `node fetch-model.mjs <id> --update`, puis r
 | `app/js/browser.js` | Reconnaissance du navigateur (Brave, Edge, Chrome, Firefox) et messages quand l'écriture dans un dossier est impossible |
 | `app/js/engine.js` | Chargement des fichiers embarqués, moteur Whisper dans un Worker (glossaire, langue, reprise, boucles) |
 | `app/js/analyzer.js` | Détection de parole (Silero) et empreintes vocales (WeSpeaker), dans des Workers |
-| `app/js/capture.js` | Micro et partage d'écran (ouverts sans réglage obligatoire, plusieurs essais, son de toutes les applications d'emblée sous Windows 11, sinon après un refus de Windows, plusieurs sons additionnés, `decision.md` §46 à §48 et §51), rééchantillonnage 16 kHz, découpage en blocs, son gardé en mémoire |
+| `app/js/capture.js` | Micro et partage d'écran (ouverts sans réglage obligatoire, plusieurs essais, son de toutes les applications d'emblée sous Windows 11, sinon après un refus de Windows, plusieurs sons additionnés, son réellement entendu, `decision.md` §46 à §48, §51 et §55), rééchantillonnage 16 kHz, découpage en blocs, son gardé en mémoire |
 | `app/js/audiofile.js` | Fichiers importés : lecteurs de conteneur (WAV, MP3, AAC, M4A, Ogg, WebM), décodage WebCodecs en flux |
 | `app/js/speakers.js` | Distinction, regroupement et mémoire des voix (cinq empreintes au plus par personne, comparaison à la plus proche, `decision.md` §37) ; voix du micro (anti-écho) |
 | `app/js/extract.js` | Compte rendu extractif : phrases de décision, d'action et de question ouverte recopiées mot pour mot (règles en français et en anglais, `decision.md` §40) |

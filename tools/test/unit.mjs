@@ -1980,6 +1980,36 @@ await test('réunion : contrôle d’état, seuils réglés sur les corpus', asy
   assert.equal(c({ engineReady: false, engineError: 'x', delayS: 0 }).text.key, 'meet.textOk');
 });
 
+await test('son de la réunion : chemin muet, chemins suivants, choix retenu (§55)', () => {
+  const M = L.Meeting;
+  // Seuil : au-dessus du niveau le plus fort mesuré sur le chemin muet (0,000 affiché, donc
+  // < 0,0005) et loin sous la parole ; durée : plus du double du plus long silence naturel (8,3 s)
+  assert.equal(M.SOUND_RMS, 0.0005);
+  assert.ok(M.SOUND_MUTED_S >= 2 * 8.3);
+  const base = { attempt: 'apps', heard: false, elapsedS: M.SOUND_MUTED_S, offered: false };
+  assert.equal(M.soundMuted(base), true, 'rien en 20 s : muet');
+  assert.equal(M.soundMuted({ ...base, elapsedS: M.SOUND_MUTED_S - 1 }), false, 'trop tôt');
+  assert.equal(M.soundMuted({ ...base, heard: true }), false, 'du son est passé');
+  assert.equal(M.soundMuted({ ...base, offered: true }), false, 'une seule proposition par partage');
+  assert.equal(M.soundMuted({ ...base, attempt: null }), false, 'aucun partage');
+  assert.equal(M.soundMuted({ ...base, attempt: 'screen' }), true, 'vaut pour tous les chemins');
+  // Chemins suivants : tous les autres mécanismes de Windows, le chemin en échec exclu
+  const offers = (...a) => [...M.soundOffers(...a)];
+  assert.deepEqual(offers('apps', true), ['screen', 'tab']);
+  assert.deepEqual(offers('screen', true), ['apps', 'tab']);
+  assert.deepEqual(offers('simple', true), ['apps', 'tab']);
+  assert.deepEqual(offers('tab', true), ['apps', 'screen']);
+  assert.deepEqual(offers('screen', false), ['tab'], 'sans restrictOwnAudio');
+  assert.deepEqual(offers('tab', false), ['screen']);
+  // Choix retenu seulement quand du son est passé ; le son du système l'emporte sous Windows 11
+  assert.equal(M.soundLearned('apps', true, true), 'apps');
+  assert.equal(M.soundLearned('screen', true, true), 'system');
+  assert.equal(M.soundLearned('simple', true, true), 'system');
+  assert.equal(M.soundLearned('screen', false, true), 'screen');
+  assert.equal(M.soundLearned('screen', true, false), 'screen');
+  assert.equal(M.soundLearned('tab', true, true), null);
+});
+
 // --- Premier lancement : recommandation du modèle (decision.md §26) ---
 await test('recommandation : moteurs autorisés, formule inchangée (decision.md §15.12)', () => {
   const R = L.Recommend;

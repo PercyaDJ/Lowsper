@@ -495,11 +495,27 @@
       });
       // La source peut être branchée en cours de session : on aligne son horloge.
       segmenter.t = this.now();
-      const entry = { stream, src, resampler, segmenter, inputs: [{ stream, src }] };
+      // heard : du son est-il vraiment passé depuis l'ouverture ? Une piste peut s'ouvrir sans
+      // erreur et rester muette selon le PC (decision.md §55). Plus aucun calcul une fois entendu.
+      const entry = {
+        stream,
+        src,
+        resampler,
+        segmenter,
+        inputs: [{ stream, src }],
+        heard: false,
+        openedAt: this.now(),
+      };
+      const floor = (Lowsper.Meeting && Lowsper.Meeting.SOUND_RMS) || 0.0005;
       if (!this.recorders[id]) this.recorders[id] = new Recorder(this.now());
       const rec = this.recorders[id];
       rec.resync(this.now());
       const feed = (block) => {
+        if (!entry.heard && block.length) {
+          let sum = 0;
+          for (let i = 0; i < block.length; i++) sum += block[i] * block[i];
+          entry.heard = Math.sqrt(sum / block.length) >= floor;
+        }
         const samples = resampler.process(block);
         rec.push(samples);
         return segmenter.push(samples, this.paused);
@@ -522,6 +538,12 @@
         entry.mute = mute;
       }
       this.sources[id] = entry;
+    }
+
+    /** Du son est-il passé sur la source depuis son ouverture ? { heard, elapsedS }, ou null. */
+    soundCheck(id) {
+      const e = this.sources[id];
+      return e ? { heard: e.heard, elapsedS: this.now() - e.openedAt } : null;
     }
 
     // Niveau sonore lissé 0..1 pour les vumètres

@@ -50,6 +50,9 @@
   let ctx = null;
   const live = { o: null, m: null };
   const peaks = { o: 0, m: 0 };
+  // Trames contenant au moins un échantillon différent de zéro : distingue le silence numérique
+  // absolu (chemin muet) d'un son très faible (decision.md §55)
+  const nonzero = { o: 0, m: 0 };
 
   async function info() {
     log('Navigateur : ' + navigator.userAgent);
@@ -74,6 +77,7 @@
     ctx.createMediaStreamSource(stream).connect(an);
     live[id] = an;
     peaks[id] = 0;
+    nonzero[id] = 0;
   }
 
   function tick() {
@@ -85,6 +89,7 @@
         an.getFloatTimeDomainData(buf);
         rms = Math.sqrt(buf.reduce((s, x) => s + x * x, 0) / buf.length);
         peaks[id] = Math.max(peaks[id], rms);
+        if (buf.some((x) => x !== 0)) nonzero[id]++;
       }
       document.getElementById('m' + id).value = rms;
       document.getElementById('v' + id).textContent = an ? rms.toFixed(3) : '-';
@@ -110,7 +115,7 @@
       if (!a.length) return log(`${label} : partage accepté (surface ${surface}) mais SANS son`);
       log(`${label} : son obtenu, surface ${surface}, piste ${describe(a[0])}`);
       meter('o', new MediaStream(a));
-      setTimeout(() => log(`${label} : niveau le plus fort en 8 s : ${peaks.o.toFixed(3)} (0,000 : silence)`), 8000);
+      setTimeout(() => log(`${label} : niveau le plus fort en 8 s : ${peaks.o.toFixed(6)} ; trames non nulles : ${nonzero.o} (0 : silence absolu)`), 8000);
       a[0].onended = () => log(`${label} : partage arrêté`);
     } catch (e) {
       log(`${label} : ÉCHEC ${e.name} : ${e.message}`);
@@ -122,7 +127,7 @@
       const s = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       log('5 : micro ' + describe(s.getAudioTracks()[0]));
       meter('m', s);
-      setTimeout(() => log(`5 : niveau le plus fort du micro en 8 s : ${peaks.m.toFixed(3)}`), 8000);
+      setTimeout(() => log(`5 : niveau le plus fort du micro en 8 s : ${peaks.m.toFixed(6)} ; trames non nulles : ${nonzero.m}`), 8000);
     } catch (e) {
       log(`5 : ÉCHEC ${e.name} : ${e.message}`);
     }

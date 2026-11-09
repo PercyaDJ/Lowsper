@@ -13,6 +13,16 @@ Les détails techniques et les mesures sont dans `decision.md`.
 
 ## [Non publié]
 
+## [4.9.1] - 2026-11-09
+
+### Corrigé
+- Son de la réunion muet sur certains PC Windows 11 (Teams dans l'application, Edge) : le son de
+  toutes les applications s'ouvrait sans erreur mais ne laissait rien passer. Lowsper vérifie
+  désormais que du son passe vraiment ; sinon, au bout de 20 secondes, il propose « Partager le
+  son du système » et retient le chemin qui marche sur ce PC (decision.md §55).
+- Page d'essai `tools/test/son-systeme.html` : niveau en six décimales et nombre de trames non
+  nulles, pour distinguer un silence absolu d'un son très faible.
+
 ### Sécurité
 - Agent Lysbor mis à jour par son éditeur : le suivi des vulnérabilités s'arrêtait sur
   l'empreinte figée (le verrou a joué son rôle). Nouveau script relu en entier, empreinte

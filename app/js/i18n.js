@@ -642,6 +642,9 @@
     'rec.shareOthers': 'Partager le son des participants',
     'rec.shareTab': "Partager l'onglet de la visio",
     'rec.shareApps': 'Partager le son de toutes les applications',
+    'rec.shareSystem': 'Partager le son du système',
+    'rec.soundMuted':
+      "Aucun son n'arrive par ce partage depuis 20 secondes : sur certains PC, Windows ouvre ce chemin sans rien y laisser passer. Si la réunion a commencé, essayez un autre chemin ; Lowsper retiendra celui qui laisse passer le son. ",
     'rec.othersStartFailedApps':
       "Windows n'a pas laissé le navigateur capter le son de tout l'ordinateur ({error}). « Partager le son de toutes les applications » le prend dans chaque application plutôt qu'à la sortie son : choisissez de nouveau l'écran entier et cochez le son. Lowsper s'en souviendra pour les prochaines réunions. ",
     'rec.othersCaptured': 'Son des participants capté.',
@@ -1490,6 +1493,9 @@
     'rec.shareOthers': 'Share the sound of the other people',
     'rec.shareTab': 'Share the meeting tab',
     'rec.shareApps': 'Share the sound of all applications',
+    'rec.shareSystem': 'Share the system sound',
+    'rec.soundMuted':
+      'No sound has come through this sharing for 20 seconds: on some PCs, Windows opens this path without letting anything through. If the meeting has started, try another path; Lowsper will remember the one that lets the sound through. ',
     'rec.othersStartFailedApps':
       'Windows did not let the browser capture the sound of the whole computer ({error}). “Share the sound of all applications” takes it from each application instead of the sound output: choose the entire screen again and tick the sound. Lowsper will remember it for the next meetings. ',
     'rec.othersCaptured': 'Sound of the other people captured.',
